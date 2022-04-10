@@ -12,9 +12,9 @@
 *.xls*
 
 # Rcpp
-src/*.o
-src/*.so
-src/*.dll
+**/src/*.o
+**/src/*.so
+**/src/*.dll
 
 # User-specific files
 .Ruserdata
