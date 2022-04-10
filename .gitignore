@@ -2,10 +2,18 @@
 .Rhistory
 .Rapp.history
 
+# VScode
+.vscode
+
 # Session Data files
 .RData
-.fst
-.qs
+/*.fst
+/*.qs
+
+# Rcpp
+src/*.o
+src/*.so
+src/*.dll
 
 # User-specific files
 .Ruserdata
