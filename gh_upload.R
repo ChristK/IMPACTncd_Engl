@@ -1,11 +1,9 @@
 library(piggyback)
 tag <- "v0.0.1"
 repo <- "ChristK/IMPACTncd_Engl"
-# pb_new_release(repo, tag)
-fl <- list.files(getwd(), pattern = ".fst$|.xls$|.xlsx$", full.names = TRUE, recursive = TRUE)
+# pb_new_release(repo, tag) # Only need to run the first time a github repo is created
+fl <- list.files(getwd(), pattern = ".fst$|.xls$|.xlsx$.qs$", full.names = TRUE, recursive = TRUE)
 fl <- grep("secure_data", fl, value = TRUE, invert = TRUE)
-pb_track(fl)
-
-pb_upload(pb_track(), repo = repo, tag = tag)
+pb_upload(fl, repo = repo, tag = tag)
 
 pb_list(repo = repo, tag = tag)
