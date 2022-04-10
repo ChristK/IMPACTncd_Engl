@@ -860,22 +860,6 @@ SynthPop <-
 
             dt <- self$gen_synthpop_demog(design_, month = "April")
 
-            # Calculate local qimd (lqimd) ----
-            if (design_$sim_prm$logs) message("Calculate local qimd (lqimd)")
-            if ("England" %in% design_$sim_prm$locality) {
-              dt[, lqimd := qimd]
-            } else {
-              dt[, lqimd := cut(
-                imd,
-                breaks = quantile(imd, probs = 0:5 / 5, type = 5),
-                labels = c("1 most deprived", "2", "3", "4", "5 least deprived"),
-                include.lowest = TRUE,
-                right = TRUE
-              )]
-              CCG17CDH_ <- as.character(unique(dt$CCG17CDH))
-              # names(sort(table(as.character(dt$CCG17CDH)))[1]) # if more than one ccgs
-            }
-
             # NOTE!! from now on year in the short form i.e. 13 not 2013
             dt[, `:=`(pid  = .I)]
             new_n <- nrow(dt)
