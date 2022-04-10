@@ -7,8 +7,8 @@
 
 # Session Data files
 .RData
-/*.fst
-/*.qs
+*.fst
+*.qs
 
 # Rcpp
 src/*.o
