@@ -892,7 +892,8 @@ SynthPop <-
               rownames = "rn"
             )
 
-            tr <- which(colnames(cm_mean) %in% c("af_r", "ckd_r"))
+            tr <- which(colnames(cm_mean) %in%
+                          c("af_r", "ckd_r", "famcvd_r", "dm_r", "dm_dgn_r"))
             cm_mean <- cm_mean[-tr, -tr]
 
             rank_mtx <- generate_corr_unifs(new_n, cm_mean)
@@ -939,9 +940,6 @@ SynthPop <-
               "rank_bpmed",
               "rank_tchol",
               "rank_hdl",
-              "rankstat_famcvd",
-              "rank_t2dm",
-              "rankstat_t2dm_dgns",
               "rank_statin_px"
             ) := rank_mtx]
 
@@ -1548,86 +1546,6 @@ SynthPop <-
                        tchol_acc = NULL)]
 
 
-            # Generate family CVD dgn (BI) ----
-            if (design_$sim_prm$logs) message("Generate family CVD dgn")
-
-            tbl <-
-              read_fst("./inputs/exposure_distributions/famcvd_table.fst", as.data.table = TRUE)
-            col_nam <-
-              setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            absorb_dt(dt, tbl)
-            dt[, famcvd := as.integer(rankstat_famcvd < mu)]
-            dt[, rankstat_famcvd := NULL]
-            dt[, (col_nam) := NULL]
-
-
-            # Generate T2DM (BI) -----
-            if (design_$sim_prm$logs) message("Generate T2DM")
-
-            # Both dgn and undgn (move to apply on initial year only)
-            dt[, `:=` (bmi_acc = bmi,
-                       bmi = round(clamp(bmi, 18, 50)))]
-            tbl <-
-              read_fst("./inputs/exposure_distributions/dm_table.fst", as.data.table = TRUE)
-            tbl[, year := design_$sim_prm$init_year] # only estimate prevalence for 2013
-            col_nam <-
-              setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            absorb_dt(dt, tbl)
-            dt[, t2dm_prvl := as.integer(rank_t2dm < mu)]
-            setnafill(dt, "c", 0L, cols = "t2dm_prvl")
-            dt[, `:=` (rank_t2dm = NULL)]
-            dt[, (col_nam) := NULL]
-
-            # Generate probability of dgn T2DM (BI) -----
-            if (design_$sim_prm$logs) message("Generate probability of dgn T2DM")
-
-            dt[, `:=` (bmi = round(clamp(bmi, 18, 50), -1))]
-            tbl <-
-              read_fst("./inputs/exposure_distributions/dm_dgn_table.fst", as.data.table = TRUE)
-            tbl[, t2dm_prvl := 1L]
-            col_nam <-
-              setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            absorb_dt(dt, tbl)
-            dt[, t2dm_dgns := as.integer(rankstat_t2dm_dgns < mu)]
-            dt[, (col_nam) := NULL]
-
-
-            # t2dm duration (GPO)
-            tbl <-
-              read_fst("./inputs/exposure_distributions/dm_dur_table.fst", as.data.table = TRUE)
-            tbl[, t2dm_prvl := 1L]
-            col_nam <-
-              setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            absorb_dt(dt, tbl)
-            dt[t2dm_prvl == 1L, t2dm_prvl := 2L + rpois(.N, 3L) + qGPO(dqrunif(.N), mu, sigma)] # +2 to avoid confussion with incd
-            # rpois(.N, 3L) to assume 3 year mean period from onset till
-            # diagnosis because the model was fitted in diagnosed patients
-            dt[t2dm_prvl > age, t2dm_prvl := age]
-            dt[, (col_nam) := NULL]
-            dt[, t2dm_prvl := carry_backward(t2dm_prvl, pid_mrk)]
-            # dt[pid == 1, .(year, t2dm_prvl)]
-
-            # use qrisk diabetes for probability of t2dm incidence
-
-            # Generate family history of diabetes ------------
-            if (design_$sim_prm$logs) message("Generate family history of T2DM")
-
-            # If the prob of being diab is ~8%. So the probability of having at least
-            # one of 3 family members with diabetes is 1 - (1-0.08)^3.
-            # I let family members vary between 2 and 2+rpois(n, 1)
-            # This does not account for the future increase of diabetes prevalence.
-            # Therefore it underestimates. I assume diabetes prevalence will increase
-            # by 2% every year to adjust for that
-            tt <-
-              dt[year == design_$sim_prm$init_year &
-                   age > 40, prop_if(t2dm_prvl > 0L)] # t2dm prevalence
-            dt[, fam_t2dm :=
-                 rbinom(.N, 1, 1 - (1 - ((
-                   1.02 ^ (year - design_$sim_prm$init_year)
-                 ) * tt)) ^ (2 + rpois(.N, 1)))]
-
-
-
             # Estimate number of comorbidities (ncc) calculation ----
             # to be used in QALY
             if (design_$sim_prm$logs) message("Generate ncc")
@@ -1641,10 +1559,6 @@ SynthPop <-
             # target by agegrp 1.1  1.6  2.4  3.1  4.0  4.4 from
 
             dt[, `:=` (
-              bmi = bmi_acc,
-              bmi_acc = NULL,
-              rankstat_t2dm_dgns = NULL,
-              # fam_t2dm = NULL,
               pid_mrk = NULL,
               # to be recreated when loading synthpop
               rankstat_ncc = NULL
@@ -1688,8 +1602,7 @@ SynthPop <-
               "sbp",
               "bpmed",
               "tchol",
-              "statin_px",
-              "t2dm_prvl"
+              "statin_px"
             )
             exps_nam <-  paste0(exps_tolag, "_curr_xps")
             setnames(dt, exps_tolag, exps_nam)
