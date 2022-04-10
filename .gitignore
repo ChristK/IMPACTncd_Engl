@@ -51,3 +51,5 @@ vignettes/*.pdf
 # IMPACTncd specific
 /outputs/
 /secure_data/
+DELETEme*
+*.png
