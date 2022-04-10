@@ -1,0 +1,33 @@
+Package: IMPACTncdEnglmisc
+Type: Package
+Title: Utility Functions for IMPACTncdEngl Model
+Version: 0.0.2
+Date: 2022-04-14
+Author: Chris Kypridemos
+Maintainer: Chris Kypridemos <christodoulosk@gmail.com>
+Description: This package contains the functions that are necessary for IMPACTncdEngl model. 
+License: GPL (>=3)
+Encoding: UTF-8
+LazyData: true
+NeedsCompilation: yes
+Byte-Compile: yes
+Imports: Rcpp (>= 1.0.2),
+         data.table (>= 1.14.0),
+         fst (>= 0.9.0),
+         dqrng,
+         CKutils, 
+         gamlss,
+         cowplot,
+         mc2d,
+         digest,
+         R6,
+         yaml,
+         shinythemes,
+         foreach,
+         BH
+LinkingTo: Rcpp, 
+           dqrng,
+           sitmo,
+           BH,
+           data.table
+RoxygenNote: 7.1.2
