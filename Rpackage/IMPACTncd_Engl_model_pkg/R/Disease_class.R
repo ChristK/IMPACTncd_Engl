@@ -1,0 +1,1498 @@
+## IMPACTncdEngl is an implementation of the IMPACTncd framework, developed by Chris
+## Kypridemos with contributions from Peter Crowther (Melandra Ltd), Maria
+## Guzman-Castillo, Amandine Robert, and Piotr Bandosz. This work has been
+## funded by NIHR  HTA Project: 16/165/01 - IMPACTncdEngl: Health Outcomes
+## Research Simulation Environment.  The views expressed are those of the
+## authors and not necessarily those of the NHS, the NIHR or the Department of
+## Health.
+##
+## Copyright (C) 2018-2020 University of Liverpool, Chris Kypridemos
+##
+## IMPACTncdEngl is free software; you can redistribute it and/or modify it under
+## the terms of the GNU General Public License as published by the Free Software
+## Foundation; either version 3 of the License, or (at your option) any later
+## version. This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+## FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+## details. You should have received a copy of the GNU General Public License
+## along with this program; if not, see <http://www.gnu.org/licenses/> or write
+## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+## Boston, MA 02110-1301 USA.
+
+
+#' R6 Class representing an disease
+#'
+#' @description
+#' A disease has a sim_prm list that holds the simulation parameters.
+#'
+#' @details
+#' To be completed...
+#'
+#' @export
+Disease <-
+  R6::R6Class(
+    classname = "Disease",
+    # cloneable = FALSE, # cloneable is necessary for multi threading
+    # public ------------------------------------------------------------------
+    public = list(
+      #' @field name The name of the disease.
+      name = NA_character_,
+      #' @field friendly_name A friendly name for the disease.
+      friendly_name = NA_character_,
+      #' @field meta Disease metadata including type.
+      meta = NA_integer_,
+      #' @field notes Any notes regarding the disease.
+      notes = NA_character_,
+
+      #' @description Create a new disease object.
+      #' @param name A string with disease name.
+      #' @param friendly_name A string with disease friendly name.
+      #' @param meta A list with the disease type and other information for
+      #'   incidence, diagnosis, and mortality.
+      #' @param notes A string with any notes.
+      #' @param design_ A design object with the simulation parameters.
+      #' @return A new `Disease` object.
+
+      initialize = function(name, friendly_name, meta,
+                            notes = NA_character_, design_ = design) {
+        if (!inherits(design_, "Design")) {
+          stop("Argument design needs to be a Design object.")
+        }
+        if (!(is.character(name) && is.character(friendly_name))) {
+          stop("Both arguments need to be strings.")
+        }
+
+        self$name <- name
+        self$friendly_name <- friendly_name
+        self$meta <- meta
+        self$notes <- notes
+
+        dqRNGkind("pcg64")
+        private$seed <- abs(digest2int(name, seed = 230565490L))
+
+
+        if (is.numeric(meta$incidence$type)) {
+          private$filenams$incd <- file.path(
+            getwd(), "inputs", "disease_burden",
+            paste0(self$name, "_incd", ".fst")
+          )
+          private$filenams$prvl <- file.path(
+            getwd(), "inputs", "disease_burden",
+            paste0(self$name, "_prvl", ".fst")
+          )
+          private$filenams$dur <- file.path(
+            getwd(), "inputs", "disease_burden",
+            paste0(self$name, "_dur", ".fst")
+          )
+        }
+        if (is.numeric(meta$mortality$type)) {
+          private$filenams$ftlt <- file.path(
+            getwd(), "inputs", "disease_burden",
+            paste0(self$name, "_ftlt", ".fst")
+          )
+        }
+
+
+        keys <- lapply(private$filenams[names(private$filenams) != "dur"], function(x) metadata_fst(x)$keys[[1]])
+
+        if (!all(sapply(keys, identical, "year"))) stop("1st key need to be year")
+
+        if (is.numeric(meta$incidence$type)) {
+          private$incd_indx <-
+            read_fst(private$filenams$incd, as.data.table = TRUE)[, .(from = min(.I), to = max(.I)), keyby = "year"]
+          private$prvl_indx <-
+            read_fst(private$filenams$prvl, as.data.table = TRUE)[, .(from = min(.I), to = max(.I)), keyby = "year"]
+        }
+        if (is.numeric(meta$mortality$type)) {
+          private$ftlt_indx <-
+            read_fst(private$filenams$ftlt, as.data.table = TRUE)[, .(from = min(.I), to = max(.I)), keyby = "year"]
+        }
+
+        nam <- paste0("prb_", self$name, "_incd")
+        if (self$meta$incidence$type == 3) {
+          nam <- paste0(
+            nam, "_no",
+            paste(self$meta$incidence$influenced_by_disease_name,
+              collapse = ""
+            )
+          )
+        }
+        private$incd_colnam <- nam
+        private$dgns_colnam <- paste0("prb_", self$name, "_dgns")
+
+        invisible(self)
+      },
+
+      #' @description Get disease incident probability.
+      #' @param design_ A design object with the simulation parameters.
+      #' @param RR A list of Exposure objects.
+      #' @param popsize The population size for each stratum
+      #' @param check Check for NAs in parf_dt.
+      #' @return The invisible self for chaining.
+
+      gen_parf = function(design_ = design, RR = RR,
+                          popsize = 100, check = design_$sim_prm$logs) {
+        if (!inherits(design_, "Design")) {
+          stop("Argument design_ needs to be a Design object.")
+        }
+        if (!all(sapply(RR, inherits, "Exposure"))) {
+          stop("Argument RR needs to be a list of exposure object.")
+        }
+
+        # Generate unique name using the relevant RR and lags
+        xps <- sapply(RR, `[[`, "outcome") == self$name
+        rr <- RR[xps] # only contains exposures for disease
+
+        checksum <-
+          digest(list(
+            design_$sim_prm[c("init_year", "ageL", "ageH")],
+            lapply(rr, function(x) x$get_input_rr()),
+            lapply(rr, `[[`, "lag"),
+            lapply(rr, `[[`, "distribution")
+          ),
+          seed = 305834490L
+          )
+
+        dir_path <- file.path(getwd(), "simulation", "parameters")
+
+        parf_filenam <- file.path(
+          dir_path,
+          paste0("PARF_", self$name, "_", checksum, ".fst")
+        )
+
+        if (!file.exists(parf_filenam)) {
+          # start if file not exist
+          # NOTE multicore crashes
+          if (sum(dim(private$incd_indx)) > 0) {
+            ttt <- self$get_incd(design_$sim_prm$init_year)
+          } else {
+            ttt <- self$get_ftlt(design_$sim_prm$init_year)
+          }
+
+          ttt <- CJ(
+            age = seq(design_$sim_prm$ageL, design_$sim_prm$ageH),
+            sex = levels(ttt$sex),
+            dimd = levels(ttt$dimd),
+            ethnicity = levels(ttt$ethnicity),
+            sha = levels(ttt$sha),
+            year = design_$sim_prm$init_year
+          )
+
+          ttt[, qimd := fcase(
+            dimd == "1 most deprived",  "1 most deprived",
+            dimd == "2",  "1 most deprived",
+            dimd == "3",  "2",
+            dimd == "4",  "2",
+            dimd == "5",  "3",
+            dimd == "6",  "3",
+            dimd == "7",  "4",
+            dimd == "8",  "4",
+            dimd == "9",  "5 least deprived",
+            dimd == "10 least deprived", "5 least deprived"
+          )]
+          ttt[, qimd := factor(qimd,
+            levels = c(
+              "1 most deprived",
+              as.character(2:4),
+              "5 least deprived"
+            )
+          )]
+
+          ttt <- clone_dt(ttt, 10)
+
+          # NOTE future and mclapply do not work here for some reason
+          if (Sys.info()["sysname"] == "Windows") {
+            cl <-
+              makeCluster(design_$sim_prm$clusternumber) # used for clustering. Windows compatible
+            registerDoParallel(cl)
+          } else {
+            registerDoParallel(design_$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
+          }
+          xps_dt <- foreach(
+            mc_iter = seq(1, (popsize/10L)),
+            .inorder = FALSE,
+            .verbose = design_$sim_prm$logs,
+            .packages = c(
+              "R6",
+              "gamlss.dist",
+              "dqrng",
+              # "qs",
+              # "fst",
+              "CKutils",
+              "IMPACTncdEnglmisc",
+              "data.table"
+            ),
+            .export = NULL,
+            .noexport = NULL # c("time_mark")
+          ) %dopar% {
+
+            private$gen_sp_forPARF(mc_iter, ff = ttt, design_ = design_, rr = rr)
+
+          }
+          if (exists("cl")) stopCluster(cl)
+
+          if (design_$sim_prm$logs) message("End of parallelisation.")
+
+          ans <- list()
+          setattr(ans, "class", "SynthPop") # to dispatch
+          ans$pop <- rbindlist(xps_dt)
+          ans$mc <- 0L
+          ans$mc_aggr <- 0L
+
+          self$set_rr(ans, rr, design_, forPARF = TRUE)
+
+          nam <- grep("_rr$", names(ans$pop), value = TRUE)
+
+
+          parf_dt <-
+            ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
+              .(parf = 1 - 1 / (sum(Reduce(`*`, mget(nam))) / .N)),
+              keyby = .(age, sex, dimd, ethnicity, sha)
+            ]
+
+          if (sum(dim(private$incd_indx)) > 0) {
+            tt <- self$get_incd(design_$sim_prm$init_year)
+            nam <- "p0"
+          } else {
+            tt <- self$get_ftlt(design_$sim_prm$init_year)
+            setnames(tt, "mu2", "mu")
+            nam <- "m0"
+          }
+
+          absorb_dt(parf_dt, tt)
+          parf_dt[, (nam) := mu * (1 - parf)]
+          if (check && anyNA(parf_dt)) {
+            warning("NAs in parf. Replacing any missing p0 with incidence.")
+            parf_dt[is.na(get(nam)), (nam) := mu]
+          }
+          parf_dt[, c("year", "mu") := NULL]
+
+          if (!dir.exists(dir_path)) {
+            dir.create(dir_path, showWarnings = FALSE, recursive = TRUE)
+          }
+          write_fst(parf_dt, parf_filenam)
+        } # end if file not exist
+
+        private$parf <- read_fst(parf_filenam, as.data.table = TRUE)
+
+        invisible(self)
+      },
+
+      #' @description Deletes the PARF file from disk. If both arguments
+      #'   missing, deletes ALL parf files for this disease.
+      #' @param design_ A design object with the simulation parameters.
+      #' @param RR A list of Exposure objects.
+      #' @param invert deletes all other disease relevant PARF file except those
+      #'   that are associated to the curent settings.
+      #' @return The invisible self for chaining.
+
+      del_parf_file = function(design_ = design, RR = RR, invert = FALSE) {
+        if (!missing(design_) && !missing(RR)) {
+          if (!inherits(design_, "Design")) {
+            stop("Argument design_ needs to be a Design object.")
+          }
+          if (!all(sapply(RR, inherits, "Exposure"))) {
+            stop("Argument RR needs to be a list of exposure object.")
+          }
+
+          # Generate unique name for the RR and lags
+          xps <- sapply(RR, `[[`, "outcome") == self$name
+          rr <- RR[xps] # only contains exposures for disease
+
+          checksum <-
+            digest(list(
+              design_$sim_prm[c("init_year", "ageL", "ageH")],
+              lapply(rr, function(x) x$get_input_rr()),
+              lapply(rr, `[[`, "lag"),
+              lapply(rr, `[[`, "distribution")
+            ),
+            seed = 305834490L
+            )
+          dir_path <- file.path(getwd(), "simulation", "parameters")
+
+          parf_filenam <- file.path(
+            dir_path,
+            paste0("PARF_", self$name, "_", checksum, ".fst")
+          )
+
+          if (invert) {
+            parf_filenam2 <- list.files(dir_path,
+                                        pattern = paste0(
+                                          "^PARF_",
+                                          self$name, ".*\\.fst$"
+                                        ),
+                                        full.names = TRUE
+            )
+
+            parf_filenam <- setdiff(parf_filenam2, parf_filenam)
+          }
+
+          file.remove(parf_filenam)
+        } else {
+          dir_path <- file.path(getwd(), "simulation", "parameters")
+          parf_filenams <- list.files(dir_path,
+            pattern = paste0(
+              "^PARF_",
+              self$name, ".*\\.fst$"
+            ),
+            full.names = TRUE
+          )
+          file.remove(parf_filenams)
+        }
+        invisible(self)
+      },
+
+      #' @description Get disease incident probability.
+      #' @param year_ A vector of years to return. All if missing.
+      #' @return A data.table with disease incident probabilities unless
+      #'   incidence type: Universal when it returns data.table(NULL).
+      get_incd = function(year_) {
+        if (sum(dim(private$incd_indx)) > 0) {
+          if (missing(year_)) {
+            ro <- list(from = 1, to = NULL)
+          } else {
+            ro <- private$incd_indx[
+              year %in% sort(year_),
+              .("from" = min(from), "to" = max(to))
+            ]
+          }
+          out <- read_fst(
+            private$filenams$incd,
+            as.data.table = TRUE,
+            from = ro$from,
+            to = ro$to
+          )
+        } else {
+          print(self$meta$incidence$type)
+          out <- data.table(NULL)
+        }
+        return(out)
+      },
+
+
+      #' @description Set disease incidence probability in a new col in sp$pop.
+      #' @param sp A synthetic population.
+      #' @param RR A list of Exposure objects.
+      #' @param design_ A design object with the simulation parameters.
+      #' @param checkNAs If `TRUE`, prints the table of NAs before they get
+      #'   overwritten with 1. Note that for some exposures, NAs are expected
+      #'   for certain levels of exposure (i.e. for active days).
+      #' @param forPARF Set TRUE when applied on the specialised forPARF
+      #'   SynthPop
+      #' @return The invisible self for chaining.
+
+      set_rr = function(sp, RR = RR, design_ = design, checkNAs = design_$sim_prm$logs,
+                        forPARF = FALSE) {
+        if (!inherits(sp, "SynthPop")) {
+          stop("Argument sp needs to be a SynthPop object.")
+        }
+        if (!inherits(design_, "Design")) {
+          stop("Argument design_ needs to be a Design object.")
+        }
+        if (!all(sapply(RR, inherits, "Exposure"))) {
+          stop("Argument RR needs to be a list of exposure object.")
+        }
+
+        for (i in RR) {
+          if (i$outcome == self$name) {
+            i$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF)
+          }
+        }
+
+        if (!forPARF) {
+          nam <- grep("_rr$", names(sp$pop), value = TRUE)
+          private$risks <- sp$pop[, .SD, .SDcols = c("pid", "year", nam)]
+          sp$pop[, (nam) := NULL]
+        }
+        return(invisible(self))
+      },
+
+
+      #' @description Set disease incident probability in a new col in sp$pop.
+      #' @param sp A synthetic population.
+      #' @param design_ A design object with the simulation parameters.
+      #' @return The invisible self for chaining.
+      set_incd_prb = function(sp, design_ = design) {
+        if (is.numeric(self$meta$incidence$type)) {
+          if (!inherits(design_, "Design")) {
+            stop("Argument design_ needs to be a Design object.")
+          }
+          if (!inherits(sp, "SynthPop")) {
+            stop("Argument sp needs to be a SynthPop object.")
+          }
+          # check that the stored risks are for the sp (i.e. no rows deleted)
+          if (!identical(sp$pop$pid, private$risks$pid)) {
+            stop("Stored risks are for a different synthetic population")
+          }
+
+
+          if (private$incd_colnam %in% names(sp$pop)) {
+            stop(
+              "A column named ", nam,
+              " already exists in sp$pop. ",
+              "Please delete it and run set_init_prvl() afterwards."
+            )
+          }
+
+
+
+          # Get colnames in risk that end with _rr but exclude the influence by
+          # diseases
+          if (self$meta$incidence$type == 3) {
+            riskcolnam <- grep(
+              paste0(
+                "^((?!",
+                paste(self$meta$incidence$influenced_by_disease_name,
+                  collapse = "|"
+                ),
+                ").)*_rr$"
+              ),
+              names(private$risks),
+              value = TRUE,
+              perl = TRUE
+            )
+          } else {
+            riskcolnam <- grep("_rr$",
+              names(private$risks),
+              value = TRUE,
+              perl = TRUE
+            )
+          }
+          risk_product <- private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam]
+          absorb_dt(sp$pop, private$parf)
+          set(sp$pop, NULL, private$incd_colnam, clamp(sp$pop$p0 * risk_product))
+          # NOTE product above not expected to be = to incidence because p0
+          # estimated using mean lags and RR, while each mc run samples from
+          # their distribution.
+
+          if (design_$sim_prm$export_PARF) {
+            path <- file.path(design_$sim_prm$output_dir, "parf")
+            filenam <- file.path(path, "parf.csv")
+            if (!dir.exists(path)) {
+              dir.create(path, showWarnings = FALSE, recursive = TRUE)
+            }
+            parf_dt <- sp$pop[, .(parf = unique(parf), pop_size = sum(wt)),
+              keyby = .(age, sex, dimd, ethnicity, sha)
+            ]
+            parf_dt[, `:=`(disease = self$name, mc = sp$mc)] # not sp$mc_aggr
+            # EXAMPLE parf[, weighted.mean(parf, pop_size), keyby = sex]
+            fwrite_safe(parf_dt, filenam)
+          }
+
+          sp$pop[, c("p0", "parf") := NULL]
+        } # End if incident$type numeric
+        invisible(self)
+      },
+
+      #' @description Get disease prevalent probability.
+      #' @param year_ A vector of years to return. All if missing.
+      #' @return A data.table with disease prevalent probabilities unless
+      #'   incidence type: Universal when it returns data.table(NULL).
+      get_prvl = function(year_) {
+        if (sum(dim(private$prvl_indx)) > 0) {
+          if (missing(year_)) {
+            ro <- list(from = 1, to = NULL)
+          } else {
+            ro <- private$prvl_indx[
+              year %in% sort(year_),
+              .("from" = min(from), "to" = max(to))
+            ]
+          }
+          out <- read_fst(
+            private$filenams$prvl,
+            as.data.table = TRUE,
+            from = ro$from,
+            to = ro$to
+          )
+        } else {
+          print(self$meta$incidence$type)
+          out <- data.table(NULL)
+        }
+        return(out)
+      },
+
+      #' @description Set disease prevalence & diagnosisin a new col in sp$pop.
+      #' @param sp A synthetic population.
+      #' @param design_ A design object with the simulation parameters.
+      #' @return The invisible self for chaining.
+      set_init_prvl = function(sp, design_ = design) {
+        # TODO correlate with other diseases prevalence
+        if (is.numeric(self$meta$incidence$type)) {
+          if (!inherits(sp, "SynthPop")) {
+            stop("Argument sp needs to be a SynthPop object.")
+          }
+          if (!inherits(design_, "Design")) {
+            stop("Argument design_ needs to be a Design object.")
+          }
+
+          namprvl <- paste0(self$name, "_prvl")
+          if (namprvl %in% names(sp$pop)) {
+            stop(
+              "A column named ", namprvl,
+              " already exists in sp$pop. Please delete it and run set_init_prvl() afterwards."
+            )
+          }
+
+          dqRNGkind("pcg64")
+          dqset.seed(private$seed, stream = sp$mc * 10 + 1L) # not mc_aggr
+
+          tbl <- self$get_prvl(design_$sim_prm$init_year)
+          sp$pop[tbl, on = .NATURAL, mu := i.mu]
+          sp$pop[
+            year == design_$sim_prm$init_year,
+            (namprvl) := as.integer(dqrunif(.N) < mu)
+          ]
+          # for new entries we assume no time trends on initial prevalence
+          tbl <- tbl[age == design_$sim_prm$ageL][, year := NULL]
+          sp$pop[tbl, on = .NATURAL, mu := i.mu]
+          sp$pop[
+            year > design_$sim_prm$init_year &
+              age == design_$sim_prm$ageL,
+            (namprvl) := as.integer(dqrunif(.N) < mu)
+          ]
+          setnafill(sp$pop, "c", 0L, cols = namprvl)
+          sp$pop[, mu := NULL]
+
+          # set duration
+          dqset.seed(private$seed, stream = sp$mc * 10 + 2L) # not mc_aggr
+          tbl <- read_fst(private$filenams$dur, as.data.table = TRUE)
+          col_nam <- setdiff(names(tbl), intersect(names(sp$pop), names(tbl)))
+          tbl[, (namprvl) := 1L]
+          absorb_dt(sp$pop, tbl)
+          fn <- paste0("q", self$meta$diagnosis$duration_distr)
+          sp$pop[get(namprvl) == 1L,
+                 (namprvl) := 1L + do.call(fn, c(p = list(dqrunif(.N)), .SD)),
+                 .SDcols = col_nam]
+          sp$pop[, (col_nam) := NULL]
+          sp$pop[, (namprvl) := carry_backward(get(namprvl), pid_mrk)] # necessary for c++
+
+          # TODO this only makes sense when probability of diagnosis is 1
+          namdgns <- paste0(self$name, "_dgns")
+          set(sp$pop, NULL, namdgns, 0L)
+          sp$pop[
+            get(namprvl) > 0 & year == design_$sim_prm$init_year & dqrunif(.N) < self$meta$diagnosis$probability,
+            (namdgns) := get(namprvl)
+          ]
+          sp$pop[, (namdgns) := carry_backward(get(namdgns), pid_mrk)]
+        }
+
+        invisible(self)
+      },
+
+
+
+      #' @description Get disease case fatality probability.
+      #' @param year_ A vector of years to return. All if missing.
+      #' @return A data.table with disease case fatality probabilities unless
+      #'   mortality type: Non-fatal when it returns data.table(NULL).
+      get_ftlt = function(year_) {
+        if (sum(dim(private$ftlt_indx)) > 0) {
+          if (missing(year_)) {
+            ro <- list(from = 1, to = NULL)
+          } else {
+            ro <- private$ftlt_indx[
+              year %in% sort(year_),
+              .("from" = min(from), "to" = max(to))
+            ]
+          }
+          out <- read_fst(
+            private$filenams$ftlt,
+            as.data.table = TRUE,
+            from = ro$from,
+            to = ro$to
+          )
+        } else {
+          print(self$meta$mortality$type)
+          out <- data.table(NULL)
+        }
+        return(out)
+      },
+
+
+      #' @description Set disease case fatality in a new col in sp$pop.
+      #' @param sp A synthetic population.
+      #' @param design_ A design object with the simulation parameters.
+      #' @return The invisible self for chaining.
+
+      set_mrtl_prb = function(sp, design_ = design) {
+        if (is.numeric(self$meta$mortality$type)) {
+          if (!inherits(sp, "SynthPop")) {
+            stop("Argument sp needs to be a SynthPop object.")
+          }
+          if (!inherits(design_, "Design")) {
+            stop("Argument design_ needs to be a Design object.")
+          }
+
+          tt <-
+            self$get_ftlt(seq(design_$sim_prm$init_year, sp$pop[, max(year)]))
+          if (!"mu1" %in% names(tt)) {
+            nam <- paste0("prb_", self$name, "_mrtl2")
+            setnames(tt, "mu2", nam)
+          } else {
+            nam <- paste0("prb_", self$name, "_mrtl", 1:2)
+            setnames(tt, c("mu1", "mu2"), nam)
+            private$mrtl2flag <- TRUE
+          }
+
+          absorb_dt(sp$pop, tt)
+          setnafill(sp$pop,
+            type = "const",
+            fill = 0,
+            cols = nam
+          )
+        }
+        invisible(self)
+      },
+
+      #' @description Set diagnosis probability in a new col in sp$pop.
+      #' @param sp A synthetic population.
+      #' @param design_ A design object with the simulation parameters.
+      #' @return The invisible self for chaining.
+
+      set_dgns_prb = function(sp, design_ = design) {
+        if (is.numeric(self$meta$diagnosis$type)) {
+          if (!inherits(sp, "SynthPop")) {
+            stop("Argument sp needs to be a SynthPop object.")
+          }
+          if (!inherits(design_, "Design")) {
+            stop("Argument design_ needs to be a Design object.")
+          }
+
+          set(sp$pop, NULL, private$dgns_colnam, self$meta$diagnosis$probability)
+        }
+
+        invisible(self)
+      },
+
+
+      #' @description Get seed for RNG.
+      #' @return A seed for the RNG that is produced by the digest of disease
+      #'   name and outcome.
+      get_seed = function() {
+        private$seed
+      },
+
+      #' @description Get the risks for all individuals in a synthetic
+      #'   population.
+      #' @return A data.table with columns for pid, year, and all associated
+      #'   risks.
+      get_risks = function() {
+        private$risks
+      },
+
+      #' @description Get the PARF by age/sex/dimd/ethnicity/sha.
+      #' @return A data.table with PARF.
+      get_parf = function() {
+        private$parf
+      },
+
+      #' @description Harmonises classes and levels between the synthetic
+      #'   population and the incidence/prevalence/fatality tables. It saves the
+      #'   harmonised table to disk, overwriting the existing one.
+      #' @param sp A synthetic population.
+      #' @return The invisible self for chaining.
+
+      harmonise_epi_tables = function(sp) {
+        if (!inherits(sp, "SynthPop")) {
+          stop("Argument sp needs to be a SynthPop object.")
+        }
+
+        for (i in seq_along(private$filenams)) {
+          tbl <- read_fst(private$filenams[[i]], as.data.table = TRUE)
+          k <- key(tbl)
+          for (j in names(tbl)) {
+            if (j %in% names(sp$pop)) {
+              if (inherits(sp$pop[[j]], "integer") && !inherits(tbl[[j]], "integer")) {
+                tbl[, (j) := as.integer(get(j))]
+              }
+              if (inherits(sp$pop[[j]], "numeric") && !inherits(tbl[[j]], "numeric")) {
+                tbl[, (j) := as.numeric(get(j))]
+              }
+              if (inherits(sp$pop[[j]], "character") && !inherits(tbl[[j]], "character")) {
+                tbl[, (j) := as.character(get(j))]
+              }
+              if (inherits(sp$pop[[j]], "factor")) {
+                # irrespective of class(j) to make sure that levels are the same
+                # and in the right order.
+                if (j == "dimd" && levels(tbl[[j]])[1] != "1 most deprived") {
+                  tbl[, (j) := factor(get(j), levels = as.character(10:1), labels = levels(sp$pop[[j]]))]
+                } else {
+                  tbl[, (j) := factor(get(j), levels = levels(sp$pop[[j]]))]
+                }
+              }
+            }
+          }
+
+          if (grepl("_ftlt.fst$", private$filenams[[i]]) &&
+            "mu" %in% names(tbl)) {
+            setnames(tbl, "mu", "mu2")
+          }
+
+          if (anyNA(tbl)) stop("NAs in ", private$filenams[[i]])
+          setkeyv(tbl, k)
+          write_fst(tbl, private$filenams[[i]])
+        }
+      },
+
+      #' @description Returns a list to pass to the C++ side for Chris' parser.
+      #' @param sp A synthetic population.
+      #' @param RR A list of Exposure objects.
+      #' @param design_ A design object with the simulation parameters.
+      #' @param scenario_suffix the suffix to identify columns from different
+      #'   scenarios
+      #' @return A list.
+
+      to_cpp = function(sp, RR = RR, design_ = design, scenario_suffix = "") {
+        if (!inherits(sp, "SynthPop")) {
+          stop("Argument sp needs to be a SynthPop object.")
+        }
+        if (!inherits(design_, "Design")) {
+          stop("Argument design_ needs to be a Design object.")
+        }
+        if (!all(sapply(RR, inherits, "Exposure"))) {
+          stop("Argument RR needs to be a list of exposure object.")
+        }
+
+        out <- list()
+        out <-
+          list(
+            "incidence" = NULL,
+            "diagnosis" = NULL,
+            "mortality" = NULL,
+            "seed" = fifelse(
+              design_$sim_prm$kismet,
+              private$seed,
+              abs(digest2int(
+                paste0(self$name, scenario_suffix),
+                seed = 230565490L
+              ))
+            )
+          )
+
+
+        out[["incidence"]] <- list(
+          "type" = fifelse(
+            is.numeric(self$meta$incidence$type),
+            paste0("Type", self$meta$incidence$type),
+            as.character(self$meta$incidence$type)
+          ),
+          "prevalence" = paste0(self$name, "_prvl", scenario_suffix),
+          "probability" = paste0(private$incd_colnam, scenario_suffix),
+          # "rn" = paste0(
+          #   "rn_",
+          #   self$name,
+          #   "_incd",
+          #   fifelse(design_$sim_prm$kismet, "", scenario_suffix)
+          # ),
+          "can_recur" = self$meta$incidence$can_recur
+        )
+        if (is.null(out$incidence$can_recur)) out$incidence <- within(out$incidence, rm("can_recur"))
+        if (out$incidence$type == "Universal") out$incidence <- within(out$incidence, rm("prevalence", "probability"))
+
+        if (self$meta$incidence$type == 3) {
+          influenced_by_incd <- list()
+
+          for (i in self$meta$incidence$influenced_by_disease_name) {
+            influenced_by_incd[[paste0(i, "_prvl")]] <-
+              list(
+                "multiplier" = paste0(self$name, "_incd_", i, "_prvl_mltp"),
+                "lag" = RR[[paste0(i, "_prvl", "~", self$name)]]$get_lag(fifelse(
+                  design_$sim_prm$stochastic, sp$mc_aggr, 0L
+                )) # Ensure from R side that never 0
+              )
+          } # end for loop over influenced_by_disease_name
+          out[["incidence"]][["influenced_by"]] <-
+            influenced_by_incd
+        } # end if incidence type 3
+
+
+        if (!is.null(self$meta$diagnosis$type)) {
+          out[["diagnosis"]] <- list(
+            "type" = fifelse(
+              is.numeric(self$meta$diagnosis$type),
+              paste0("Type", self$meta$diagnosis$type),
+              as.character(self$meta$diagnosis$type)
+            ),
+            "diagnosed" = paste0(self$name, "_dgns", scenario_suffix),
+            "probability" = paste0(
+              private$dgns_colnam,
+              scenario_suffix
+            )
+            # "rn" = paste0(
+            #   "rn_",
+            #   self$name,
+            #   "_dgn",
+            #   fifelse(design_$sim_prm$kismet, "", scenario_suffix)
+            # )
+          )
+        } else {
+          out <- within(out, rm("diagnosis"))
+        }
+
+        out[["mortality"]] <- list(
+          "type" = fifelse(
+            is.numeric(self$meta$mortality$type),
+            paste0("Type", self$meta$mortality$type),
+            as.character(self$meta$mortality$type)
+          ),
+          "probability" = paste0("prb_", self$name, "_mrtl2", scenario_suffix),
+          # "rn" = paste0(
+          #   "rn_",
+          #   self$name,
+          #   "_mrtl",
+          #   fifelse(design_$sim_prm$kismet, "", scenario_suffix)
+          # ),
+          "code" = self$meta$mortality$code
+        )
+
+        if (private$mrtl2flag) {
+          out[["mortality"]][["probability1styear"]] <-
+            paste0("prb_", self$name, "_mrtl1", scenario_suffix)
+        }
+
+
+        if (self$meta$mortality$type == 3) {
+          influenced_by_mrtl <- list()
+          for (i in self$meta$mortality$influenced_by_disease_name) {
+            influenced_by_mrtl[[paste0(i, "_prvl")]] <-
+              list(
+                "multiplier" = paste0(self$name, "_mrtl_", i, "_prvl_mltp"),
+                "lag" = RR[[paste0(i, "_prvl", "~", self$name)]]$get_lag(fifelse(
+                  design_$sim_prm$stochastic, sp$mc_aggr, 0L
+                )) # Ensure from R side that never 0
+              )
+          } # end for loop over influenced_by_disease_name
+          out[["mortality"]][["influenced_by"]] <-
+            influenced_by_mrtl
+        } # end if mortality type 3
+        out
+      },
+
+      #' @description Returns a list to pass to the C++ side for Peter's parser.
+      #' @param sp A synthetic population.
+      #' @param RR A list of Exposure objects.
+      #' @param design_ A design object with the simulation parameters.
+      #' @param scenario_suffix the suffix to identify columns from different
+      #'   scenarios
+      #' @return A list.
+
+      to_cpp_Peter = function(sp, RR = RR, design_ = design, scenario_suffix = "") {
+        if (!inherits(sp, "SynthPop")) {
+          stop("Argument sp needs to be a SynthPop object.")
+        }
+        if (!inherits(design_, "Design")) {
+          stop("Argument design_ needs to be a Design object.")
+        }
+        if (!all(sapply(RR, inherits, "Exposure"))) {
+          stop("Argument RR needs to be a list of exposure object.")
+        }
+
+        out <- list()
+        out <- list("incidence" = NULL, "diagnosis" = NULL, "mortality" = NULL)
+
+
+        out[["incidence"]] <- list(
+          "type" = fifelse(
+            is.numeric(self$meta$incidence$type),
+            paste0("Type", self$meta$incidence$type),
+            as.character(self$meta$incidence$type)
+          ),
+          "prevalence" = list("column_name" = paste0(self$name, "_prvl", scenario_suffix)),
+          "incidence" = list("column_name" = paste0(private$incd_colnam, scenario_suffix)),
+          "rn" = list("column_name" = paste0(
+            "rn_", self$name, "_incd",
+            fifelse(design_$sim_prm$kismet, "", scenario_suffix)
+          )),
+          "can_recur" = self$meta$incidence$can_recur
+        )
+
+        if (self$meta$incidence$type == 3) {
+          influenced_by_incd <- list()
+
+          for (i in self$meta$incidence$influenced_by_disease_name) {
+            influenced_by_incd[[i]] <-
+              list(
+                "multiplier" = list("column_name" = paste0(self$name, "_incd_", i, "_prvl_mltp")),
+                "lag" = RR[[paste0(i, "_prvl", "~", self$name)]]$get_lag(
+                  fifelse(design_$sim_prm$stochastic, sp$mc_aggr, 0L)
+                ) # Ensure from R side that never 0
+              )
+          } # end for loop over influenced_by_disease_name
+          out[["incidence"]][["influenced_by"]] <- influenced_by_incd
+        } # end if incidence type 3
+
+
+        if (!is.null(self$meta$diagnosis$type)) {
+          out[["diagnosis"]] <- list(
+            "type" = fifelse(
+              is.numeric(self$meta$diagnosis$type),
+              paste0("Type", self$meta$diagnosis$type),
+              as.character(self$meta$diagnosis$type)
+            ),
+            "diagnosed" = list("column_name" = paste0(self$name, "_dgns", scenario_suffix)),
+            "probability" = list("column_name" = paste0(private$dgns_colnam, scenario_suffix)),
+            "rn" = list("column_name" = paste0(
+              "rn_",
+              self$name,
+              "_dgn",
+              fifelse(design_$sim_prm$kismet, "", scenario_suffix)
+            ))
+          )
+        } else {
+          out <- within(out, rm("diagnosis"))
+        }
+
+        out[["mortality"]] <- list(
+          "type" = fifelse(
+            is.numeric(self$meta$mortality$type),
+            paste0("Type", self$meta$mortality$type),
+            as.character(self$meta$mortality$type)
+          ),
+          "probability" = list("column_name" = paste0(
+            "prb_", self$name, "_mrtl2", scenario_suffix
+          )),
+          "rn" = list("column_name" = paste0(
+            "rn_",
+            self$name,
+            "_mrtl",
+            fifelse(design_$sim_prm$kismet, "", scenario_suffix)
+          )),
+          "code" = self$meta$mortality$code
+        )
+
+        if (self$meta$mortality$type == 3) {
+          influenced_by_mrtl <- list()
+          for (i in self$meta$mortality$influenced_by_disease_name) {
+            influenced_by_mrtl[[i]] <-
+              list(
+                "multiplier" = list("column_name" = paste0(self$name, "_mrtl_", i, "_prvl_mltp")),
+                "lag" = RR[[paste0(i, "_prvl", "~", self$name)]]$get_lag(
+                  fifelse(design_$sim_prm$stochastic, sp$mc_aggr, 0L)
+                ) # Ensure from R side that never 0
+              )
+          } # end for loop over influenced_by_disease_name
+          out[["mortality"]][["influenced_by"]] <- influenced_by_mrtl
+        } # end if mortality type 3
+        out
+      },
+
+      #' @description Print the simulation parameters.
+      #' @return The invisible self for chaining.
+      print = function() {
+        print(paste0("Disease name:       ", self$name))
+        print(paste0("Meta incidence:     ", self$meta$incidence))
+        print(paste0("Meta diagnosis:     ", self$meta$diagnosis))
+        print(paste0("Meta mortality:     ", self$meta$mortality))
+        print(paste0("Notes:              ", self$notes))
+
+        invisible(self)
+      }
+    ), # end of public
+
+    # private ------------------------------------------------------------------
+    private = list(
+      seed = NA_integer_,
+      filenams = list(),
+      mrtl2flag = FALSE, # TRUE if separate mortality for 1st year of disease is present
+      incd_colnam = NA,
+      dgns_colnam = NA,
+      mrtl_colnam = NA,
+      incd_indx = data.table(NULL),
+      prvl_indx = data.table(NULL),
+      ftlt_indx = data.table(NULL),
+      parf = data.table(NULL),
+      risks = data.table(NULL), # holds the risks for all individuals
+
+      gen_sp_forPARF =
+        function(mc_, ff, design_, rr) {
+          force(mc_)
+          force(ff)
+          force(design_)
+          force(rr)
+
+          dqRNGkind("pcg64")
+          set.seed(private$seed + mc_)
+          dqset.seed(private$seed, mc_)
+
+          # NOTE RR ensured only contains relevant exposures from gen_parf
+          # xps <- sapply(RR, `[[`, "outcome") == self$name
+          # rr <- RR[xps] # only contains exposures for disease
+
+          cm_mean <- as.matrix(
+            read_fst(
+              "./inputs/exposure_distributions/exposure_corr_mean.fst",
+              as.data.table = TRUE
+            ),
+            rownames = "rn"
+          )
+
+          r <-
+            which(
+              rownames(cm_mean) %in% c(
+                "education_r", "income_r", "bp_med_r",
+                "famcvd_r", "ckd_r"
+              )
+            )
+
+          rank_mtx <- generate_corr_unifs(nrow(ff), cm_mean[-r, -r])
+
+          # Restrict the range of some RNs to avoid unrealistic exposures
+          # This scaling does not affect correlations
+          # /0.999 because I multiplied all the columns below
+          rank_mtx <- rank_mtx * 0.999
+          rank_mtx[, "frtpor_r"] <- rank_mtx[, "frtpor_r"] * 0.99 / 0.999
+          rank_mtx[, "vegpor_r"] <- rank_mtx[, "vegpor_r"] * 0.93 / 0.999
+          rank_mtx[, "smok_cig_ex_r"] <-
+            rank_mtx[, "smok_cig_ex_r"] * 0.99 / 0.999
+          rank_mtx[, "totalwu_r"] <- rank_mtx[, "totalwu_r"] * 0.99 / 0.999
+          rank_mtx[, "smok_quit_yrs_r"] <-
+            rank_mtx[, "smok_quit_yrs_r"] * 0.99 / 0.999
+          rank_mtx[, "smok_dur_ex_r"] <-
+            rank_mtx[, "smok_dur_ex_r"] * 0.99 / 0.999
+          rank_mtx[, "smok_dur_curr_r"] <-
+            rank_mtx[, "smok_dur_curr_r"] * 0.88 / 0.999
+
+          # sum((cor(rank_mtx) - cm_mean) ^ 2)
+
+          rank_mtx <- data.table(rank_mtx)
+
+          # NOTE rankstat_* is unaffected by the RW. Stay constant through the lifecourse
+          ff[, c(
+            # "rank_education",
+            # "rank_income",
+            "rank_pa",
+            "rank_fruit",
+            "rank_veg",
+            "rankstat_smok",
+            "rankstat_smok_quit_yrs",
+            "rankstat_smok_dur_ex",
+            "rankstat_smok_dur_curr",
+            "rankstat_smok_cig_ex",
+            "rankstat_smok_cig_curr",
+            "rank_ets",
+            "rank_alcohol",
+            "rank_bmi",
+            "rank_sbp",
+            # "rank_bpmed",
+            "rank_tchol",
+            "rank_hdl",
+            "rankstat_af_dgn",
+            # "rankstat_famcvd",
+            "rank_t2dm",
+            "rankstat_t2dm_dgn",
+            "rank_statin_px" # ,
+            # "rankstat_ckd"
+          ) := rank_mtx]
+
+          rm(rank_mtx)
+
+
+          setkeyv(ff, c("year", "age", "sex", "sha", "dimd", "ethnicity"))
+
+
+          if (max(ff$age) > 90L) {
+            ff[, age100 := age]
+            ff[age > 90L, age := 90L]
+          }
+
+          # Generate active days ----
+          xps <- c("active_days", "met")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
+            ff[, year := year - lag]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/active_days_table.fst",
+                as.data.table = TRUE
+              )
+            nam <- intersect(names(ff), names(tbl))
+            ff[tbl, active_days_curr_xps := (rank_pa > pa0) + (rank_pa > pa1) + (rank_pa > pa2) +
+              (rank_pa > pa3) + (rank_pa > pa4) + (rank_pa > pa5) + (rank_pa > pa6),
+            on = nam
+            ]
+            ff[, rank_pa := NULL]
+            ff[, year := year + lag]
+          }
+
+          # Generate MET ----
+          xps <- "met"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+
+            ff[, met_curr_xps := floor(active_days_curr_xps * (3L + qbinom(dqrunif(.N), 8, 3 / 11)) *
+              (30 + qexp(dqrunif(.N), 1 / 7)) / 100)]
+            ff[, year := year + lag]
+          }
+
+          # Generate fruit consumption (ZISICHEL) ----
+          xps <- "fruit"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+
+            tbl <-
+              read_fst("./inputs/exposure_distributions/frtpor_table.fst", as.data.table = TRUE)
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, fruit_curr_xps :=
+              my_qZISICHEL(rank_fruit,
+                mu, sigma, nu, tau,
+                n_cpu = design_$sim_prm$n_cpu
+              ) * 80L] # g/d
+            ff[, (col_nam) := NULL]
+            ff[, rank_fruit := NULL]
+            ff[, year := year + lag]
+          }
+          # Generate veg consumption (DEL) ----
+          xps <- "veg"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+
+            tbl <-
+              read_fst("./inputs/exposure_distributions/vegpor_table.fst", as.data.table = TRUE)
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, veg_curr_xps :=
+              my_qDEL(rank_veg, mu, sigma, nu, n_cpu = design_$sim_prm$n_cpu) * 80L] # g/d
+            ff[, (col_nam) := NULL]
+            ff[, rank_veg := NULL]
+            ff[, year := year + lag]
+          }
+
+          # Smoking ----
+          xps <- c("smok_status", "smok_cig")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (all(xps %in% sapply(rr, `[[`, "name"))) {
+              stop("smok_status & smok_cig cannot be both risk factors for a disease.")
+            }
+
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            }
+
+            if (xps[[2]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[2]], "~", self$name)]]$lag
+            }
+
+            ff[, year := year - lag]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/smok_status_table.fst",
+                as.data.table = TRUE
+              )
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, smok_status_curr_xps := my_qMN4(rankstat_smok, mu, sigma, nu)] # for calibration
+            ff[, (col_nam) := NULL]
+
+            # Assign smok_quit_yrs when pid_mrk == true (the first year an individual enters the simulation)
+            # I could use these estimates for calibration but I need to calculate mortality first
+            tbl <-
+              read_fst("./inputs/exposure_distributions/smok_quit_yrs_table.fst",
+                as.data.table = TRUE
+              )
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            set(ff, NULL, "smok_quit_yrs", 0L)
+            ff[
+              smok_status_curr_xps %in% 2:3,
+              smok_quit_yrs := my_qDPO(rankstat_smok_quit_yrs, mu, sigma)
+            ]
+            ff[, rankstat_smok_quit_yrs := NULL]
+            ff[, (col_nam) := NULL]
+
+            # Assign smok_dur_ex when pid_mrk == true (the first year an individual enters the simulation)
+            tbl <-
+              read_fst("./inputs/exposure_distributions/smok_dur_ex_table.fst",
+                as.data.table = TRUE
+              )
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            set(ff, NULL, "smok_dur", 0L)
+            ff[smok_status_curr_xps %in% 2:3, smok_dur := my_qDPO(rankstat_smok_dur_ex, mu, sigma)]
+            ff[, rankstat_smok_dur_ex := NULL]
+            ff[, (col_nam) := NULL]
+
+            # Assign smok_dur_curr when pid_mrk == true (the first year an individual enters the simulation)
+            tbl <-
+              read_fst("./inputs/exposure_distributions/smok_dur_curr_table.fst",
+                as.data.table = TRUE
+              )
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[smok_status_curr_xps == 4, smok_dur := as.integer(round(qNBI(rankstat_smok_dur_curr, mu, sigma)))]
+            ff[, rankstat_smok_dur_curr := NULL]
+            ff[, (col_nam) := NULL]
+            ff[, year := year + lag]
+          }
+
+          # Assign smok_cig_curr when pid_mrk == true (the first year an individual enters the simulation)
+          xps <- "smok_cig"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+            set(ff, NULL, "smok_cig_curr_xps", 0L)
+
+            tbl <-
+              read_fst("./inputs/exposure_distributions/smok_cig_curr_table.fst",
+                as.data.table = TRUE
+              )
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[
+              smok_status_curr_xps == 4L,
+              smok_cig_curr_xps := qZINBI(rankstat_smok_cig_curr, mu, sigma, nu)
+            ]
+            ff[, (col_nam) := NULL]
+
+            # Assign smok_cig_ex when pid_mrk == true (the first year an individual enters the simulation)
+            # ff[smok_status == 2, smok_cig := 1L]
+
+
+            tbl <-
+              read_fst("./inputs/exposure_distributions/smok_cig_ex_table.fst",
+                as.data.table = TRUE
+              )
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[
+              smok_status_curr_xps == 3L,
+              smok_cig_curr_xps := my_qZABNB(rankstat_smok_cig_ex,
+                mu,
+                sigma,
+                nu,
+                tau,
+                n_cpu = design_$sim_prm$n_cpu
+              )
+            ]
+            ff[, (col_nam) := NULL]
+            ff[, smok_status_curr_xps := factor(smok_status_curr_xps)]
+            ff[, year := year + lag]
+          }
+
+          # Generate ETS (BI) ----
+
+          # Note at the moment this is independent of smoking prevalence TODO
+          # calculate how many each smoker pollutes by year, SHA (not qimd) to
+          # be used in scenarios. Ideally correct for mortality
+          xps <- "ets"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/ets_table.fst", as.data.table = TRUE)
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, ets_curr_xps := as.integer(rank_ets < mu)]
+            ff[, rank_ets := NULL]
+            ff[, (col_nam) := NULL]
+            ff[, year := year + lag]
+          }
+          # Generate alcohol (ZINBI) ----
+          xps <- "alcohol"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/alcohol_table.fst", as.data.table = TRUE)
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, alcohol_curr_xps := as.integer(qZINBI(rank_alcohol, mu, sigma, nu))]
+            ff[, rank_alcohol := NULL]
+            ff[, (col_nam) := NULL]
+            ff[, year := year + lag]
+          }
+
+          # Generate BMI (BCPEo) ----
+          xps <- c("bmi", "t2dm_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
+            ff[, year := year - lag]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/bmi_table.fst", as.data.table = TRUE)
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, bmi_curr_xps := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            ff[, rank_bmi := NULL]
+            ff[, (col_nam) := NULL]
+            ff[, year := year + lag]
+          }
+          # Generate SBP (BCPEo) ----
+          xps <- "sbp"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/sbp_table.fst", as.data.table = TRUE)
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, sbp_curr_xps := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            ff[, rank_sbp := NULL]
+            ff[, (col_nam) := NULL]
+            ff[, year := year + lag]
+          }
+          # Generate tchol (BCT) ----
+          xps <- "tchol"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/tchol_table.fst", as.data.table = TRUE)
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, tchol_curr_xps := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            ff[, rank_tchol := NULL]
+            ff[, (col_nam) := NULL]
+
+            # Generate HDL (to tchol ratio) (GB1) ----
+
+            # NOTE this very highly correlated with hdl level (~0.76) and
+            #  highly to tchol (~-0.47). The latter is captured by the correlated RNs
+            tbl <-
+              read_fst("./inputs/exposure_distributions/hdl_to_tchol_table.fst",
+                as.data.table = TRUE
+              )
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, tchol_hdl_ratio := 1 / qGB1(rank_hdl, mu, sigma, nu, tau)]
+            ff[, rank_hdl := NULL]
+            ff[, (col_nam) := NULL]
+            ff[, year := year + lag]
+          }
+          # Generate statins medication (BI) -----
+          xps <- "statin_px"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+
+            if (!"tchol" %in% names(ff)) {
+              tbl <-
+                read_fst("./inputs/exposure_distributions/tchol_table.fst", as.data.table = TRUE)
+              col_nam <-
+                setdiff(names(tbl), intersect(names(ff), names(tbl)))
+              absorb_dt(ff, tbl)
+              ff[, tchol_curr_xps := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+              ff[, rank_tchol := NULL]
+              ff[, (col_nam) := NULL]
+            }
+
+            ff[, `:=`(tchol = round(clamp(tchol_curr_xps, 2, 12), 0))]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/statin_px_table.fst",
+                as.data.table = TRUE
+              )
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, statin_px_curr_xps := as.integer(rank_statin_px < mu)]
+            ff[, rank_statin_px := NULL]
+            ff[, (col_nam) := NULL]
+            ff[, `:=`(tchol = NULL)]
+            ff[, year := year + lag]
+          }
+          # Generate AF dgn (BI) ----
+          xps <- "af_prvl"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+            # NOTE AF prevalence ~6.9%. This is higher than the QOF prevalence of 1.6% for 2019 and 1.7% for 2015/6
+            # although PHE includes all ages and my estimates only ~30-89
+            tbl <-
+              read_fst("./inputs/exposure_distributions/af_dgn_table.fst", as.data.table = TRUE)
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, af_dgn_curr_xps := as.integer(rankstat_af_dgn < mu)]
+
+            # calibration to match QOF assuming characteristics similar to HSE
+            tt <-
+              0.0181 / ff[, sum(af_dgn_curr_xps) / .N] # to account for difference in age between my population and PHE
+            ff[, af_dgn_curr_xps := as.integer(rankstat_af_dgn < (tt * mu))]
+
+
+            # Generate AF undgn + diagn (BI) ----
+
+            # TODO alt method for Turakhia et al. 2018 Table 3
+            # From PHE that estimate .44 undiagnosed AF cases for every diagnosed case
+            ff[, af_prvl_curr_xps := as.integer(rankstat_af_dgn < mu)]
+
+            # calibration to match PHE undiagnosed+diagnosed prevalence
+            tt <-
+              0.0255 / ff[, sum(af_prvl_curr_xps) / .N] # + 0.001 to account for difference in age between my population and PHE
+            ff[, af_prvl_curr_xps := as.integer(rankstat_af_dgn < (tt * mu))]
+            ff[, af_prvl_curr_xps := af_prvl_curr_xps * 2L] # to avoid 1 in prevalence and avoid confusion with incidence
+            ff[, rankstat_af_dgn := NULL]
+            ff[, (col_nam) := NULL]
+            ff[, year := year + lag]
+          }
+          # Generate T2DM (BI) -----
+          xps <- "t2dm_prvl"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ff[, year := year - lag]
+
+            # Both dgn and undgn (move to apply on initial year only)
+            ff[, `:=`(bmi = round(clamp(bmi_curr_xps, 18, 50)))]
+            tbl <-
+              read_fst("./inputs/exposure_distributions/dm_table.fst", as.data.table = TRUE)
+            tbl[, year := design_$sim_prm$init_year] # only estimate prevalence for 2013
+            col_nam <-
+              setdiff(names(tbl), intersect(names(ff), names(tbl)))
+            absorb_dt(ff, tbl)
+            ff[, t2dm_prvl_curr_xps := as.integer(rank_t2dm < mu)]
+            setnafill(ff, "c", 0L, cols = "t2dm_prvl_curr_xps")
+            ff[, `:=`(rank_t2dm = NULL)]
+            ff[, (col_nam) := NULL]
+            ff[, year := year + lag]
+          }
+          # Generate probability of dgn T2DM (BI) -----
+
+          # ff[, `:=` (bmi = round(clamp(bmi_curr_xps, 18, 50), -1))]
+          # tbl <-
+          #   read_fst("./inputs/exposure_distributions/dm_dgn_table.fst", as.data.table = TRUE)
+          # tbl[, t2dm_prvl_curr_xps := 1L]
+          # col_nam <-
+          #   setdiff(names(tbl), intersect(names(ff), names(tbl)))
+          # absorb_dt(ff, tbl)
+          # ff[, t2dm_dgn_curr_xps := as.integer(rankstat_t2dm_dgn < mu)]
+          # ff[, (col_nam) := NULL]
+          # setnafill(ff, "c", 0L, cols = "t2dm_dgn_curr_xps")
+
+          ff[, `:=`(
+            bmi = NULL,
+            rankstat_t2dm_dgn = NULL
+          )]
+
+          nam <- grep("rank", names(ff), value = T)
+          if (length(nam) > 0) ff[, (nam) := NULL]
+
+          if ("age100" %in% names(dt)) {
+            dt[, age := NULL]
+            setnames(dt, "age100", "age")
+          }
+          invisible(ff)
+        }
+    ) # end of private
+  )
