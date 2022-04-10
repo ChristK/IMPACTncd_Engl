@@ -1,0 +1,26 @@
+---
+title: "TODO"
+author: "Chris Kypridemos"
+date: "5/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Reduce size of POP and memory footprint
+- DONE. Store int cols as int and not double (```View(transpose(POP[, lapply(.SD, pryr::object_size)], keep.names = "rn")[, V1 := V1/1024^2])```). Ensure that c++ side gets the col type it is expecting.
+- Pass a seed for random number instead of the column to the c++ side.
+- Check whether disease status needs to be stored in .fst for the initial synthpop. I.e. it may get recalculated for the baseline scenario 
+
+# Improve epi engine
+- Consider smoothing PARF and fatality rates
+
+# Outputs
+- Export costs for each disease separately
+
+# GUI
+- scenario selection in effectiveness tab is occassionally stops working
+
+
