@@ -1,0 +1,53 @@
+---
+exps_name: bmi
+outcome: colon_ca
+lag: 9
+distribution: lognormal
+source: 'Global Burden of Disease Collaborative Network. Global Burden of Disease
+  Study 2016 (GBD 2016) Burden by Risk 1990-2016. Seattle, United States, Institute
+  for Health Metrics and Evaluation (IHME), 2017.'
+notes: ''
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1.177,1.208
+20-24,men,1.177,1.208
+25-29,men,1.177,1.208
+30-34,men,1.177,1.208
+35-39,men,1.177,1.208
+40-44,men,1.177,1.208
+45-49,men,1.177,1.208
+50-54,men,1.177,1.208
+55-59,men,1.177,1.208
+60-64,men,1.177,1.208
+65-69,men,1.177,1.208
+70-74,men,1.177,1.208
+75-79,men,1.177,1.208
+80-84,men,1.177,1.208
+85-89,men,1.177,1.208
+90-94,men,1,1
+95-99,men,1,1
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1.059,1.083
+20-24,women,1.059,1.083
+25-29,women,1.059,1.083
+30-34,women,1.059,1.083
+35-39,women,1.059,1.083
+40-44,women,1.059,1.083
+45-49,women,1.059,1.083
+50-54,women,1.059,1.083
+55-59,women,1.059,1.083
+60-64,women,1.059,1.083
+65-69,women,1.059,1.083
+70-74,women,1.059,1.083
+75-79,women,1.059,1.083
+80-84,women,1.059,1.083
+85-89,women,1.059,1.083
+90-94,women,1,1
+95-99,women,1,1

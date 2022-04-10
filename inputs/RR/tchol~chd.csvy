@@ -1,0 +1,65 @@
+---
+exps_name: tchol
+outcome: chd
+lag: 4
+distribution: lognormal
+source: The Lancet. 2007;370(9602):1829–39. Appendix Webtable 6, fully adjusted
+notes: ''
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    sp$pop[, tchol_rr := clamp(tchol_rr^(self$get_ideal_xps_lvl(sp$mc_aggr) - tchol), 1, 20)]
+  }
+ideal_xps_lvl_fn: >
+  function(design_) { # from: PLOS ONE 2013;8:e65174 p7
+    if (!inherits(design_, 'Design')) stop('Argument design needs to be a Design object.')
+    save.seed <- get('.Random.seed', .GlobalEnv)
+    set.seed(751747L) # Same for stroke and CHD
+    res <- rnorm(design$sim_prm$iteration_n_max, mean = runif(design$sim_prm$iteration_n_max, 3.8, 4.0), sd = runif(design$sim_prm$iteration_n_max, 0.5, 0.65))
+    assign('.Randon.seed', save.seed, .GlobalEnv)
+    res
+    }
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1,1
+20-24,men,1,1
+25-29,men,1,1
+30-34,men,0.49,0.52
+35-39,men,0.49,0.52
+40-44,men,0.49,0.52
+45-49,men,0.49,0.52
+50-54,men,0.62,0.65
+55-59,men,0.62,0.65
+60-64,men,0.74,0.76
+65-69,men,0.74,0.76
+70-74,men,0.84,0.86
+75-79,men,0.84,0.86
+80-84,men,0.87,0.9
+85-89,men,0.87,0.9
+90-94,men,1,1
+95-99,men,1,1
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1,1
+20-24,women,1,1
+25-29,women,1,1
+30-34,women,0.49,0.52
+35-39,women,0.49,0.52
+40-44,women,0.49,0.52
+45-49,women,0.49,0.52
+50-54,women,0.62,0.65
+55-59,women,0.62,0.65
+60-64,women,0.74,0.76
+65-69,women,0.74,0.76
+70-74,women,0.84,0.86
+75-79,women,0.84,0.86
+80-84,women,0.87,0.9
+85-89,women,0.87,0.9
+90-94,women,1,1
+95-99,women,1,1
