@@ -9,6 +9,7 @@
 .RData
 *.fst
 *.qs
+*.xls*
 
 # Rcpp
 src/*.o
