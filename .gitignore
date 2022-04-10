@@ -4,6 +4,8 @@
 
 # Session Data files
 .RData
+.fst
+.qs
 
 # User-specific files
 .Ruserdata
@@ -37,3 +39,7 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# IMPACTncd specific
+/outputs/
+/secure_data/
