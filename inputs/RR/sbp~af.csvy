@@ -1,0 +1,65 @@
+---
+exps_name: sbp
+outcome: af
+lag: 4
+distribution: lognormal
+source: GBD 2019
+notes: RR per 10mmHg 
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    sp$pop[, sbp_rr := clamp(sbp_rr^((self$get_ideal_xps_lvl(sp$mc_aggr) - sbp) / 10), 1, 20)]
+  }
+ideal_xps_lvl_fn: >
+  function(design_) { # from: PLOS ONE 2013;8:e65174 p7
+    if (!inherits(design_, 'Design')) stop('Argument design needs to be a Design object.')
+    save.seed <- get('.Random.seed', .GlobalEnv)
+    set.seed(651747L) # Same for stroke and CHD
+    res <- rnorm(design$sim_prm$iteration_n_max, mean = runif(design$sim_prm$iteration_n_max, 110, 115), sd = runif(design$sim_prm$iteration_n_max, 4, 6))
+    assign('.Randon.seed', save.seed, .GlobalEnv)
+    res
+    }
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1,1
+20-24,men,1,1
+25-29,men,1.76,2.43
+30-34,men,1.631,2.026
+35-39,men,1.503,1.644
+40-44,men,1.423,1.505
+45-49,men,1.392,1.457
+50-54,men,1.361,1.411
+55-59,men,1.33,1.369
+60-64,men,1.299,1.333
+65-69,men,1.268,1.308
+70-74,men,1.237,1.277
+75-79,men,1.208,1.238
+80-84,men,1.134,1.185
+85-89,men,1.134,1.185
+90-94,men,1.134,1.185
+95-99,men,1.134,1.185
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1,1
+20-24,women,1,1
+25-29,women,1.76,2.43
+30-34,women,1.631,2.026
+35-39,women,1.503,1.644
+40-44,women,1.423,1.505
+45-49,women,1.392,1.457
+50-54,women,1.361,1.411
+55-59,women,1.33,1.369
+60-64,women,1.299,1.333
+65-69,women,1.268,1.308
+70-74,women,1.237,1.277
+75-79,women,1.208,1.238
+80-84,women,1.134,1.185
+85-89,women,1.134,1.185
+90-94,women,1.134,1.185
+95-99,women,1.134,1.185

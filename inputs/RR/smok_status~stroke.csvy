@@ -1,0 +1,54 @@
+---
+exps_name: smok_status
+outcome: stroke
+lag: 4
+distribution: lognormal
+source: 'Smokers: Circulation. 2005;112(4):489–97. Table 1 Model B. Ex-smokers: Cigarette
+  smoking as a risk factor for stroke: The Framingham study "Stroke risk decreased
+  significantly by two years and was at the level of nonsmokers by five years after
+  cessation of cigarette smoking"'
+notes: For smok_status 3 is ex smokers and 4 is current smokers
+---
+agegroup,sex,smok_status,rr,ci_rr
+<1,men,4,1,1
+01-04,men,4,1,1
+05-09,men,4,1,1
+10-14,men,4,1,1
+15-19,men,4,1,1
+20-24,men,4,1,1
+25-29,men,4,1,1
+30-34,men,4,3.12,4.64
+35-39,men,4,3.12,4.64
+40-44,men,4,3.12,4.64
+45-49,men,4,3.12,4.64
+50-54,men,4,3.12,4.64
+55-59,men,4,3.12,4.64
+60-64,men,4,1.87,2.44
+65-69,men,4,1.87,2.44
+70-74,men,4,1.39,1.77
+75-79,men,4,1.39,1.77
+80-84,men,4,1.39,1.77
+85-89,men,4,1.39,1.77
+90-94,men,4,1,1
+95-99,men,4,1,1
+<1,women,4,1,1
+01-04,women,4,1,1
+05-09,women,4,1,1
+10-14,women,4,1,1
+15-19,women,4,1,1
+20-24,women,4,1,1
+25-29,women,4,1,1
+30-34,women,4,4.61,6.37
+35-39,women,4,4.61,6.37
+40-44,women,4,4.61,6.37
+45-49,women,4,4.61,6.37
+50-54,women,4,4.61,6.37
+55-59,women,4,4.61,6.37
+60-64,women,4,2.81,3.58
+65-69,women,4,2.81,3.58
+70-74,women,4,1.95,2.45
+75-79,women,4,1.95,2.45
+80-84,women,4,1.95,2.45
+85-89,women,4,1.95,2.45
+90-94,women,4,1,1
+95-99,women,4,1,1
