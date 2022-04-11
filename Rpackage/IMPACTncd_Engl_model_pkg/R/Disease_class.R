@@ -1,23 +1,23 @@
-## IMPACTncdEngl is an implementation of the IMPACTncd framework, developed by Chris
-## Kypridemos with contributions from Peter Crowther (Melandra Ltd), Maria
+## IMPACTncdEngl is an implementation of the IMPACTncd framework, developed by
+## Chris Kypridemos with contributions from Peter Crowther (Melandra Ltd), Maria
 ## Guzman-Castillo, Amandine Robert, and Piotr Bandosz. This work has been
 ## funded by NIHR  HTA Project: 16/165/01 - IMPACTncdEngl: Health Outcomes
 ## Research Simulation Environment.  The views expressed are those of the
 ## authors and not necessarily those of the NHS, the NIHR or the Department of
 ## Health.
 ##
-## Copyright (C) 2018-2020 University of Liverpool, Chris Kypridemos
+## Copyright (C) 2018-2022 University of Liverpool, Chris Kypridemos
 ##
-## IMPACTncdEngl is free software; you can redistribute it and/or modify it under
-## the terms of the GNU General Public License as published by the Free Software
-## Foundation; either version 3 of the License, or (at your option) any later
-## version. This program is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-## FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-## details. You should have received a copy of the GNU General Public License
-## along with this program; if not, see <http://www.gnu.org/licenses/> or write
-## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-## Boston, MA 02110-1301 USA.
+## IMPACTncdEngl is free software; you can redistribute it and/or modify it
+## under the terms of the GNU General Public License as published by the Free
+## Software Foundation; either version 3 of the License, or (at your option) any
+## later version. This program is distributed in the hope that it will be
+## useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+## Public License for more details. You should have received a copy of the GNU
+## General Public License along with this program; if not, see
+## <http://www.gnu.org/licenses/> or write to the Free Software Foundation,
+## Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
 #' R6 Class representing an disease
@@ -126,11 +126,12 @@ Disease <-
       #' @description Get disease incident probability.
       #' @param design_ A design object with the simulation parameters.
       #' @param RR A list of Exposure objects.
+      #' @param diseases_ A list of Disease objects
       #' @param popsize The population size for each stratum
       #' @param check Check for NAs in parf_dt.
       #' @return The invisible self for chaining.
 
-      gen_parf = function(design_ = design, RR = RR,
+      gen_parf = function(design_ = design, RR = RR, diseases_ = diseases,
                           popsize = 100, check = design_$sim_prm$logs) {
         if (!inherits(design_, "Design")) {
           stop("Argument design_ needs to be a Design object.")
@@ -138,7 +139,9 @@ Disease <-
         if (!all(sapply(RR, inherits, "Exposure"))) {
           stop("Argument RR needs to be a list of exposure object.")
         }
-
+        if (!all(sapply(diseases_, inherits, "Disease"))) {
+          stop("Argument diseases_ needs to be a list of disease object.")
+        }
         # Generate unique name using the relevant RR and lags
         xps <- sapply(RR, `[[`, "outcome") == self$name
         rr <- RR[xps] # only contains exposures for disease
@@ -225,7 +228,6 @@ Disease <-
             .export = NULL,
             .noexport = NULL # c("time_mark")
           ) %dopar% {
-
             private$gen_sp_forPARF(mc_iter, ff = ttt, design_ = design_, rr = rr)
 
           }
@@ -236,13 +238,40 @@ Disease <-
           ans <- list()
           setattr(ans, "class", "SynthPop") # to dispatch
           ans$pop <- rbindlist(xps_dt)
+          ans$pop [, `:=` (pid = .I, pid_mrk = TRUE)] # TODO add check to avoid intmax limit
           ans$mc <- 0L
           ans$mc_aggr <- 0L
+
+          # NOTE xps_dt does not contain disease init prevalence. I simulate
+          # here as set_init_prvl expects a synthpop and not a data.table as
+          # input. All relevant risk factors for the diseases need to be
+          # available in xps_dt. Currently this requires manual setup of the
+          # logic if RF for relevant diseases altered.
+          # TODO implement automation of the logic above based on topological
+          # ordering.
+          # Generate diseases that act as exposures
+          xps <- "t2dm_prvl"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ans$pop[, year := year - lag]
+            design_$sim_prm$init_year <- design_$sim_prm$init_year - lag
+            diseases_$t2dm$set_init_prvl(ans, RR, design_)
+            design_$sim_prm$init_year <- design_$sim_prm$init_year + lag
+            ans$pop[, year := year + lag]
+          }
+          xps <- "af_prvl"
+          if (xps %in% sapply(rr, `[[`, "name")) {
+            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+            ans$pop[, year := year - lag]
+            design_$sim_prm$init_year <- design_$sim_prm$init_year - lag
+            diseases_$af$set_init_prvl(ans, RR, design_)
+            design_$sim_prm$init_year <- design_$sim_prm$init_year + lag
+            ans$pop[, year := year + lag]
+          }
 
           self$set_rr(ans, rr, design_, forPARF = TRUE)
 
           nam <- grep("_rr$", names(ans$pop), value = TRUE)
-
 
           parf_dt <-
             ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
@@ -381,8 +410,8 @@ Disease <-
       #'   SynthPop
       #' @return The invisible self for chaining.
 
-      set_rr = function(sp, RR = RR, design_ = design, checkNAs = design_$sim_prm$logs,
-                        forPARF = FALSE) {
+      set_rr = function(sp, RR = RR, design_ = design,
+                        checkNAs = design_$sim_prm$logs, forPARF = FALSE) {
         if (!inherits(sp, "SynthPop")) {
           stop("Argument sp needs to be a SynthPop object.")
         }
@@ -513,9 +542,10 @@ Disease <-
 
       #' @description Set disease prevalence & diagnosisin a new col in sp$pop.
       #' @param sp A synthetic population.
+      #' @param RR A list of Exposure objects.
       #' @param design_ A design object with the simulation parameters.
       #' @return The invisible self for chaining.
-      set_init_prvl = function(sp, design_ = design) {
+      set_init_prvl = function(sp, RR = RR, design_ = design) {
         # TODO correlate with other diseases prevalence
         if (is.numeric(self$meta$incidence$type)) {
           if (!inherits(sp, "SynthPop")) {
@@ -524,24 +554,35 @@ Disease <-
           if (!inherits(design_, "Design")) {
             stop("Argument design_ needs to be a Design object.")
           }
+          if (!all(sapply(RR, inherits, "Exposure"))) {
+            stop("Argument RR needs to be a list of exposure object.")
+          }
 
           namprvl <- paste0(self$name, "_prvl")
           if (namprvl %in% names(sp$pop)) {
             stop(
-              "A column named ", namprvl,
-              " already exists in sp$pop. Please delete it and run set_init_prvl() afterwards."
+              "A column named ",
+              namprvl,
+              " already exists in sp$pop.
+              Please delete it and run set_init_prvl() afterwards."
             )
           }
 
           dqRNGkind("pcg64")
           dqset.seed(private$seed, stream = sp$mc * 10 + 1L) # not mc_aggr
-
-          tbl <- self$get_prvl(design_$sim_prm$init_year)
+          set.seed(private$seed + sp$mc * 10 + 1L) # for sample_int_expj
+          # First find out how many prevalent cases by pop subgroup
+          tbl <- self$get_prvl(design_$sim_prm$init_year
+          )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
+          strata <- setdiff(names(tbl), c("mu", "age")) # age removed to avoid very small groups. To be replaced by agegroups below
+          strata <- c("age10", strata) # age10 (10y agegroup) to be created below
           sp$pop[tbl, on = .NATURAL, mu := i.mu]
           sp$pop[
             year == design_$sim_prm$init_year,
             (namprvl) := as.integer(dqrunif(.N) < mu)
           ]
+          sp$pop[, mu := NULL]
+
           # for new entries we assume no time trends on initial prevalence
           tbl <- tbl[age == design_$sim_prm$ageL][, year := NULL]
           sp$pop[tbl, on = .NATURAL, mu := i.mu]
@@ -552,6 +593,39 @@ Disease <-
           ]
           setnafill(sp$pop, "c", 0L, cols = namprvl)
           sp$pop[, mu := NULL]
+
+          # Then select individuals with higher risk to have higher probability
+          # to be a prevalent case. I estimate weights based on relevant RF for
+          # each disease. Note that RR and sampling weights are equivalent here.
+          # The RR are for incident. One would expect prevalent cases to be
+          # healthier because of survival of the fittest and because some may
+          # have better RF control post diagnosis. For that I will arbitrarily
+          # assume that the risk for prevalence is half of that for incidence.
+
+
+          # ncases is the number of prevalent cases expected in each stratum ss
+          # <- sp$pop[get(namprvl) > 0, .(ncases = sum(get(namprvl))), by =
+          # eval(strata)]
+          sp$pop[, age10 := as.integer(floor(age/10))] # TODO move to get_synthpop?
+          sp$pop[year >= design_$sim_prm$init_year,
+                 ncases := sum(get(namprvl)), by = eval(strata)]
+          # Generate unique name using the relevant RR and lags
+          xps <- sapply(RR, `[[`, "outcome") == self$name
+          rr <- RR[xps] # only contains exposures for disease
+
+          # TODO below should apply only to strata with ncases > 0 for efficiency
+          self$set_rr(sp, rr, design_, forPARF = TRUE)
+
+          nam <- grep("_rr$", names(sp$pop), value = TRUE)
+
+          sp$pop[, disease_wt := (Reduce(`*`, .SD)), .SDcols = nam]
+          sp$pop[, (nam) := NULL]
+          # adjust for prevalent risk half of incident risk
+          sp$pop[, disease_wt := ((disease_wt - 1) * 0.5) + 1]
+          ss <- sp$pop[ncases > 0,][, .("pid" = pid[sample_int_expj(unique(.N), unique(ncases), disease_wt)]), by = eval(strata)]
+          sp$pop[, (namprvl) := 0L]
+          sp$pop[ss, on = c("pid", "year"), (namprvl) := 1L]
+          sp$pop[, age10 := NULL]
 
           # set duration
           dqset.seed(private$seed, stream = sp$mc * 10 + 2L) # not mc_aggr
@@ -1005,10 +1079,10 @@ Disease <-
 
       gen_sp_forPARF =
         function(mc_, ff, design_, rr) {
-          force(mc_)
-          force(ff)
-          force(design_)
-          force(rr)
+          # force(mc_)
+          # force(ff)
+          # force(design_)
+          # force(rr)
 
           dqRNGkind("pcg64")
           set.seed(private$seed + mc_)
@@ -1029,8 +1103,8 @@ Disease <-
           r <-
             which(
               rownames(cm_mean) %in% c(
-                "education_r", "income_r", "bp_med_r",
-                "famcvd_r", "ckd_r"
+                "education_r", "income_r", "bp_med_r", "af_r",
+                "famcvd_r", "ckd_r", "dm_r", "dm_dgn_r"
               )
             )
 
@@ -1073,15 +1147,9 @@ Disease <-
             "rank_alcohol",
             "rank_bmi",
             "rank_sbp",
-            # "rank_bpmed",
             "rank_tchol",
             "rank_hdl",
-            "rankstat_af_dgn",
-            # "rankstat_famcvd",
-            "rank_t2dm",
-            "rankstat_t2dm_dgn",
-            "rank_statin_px" # ,
-            # "rankstat_ckd"
+            "rank_statin_px"
           ) := rank_mtx]
 
           rm(rank_mtx)
@@ -1096,7 +1164,7 @@ Disease <-
           }
 
           # Generate active days ----
-          xps <- c("active_days", "met")
+          xps <- c("active_days", "met", "t2dm_prvl") # t2dm require MET
           if (any(xps %in% sapply(rr, `[[`, "name"))) {
             if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
               lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
@@ -1118,20 +1186,28 @@ Disease <-
           }
 
           # Generate MET ----
-          xps <- "met"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+          xps <- c("met", "t2dm_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
             ff[, year := year - lag]
 
-            ff[, met_curr_xps := floor(active_days_curr_xps * (3L + qbinom(dqrunif(.N), 8, 3 / 11)) *
-              (30 + qexp(dqrunif(.N), 1 / 7)) / 100)]
+            ff[, met_curr_xps := as.integer(floor(active_days_curr_xps * (3L + qbinom(dqrunif(.N), 8, 3 / 11)) *
+              (30 + qexp(dqrunif(.N), 1 / 7)) / 100))]
             ff[, year := year + lag]
           }
 
           # Generate fruit consumption (ZISICHEL) ----
-          xps <- "fruit"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+          xps <- c("fruit", "t2dm_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
             ff[, year := year - lag]
 
             tbl <-
@@ -1167,7 +1243,7 @@ Disease <-
           }
 
           # Smoking ----
-          xps <- c("smok_status", "smok_cig")
+          xps <- c("smok_status", "smok_cig", "t2dm_prvl", "af_prvl")
           if (any(xps %in% sapply(rr, `[[`, "name"))) {
             if (all(xps %in% sapply(rr, `[[`, "name"))) {
               stop("smok_status & smok_cig cannot be both risk factors for a disease.")
@@ -1237,9 +1313,13 @@ Disease <-
           }
 
           # Assign smok_cig_curr when pid_mrk == true (the first year an individual enters the simulation)
-          xps <- "smok_cig"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+          xps <- c("smok_cig", "t2dm_prvl", "af_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
             ff[, year := year - lag]
             set(ff, NULL, "smok_cig_curr_xps", 0L)
 
@@ -1287,9 +1367,13 @@ Disease <-
           # Note at the moment this is independent of smoking prevalence TODO
           # calculate how many each smoker pollutes by year, SHA (not qimd) to
           # be used in scenarios. Ideally correct for mortality
-          xps <- "ets"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+          xps <- c("ets", "t2dm_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
             ff[, year := year - lag]
             tbl <-
               read_fst("./inputs/exposure_distributions/ets_table.fst", as.data.table = TRUE)
@@ -1302,9 +1386,13 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate alcohol (ZINBI) ----
-          xps <- "alcohol"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+          xps <- c("alcohol", "t2dm_prvl", "af_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
             ff[, year := year - lag]
             tbl <-
               read_fst("./inputs/exposure_distributions/alcohol_table.fst", as.data.table = TRUE)
@@ -1318,7 +1406,7 @@ Disease <-
           }
 
           # Generate BMI (BCPEo) ----
-          xps <- c("bmi", "t2dm_prvl")
+          xps <- c("bmi", "t2dm_prvl", "af_prvl")
           if (any(xps %in% sapply(rr, `[[`, "name"))) {
             if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
               lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
@@ -1337,9 +1425,13 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate SBP (BCPEo) ----
-          xps <- "sbp"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+          xps <- c("sbp", "af_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
             ff[, year := year - lag]
             tbl <-
               read_fst("./inputs/exposure_distributions/sbp_table.fst", as.data.table = TRUE)
@@ -1352,9 +1444,13 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate tchol (BCT) ----
-          xps <- "tchol"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
+          xps <- c("tchol", "statin_px", "t2dm_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
+            }
             ff[, year := year - lag]
             tbl <-
               read_fst("./inputs/exposure_distributions/tchol_table.fst", as.data.table = TRUE)
@@ -1382,21 +1478,14 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate statins medication (BI) -----
-          xps <- "statin_px"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
-            ff[, year := year - lag]
-
-            if (!"tchol" %in% names(ff)) {
-              tbl <-
-                read_fst("./inputs/exposure_distributions/tchol_table.fst", as.data.table = TRUE)
-              col_nam <-
-                setdiff(names(tbl), intersect(names(ff), names(tbl)))
-              absorb_dt(ff, tbl)
-              ff[, tchol_curr_xps := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
-              ff[, rank_tchol := NULL]
-              ff[, (col_nam) := NULL]
+          xps <- c("statin_px", "t2dm_prvl")
+          if (any(xps %in% sapply(rr, `[[`, "name"))) {
+            if (xps[[1]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            } else {
+              lag <- 0L
             }
+            ff[, year := year - lag]
 
             ff[, `:=`(tchol = round(clamp(tchol_curr_xps, 2, 12), 0))]
             tbl <-
@@ -1413,77 +1502,65 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate AF dgn (BI) ----
-          xps <- "af_prvl"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
-            ff[, year := year - lag]
-            # NOTE AF prevalence ~6.9%. This is higher than the QOF prevalence of 1.6% for 2019 and 1.7% for 2015/6
-            # although PHE includes all ages and my estimates only ~30-89
-            tbl <-
-              read_fst("./inputs/exposure_distributions/af_dgn_table.fst", as.data.table = TRUE)
-            col_nam <-
-              setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
-            ff[, af_dgn_curr_xps := as.integer(rankstat_af_dgn < mu)]
-
-            # calibration to match QOF assuming characteristics similar to HSE
-            tt <-
-              0.0181 / ff[, sum(af_dgn_curr_xps) / .N] # to account for difference in age between my population and PHE
-            ff[, af_dgn_curr_xps := as.integer(rankstat_af_dgn < (tt * mu))]
-
-
-            # Generate AF undgn + diagn (BI) ----
-
-            # TODO alt method for Turakhia et al. 2018 Table 3
-            # From PHE that estimate .44 undiagnosed AF cases for every diagnosed case
-            ff[, af_prvl_curr_xps := as.integer(rankstat_af_dgn < mu)]
-
-            # calibration to match PHE undiagnosed+diagnosed prevalence
-            tt <-
-              0.0255 / ff[, sum(af_prvl_curr_xps) / .N] # + 0.001 to account for difference in age between my population and PHE
-            ff[, af_prvl_curr_xps := as.integer(rankstat_af_dgn < (tt * mu))]
-            ff[, af_prvl_curr_xps := af_prvl_curr_xps * 2L] # to avoid 1 in prevalence and avoid confusion with incidence
-            ff[, rankstat_af_dgn := NULL]
-            ff[, (col_nam) := NULL]
-            ff[, year := year + lag]
-          }
-          # Generate T2DM (BI) -----
-          xps <- "t2dm_prvl"
-          if (xps %in% sapply(rr, `[[`, "name")) {
-            lag <- rr[[paste0(xps, "~", self$name)]]$lag
-            ff[, year := year - lag]
+          # xps <- "af_prvl"
+          # if (xps %in% sapply(rr, `[[`, "name")) {
+          #   lag <- rr[[paste0(xps, "~", self$name)]]$lag
+          #   ff[, year := year - lag]
+          #
+          #   diseases_$af$set_init_prvl(ff, RR, design_)
+          #
+          #
+          #   # NOTE AF prevalence ~6.9%. This is higher than the QOF prevalence of 1.6% for 2019 and 1.7% for 2015/6
+          #   # although PHE includes all ages and my estimates only ~30-89
+          #   tbl <-
+          #     read_fst("./inputs/exposure_distributions/af_dgn_table.fst", as.data.table = TRUE)
+          #   col_nam <-
+          #     setdiff(names(tbl), intersect(names(ff), names(tbl)))
+          #   absorb_dt(ff, tbl)
+          #   ff[, af_dgn_curr_xps := as.integer(rankstat_af_dgn < mu)]
+          #
+          #   # calibration to match QOF assuming characteristics similar to HSE
+          #   tt <-
+          #     0.0181 / ff[, sum(af_dgn_curr_xps) / .N] # to account for difference in age between my population and PHE
+          #   ff[, af_dgn_curr_xps := as.integer(rankstat_af_dgn < (tt * mu))]
+          #
+          #
+          #   # Generate AF undgn + diagn (BI) ----
+          #
+          #   # TODO alt method for Turakhia et al. 2018 Table 3
+          #   # From PHE that estimate .44 undiagnosed AF cases for every diagnosed case
+          #   ff[, af_prvl_curr_xps := as.integer(rankstat_af_dgn < mu)]
+          #
+          #   # calibration to match PHE undiagnosed+diagnosed prevalence
+          #   tt <-
+          #     0.0255 / ff[, sum(af_prvl_curr_xps) / .N] # + 0.001 to account for difference in age between my population and PHE
+          #   ff[, af_prvl_curr_xps := as.integer(rankstat_af_dgn < (tt * mu))]
+          #   ff[, af_prvl_curr_xps := af_prvl_curr_xps * 2L] # to avoid 1 in prevalence and avoid confusion with incidence
+          #   ff[, rankstat_af_dgn := NULL]
+          #   ff[, (col_nam) := NULL]
+          #   ff[, year := year + lag]
+          # }
 
             # Both dgn and undgn (move to apply on initial year only)
-            ff[, `:=`(bmi = round(clamp(bmi_curr_xps, 18, 50)))]
-            tbl <-
-              read_fst("./inputs/exposure_distributions/dm_table.fst", as.data.table = TRUE)
-            tbl[, year := design_$sim_prm$init_year] # only estimate prevalence for 2013
-            col_nam <-
-              setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
-            ff[, t2dm_prvl_curr_xps := as.integer(rank_t2dm < mu)]
-            setnafill(ff, "c", 0L, cols = "t2dm_prvl_curr_xps")
-            ff[, `:=`(rank_t2dm = NULL)]
-            ff[, (col_nam) := NULL]
-            ff[, year := year + lag]
-          }
-          # Generate probability of dgn T2DM (BI) -----
-
-          # ff[, `:=` (bmi = round(clamp(bmi_curr_xps, 18, 50), -1))]
-          # tbl <-
-          #   read_fst("./inputs/exposure_distributions/dm_dgn_table.fst", as.data.table = TRUE)
-          # tbl[, t2dm_prvl_curr_xps := 1L]
-          # col_nam <-
-          #   setdiff(names(tbl), intersect(names(ff), names(tbl)))
-          # absorb_dt(ff, tbl)
-          # ff[, t2dm_dgn_curr_xps := as.integer(rankstat_t2dm_dgn < mu)]
-          # ff[, (col_nam) := NULL]
-          # setnafill(ff, "c", 0L, cols = "t2dm_dgn_curr_xps")
-
-          ff[, `:=`(
-            bmi = NULL,
-            rankstat_t2dm_dgn = NULL
-          )]
+          #   ff[, `:=`(bmi = round(clamp(bmi_curr_xps, 18, 50)))]
+          #   tbl <-
+          #     read_fst("./inputs/exposure_distributions/dm_table.fst", as.data.table = TRUE)
+          #   tbl[, year := design_$sim_prm$init_year] # only estimate prevalence for 2013
+          #   col_nam <-
+          #     setdiff(names(tbl), intersect(names(ff), names(tbl)))
+          #   absorb_dt(ff, tbl)
+          #   ff[, t2dm_prvl_curr_xps := as.integer(rank_t2dm < mu)]
+          #   setnafill(ff, "c", 0L, cols = "t2dm_prvl_curr_xps")
+          #   ff[, `:=`(rank_t2dm = NULL)]
+          #   ff[, (col_nam) := NULL]
+          #   ff[, year := year + lag]
+          # }
+          #
+          #
+          # ff[, `:=`(
+          #   bmi = NULL,
+          #   rankstat_t2dm_dgn = NULL
+          # )]
 
           nam <- grep("rank", names(ff), value = T)
           if (length(nam) > 0) ff[, (nam) := NULL]

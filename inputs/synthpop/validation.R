@@ -333,11 +333,11 @@ if (all(file.exists(output_dir(filenames)))) {
   out_mrtl <- fread(output_dir(filenames[[2]]))
 
   if (design$sim_prm$n_synthpop_aggregation > 1L) {
-    out_incd[, mc := ceiling(mc / design$sim_prm$n_synthpop_aggregation)]
+    out_incd[, mc := as.integer(ceiling(mc / design$sim_prm$n_synthpop_aggregation))]
     out_incd <-
       out_incd[, lapply(.SD, sum), keyby = .(year, sex, agegrp20, qimd, mc)]
     fwrite(out_incd, output_dir(filenames[[1]]))
-    out_mrtl[, mc := ceiling(mc / design$sim_prm$n_synthpop_aggregation)]
+    out_mrtl[, mc := as.integer(ceiling(mc / design$sim_prm$n_synthpop_aggregation))]
     out_mrtl <-
       out_mrtl[, lapply(.SD, sum), keyby = .(year, sex, agegrp20, qimd, mc)]
     fwrite(out_mrtl, output_dir(filenames[[2]]))

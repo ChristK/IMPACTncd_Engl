@@ -24,7 +24,9 @@ Imports: Rcpp (>= 1.0.2),
          yaml,
          shinythemes,
          foreach,
-         BH
+         BH,
+         igraph
+Suggests: roxygen2
 LinkingTo: Rcpp, 
            dqrng,
            sitmo,

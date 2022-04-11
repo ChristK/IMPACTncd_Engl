@@ -42,6 +42,7 @@
 #' @importFrom digest digest2int
 #' @importFrom yaml read_yaml write_yaml
 #' @importFrom foreach foreach
+#' @importFrom igraph make_graph is_dag V neighbors all_simple_paths topo_sort
 #' @useDynLib IMPACTncdEnglmisc
 #' @name IMPACTncdEnglmisc
 NULL
