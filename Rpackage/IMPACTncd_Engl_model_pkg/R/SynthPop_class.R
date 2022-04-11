@@ -90,7 +90,7 @@ SynthPop <-
         stopifnot(length(mc_) == 1L, is.numeric(mc_), ceiling(mc_) >= 0L)
         stopifnot("Design" %in% class(design_))
 
-        mc_ <- ceiling(mc_)
+        mc_ <- as.integer(ceiling(mc_))
         # Create synthpop_dir if it doesn't exists
         if (!dir.exists(design_$sim_prm$synthpop_dir)) {
           dir.create(design_$sim_prm$synthpop_dir, recursive = TRUE)
@@ -104,7 +104,7 @@ SynthPop <-
         private$checksum <- private$gen_checksum(design_)
 
         self$mc <- mc_
-        self$mc_aggr <- ceiling(mc_ / design_$sim_prm$n_synthpop_aggregation)
+        self$mc_aggr <- as.integer(ceiling(mc_ / design_$sim_prm$n_synthpop_aggregation))
 
         private$design <- design_
         private$synthpop_dir <- design_$sim_prm$synthpop_dir
@@ -589,7 +589,7 @@ SynthPop <-
       write_synthpop = function(mc_) {
         stopifnot(all(is.numeric(mc_)), all(ceiling(mc_) > 0L))
         on.exit(self$delete_incomplete_synthpop(), add = TRUE)
-        mc_ <- ceiling(mc_)
+        mc_ <- as.integer(ceiling(mc_))
 
         # get unique lsoas
         lsoas <- private$get_unique_LSOAs(private$design)
@@ -866,7 +866,8 @@ SynthPop <-
 
 
             # Generate correlated ranks for the individuals ----
-            if (design_$sim_prm$logs) message("Generate correlated ranks for the individuals")
+            if (design_$sim_prm$logs) message("Generate correlated ranks for the
+                                              individuals")
 
             cm_mean <- as.matrix(
               read_fst(
@@ -1078,8 +1079,8 @@ SynthPop <-
 
             # For the total min that someone is active I will use the distribution hist(30 +
             # rexp(1e5, 1/7))
-            dt[, met := floor(active_days * (3L + qbinom(rankstat_pa_met, 8, 3/11)) *
-                 (30 + qexp(rankstat_pa_dur, 1/7)) / 100)] # TODO make data driven
+            dt[, met := as.integer(floor(active_days * (3L + qbinom(rankstat_pa_met, 8, 3/11)) *
+                 (30 + qexp(rankstat_pa_dur, 1/7)) / 100))] # TODO make data driven
             dt[, c("rankstat_pa_met", "rankstat_pa_dur") := NULL]
 
             # Generate fruit consumption (ZISICHEL) ----
@@ -1397,14 +1398,6 @@ SynthPop <-
               simsmok_postcalibration(dt) # need to be post cig simulation
 
             dt[, smok_status := factor(smok_status)]
-            # needed for QRisk and QDrisk
-            dt[, smoke_cat := 0L]
-            dt[smok_status == "3", smoke_cat := 1L]
-            dt[smok_status == "4", smoke_cat := 3L]
-            dt[smok_status == "4" &
-                 smok_cig < 10, smoke_cat := 2L]
-            dt[smok_status == "4" &
-                 smok_cig > 19, smoke_cat := 4L]
 
             dt[, c(
               "rankstat_smok",
@@ -1646,7 +1639,7 @@ SynthPop <-
 
           # Ensure pid does not overlap for files from different mc
           new_n <- uniqueN(dt$pid)
-          it <- ceiling(self$mc %% private$design$sim_prm$n_synthpop_aggregation)
+          it <- as.integer(ceiling(self$mc %% private$design$sim_prm$n_synthpop_aggregation))
           it[it == 0L] <- private$design$sim_prm$n_synthpop_aggregation
           it <- it - 1L
           if (max(dt$pid + (private$design$sim_prm$n_synthpop_aggregation - 1) * new_n) < .Machine$integer.max) {
