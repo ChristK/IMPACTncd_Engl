@@ -94,7 +94,6 @@ Design <-
             "validation"            ,
             "max_prvl_for_outputs"  ,
             "iteration_n_max"       ,
-            # "n_primers"             ,
             "n_synthpop_aggregation"
           ) %in% names(sim_prm),
 
@@ -134,6 +133,45 @@ Design <-
           message(paste0("Directory ", sim_prm$output_dir, " was created"))
         }
 
+        # Reorder the diseases so dependencies are always calculated first
+        # (topological ordering). This is crucial for init_prevalence
+        # first name the list and
+        sim_prm$diseases <- setNames(sim_prm$diseases, sapply(sim_prm$diseases, function(x) x$name))
+
+        out <- vector() # will hold graph structure
+        ds <- names(sim_prm$diseases)
+        for (i in seq_along(ds)) {
+          ds_ <- ds[i]
+          dep <- sim_prm[["diseases"]][[i]][["meta"]][["incidence"]][["influenced_by_disease_name"]]
+          if (length(dep) > 0L && nzchar(dep)) {
+            # dep <- gsub("_prvl", "", dep)
+            for (j in seq_along(dep)) {
+              out <- c(out, dep[[j]], ds_)
+            }
+          }
+        }
+        g <- make_graph(out, directed = TRUE)
+        stopifnot(is_dag(g))
+        # get all cycles in the graph
+        Cycles = NULL
+        for(v1 in V(g)) {
+          for(v2 in neighbors(g, v1, mode="out")) {
+            Cycles = c(Cycles,
+                       lapply(all_simple_paths(g, v2,v1, mode = "out"), function(p) c(v1,p)))
+          }
+        }
+        # remove duplicates
+        Cycles <- Cycles[sapply(Cycles, min) == sapply(Cycles, `[`, 1)]
+        # find cycles of length i.e. 3 (i.e. chd -> t2dm -> chd)
+        Cycles[which(sapply(Cycles, length) >= 3)]
+
+        if (sim_prm$logs && length(Cycles) > 0) message("Cycles found: ", Cycles)
+
+        o <- topo_sort(g)
+
+        # then reorder based on the topological ordering
+        sim_prm$diseases <- sim_prm$diseases[order(match(names(sim_prm$diseases), names(o)))]
+
 
         self$sim_prm = sim_prm
 
@@ -171,10 +209,6 @@ Design <-
         self$sim_prm$n                      <- GUI_prm$n_gui
         self$sim_prm$n_synthpop_aggregation <- GUI_prm$n_synthpop_aggregation_gui
         self$sim_prm$n_primers              <- GUI_prm$n_primers_gui
-        # self$sim_prm$cvd_lag                <- GUI_prm$cvd_lag_gui
-        # self$sim_prm$copd_lag               <- GUI_prm$copd_lag_gui
-        # self$sim_prm$cancer_lag             <- GUI_prm$cancer_lag_gui
-        # self$sim_prm$nonmodelled_lag        <- GUI_prm$nonmodelled_lag_gui
         self$sim_prm$cancer_cure            <- GUI_prm$cancer_cure_gui
         self$sim_prm$jumpiness              <- GUI_prm$jumpiness_gui
         self$sim_prm$statin_adherence       <- GUI_prm$statin_adherence_gui

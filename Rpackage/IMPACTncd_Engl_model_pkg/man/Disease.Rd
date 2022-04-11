@@ -84,6 +84,7 @@ Get disease incident probability.
 \if{html}{\out{<div class="r">}}\preformatted{Disease$gen_parf(
   design_ = design,
   RR = RR,
+  diseases_ = diseases,
   popsize = 100,
   check = design_$sim_prm$logs
 )}\if{html}{\out{</div>}}
@@ -95,6 +96,8 @@ Get disease incident probability.
 \item{\code{design_}}{A design object with the simulation parameters.}
 
 \item{\code{RR}}{A list of Exposure objects.}
+
+\item{\code{diseases_}}{A list of Disease objects}
 
 \item{\code{popsize}}{The population size for each stratum}
 
@@ -239,13 +242,15 @@ A data.table with disease prevalent probabilities unless
 \subsection{Method \code{set_init_prvl()}}{
 Set disease prevalence & diagnosisin a new col in sp$pop.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$set_init_prvl(sp, design_ = design)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$set_init_prvl(sp, RR = RR, design_ = design)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{sp}}{A synthetic population.}
+
+\item{\code{RR}}{A list of Exposure objects.}
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 }

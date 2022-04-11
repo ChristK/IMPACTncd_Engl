@@ -70,6 +70,10 @@ Exposure <-
             stringsAsFactors = TRUE, yaml = TRUE
             )
 
+          if ("smok_status" %in% names(effect))
+            effect[, smok_status :=
+                               factor(smok_status, levels = 1:4)]
+
           effect[, agegroup := relevel(agegroup, "<1")]
 
           nam <- setdiff(names(effect), c("rr", "ci_rr"))
@@ -181,6 +185,10 @@ Exposure <-
           private$input_rr[, rr := approx(get(nam), rr, get(nam))$y,
                            by = .(age, sex)]
         }
+        if ("smok_status" %in% names(private$input_rr))
+          private$input_rr[, smok_status :=
+                         factor(smok_status, levels = 1:4)]
+
         invisible(self)
       },
 
@@ -215,6 +223,10 @@ Exposure <-
               design_$sim_prm$iteration_n_max,
               smooth,
               design_$sim_prm$logs, ...)
+          if ("smok_status" %in% names(stoch_effect))
+            stoch_effect[, smok_status :=
+                           factor(smok_status, levels = 1:4)]
+
 
           write_fst(stoch_effect, private$filenam, 100)
           # create a table with row numbers for each mc
@@ -248,7 +260,7 @@ Exposure <-
             stop("Argument design_ needs to be a Design object.")
 
           stopifnot(between(mc, 1, design_$sim_prm$iteration_n_max))
-          mc <- floor(mc)
+          mc <- as.integer(ceiling(mc))
           if (identical(mc, private$cache_mc)) {
             out <- copy(private$cache) # copy for safety
           } else {
@@ -273,9 +285,6 @@ Exposure <-
               out <- copy(private$input_rr)
               setnames(out, "rr", private$nam_rr)
             }
-
-            if ("smok_status" %in% names(out))
-              out[, smok_status := factor(smok_status, levels = 1:4)]
 
             private$cache <- copy(out) # copy for safety
             private$cache_mc <- mc
@@ -338,13 +347,19 @@ Exposure <-
           exps_tolag <- paste0(self$name, "_curr_xps")
 
           if (self$name %in% names(sp$pop)) {
-            # To prevent overwriting t2dm_prvl
+            # To prevent overwriting t2dm_prvl, af_prvl etc.
+            if (!exps_tolag %in% names(sp$pop)) {
+              set(sp$pop, NULL, exps_tolag, 0L) # Assume only missing for diseases
+              sp$pop[get(self$name) > 0, (exps_tolag) := 1L]
+            }
             setnames(sp$pop, self$name, paste0(self$name, "___"))
           }
 
           if (forPARF) {
             set(sp$pop, NULL, self$name, sp$pop[[exps_tolag]])
+            print(class(sp$pop[[self$name]]))
             tt <- self$get_input_rr()
+            print(summary(tt))
             # setnames(tt, "rr", private$nam_rr)
             absorb_dt(sp$pop, tt)
 

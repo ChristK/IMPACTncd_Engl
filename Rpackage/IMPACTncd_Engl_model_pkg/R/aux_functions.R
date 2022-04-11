@@ -2621,7 +2621,7 @@ run_simulation <- function(parameters, design, final = FALSE) {
         split = FALSE
       )
     }
-    mc_aggr <- ceiling(mc_iter / design$sim_prm$n_synthpop_aggregation)
+    mc_aggr <- as.integer(ceiling(mc_iter / design$sim_prm$n_synthpop_aggregation))
     design$get_lags(mc_aggr)
 
     POP <- SynthPop$new(mc_iter, design)
