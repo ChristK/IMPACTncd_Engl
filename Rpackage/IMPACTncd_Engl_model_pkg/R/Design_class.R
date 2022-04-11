@@ -234,47 +234,6 @@ Design <-
         invisible(self)
       },
 
-      #' @description Generates the lag per disease for a given Monte
-      #'   Carlo iteration (`mc`).
-      #' @param mc_ An integer for the Monte Carlo iteration.
-      #' @return The `Design` object invisibly. Updates the fields
-      #'   `lags_mc` and `max_lag_mc`
-      get_lags = function(mc_) {
-        if ((!is.na(private$mc_aggr) && mc_ != private$mc_aggr) ||
-            is.na(self$lags_mc) || is.na(self$max_lag_mc)) {
-          # for n_synthpop_aggregation > 1 we need RR and disease epi to change
-          # every n_synthpop_aggregation, not in every mc_
-          # n_synthpop_aggregation is handled at runtime. The line below is not
-          # necessary
-          # mc <-
-          #   ceiling(mc_ / self$sim_prm$n_synthpop_aggregation)
-          mc <- mc_
-          # argument checks in the private function get_lag_mc_hlp
-          nam <-
-            grep("_lag$", names(self$sim_prm), value = TRUE)
-
-          if (self$sim_prm$stochastic) {
-            out <- vector("list", length(nam))
-            names(out) <- nam
-            self$lags_mc <-
-              invisible(lapply(nam, function(x) {
-                private$get_lag_mc_hlp(mc, self$sim_prm[[paste0(x, "_enum")]], self$sim_prm[[x]])
-              }))
-          } else {
-            self$lags_mc <- self$sim_prm[nam]
-          }
-          names(self$lags_mc) <- nam
-          self$lags_mc$plco_lag <-
-            6L # for lung ca plco formula
-          self$lags_mc$statin_t2dm_lag <-
-            4L # for lung ca plco formula
-          self$max_lag_mc <- max(unlist(self$lags_mc))
-          private$mc_aggr <- mc_
-        }
-        invisible(self)
-      },
-
-
       #' @description
       #' Print the simulation parameters.
       #' @return The `Design` object.
@@ -287,37 +246,6 @@ Design <-
 
     # private ------------------------------------------------------------------
      private = list(
-      mc_aggr = NA,
-
-      get_lag_mc_hlp =
-        function(mc,
-                 disease_enum, # 1:10
-                 lag) {
-          # 2:9
-          stopifnot(between(disease_enum, 1, 10),
-                    between(lag, 2, 9),
-                    between(mc, 1, 1e3))
-          colnam <- paste0("lag_", lag)
-          filenam <-
-            "./disease_epidemiology/disease_lags_l.fst"
-          filenam_indx <-
-            "./disease_epidemiology/disease_lags_indx.fst"
-          indx <-
-            read_fst(
-              filenam_indx,
-              from = mc,
-              to = mc,
-              as.data.table = TRUE
-            )
-          out  <-
-            read_fst(
-              filenam,
-              colnam,
-              from = indx$from,
-              to = indx$to,
-              as.data.table = TRUE
-            )[disease_enum, get(colnam)]
-          out
-        }
+      mc_aggr = NA
     )
   )
