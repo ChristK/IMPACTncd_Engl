@@ -127,13 +127,23 @@ my_pZISICHEL <- function(q, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE
 }
 
 #' @export
-carry_forward <- function(x, pid, y) {
-    .Call('_IMPACTncdEnglmisc_carry_forward', PACKAGE = 'IMPACTncdEnglmisc', x, pid, y)
+carry_forward <- function(x, pid_mrk, y, byref = FALSE) {
+    .Call('_IMPACTncdEnglmisc_carry_forward', PACKAGE = 'IMPACTncdEnglmisc', x, pid_mrk, y, byref)
 }
 
 #' @export
-carry_backward <- function(x, pid) {
-    .Call('_IMPACTncdEnglmisc_carry_backward', PACKAGE = 'IMPACTncdEnglmisc', x, pid)
+carry_forward_incr <- function(x, pid_mrk, recur, y = 1L, byref = FALSE) {
+    .Call('_IMPACTncdEnglmisc_carry_forward_incr', PACKAGE = 'IMPACTncdEnglmisc', x, pid_mrk, recur, y, byref)
+}
+
+#' @export
+carry_backward <- function(x, pid_mrk, y = 0L) {
+    .Call('_IMPACTncdEnglmisc_carry_backward', PACKAGE = 'IMPACTncdEnglmisc', x, pid_mrk, y)
+}
+
+#' @export
+carry_backward_decr <- function(x, pid_mrk) {
+    .Call('_IMPACTncdEnglmisc_carry_backward_decr', PACKAGE = 'IMPACTncdEnglmisc', x, pid_mrk)
 }
 
 #' @export

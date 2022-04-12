@@ -26,25 +26,110 @@ using namespace Rcpp;
 
 //' @export
 // [[Rcpp::export]]
-IntegerVector carry_forward(const IntegerVector& x, const LogicalVector& pid, const int& y) {
+IntegerVector carry_forward(IntegerVector& x, const LogicalVector& pid_mrk,
+                            const int& y, const bool& byref = false) {
+  const int n = x.size();
+  if (byref) // Alters x by reference
+  {
+    for (int i = 0; i < n; i++)
+    {
+      if (!pid_mrk[i] && x[i - 1] == y) x[i] = y;
+    }
+    return x;
+  }
+  else // Returns a new IntegerVector
+  {
+    IntegerVector out = clone(x);
+    for (int i = 0; i < n; i++)
+    {
+      if (!pid_mrk[i] && out[i - 1] == y) out[i] = y;
+    }
+    return out;
+  }
+
+}
+
+//' @export
+// [[Rcpp::export]]
+IntegerVector carry_forward_incr(IntegerVector& x, const LogicalVector& pid_mrk,
+                                 const bool& recur, const int& y = 1,
+                                 const bool& byref = false) {
+  // byref = true changes input x inplace
+  // recur = false means that the value constantly increasing until it meets a new pid
+  // recur = true means that the process restarts as soon as it finds a value < y
+
+  const int n = x.size();
+  if (recur)
+  {
+    if (byref) // Alters x by reference
+    {
+      for (int i = 0; i < n; i++)
+      {
+        if (!pid_mrk[i] && x[i] >= y && x[i - 1] >= y) x[i] = x[i - 1] + 1;
+      }
+      return x;
+    } // end byref = true
+    else // Returns a new IntegerVector
+    {
+      IntegerVector out = clone(x);
+
+      for (int i = 0; i < n; i++)
+      {
+        if (!pid_mrk[i] && out[i] >= y && out[i - 1] >= y) out[i] = out[i - 1] + 1;
+      }
+      return out;
+    } // end byref = false
+  } // end if  recur
+  else
+  { // if not recur
+    if (byref) // Alters x by reference
+    {
+      for (int i = 0; i < n; i++)
+      {
+        if (!pid_mrk[i] && x[i - 1] >= y) x[i] = x[i - 1] + 1;
+      }
+      return x;
+    } // end byref = true
+    else // Returns a new IntegerVector
+    {
+      IntegerVector out = clone(x);
+
+      for (int i = 0; i < n; i++)
+      {
+        if (!pid_mrk[i] && out[i - 1] >= y) out[i] = out[i - 1] + 1;
+      }
+      return out;
+    } // end byref = false
+  } // end if not recur
+
+  }
+
+
+
+//' @export
+// [[Rcpp::export]]
+IntegerVector carry_backward(const IntegerVector& x, const LogicalVector& pid_mrk,
+                             const int& y = 0) {
   const int n = x.size();
   IntegerVector out = clone(x);
-  for (int i = 0; i < n; i++)
+  for (int i = n - 1; i > 0; i--) // Go backwards but stop from one row before the last
   {
-    if (!pid[i] && out[i-1] == y) out[i] = y;
+    if (!pid_mrk[i] && out[i] > y) out[i - 1] = out[i] - 1;
+    if (i < (n - 1) && pid_mrk[i] && !pid_mrk[i + 1] && out[i + 1] > y && out[i] == y) out[i] = out[i + 1] - 1;
+    if (out[i] < 0) out[i] = 0;
   }
   return out;
 }
 
 //' @export
 // [[Rcpp::export]]
-IntegerVector carry_backward(const IntegerVector& x, const LogicalVector& pid) {
+IntegerVector carry_backward_decr(const IntegerVector& x, const LogicalVector& pid_mrk) {
   const int n = x.size();
   IntegerVector out = clone(x);
   for (int i = n - 1; i > 0; i--) // Go backwards but stop from one row before the last
   {
-    if (!pid[i] && out[i] > 0) out[i - 1] = out[i] - 1;
-    if (i < (n - 1) && pid[i] && !pid[i + 1] && out[i + 1] > 0 && out[i] == 0) out[i] = out[i + 1] - 1;
+    if (!pid_mrk[i] && out[i] > 0) out[i - 1] = out[i] - 1;
+    if (i < (n - 1) && pid_mrk[i] && !pid_mrk[i + 1] && out[i + 1] > 0 && out[i] == 0) out[i] = out[i + 1] - 1;
     if (out[i] < 0) out[i] = 0;
   }
   return out;

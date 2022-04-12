@@ -28,11 +28,11 @@ To be completed...
 \item \href{#method-new}{\code{Disease$new()}}
 \item \href{#method-gen_parf}{\code{Disease$gen_parf()}}
 \item \href{#method-del_parf_file}{\code{Disease$del_parf_file()}}
+\item \href{#method-set_init_prvl}{\code{Disease$set_init_prvl()}}
 \item \href{#method-get_incd}{\code{Disease$get_incd()}}
 \item \href{#method-set_rr}{\code{Disease$set_rr()}}
 \item \href{#method-set_incd_prb}{\code{Disease$set_incd_prb()}}
 \item \href{#method-get_prvl}{\code{Disease$get_prvl()}}
-\item \href{#method-set_init_prvl}{\code{Disease$set_init_prvl()}}
 \item \href{#method-get_ftlt}{\code{Disease$get_ftlt()}}
 \item \href{#method-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
 \item \href{#method-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
@@ -128,6 +128,30 @@ Deletes the PARF file from disk. If both arguments
 
 \item{\code{invert}}{deletes all other disease relevant PARF file except those
 that are associated to the curent settings.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-set_init_prvl"></a>}}
+\if{latex}{\out{\hypertarget{method-set_init_prvl}{}}}
+\subsection{Method \code{set_init_prvl()}}{
+Set disease prevalence & diagnosisin a new col in sp$pop.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$set_init_prvl(sp, RR = RR, design_ = design)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{sp}}{A synthetic population.}
+
+\item{\code{RR}}{A list of Exposure objects.}
+
+\item{\code{design_}}{A design object with the simulation parameters.}
 }
 \if{html}{\out{</div>}}
 }
@@ -234,30 +258,6 @@ Get disease prevalent probability.
 \subsection{Returns}{
 A data.table with disease prevalent probabilities unless
   incidence type: Universal when it returns data.table(NULL).
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_init_prvl"></a>}}
-\if{latex}{\out{\hypertarget{method-set_init_prvl}{}}}
-\subsection{Method \code{set_init_prvl()}}{
-Set disease prevalence & diagnosisin a new col in sp$pop.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$set_init_prvl(sp, RR = RR, design_ = design)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{sp}}{A synthetic population.}
-
-\item{\code{RR}}{A list of Exposure objects.}
-
-\item{\code{design_}}{A design object with the simulation parameters.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}

@@ -73,6 +73,17 @@ Exposure <-
           if ("smok_status" %in% names(effect))
             effect[, smok_status :=
                                factor(smok_status, levels = 1:4)]
+          if ("ethnicity" %in% names(effect))
+            effect[, ethnicity :=
+                     factor(
+                       ethnicity,
+                       levels = c(
+                         "white", "indian", "pakistani", "bangladeshi",
+                         "other asian", "black caribbean", "black african",
+                         "chinese", "other"
+                         )
+                      )
+                   ]
 
           effect[, agegroup := relevel(agegroup, "<1")]
 
@@ -92,7 +103,7 @@ Exposure <-
         # Validation
         stopifnot(
           c("exps_name", "outcome", "distribution", "lag") %in% names(metadata),
-          metadata$lag >= 1,
+          metadata$lag >= 1 | (metadata$lag == 0L & metadata$incidence$type == 1L),
           metadata$lag <= design_$sim_prm$maxlag,
           length(metadata$distribution) == 1L,
           metadata$distribution %in% c("lognormal", "normal")
@@ -124,12 +135,20 @@ Exposure <-
 
         dqset.seed(private$seed, stream = 1) # stream = 1 for lags
 
-        private$lag_mc <-
-          1L + as.integer(qbinom(
-            dqrunif(design$sim_prm$iteration_n_max),
-            design$sim_prm$maxlag - 1L,
-            (self$lag - 1) / (design$sim_prm$maxlag - 1L)
-          )) # Note qbinom returns double not int
+        if (self$lag == 0L) { # Only allowed for incd type 1
+
+           private$lag_mc <-
+            rep(0L, times = design$sim_prm$iteration_n_max)
+
+        } else {
+          private$lag_mc <-
+            1L + as.integer(qbinom(
+              dqrunif(design$sim_prm$iteration_n_max),
+              design$sim_prm$maxlag - 1L,
+              (self$lag - 1) / (design$sim_prm$maxlag - 1L)
+            )) # Note qbinom returns double not int
+        }
+
 
         if ("ideal_xps_lvl_fn" %in% names(metadata) &&
             startsWith(metadata$ideal_xps_lvl_fn, "function(")) {
@@ -142,7 +161,7 @@ Exposure <-
 
         if (length(nam) == 2L) {
           tt <-
-            CJ(age = design_$sim_prm$ageL:design_$sim_prm$ageH,
+            CJ(age = (design_$sim_prm$ageL - design_$sim_prm$maxlag):design_$sim_prm$ageH,
               sex = factor(c("men", "women")))
           setkeyv(tt, c("sex", "age"))
         } else if (length(nam) == 3L) {
@@ -154,13 +173,13 @@ Exposure <-
             if (!isTRUE(all.equal(t3, t4))) interpolate <- TRUE
 
             tt <-
-              CJ(age = design_$sim_prm$ageL:design_$sim_prm$ageH,
+              CJ(age = (design_$sim_prm$ageL - design_$sim_prm$maxlag):design_$sim_prm$ageH,
                 sex = factor(c("men", "women")),
                 V3 = t3)
 
           } else { # if not numeric
             tt <-
-              CJ(age = design_$sim_prm$ageL:design_$sim_prm$ageH,
+              CJ(age = (design_$sim_prm$ageL - design_$sim_prm$maxlag):design_$sim_prm$ageH,
                 sex = factor(c("men", "women")),
                 V3 = unique(effect[[nam]]))
           }
@@ -188,7 +207,17 @@ Exposure <-
         if ("smok_status" %in% names(private$input_rr))
           private$input_rr[, smok_status :=
                          factor(smok_status, levels = 1:4)]
-
+        if ("ethnicity" %in% names(private$input_rr))
+          private$input_rr[, ethnicity :=
+                   factor(
+                     ethnicity,
+                     levels = c(
+                       "white", "indian", "pakistani", "bangladeshi",
+                       "other asian", "black caribbean", "black african",
+                       "chinese", "other"
+                     )
+                   )
+          ]
         invisible(self)
       },
 
@@ -226,7 +255,17 @@ Exposure <-
           if ("smok_status" %in% names(stoch_effect))
             stoch_effect[, smok_status :=
                            factor(smok_status, levels = 1:4)]
-
+          if ("ethnicity" %in% names(stoch_effect))
+            stoch_effect[, ethnicity :=
+                               factor(
+                                 ethnicity,
+                                 levels = c(
+                                   "white", "indian", "pakistani", "bangladeshi",
+                                   "other asian", "black caribbean", "black african",
+                                   "chinese", "other"
+                                 )
+                               )
+            ]
 
           write_fst(stoch_effect, private$filenam, 100)
           # create a table with row numbers for each mc
@@ -259,7 +298,7 @@ Exposure <-
           if (!inherits(design_, "Design"))
             stop("Argument design_ needs to be a Design object.")
 
-          stopifnot(between(mc, 1, design_$sim_prm$iteration_n_max))
+          stopifnot(length(mc) == 1L, between(mc, 1L, design_$sim_prm$iteration_n_max))
           mc <- as.integer(ceiling(mc))
           if (identical(mc, private$cache_mc)) {
             out <- copy(private$cache) # copy for safety
@@ -352,16 +391,12 @@ Exposure <-
               set(sp$pop, NULL, exps_tolag, 0L) # Assume only missing for diseases
               sp$pop[get(self$name) > 0, (exps_tolag) := 1L]
             }
-            setnames(sp$pop, self$name, paste0(self$name, "___"))
+            setnames(sp$pop, self$name, paste0(self$name, "____"))
           }
 
           if (forPARF) {
             set(sp$pop, NULL, self$name, sp$pop[[exps_tolag]])
-            print(class(sp$pop[[self$name]]))
-            tt <- self$get_input_rr()
-            print(summary(tt))
-            # setnames(tt, "rr", private$nam_rr)
-            absorb_dt(sp$pop, tt)
+            absorb_dt(sp$pop, self$get_input_rr())
 
           } else {
             set(sp$pop, NULL, self$name, # column without _curr_xps is lagged
@@ -370,6 +405,7 @@ Exposure <-
           }
 
           private$apply_rr_extra(sp)
+
           if (checkNAs) {
             print(self$name)
             print(sp$pop[!is.na(get(self$name)) & is.na(get(private$nam_rr)) &
@@ -377,11 +413,13 @@ Exposure <-
                            year >= design_$sim_prm$init_year,
                            table(get(self$name), useNA = "always")])
           }
-          setnafill(sp$pop, type = "const", 1, cols = private$nam_rr)
+
+          if (is.numeric(sp$pop[[private$nam_rr]]))
+            setnafill(sp$pop, type = "const", 1, cols = private$nam_rr)
           sp$pop[, (self$name) := NULL]
-          if (paste0(self$name, "___") %in% names(sp$pop)) {
+          if (paste0(self$name, "____") %in% names(sp$pop)) {
             # To prevent overwriting t2dm_prvl
-            setnames(sp$pop, paste0(self$name, "___"), self$name)
+            setnames(sp$pop, paste0(self$name, "____"), self$name)
           }
         return(invisible(self))
       },

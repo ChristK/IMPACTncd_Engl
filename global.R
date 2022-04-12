@@ -26,6 +26,10 @@ if (interactive() && !nzchar(system.file(package = "CKutils"))) {
 
 library(CKutils)
 options(rgl.useNULL = TRUE)  # suppress error by demography in rstudio server
+options(future.fork.enable = TRUE) # TODO remove for production
+options(future.rng.onMisuse = "ignore") # Remove false warning
+options(datatable.verbose = FALSE)
+options(datatable.showProgress = FALSE)
 dependencies(yaml::read_yaml("./dependencies.yaml"))
 
 if (interactive()) {
@@ -75,16 +79,13 @@ library(IMPACTncdEnglmisc)
 
 
 design <- Design$new("./inputs/sim_design.yaml")
-
-options(future.fork.enable = TRUE) # TODO remove for production
-options(future.rng.onMisuse = "ignore") # Remove false warning
-
+setDTthreads(threads = design$sim_prm$clusternumber, restore_after_fork = NULL)
+threads_fst(nr_of_threads = design$sim_prm$clusternumber, reset_after_fork = NULL)
 registerDoFuture()
 
 
 
-options(datatable.verbose = FALSE)
-options(datatable.showProgress = FALSE)
+
 
 strata_for_gui <- c("mc", "friendly_name", design$sim_prm$strata_for_output)
 

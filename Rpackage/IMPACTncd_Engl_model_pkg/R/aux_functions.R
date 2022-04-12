@@ -287,6 +287,7 @@ validate_gamlss_tbl <-
 #' @export
 shift_bypid <-
   function(x, lag, id, replace = NA) {
+    if (lag == 0L) return(x)
     if (typeof(x) == "integer") {
       return(shift_bypidInt(x, lag, replace, id))
     } else if (typeof(x) == "logical") {
