@@ -25,6 +25,20 @@ diseases:
     mortality:
       type: ~ # NULL
   notes: .na
+- name: htn
+  friendly_name: hypertension
+  meta:
+    incidence:
+      type: 1
+      aggregation: 'any' # Other option is "all". If more than one RF is case definition expects any or all to be present?. Irrelevant for 1 RF
+      can_recur: false
+    diagnosis:
+      type: 1
+      probability: 1
+    mortality:
+      type: 1
+      code: 6
+  notes: .na
 - name: chd
   friendly_name: CHD
   meta:

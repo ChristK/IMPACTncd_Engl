@@ -1,0 +1,56 @@
+---
+exps_name: sbp
+outcome: htn
+lag: 0
+distribution: lognormal
+source: Several medical guidelines.
+notes: Systolic blood pressure above 140mmHg.
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    sp$pop[, sbp_rr := sbp >= sbp_rr] 
+  }
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1,1
+20-24,men,140,140
+25-29,men,140,140
+30-34,men,140,140
+35-39,men,140,140
+40-44,men,140,140
+45-49,men,140,140
+50-54,men,140,140
+55-59,men,140,140
+60-64,men,140,140
+65-69,men,140,140
+70-74,men,140,140
+75-79,men,140,140
+80-84,men,140,140
+85-89,men,140,140
+90-94,men,140,140
+95-99,men,140,140
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1,1
+20-24,women,140,140
+25-29,women,140,140
+30-34,women,140,140
+35-39,women,140,140
+40-44,women,140,140
+45-49,women,140,140
+50-54,women,140,140
+55-59,women,140,140
+60-64,women,140,140
+65-69,women,140,140
+70-74,women,140,140
+75-79,women,140,140
+80-84,women,140,140
+85-89,women,140,140
+90-94,women,140,140
+95-99,women,140,140
