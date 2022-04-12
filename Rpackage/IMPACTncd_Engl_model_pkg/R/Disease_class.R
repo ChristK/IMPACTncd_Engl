@@ -429,7 +429,7 @@ Disease <-
               thresh <- as.integer(private$risks[[riskcolnam]])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "any") {
-              thresh <- as.integer(private$risks[, pmax(.SD), .SDcols = riskcolnam])
+              thresh <- as.integer(private$risks[, do.call(pmax, .SD), .SDcols = riskcolnam])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "all") {
               thresh <- as.integer(private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam])
@@ -590,7 +590,8 @@ Disease <-
 
         xps <- sapply(RR, `[[`, "outcome") == self$name
         rr <- RR[xps] # only contains exposures for disease
-        lapply(rr, function(x)  x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF))
+        lapply(rr, function(x)
+          x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF))
         # for (i in rr) {
         #     i$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF)
         # }
@@ -660,7 +661,7 @@ Disease <-
               thresh <- as.numeric(private$risks[[riskcolnam]])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "any") {
-              thresh <- as.numeric(private$risks[, pmax(.SD), .SDcols = riskcolnam])
+              thresh <- as.numeric(private$risks[, do.call(pmax, .SD), .SDcols = riskcolnam])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "all") {
               thresh <- as.numeric(private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam])
