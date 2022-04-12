@@ -71,7 +71,7 @@ Disease <-
         private$seed <- abs(digest2int(name, seed = 230565490L))
 
 
-        if (is.numeric(meta$incidence$type)) {
+        if (is.numeric(meta$incidence$type) && meta$incidence$type > 1L) {
           private$filenams$incd <- file.path(
             getwd(), "inputs", "disease_burden",
             paste0(self$name, "_incd", ".fst")
@@ -93,22 +93,29 @@ Disease <-
         }
 
 
-        keys <- lapply(private$filenams[names(private$filenams) != "dur"], function(x) metadata_fst(x)$keys[[1]])
+        if (is.numeric(meta$incidence$type) && meta$incidence$type > 1L) {
+          keys <- lapply(private$filenams[names(private$filenams) != "dur"],
+                         function(x) metadata_fst(x)$keys[[1]])
 
-        if (!all(sapply(keys, identical, "year"))) stop("1st key need to be year")
+          if (!all(sapply(keys, identical, "year"))) stop("1st key need to be year")
 
-        if (is.numeric(meta$incidence$type)) {
           private$incd_indx <-
-            read_fst(private$filenams$incd, as.data.table = TRUE)[, .(from = min(.I), to = max(.I)), keyby = "year"]
+            read_fst(private$filenams$incd, as.data.table = TRUE
+                     )[, .(from = min(.I), to = max(.I)), keyby = "year"]
           private$prvl_indx <-
-            read_fst(private$filenams$prvl, as.data.table = TRUE)[, .(from = min(.I), to = max(.I)), keyby = "year"]
+            read_fst(private$filenams$prvl, as.data.table = TRUE
+                     )[, .(from = min(.I), to = max(.I)), keyby = "year"]
         }
         if (is.numeric(meta$mortality$type)) {
           private$ftlt_indx <-
-            read_fst(private$filenams$ftlt, as.data.table = TRUE)[, .(from = min(.I), to = max(.I)), keyby = "year"]
+            read_fst(private$filenams$ftlt, as.data.table = TRUE
+                     )[, .(from = min(.I), to = max(.I)), keyby = "year"]
         }
 
+        # TODO add check for stop('For type 1 incidence aggregation of RF need to be "any" or "all".')
+
         nam <- paste0("prb_", self$name, "_incd")
+
         if (self$meta$incidence$type == 3) {
           nam <- paste0(
             nam, "_no",
@@ -133,6 +140,13 @@ Disease <-
 
       gen_parf = function(design_ = design, RR = RR, diseases_ = diseases,
                           popsize = 100, check = design_$sim_prm$logs) {
+
+        if (is.numeric(self$meta$incidence$type) && self$meta$incidence$type == 1L) {
+          # Early break for type 1 incidence
+          return(invisible(self))
+        }
+
+
         if (!inherits(design_, "Design")) {
           stop("Argument design_ needs to be a Design object.")
         }
@@ -142,6 +156,9 @@ Disease <-
         if (!all(sapply(diseases_, inherits, "Disease"))) {
           stop("Argument diseases_ needs to be a list of disease object.")
         }
+
+
+
         # Generate unique name using the relevant RR and lags
         xps <- sapply(RR, `[[`, "outcome") == self$name
         rr <- RR[xps] # only contains exposures for disease
@@ -219,8 +236,6 @@ Disease <-
               "R6",
               "gamlss.dist",
               "dqrng",
-              # "qs",
-              # "fst",
               "CKutils",
               "IMPACTncdEnglmisc",
               "data.table"
@@ -233,7 +248,7 @@ Disease <-
           }
           if (exists("cl")) stopCluster(cl)
 
-          if (design_$sim_prm$logs) message("End of parallelisation.")
+          if (design_$sim_prm$logs) message("End of parallelisation for PARF.")
 
           ans <- list()
           setattr(ans, "class", "SynthPop") # to dispatch
@@ -371,6 +386,153 @@ Disease <-
         invisible(self)
       },
 
+
+      #' @description Set disease prevalence & diagnosisin a new col in sp$pop.
+      #' @param sp A synthetic population.
+      #' @param RR A list of Exposure objects.
+      #' @param design_ A design object with the simulation parameters.
+      #' @return The invisible self for chaining.
+      set_init_prvl = function(sp, RR = RR, design_ = design) {
+        # TODO correlate with other diseases prevalence
+        if (is.numeric(self$meta$incidence$type)) {
+          if (!inherits(sp, "SynthPop")) {
+            stop("Argument sp needs to be a SynthPop object.")
+          }
+          if (!inherits(design_, "Design")) {
+            stop("Argument design_ needs to be a Design object.")
+          }
+          if (!all(sapply(RR, inherits, "Exposure"))) {
+            stop("Argument RR needs to be a list of exposure object.")
+          }
+
+          xps <- sapply(RR, `[[`, "outcome") == self$name
+          rr <- RR[xps] # only contains exposures for disease
+
+
+          namprvl <- paste0(self$name, "_prvl")
+          if (namprvl %in% names(sp$pop)) {
+            stop(
+              "A column named ",
+              namprvl,
+              " already exists in sp$pop.
+              Please delete it and run set_init_prvl() afterwards."
+            )
+          }
+
+          if (self$meta$incidence$type == 1L) {
+            self$set_rr(sp, rr, design_, forPARF = FALSE)
+            riskcolnam <- grep("_rr$",
+                               names(private$risks),
+                               value = TRUE,
+                               perl = TRUE)
+            if (length(riskcolnam) == 1L) {
+              thresh <- as.integer(private$risks[[riskcolnam]])
+            }
+            if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "any") {
+              thresh <- as.integer(private$risks[, pmax(.SD), .SDcols = riskcolnam])
+            }
+            if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "all") {
+              thresh <- as.integer(private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam])
+            }
+
+            set(sp$pop, NULL, namprvl, thresh)
+
+            sp$pop[year > design_$sim_prm$init_year & age > design_$sim_prm$ageL,
+                   (namprvl) := 0L]
+
+            sp$pop[, carry_forward_incr(get((namprvl)), pid_mrk,
+                                        recur = self$meta$incidence$can_recur,
+                                        y = 1L, byref = TRUE)]
+            invisible(self)
+
+          } else { # if incidence type not 1
+
+            dqRNGkind("pcg64")
+            dqset.seed(private$seed, stream = sp$mc * 10 + 1L) # not mc_aggr
+            set.seed(private$seed + sp$mc * 10 + 1L) # for sample_int_expj
+            # First find out how many prevalent cases by pop subgroup
+            tbl <- self$get_prvl(design_$sim_prm$init_year
+            )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
+            strata <- setdiff(names(tbl), c("mu")) # age removed to avoid very small groups. To be replaced by agegroups below
+
+            sp$pop[tbl, on = .NATURAL, mu := i.mu]
+            sp$pop[
+              year == design_$sim_prm$init_year,
+              (namprvl) := as.integer(dqrunif(.N) < mu)
+            ]
+            sp$pop[, mu := NULL]
+
+            # for new entries we assume no time trends on initial prevalence
+            tbl <- tbl[age == design_$sim_prm$ageL][, year := NULL]
+            sp$pop[tbl, on = .NATURAL, mu := i.mu]
+            sp$pop[
+              year > design_$sim_prm$init_year &
+                age == design_$sim_prm$ageL,
+              (namprvl) := as.integer(dqrunif(.N) < mu)
+            ]
+            setnafill(sp$pop, "c", 0L, cols = namprvl)
+            sp$pop[, mu := NULL]
+
+            # Then select individuals with higher risk to have higher probability
+            # to be a prevalent case. I estimate weights based on relevant RF for
+            # each disease. Note that RR and sampling weights are equivalent here.
+            # The RR are for incident. One would expect prevalent cases to be
+            # healthier because of survival of the fittest and because some may
+            # have better RF control post diagnosis. For that I will arbitrarily
+            # assume that the risk for prevalence is half of that for incidence.
+
+
+            # ncases is the number of prevalent cases expected in each stratum
+            sp$pop[year >= design_$sim_prm$init_year,
+                   ncases := sum(get(namprvl)), by = eval(strata)]
+            # Generate unique name using the relevant RR and lags
+
+            # TODO below should apply only to strata with ncases > 0 for efficiency
+            self$set_rr(sp, rr, design_, forPARF = TRUE)
+
+            nam <- grep("_rr$", names(sp$pop), value = TRUE) # necessary because above forPARF = TRUE
+
+            sp$pop[, disease_wt := (Reduce(`*`, .SD)), .SDcols = nam]
+            sp$pop[, (nam) := NULL]
+            # adjust for prevalent risk half of incident risk
+            sp$pop[, disease_wt := ((disease_wt - 1) * 0.5) + 1]
+            ss <- sp$pop[ncases > 0,][, .("pid" = pid[sample_int_expj(unique(.N), unique(ncases), disease_wt)]), by = eval(strata)]
+            sp$pop[, (namprvl) := 0L]
+            sp$pop[ss, on = c("pid", "year"), (namprvl) := 1L]
+            sp$pop[, c("ncases", "disease_wt") := NULL]
+
+            # set duration
+            dqset.seed(private$seed, stream = sp$mc * 10 + 2L) # not mc_aggr
+            tbl <- read_fst(private$filenams$dur, as.data.table = TRUE)
+            col_nam <- setdiff(names(tbl), intersect(names(sp$pop), names(tbl)))
+            tbl[, (namprvl) := 1L]
+            absorb_dt(sp$pop, tbl)
+            fn <- paste0("q", self$meta$diagnosis$duration_distr)
+            sp$pop[get(namprvl) == 1L,
+                   (namprvl) := 1L + do.call(fn, c(p = list(dqrunif(.N)), .SD)),
+                   .SDcols = col_nam]
+            sp$pop[, (col_nam) := NULL]
+
+            sp$pop[, (namprvl) := carry_backward_decr(get(namprvl), pid_mrk)] # necessary for c++
+
+          } # End if incidence type not 1
+
+
+          # TODO this only makes sense when probability of diagnosis is 1
+          namdgns <- paste0(self$name, "_dgns")
+          set(sp$pop, NULL, namdgns, 0L)
+          sp$pop[
+            get(namprvl) > 0 & year == design_$sim_prm$init_year & dqrunif(.N) < self$meta$diagnosis$probability,
+            (namdgns) := get(namprvl)
+          ]
+          sp$pop[, (namdgns) := carry_backward_decr(get(namdgns), pid_mrk)]
+        }
+
+        invisible(self)
+      },
+
+
+
       #' @description Get disease incident probability.
       #' @param year_ A vector of years to return. All if missing.
       #' @return A data.table with disease incident probabilities unless
@@ -392,7 +554,7 @@ Disease <-
             to = ro$to
           )
         } else {
-          print(self$meta$incidence$type)
+          message("Incidence type: ", self$meta$incidence$type)
           out <- data.table(NULL)
         }
         return(out)
@@ -412,6 +574,10 @@ Disease <-
 
       set_rr = function(sp, RR = RR, design_ = design,
                         checkNAs = design_$sim_prm$logs, forPARF = FALSE) {
+        # For incd type 1 forPARF = TRUE is meaningless but gen_parf() skips
+        # this type so we are good here.
+
+
         if (!inherits(sp, "SynthPop")) {
           stop("Argument sp needs to be a SynthPop object.")
         }
@@ -422,11 +588,12 @@ Disease <-
           stop("Argument RR needs to be a list of exposure object.")
         }
 
-        for (i in RR) {
-          if (i$outcome == self$name) {
-            i$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF)
-          }
-        }
+        xps <- sapply(RR, `[[`, "outcome") == self$name
+        rr <- RR[xps] # only contains exposures for disease
+        lapply(rr, function(x)  x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF))
+        # for (i in rr) {
+        #     i$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF)
+        # }
 
         if (!forPARF) {
           nam <- grep("_rr$", names(sp$pop), value = TRUE)
@@ -442,13 +609,15 @@ Disease <-
       #' @param design_ A design object with the simulation parameters.
       #' @return The invisible self for chaining.
       set_incd_prb = function(sp, design_ = design) {
+
+        if (!inherits(design_, "Design")) {
+          stop("Argument design_ needs to be a Design object.")
+        }
+        if (!inherits(sp, "SynthPop")) {
+          stop("Argument sp needs to be a SynthPop object.")
+        }
+
         if (is.numeric(self$meta$incidence$type)) {
-          if (!inherits(design_, "Design")) {
-            stop("Argument design_ needs to be a Design object.")
-          }
-          if (!inherits(sp, "SynthPop")) {
-            stop("Argument sp needs to be a SynthPop object.")
-          }
           # check that the stored risks are for the sp (i.e. no rows deleted)
           if (!identical(sp$pop$pid, private$risks$pid)) {
             stop("Stored risks are for a different synthetic population")
@@ -462,8 +631,6 @@ Disease <-
               "Please delete it and run set_init_prvl() afterwards."
             )
           }
-
-
 
           # Get colnames in risk that end with _rr but exclude the influence by
           # diseases
@@ -487,28 +654,49 @@ Disease <-
               perl = TRUE
             )
           }
-          risk_product <- private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam]
-          absorb_dt(sp$pop, private$parf)
-          set(sp$pop, NULL, private$incd_colnam, clamp(sp$pop$p0 * risk_product))
-          # NOTE product above not expected to be = to incidence because p0
-          # estimated using mean lags and RR, while each mc run samples from
-          # their distribution.
 
-          if (design_$sim_prm$export_PARF) {
-            path <- file.path(design_$sim_prm$output_dir, "parf")
-            filenam <- file.path(path, "parf.csv")
-            if (!dir.exists(path)) {
-              dir.create(path, showWarnings = FALSE, recursive = TRUE)
+          if (self$meta$incidence$type == 1L) {
+            if (length(riskcolnam) == 1L) {
+              thresh <- as.numeric(private$risks[[riskcolnam]])
             }
-            parf_dt <- sp$pop[, .(parf = unique(parf), pop_size = sum(wt)),
-              keyby = .(age, sex, dimd, ethnicity, sha)
-            ]
-            parf_dt[, `:=`(disease = self$name, mc = sp$mc)] # not sp$mc_aggr
-            # EXAMPLE parf[, weighted.mean(parf, pop_size), keyby = sex]
-            fwrite_safe(parf_dt, filenam)
-          }
+            if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "any") {
+              thresh <- as.numeric(private$risks[, pmax(.SD), .SDcols = riskcolnam])
+            }
+            if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "all") {
+              thresh <- as.numeric(private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam])
+            }
 
-          sp$pop[, c("p0", "parf") := NULL]
+            set(sp$pop, NULL, private$incd_colnam, thresh)
+
+            } else {
+            # if incident$type not 1
+            risk_product <-
+              private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam]
+            absorb_dt(sp$pop, private$parf)
+            set(sp$pop,
+                NULL,
+                private$incd_colnam,
+                clamp(sp$pop$p0 * risk_product))
+            # NOTE product above not expected to be = to incidence because p0
+            # estimated using mean lags and RR, while each mc run samples from
+            # their distribution.
+
+            if (design_$sim_prm$export_PARF) {
+              path <- file.path(design_$sim_prm$output_dir, "parf")
+              filenam <- file.path(path, "parf.csv")
+              if (!dir.exists(path)) {
+                dir.create(path, showWarnings = FALSE, recursive = TRUE)
+              }
+              parf_dt <-
+                sp$pop[, .(parf = unique(parf), pop_size = sum(wt)),
+                       keyby = .(age, sex, dimd, ethnicity, sha)]
+              parf_dt[, `:=`(disease = self$name, mc = sp$mc)] # not sp$mc_aggr
+              # EXAMPLE parf[, weighted.mean(parf, pop_size), keyby = sex]
+              fwrite_safe(parf_dt, filenam)
+            }
+
+            sp$pop[, c("p0", "parf") := NULL]
+          } # End of incident$type not 1
         } # End if incident$type numeric
         invisible(self)
       },
@@ -534,123 +722,10 @@ Disease <-
             to = ro$to
           )
         } else {
-          print(self$meta$incidence$type)
+          message("Incidence type: ", self$meta$incidence$type)
           out <- data.table(NULL)
         }
         return(out)
-      },
-
-      #' @description Set disease prevalence & diagnosisin a new col in sp$pop.
-      #' @param sp A synthetic population.
-      #' @param RR A list of Exposure objects.
-      #' @param design_ A design object with the simulation parameters.
-      #' @return The invisible self for chaining.
-      set_init_prvl = function(sp, RR = RR, design_ = design) {
-        # TODO correlate with other diseases prevalence
-        if (is.numeric(self$meta$incidence$type)) {
-          if (!inherits(sp, "SynthPop")) {
-            stop("Argument sp needs to be a SynthPop object.")
-          }
-          if (!inherits(design_, "Design")) {
-            stop("Argument design_ needs to be a Design object.")
-          }
-          if (!all(sapply(RR, inherits, "Exposure"))) {
-            stop("Argument RR needs to be a list of exposure object.")
-          }
-
-          namprvl <- paste0(self$name, "_prvl")
-          if (namprvl %in% names(sp$pop)) {
-            stop(
-              "A column named ",
-              namprvl,
-              " already exists in sp$pop.
-              Please delete it and run set_init_prvl() afterwards."
-            )
-          }
-
-          dqRNGkind("pcg64")
-          dqset.seed(private$seed, stream = sp$mc * 10 + 1L) # not mc_aggr
-          set.seed(private$seed + sp$mc * 10 + 1L) # for sample_int_expj
-          # First find out how many prevalent cases by pop subgroup
-          tbl <- self$get_prvl(design_$sim_prm$init_year
-          )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
-          strata <- setdiff(names(tbl), c("mu", "age")) # age removed to avoid very small groups. To be replaced by agegroups below
-          strata <- c("age10", strata) # age10 (10y agegroup) to be created below
-          sp$pop[tbl, on = .NATURAL, mu := i.mu]
-          sp$pop[
-            year == design_$sim_prm$init_year,
-            (namprvl) := as.integer(dqrunif(.N) < mu)
-          ]
-          sp$pop[, mu := NULL]
-
-          # for new entries we assume no time trends on initial prevalence
-          tbl <- tbl[age == design_$sim_prm$ageL][, year := NULL]
-          sp$pop[tbl, on = .NATURAL, mu := i.mu]
-          sp$pop[
-            year > design_$sim_prm$init_year &
-              age == design_$sim_prm$ageL,
-            (namprvl) := as.integer(dqrunif(.N) < mu)
-          ]
-          setnafill(sp$pop, "c", 0L, cols = namprvl)
-          sp$pop[, mu := NULL]
-
-          # Then select individuals with higher risk to have higher probability
-          # to be a prevalent case. I estimate weights based on relevant RF for
-          # each disease. Note that RR and sampling weights are equivalent here.
-          # The RR are for incident. One would expect prevalent cases to be
-          # healthier because of survival of the fittest and because some may
-          # have better RF control post diagnosis. For that I will arbitrarily
-          # assume that the risk for prevalence is half of that for incidence.
-
-
-          # ncases is the number of prevalent cases expected in each stratum ss
-          # <- sp$pop[get(namprvl) > 0, .(ncases = sum(get(namprvl))), by =
-          # eval(strata)]
-          sp$pop[, age10 := as.integer(floor(age/10))] # TODO move to get_synthpop?
-          sp$pop[year >= design_$sim_prm$init_year,
-                 ncases := sum(get(namprvl)), by = eval(strata)]
-          # Generate unique name using the relevant RR and lags
-          xps <- sapply(RR, `[[`, "outcome") == self$name
-          rr <- RR[xps] # only contains exposures for disease
-
-          # TODO below should apply only to strata with ncases > 0 for efficiency
-          self$set_rr(sp, rr, design_, forPARF = TRUE)
-
-          nam <- grep("_rr$", names(sp$pop), value = TRUE)
-
-          sp$pop[, disease_wt := (Reduce(`*`, .SD)), .SDcols = nam]
-          sp$pop[, (nam) := NULL]
-          # adjust for prevalent risk half of incident risk
-          sp$pop[, disease_wt := ((disease_wt - 1) * 0.5) + 1]
-          ss <- sp$pop[ncases > 0,][, .("pid" = pid[sample_int_expj(unique(.N), unique(ncases), disease_wt)]), by = eval(strata)]
-          sp$pop[, (namprvl) := 0L]
-          sp$pop[ss, on = c("pid", "year"), (namprvl) := 1L]
-          sp$pop[, age10 := NULL]
-
-          # set duration
-          dqset.seed(private$seed, stream = sp$mc * 10 + 2L) # not mc_aggr
-          tbl <- read_fst(private$filenams$dur, as.data.table = TRUE)
-          col_nam <- setdiff(names(tbl), intersect(names(sp$pop), names(tbl)))
-          tbl[, (namprvl) := 1L]
-          absorb_dt(sp$pop, tbl)
-          fn <- paste0("q", self$meta$diagnosis$duration_distr)
-          sp$pop[get(namprvl) == 1L,
-                 (namprvl) := 1L + do.call(fn, c(p = list(dqrunif(.N)), .SD)),
-                 .SDcols = col_nam]
-          sp$pop[, (col_nam) := NULL]
-          sp$pop[, (namprvl) := carry_backward(get(namprvl), pid_mrk)] # necessary for c++
-
-          # TODO this only makes sense when probability of diagnosis is 1
-          namdgns <- paste0(self$name, "_dgns")
-          set(sp$pop, NULL, namdgns, 0L)
-          sp$pop[
-            get(namprvl) > 0 & year == design_$sim_prm$init_year & dqrunif(.N) < self$meta$diagnosis$probability,
-            (namdgns) := get(namprvl)
-          ]
-          sp$pop[, (namdgns) := carry_backward(get(namdgns), pid_mrk)]
-        }
-
-        invisible(self)
       },
 
 
@@ -676,7 +751,7 @@ Disease <-
             to = ro$to
           )
         } else {
-          print(self$meta$mortality$type)
+          message("Mortality type: ", self$meta$mortality$type)
           out <- data.table(NULL)
         }
         return(out)
@@ -852,12 +927,6 @@ Disease <-
           ),
           "prevalence" = paste0(self$name, "_prvl", scenario_suffix),
           "probability" = paste0(private$incd_colnam, scenario_suffix),
-          # "rn" = paste0(
-          #   "rn_",
-          #   self$name,
-          #   "_incd",
-          #   fifelse(design_$sim_prm$kismet, "", scenario_suffix)
-          # ),
           "can_recur" = self$meta$incidence$can_recur
         )
         if (is.null(out$incidence$can_recur)) out$incidence <- within(out$incidence, rm("can_recur"))
@@ -892,53 +961,46 @@ Disease <-
               private$dgns_colnam,
               scenario_suffix
             )
-            # "rn" = paste0(
-            #   "rn_",
-            #   self$name,
-            #   "_dgn",
-            #   fifelse(design_$sim_prm$kismet, "", scenario_suffix)
-            # )
           )
         } else {
           out <- within(out, rm("diagnosis"))
         }
 
-        out[["mortality"]] <- list(
-          "type" = fifelse(
-            is.numeric(self$meta$mortality$type),
-            paste0("Type", self$meta$mortality$type),
-            as.character(self$meta$mortality$type)
-          ),
-          "probability" = paste0("prb_", self$name, "_mrtl2", scenario_suffix),
-          # "rn" = paste0(
-          #   "rn_",
-          #   self$name,
-          #   "_mrtl",
-          #   fifelse(design_$sim_prm$kismet, "", scenario_suffix)
-          # ),
-          "code" = self$meta$mortality$code
-        )
+        if (!is.null(self$meta$mortality$type)) {
+          out[["mortality"]] <- list(
+            "type" = fifelse(
+              is.numeric(self$meta$mortality$type),
+              paste0("Type", self$meta$mortality$type),
+              as.character(self$meta$mortality$type)
+            ),
+            "probability" = paste0("prb_", self$name, "_mrtl2", scenario_suffix),
+            "code" = self$meta$mortality$code
+          )
 
-        if (private$mrtl2flag) {
-          out[["mortality"]][["probability1styear"]] <-
-            paste0("prb_", self$name, "_mrtl1", scenario_suffix)
-        }
+          if (private$mrtl2flag) {
+            out[["mortality"]][["probability1styear"]] <-
+              paste0("prb_", self$name, "_mrtl1", scenario_suffix)
+          }
 
 
-        if (self$meta$mortality$type == 3) {
-          influenced_by_mrtl <- list()
-          for (i in self$meta$mortality$influenced_by_disease_name) {
-            influenced_by_mrtl[[paste0(i, "_prvl")]] <-
-              list(
-                "multiplier" = paste0(self$name, "_mrtl_", i, "_prvl_mltp"),
-                "lag" = RR[[paste0(i, "_prvl", "~", self$name)]]$get_lag(fifelse(
-                  design_$sim_prm$stochastic, sp$mc_aggr, 0L
-                )) # Ensure from R side that never 0
-              )
-          } # end for loop over influenced_by_disease_name
-          out[["mortality"]][["influenced_by"]] <-
-            influenced_by_mrtl
-        } # end if mortality type 3
+          if (self$meta$mortality$type == 3) {
+            influenced_by_mrtl <- list()
+            for (i in self$meta$mortality$influenced_by_disease_name) {
+              influenced_by_mrtl[[paste0(i, "_prvl")]] <-
+                list(
+                  "multiplier" = paste0(self$name, "_mrtl_", i, "_prvl_mltp"),
+                  "lag" = RR[[paste0(i, "_prvl", "~", self$name)]]$get_lag(
+                    fifelse(
+                    design_$sim_prm$stochastic, sp$mc_aggr, 0L
+                  )) # Ensure from R side that never 0
+                )
+            } # end for loop over influenced_by_disease_name
+            out[["mortality"]][["influenced_by"]] <-
+              influenced_by_mrtl
+          } # end if mortality type 3
+        } else { # end of not null mortality
+          out <- within(out, rm("mortality"))
+        } # end of null mortality
         out
       },
 

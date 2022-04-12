@@ -34,7 +34,6 @@ design <- Design$new("./validation/design_for_trends_validation.yaml")
 \item \href{#method-new}{\code{Design$new()}}
 \item \href{#method-save_to_disk}{\code{Design$save_to_disk()}}
 \item \href{#method-update_fromGUI}{\code{Design$update_fromGUI()}}
-\item \href{#method-get_lags}{\code{Design$get_lags()}}
 \item \href{#method-print}{\code{Design$print()}}
 \item \href{#method-clone}{\code{Design$clone()}}
 }
@@ -107,28 +106,6 @@ Updates the design object from GUI.
 }
 \subsection{Returns}{
 The `Design` object.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_lags"></a>}}
-\if{latex}{\out{\hypertarget{method-get_lags}{}}}
-\subsection{Method \code{get_lags()}}{
-Generates the lag per disease for a given Monte
-  Carlo iteration (`mc`).
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$get_lags(mc_)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{mc_}}{An integer for the Monte Carlo iteration.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The `Design` object invisibly. Updates the fields
-  `lags_mc` and `max_lag_mc`
 }
 }
 \if{html}{\out{<hr>}}

@@ -95,33 +95,37 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
   disease_meta out;
 
   List incd, dgns, mrtl;
-  if (l.containsElementNamed("incidence")) incd = l["incidence"];
-  if (l.containsElementNamed("mortality")) mrtl = l["mortality"];
+
 
   // incidence
-  out.incd.type =  as<string>(incd["type"]);
-
-  if (incd.containsElementNamed("prevalence")) out.incd.prvl = dt[as<string>(incd["prevalence"])];
-  if (incd.containsElementNamed("probability"))out.incd.prbl1 = dt[as<string>(incd["probability"])];
-
-  if (incd.containsElementNamed("aggregate")) out.incd.aggregate = as<CharacterVector>(incd["aggregate"]);
-
-  if (incd.containsElementNamed("influenced_by"))
+  if (l.containsElementNamed("incidence"))
   {
-    List ib = incd["influenced_by"];
-    CharacterVector tmps= ib.names();
-    int n = ib.length();
-    List ibb;
-    for (int i = 0; i < n; ++i)
-    {
-      ibb = ib[i];
-      out.incd.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
-      out.incd.influenced_by.mltp.push_back(dt[as<string>(ibb["multiplier"])]);
-      out.incd.influenced_by.lag.push_back(as<int>(ibb["lag"]));
-    }
-  }
+    incd = l["incidence"];
+    out.incd.type =  as<string>(incd["type"]);
 
-  if (incd.containsElementNamed("can_recur")) out.incd.can_recur = as<bool>(incd["can_recur"]);
+    if (incd.containsElementNamed("prevalence")) out.incd.prvl = dt[as<string>(incd["prevalence"])];
+    if (incd.containsElementNamed("probability"))out.incd.prbl1 = dt[as<string>(incd["probability"])];
+
+    if (incd.containsElementNamed("aggregate")) out.incd.aggregate = as<CharacterVector>(incd["aggregate"]);
+
+    if (incd.containsElementNamed("influenced_by"))
+    {
+      List ib = incd["influenced_by"];
+      CharacterVector tmps= ib.names();
+      int n = ib.length();
+      List ibb;
+      for (int i = 0; i < n; ++i)
+      {
+        ibb = ib[i];
+        out.incd.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
+        out.incd.influenced_by.mltp.push_back(dt[as<string>(ibb["multiplier"])]);
+        out.incd.influenced_by.lag.push_back(as<int>(ibb["lag"]));
+      }
+    }
+
+    if (incd.containsElementNamed("can_recur")) out.incd.can_recur = as<bool>(incd["can_recur"]);
+
+  }
 
   // diagnosis
   if (l.containsElementNamed("diagnosis"))
@@ -134,26 +138,31 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
   }
 
   // mortality
-  out.mrtl.type = as<string>(mrtl["type"]);
-
-  if (mrtl.containsElementNamed("probability")) out.mrtl.prbl1 = dt[as<string>(mrtl["probability"])];
-  if (mrtl.containsElementNamed("probability1styear")) out.mrtl.prbl2 =  dt[as<string>(mrtl["probability1styear"])];
-  if (mrtl.containsElementNamed("code")) out.mrtl.death_code = as<int>(mrtl["code"]);
-
-  if (mrtl.containsElementNamed("influenced_by"))
+  if (l.containsElementNamed("mortality"))
   {
-    List ib = mrtl["influenced_by"];
-    CharacterVector tmps= ib.names();
-    int n = ib.length();
-    List ibb;
-    for (int i = 0; i < n; ++i)
+    mrtl = l["mortality"];
+    out.mrtl.type = as<string>(mrtl["type"]);
+
+    if (mrtl.containsElementNamed("probability")) out.mrtl.prbl1 = dt[as<string>(mrtl["probability"])];
+    if (mrtl.containsElementNamed("probability1styear")) out.mrtl.prbl2 =  dt[as<string>(mrtl["probability1styear"])];
+    if (mrtl.containsElementNamed("code")) out.mrtl.death_code = as<int>(mrtl["code"]);
+
+    if (mrtl.containsElementNamed("influenced_by"))
     {
-      ibb = ib[i];
-      out.mrtl.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
-      out.mrtl.influenced_by.mltp.push_back(dt[as<string>(ibb["multiplier"])]);
-      out.mrtl.influenced_by.lag.push_back(as<int>(ibb["lag"]));
+      List ib = mrtl["influenced_by"];
+      CharacterVector tmps= ib.names();
+      int n = ib.length();
+      List ibb;
+      for (int i = 0; i < n; ++i)
+      {
+        ibb = ib[i];
+        out.mrtl.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
+        out.mrtl.influenced_by.mltp.push_back(dt[as<string>(ibb["multiplier"])]);
+        out.mrtl.influenced_by.lag.push_back(as<int>(ibb["lag"]));
+      }
     }
   }
+
 
   out.seed = as<int>(l["seed"]);
   return out;
@@ -201,18 +210,39 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         rng->seed(_seed, _stream);
         // incidence ------------------------------------------------
         // Generate RN irrespective of whether will be used. Crucial for
-        // reproducibility and to remove stochastic noise between scenario
+        // reproducibility and to remove stochastic noise between scenarios
         rn1 = runif_impl();
+
         if (dsmeta[j].incd.type == "Type1")
         {
-          // TODO
+          if (dsmeta[j].incd.can_recur)
+          {
+            if (dsmeta[j].incd.prbl1[i] == 1.0) // logic overwrite prvl for init year
+              dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
+          }
+          else // in can_recur = false
+          {
+            if (dsmeta[j].incd.prvl[i - 1] == 0 && dsmeta[j].incd.prbl1[i] == 1.0)
+              dsmeta[j].incd.prvl[i] = 1;
+            if (dsmeta[j].incd.prvl[i - 1] > 0)
+              dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
+          }
         }
 
         if (dsmeta[j].incd.type == "Type2")
         {
-          // TODO can_recur
-          if (dsmeta[j].incd.prvl[i - 1] == 0 && rn1 <= dsmeta[j].incd.prbl1[i]) dsmeta[j].incd.prvl[i] = 1;
-          if (dsmeta[j].incd.prvl[i - 1] > 0) dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
+          if (dsmeta[j].incd.can_recur)
+          {
+            // TODO can_recur
+
+          }
+          else // in can_recur = false
+          {
+            if (dsmeta[j].incd.prvl[i - 1] == 0 && rn1 <= dsmeta[j].incd.prbl1[i])
+              dsmeta[j].incd.prvl[i] = 1;
+            if (dsmeta[j].incd.prvl[i - 1] > 0)
+              dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
+          }
         }
 
         if (dsmeta[j].incd.type == "Type3")
@@ -226,8 +256,18 @@ void simcpp(DataFrame dt, const List l, const int mc) {
             }
           }
 
-          if (dsmeta[j].incd.prvl[i - 1] == 0 && rn1 <= (dsmeta[j].incd.prbl1[i] * mltp)) dsmeta[j].incd.prvl[i] = 1;
-          if (dsmeta[j].incd.prvl[i - 1] > 0) dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
+          if (dsmeta[j].incd.can_recur)
+          {
+            // TODO can_recur
+
+          }
+          else // in can_recur = false
+          {
+            if (dsmeta[j].incd.prvl[i - 1] == 0 && rn1 <= (dsmeta[j].incd.prbl1[i] * mltp))
+              dsmeta[j].incd.prvl[i] = 1;
+            if (dsmeta[j].incd.prvl[i - 1] > 0)
+              dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
+          }
           mltp = 1.0;
         }
 

@@ -899,7 +899,8 @@ SynthPop <-
               rank_mtx[, "smok_dur_ex_r"] * 0.99 / 0.999
             rank_mtx[, "smok_dur_curr_r"] <-
               rank_mtx[, "smok_dur_curr_r"] * 0.88 / 0.999
-
+            rank_mtx[, "bmi_r"] <-
+              rank_mtx[, "bmi_r"] * 0.95 / 0.999
             # sum((cor(rank_mtx) - cm_mean) ^ 2)
             if (design_$sim_prm$logs) message("correlated ranks matrix to data.table")
 

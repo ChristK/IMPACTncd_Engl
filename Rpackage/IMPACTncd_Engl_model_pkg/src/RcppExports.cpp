@@ -428,27 +428,56 @@ BEGIN_RCPP
 END_RCPP
 }
 // carry_forward
-IntegerVector carry_forward(const IntegerVector& x, const LogicalVector& pid, const int& y);
-RcppExport SEXP _IMPACTncdEnglmisc_carry_forward(SEXP xSEXP, SEXP pidSEXP, SEXP ySEXP) {
+IntegerVector carry_forward(IntegerVector& x, const LogicalVector& pid_mrk, const int& y, const bool& byref);
+RcppExport SEXP _IMPACTncdEnglmisc_carry_forward(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP ySEXP, SEXP byrefSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerVector& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< const LogicalVector& >::type pid(pidSEXP);
+    Rcpp::traits::input_parameter< IntegerVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const LogicalVector& >::type pid_mrk(pid_mrkSEXP);
     Rcpp::traits::input_parameter< const int& >::type y(ySEXP);
-    rcpp_result_gen = Rcpp::wrap(carry_forward(x, pid, y));
+    Rcpp::traits::input_parameter< const bool& >::type byref(byrefSEXP);
+    rcpp_result_gen = Rcpp::wrap(carry_forward(x, pid_mrk, y, byref));
+    return rcpp_result_gen;
+END_RCPP
+}
+// carry_forward_incr
+IntegerVector carry_forward_incr(IntegerVector& x, const LogicalVector& pid_mrk, const bool& recur, const int& y, const bool& byref);
+RcppExport SEXP _IMPACTncdEnglmisc_carry_forward_incr(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP recurSEXP, SEXP ySEXP, SEXP byrefSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const LogicalVector& >::type pid_mrk(pid_mrkSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type recur(recurSEXP);
+    Rcpp::traits::input_parameter< const int& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const bool& >::type byref(byrefSEXP);
+    rcpp_result_gen = Rcpp::wrap(carry_forward_incr(x, pid_mrk, recur, y, byref));
     return rcpp_result_gen;
 END_RCPP
 }
 // carry_backward
-IntegerVector carry_backward(const IntegerVector& x, const LogicalVector& pid);
-RcppExport SEXP _IMPACTncdEnglmisc_carry_backward(SEXP xSEXP, SEXP pidSEXP) {
+IntegerVector carry_backward(const IntegerVector& x, const LogicalVector& pid_mrk, const int& y);
+RcppExport SEXP _IMPACTncdEnglmisc_carry_backward(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP ySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const IntegerVector& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< const LogicalVector& >::type pid(pidSEXP);
-    rcpp_result_gen = Rcpp::wrap(carry_backward(x, pid));
+    Rcpp::traits::input_parameter< const LogicalVector& >::type pid_mrk(pid_mrkSEXP);
+    Rcpp::traits::input_parameter< const int& >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(carry_backward(x, pid_mrk, y));
+    return rcpp_result_gen;
+END_RCPP
+}
+// carry_backward_decr
+IntegerVector carry_backward_decr(const IntegerVector& x, const LogicalVector& pid_mrk);
+RcppExport SEXP _IMPACTncdEnglmisc_carry_backward_decr(SEXP xSEXP, SEXP pid_mrkSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const LogicalVector& >::type pid_mrk(pid_mrkSEXP);
+    rcpp_result_gen = Rcpp::wrap(carry_backward_decr(x, pid_mrk));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -807,8 +836,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_IMPACTncdEnglmisc_my_qSICHEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_qSICHEL, 7},
     {"_IMPACTncdEnglmisc_my_qZISICHEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_qZISICHEL, 8},
     {"_IMPACTncdEnglmisc_my_pZISICHEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_pZISICHEL, 8},
-    {"_IMPACTncdEnglmisc_carry_forward", (DL_FUNC) &_IMPACTncdEnglmisc_carry_forward, 3},
-    {"_IMPACTncdEnglmisc_carry_backward", (DL_FUNC) &_IMPACTncdEnglmisc_carry_backward, 2},
+    {"_IMPACTncdEnglmisc_carry_forward", (DL_FUNC) &_IMPACTncdEnglmisc_carry_forward, 4},
+    {"_IMPACTncdEnglmisc_carry_forward_incr", (DL_FUNC) &_IMPACTncdEnglmisc_carry_forward_incr, 5},
+    {"_IMPACTncdEnglmisc_carry_backward", (DL_FUNC) &_IMPACTncdEnglmisc_carry_backward, 3},
+    {"_IMPACTncdEnglmisc_carry_backward_decr", (DL_FUNC) &_IMPACTncdEnglmisc_carry_backward_decr, 2},
     {"_IMPACTncdEnglmisc_mk_new_simulant_markers", (DL_FUNC) &_IMPACTncdEnglmisc_mk_new_simulant_markers, 1},
     {"_IMPACTncdEnglmisc_identify_longdead", (DL_FUNC) &_IMPACTncdEnglmisc_identify_longdead, 2},
     {"_IMPACTncdEnglmisc_identify_invitees", (DL_FUNC) &_IMPACTncdEnglmisc_identify_invitees, 5},

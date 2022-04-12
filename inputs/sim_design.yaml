@@ -12,6 +12,19 @@ sim_horizon_max: 2043 # population projections do not support longer horizon
 ageL: 30
 ageH: 99
 diseases:
+- name: obesity
+  friendly_name: obesity
+  meta:
+    incidence:
+      type: 1
+      aggregation: 'any' # Other option is "all". If more than one RF is case definition expects any or all to be present?. Irrelevant for 1 RF
+      can_recur: true
+    diagnosis:
+      type: 1
+      probability: 1
+    mortality:
+      type: ~ # NULL
+  notes: .na
 - name: chd
   friendly_name: CHD
   meta:
@@ -85,7 +98,7 @@ diseases:
       code: 1
   notes: .na
 maxlag: 10
-cancer_cure: 10 # need to be >2 & <=10
+cancer_cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
 statin_adherence: 0.9
