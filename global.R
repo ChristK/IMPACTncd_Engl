@@ -149,7 +149,7 @@ if (!exists("default_search_columns_tbl_summary")) default_search_columns_tbl_su
 
 # RR ----
 # Create a named list of Exposure objects for the files in ./inputs/RR
-fl <- list.files(path = "./inputs/RR/", pattern = ".csvy$", full.names = TRUE)
+fl <- list.files(path = "./inputs/RR", pattern = ".csvy$", full.names = TRUE)
 RR <- lapply(fl, Exposure$new)
 names(RR) <- sapply(RR, function(x) x$get_name())
 invisible(lapply(RR, function(x)
@@ -160,40 +160,9 @@ rm(fl)
 
 # Generate diseases ----
 diseases <- lapply(design$sim_prm$diseases, function(x) {
-  do.call(Disease$new, c(x, "design" = design))
+  x[["design_"]] <- design
+  x[["RR"]] <- RR
+  do.call(Disease$new, x)
 })
 names(diseases) <- sapply(design$sim_prm$diseases, `[[`, "name")
-
-
-# Parameters ----
-# Create a named list of Exposure objects for the files in ./inputs/RR
-# fl <- list.files(path = "./inputs/other_parameters/", pattern = ".csvy$")
-# fl <- gsub(".csvy$", "", fl)
-# fl2 <- strsplit(fl, "~", TRUE)
-# fl2 <- lapply(fl2, function(x) {
-#   tt <- x[2]
-#   if (length(x) > 2) tt <- paste(x[-1], collapse = "_")
-#   return(c(x[1], tt))
-# })
-#
-# prmtrs <- mapply(Parameter$new, lapply(fl2, `[[`, 1), lapply(fl2, `[[`, 2))
-# names(prmtrs) <- fl
-
-# Read the files in ./inputs/other_parameters
-# pfl <- paste0("./inputs/other_parameters/", fl, ".csvy")
-# for (i in seq_along(pfl)) {
-#   prmtrs[[i]]$read_exps_prm(pfl[[i]], design)
-# }
-
-# Generate stochastic parameterss
-# for (i in seq_along(prmtrs)) {
-#   prmtrs[[i]]$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
-#   # NOTE smooth cannot be exported to Design for now, because the first time
-#   # this parameter changes we need logic to overwrite unsmoothed files
-# }
-# rm(fl, fl2, pfl)
-
-# dockerfile_object <- containerit::dockerfile()
-# dockerfile_object
-# containerit::write(dockerfile_object, file = "./dockerfile")
-
+rm(RR)

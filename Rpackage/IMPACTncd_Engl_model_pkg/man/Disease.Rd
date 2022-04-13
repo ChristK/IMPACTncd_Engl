@@ -38,6 +38,7 @@ To be completed...
 \item \href{#method-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
 \item \href{#method-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
 \item \href{#method-get_seed}{\code{Disease$get_seed()}}
+\item \href{#method-get_rr}{\code{Disease$get_rr()}}
 \item \href{#method-get_risks}{\code{Disease$get_risks()}}
 \item \href{#method-get_parf}{\code{Disease$get_parf()}}
 \item \href{#method-harmonise_epi_tables}{\code{Disease$harmonise_epi_tables()}}
@@ -53,7 +54,14 @@ To be completed...
 \subsection{Method \code{new()}}{
 Create a new disease object.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$new(name, friendly_name, meta, notes = NA_character_, design_ = design)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$new(
+  name,
+  friendly_name,
+  meta,
+  notes = NA_character_,
+  design_ = design,
+  RR
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -69,6 +77,8 @@ incidence, diagnosis, and mortality.}
 \item{\code{notes}}{A string with any notes.}
 
 \item{\code{design_}}{A design object with the simulation parameters.}
+
+\item{\code{RR}}{A list of exposure objects.}
 }
 \if{html}{\out{</div>}}
 }
@@ -84,7 +94,6 @@ Get disease incident probability.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$gen_parf(
   design_ = design,
-  RR = RR,
   diseases_ = diseases,
   popsize = 100,
   check = design_$sim_prm$logs
@@ -95,8 +104,6 @@ Get disease incident probability.
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{design_}}{A design object with the simulation parameters.}
-
-\item{\code{RR}}{A list of Exposure objects.}
 
 \item{\code{diseases_}}{A list of Disease objects}
 
@@ -117,15 +124,13 @@ The invisible self for chaining.
 Deletes the PARF file from disk. If both arguments
   missing, deletes ALL parf files for this disease.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$del_parf_file(design_ = design, RR = RR, invert = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$del_parf_file(design_ = design, invert = FALSE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{design_}}{A design object with the simulation parameters.}
-
-\item{\code{RR}}{A list of Exposure objects.}
 
 \item{\code{invert}}{deletes all other disease relevant PARF file except those
 that are associated to the curent settings.}
@@ -142,15 +147,13 @@ The invisible self for chaining.
 \subsection{Method \code{set_init_prvl()}}{
 Set disease prevalence & diagnosisin a new col in sp$pop.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$set_init_prvl(sp, RR = RR, design_ = design)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$set_init_prvl(sp, design_ = design)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{sp}}{A synthetic population.}
-
-\item{\code{RR}}{A list of Exposure objects.}
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 }
@@ -189,7 +192,6 @@ Set disease incidence probability in a new col in sp$pop.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$set_rr(
   sp,
-  RR = RR,
   design_ = design,
   checkNAs = design_$sim_prm$logs,
   forPARF = FALSE
@@ -200,8 +202,6 @@ Set disease incidence probability in a new col in sp$pop.
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{sp}}{A synthetic population.}
-
-\item{\code{RR}}{A list of Exposure objects.}
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 
@@ -355,6 +355,19 @@ A seed for the RNG that is produced by the digest of disease
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-get_rr"></a>}}
+\if{latex}{\out{\hypertarget{method-get_rr}{}}}
+\subsection{Method \code{get_rr()}}{
+Get the list of rr for all relevant exposures.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$get_rr()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A list of exposure objects.
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-get_risks"></a>}}
 \if{latex}{\out{\hypertarget{method-get_risks}{}}}
 \subsection{Method \code{get_risks()}}{
@@ -410,15 +423,13 @@ The invisible self for chaining.
 \subsection{Method \code{to_cpp()}}{
 Returns a list to pass to the C++ side for Chris' parser.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$to_cpp(sp, RR = RR, design_ = design, scenario_suffix = "")}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$to_cpp(sp, design_ = design, scenario_suffix = "")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{sp}}{A synthetic population.}
-
-\item{\code{RR}}{A list of Exposure objects.}
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 
@@ -437,15 +448,13 @@ A list.
 \subsection{Method \code{to_cpp_Peter()}}{
 Returns a list to pass to the C++ side for Peter's parser.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$to_cpp_Peter(sp, RR = RR, design_ = design, scenario_suffix = "")}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$to_cpp_Peter(sp, design_ = design, scenario_suffix = "")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{sp}}{A synthetic population.}
-
-\item{\code{RR}}{A list of Exposure objects.}
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 
