@@ -112,6 +112,22 @@ diseases:
     mortality:
       type: 1
       code: 7
+  notes: .na
+- name: dementia
+  friendly_name: dementia
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: t2dm
+      can_recur: false
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 8
+  notes: .na
 - name: nonmodelled
   friendly_name: nonmodelled
   meta:
