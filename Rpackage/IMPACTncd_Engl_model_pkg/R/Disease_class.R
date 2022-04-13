@@ -237,7 +237,7 @@ Disease <-
               "gamlss.dist",
               "dqrng",
               "CKutils",
-              "IMPACTncdEnglmisc",
+              "IMPACTncdEngl",
               "data.table"
             ),
             .export = NULL,

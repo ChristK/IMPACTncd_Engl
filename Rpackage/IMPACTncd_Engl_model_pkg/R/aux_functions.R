@@ -24,7 +24,7 @@
   NULL # due to NSE notes in R CMD check
 
 .onUnload <- function(libpath) {
-  library.dynam.unload("IMPACTncdEnglmisc", libpath)
+  library.dynam.unload("IMPACTncdEngl", libpath)
 }
 
 # Ensures that when fwrite appends file colnames of file to be written, match
@@ -2597,7 +2597,7 @@ run_simulation <- function(parameters, design, final = FALSE) {
     .packages = c(
       "R6",
       "data.table",
-      "IMPACTncdEnglmisc",
+      "IMPACTncdEngl",
       "gamlss.dist", # For distr in prevalence.R
       "dqrng",
       "qs",

@@ -19,7 +19,7 @@
 ## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ## Boston, MA 02110-1301 USA.
 
-#' IMPACTncdEnglmisc: A package with functions for the IMPACTncdEngl model.
+#' IMPACTncdEngl: A package with functions for the IMPACTncdEngl model.
 #'
 #' Description of your package.
 #
@@ -43,7 +43,7 @@
 #' @importFrom yaml read_yaml write_yaml
 #' @importFrom foreach foreach
 #' @importFrom igraph make_graph is_dag V neighbors all_simple_paths topo_sort
-#' @useDynLib IMPACTncdEnglmisc
-#' @name IMPACTncdEnglmisc
+#' @useDynLib IMPACTncdEngl
+#' @name IMPACTncdEngl
 NULL
 
