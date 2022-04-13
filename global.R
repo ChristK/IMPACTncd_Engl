@@ -37,7 +37,7 @@ if (interactive()) {
   if (file.exists(snfile)) snapshot <- changedFiles(qread(snfile))
 
 
-  if (!nzchar(system.file(package = "IMPACTncdEnglmisc")) ||
+  if (!nzchar(system.file(package = "IMPACTncdEngl")) ||
       !file.exists(snfile) || any(nzchar(snapshot$added),
         nzchar(snapshot$deleted),
         nzchar(snapshot$changed))) {
@@ -57,7 +57,7 @@ if (interactive()) {
         detach(search_item, unload = TRUE, character.only = TRUE)
       }
     }
-    detach_package(IMPACTncdEnglmisc)
+    detach_package(IMPACTncdEngl)
     remotes::install_local("./Rpackage/IMPACTncd_Engl_model_pkg/",
       force = TRUE,
       upgrade = "never")
@@ -74,7 +74,7 @@ if (interactive()) {
     )
   }
 }
-library(IMPACTncdEnglmisc)
+library(IMPACTncdEngl)
 
 
 

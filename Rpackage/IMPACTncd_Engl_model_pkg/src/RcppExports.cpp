@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // my_dBCPEo
 NumericVector my_dBCPEo(const NumericVector& x, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& log_, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_dBCPEo(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_dBCPEo(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -29,7 +29,7 @@ END_RCPP
 }
 // my_pBCPEo
 NumericVector my_pBCPEo(const NumericVector& q, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_pBCPEo(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_pBCPEo(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -47,7 +47,7 @@ END_RCPP
 }
 // my_qBCPEo
 NumericVector my_qBCPEo(NumericVector p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qBCPEo(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qBCPEo(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -65,7 +65,7 @@ END_RCPP
 }
 // my_dBCT
 NumericVector my_dBCT(const NumericVector& x, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& log_, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_dBCT(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_dBCT(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -82,7 +82,7 @@ END_RCPP
 }
 // my_pBCT
 NumericVector my_pBCT(const NumericVector& q, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_pBCT(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_pBCT(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -100,7 +100,7 @@ END_RCPP
 }
 // my_qBCT
 NumericVector my_qBCT(NumericVector p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qBCT(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qBCT(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -118,7 +118,7 @@ END_RCPP
 }
 // my_dBNB
 NumericVector my_dBNB(const NumericVector& x, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& log, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_dBNB(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP logSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_dBNB(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP logSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -134,7 +134,7 @@ END_RCPP
 }
 // my_pBNB
 NumericVector my_pBNB(const IntegerVector& q, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_pBNB(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_pBNB(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -151,7 +151,7 @@ END_RCPP
 }
 // my_qBNB
 IntegerVector my_qBNB(const NumericVector& p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qBNB(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qBNB(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -168,7 +168,7 @@ END_RCPP
 }
 // my_qZIBNB
 IntegerVector my_qZIBNB(const NumericVector& p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qZIBNB(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qZIBNB(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -186,7 +186,7 @@ END_RCPP
 }
 // my_qZABNB
 IntegerVector my_qZABNB(const NumericVector& p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qZABNB(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qZABNB(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -204,7 +204,7 @@ END_RCPP
 }
 // my_dDEL
 NumericVector my_dDEL(const IntegerVector& x, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& log_, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_dDEL(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_dDEL(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -220,7 +220,7 @@ END_RCPP
 }
 // my_pDEL
 NumericVector my_pDEL(const IntegerVector& q, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_pDEL(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_pDEL(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -237,7 +237,7 @@ END_RCPP
 }
 // my_qDEL
 IntegerVector my_qDEL(NumericVector p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qDEL(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qDEL(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -254,7 +254,7 @@ END_RCPP
 }
 // my_get_C
 NumericVector my_get_C(const IntegerVector& x, const NumericVector& mu, const NumericVector& sigma);
-RcppExport SEXP _IMPACTncdEnglmisc_my_get_C(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_get_C(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -267,7 +267,7 @@ END_RCPP
 }
 // my_dDPO
 NumericVector my_dDPO(const IntegerVector& x, const NumericVector& mu, const NumericVector& sigma, const bool& log_, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_dDPO(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_dDPO(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -282,7 +282,7 @@ END_RCPP
 }
 // my_pDPO
 NumericVector my_pDPO(const IntegerVector& q, const NumericVector& mu, const NumericVector& sigma, const bool& lower_tail, const bool& log_p);
-RcppExport SEXP _IMPACTncdEnglmisc_my_pDPO(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_pDPO(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -297,7 +297,7 @@ END_RCPP
 }
 // my_qDPO
 IntegerVector my_qDPO(NumericVector p, const NumericVector& mu, const NumericVector& sigma, const bool& lower_tail, const bool& log_p, const int& max_value, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qDPO(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP max_valueSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qDPO(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP max_valueSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -314,7 +314,7 @@ END_RCPP
 }
 // simcpp
 void simcpp(DataFrame dt, const List l, const int mc);
-RcppExport SEXP _IMPACTncdEnglmisc_simcpp(SEXP dtSEXP, SEXP lSEXP, SEXP mcSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simcpp(SEXP dtSEXP, SEXP lSEXP, SEXP mcSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< DataFrame >::type dt(dtSEXP);
@@ -326,7 +326,7 @@ END_RCPP
 }
 // my_qMN4
 IntegerVector my_qMN4(const NumericVector& p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qMN4(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qMN4(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -343,7 +343,7 @@ END_RCPP
 }
 // my_dSICHEL
 NumericVector my_dSICHEL(const IntegerVector& x, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& log_, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_dSICHEL(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_dSICHEL(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -359,7 +359,7 @@ END_RCPP
 }
 // my_pSICHEL
 NumericVector my_pSICHEL(const IntegerVector& q, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_pSICHEL(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_pSICHEL(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -376,7 +376,7 @@ END_RCPP
 }
 // my_qSICHEL
 IntegerVector my_qSICHEL(NumericVector p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qSICHEL(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qSICHEL(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -393,7 +393,7 @@ END_RCPP
 }
 // my_qZISICHEL
 IntegerVector my_qZISICHEL(NumericVector p, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_qZISICHEL(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_qZISICHEL(SEXP pSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -411,7 +411,7 @@ END_RCPP
 }
 // my_pZISICHEL
 NumericVector my_pZISICHEL(NumericVector q, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const NumericVector& tau, const bool& lower_tail, const bool& log_p, const int& n_cpu);
-RcppExport SEXP _IMPACTncdEnglmisc_my_pZISICHEL(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
+RcppExport SEXP _IMPACTncdEngl_my_pZISICHEL(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP tauSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP n_cpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -429,7 +429,7 @@ END_RCPP
 }
 // carry_forward
 IntegerVector carry_forward(IntegerVector& x, const LogicalVector& pid_mrk, const int& y, const bool& byref);
-RcppExport SEXP _IMPACTncdEnglmisc_carry_forward(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP ySEXP, SEXP byrefSEXP) {
+RcppExport SEXP _IMPACTncdEngl_carry_forward(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP ySEXP, SEXP byrefSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -443,7 +443,7 @@ END_RCPP
 }
 // carry_forward_incr
 IntegerVector carry_forward_incr(IntegerVector& x, const LogicalVector& pid_mrk, const bool& recur, const int& y, const bool& byref);
-RcppExport SEXP _IMPACTncdEnglmisc_carry_forward_incr(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP recurSEXP, SEXP ySEXP, SEXP byrefSEXP) {
+RcppExport SEXP _IMPACTncdEngl_carry_forward_incr(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP recurSEXP, SEXP ySEXP, SEXP byrefSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -458,7 +458,7 @@ END_RCPP
 }
 // carry_backward
 IntegerVector carry_backward(const IntegerVector& x, const LogicalVector& pid_mrk, const int& y);
-RcppExport SEXP _IMPACTncdEnglmisc_carry_backward(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP ySEXP) {
+RcppExport SEXP _IMPACTncdEngl_carry_backward(SEXP xSEXP, SEXP pid_mrkSEXP, SEXP ySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -471,7 +471,7 @@ END_RCPP
 }
 // carry_backward_decr
 IntegerVector carry_backward_decr(const IntegerVector& x, const LogicalVector& pid_mrk);
-RcppExport SEXP _IMPACTncdEnglmisc_carry_backward_decr(SEXP xSEXP, SEXP pid_mrkSEXP) {
+RcppExport SEXP _IMPACTncdEngl_carry_backward_decr(SEXP xSEXP, SEXP pid_mrkSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -483,7 +483,7 @@ END_RCPP
 }
 // mk_new_simulant_markers
 LogicalVector mk_new_simulant_markers(const IntegerVector& pid);
-RcppExport SEXP _IMPACTncdEnglmisc_mk_new_simulant_markers(SEXP pidSEXP) {
+RcppExport SEXP _IMPACTncdEngl_mk_new_simulant_markers(SEXP pidSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -494,7 +494,7 @@ END_RCPP
 }
 // identify_longdead
 LogicalVector identify_longdead(const IntegerVector& x, const LogicalVector& pid);
-RcppExport SEXP _IMPACTncdEnglmisc_identify_longdead(SEXP xSEXP, SEXP pidSEXP) {
+RcppExport SEXP _IMPACTncdEngl_identify_longdead(SEXP xSEXP, SEXP pidSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -506,7 +506,7 @@ END_RCPP
 }
 // identify_invitees
 IntegerVector identify_invitees(const IntegerVector& elig, const IntegerVector& prev_inv, const NumericVector& prb, const IntegerVector& freq, const LogicalVector& pid);
-RcppExport SEXP _IMPACTncdEnglmisc_identify_invitees(SEXP eligSEXP, SEXP prev_invSEXP, SEXP prbSEXP, SEXP freqSEXP, SEXP pidSEXP) {
+RcppExport SEXP _IMPACTncdEngl_identify_invitees(SEXP eligSEXP, SEXP prev_invSEXP, SEXP prbSEXP, SEXP freqSEXP, SEXP pidSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -521,7 +521,7 @@ END_RCPP
 }
 // hc_effect
 IntegerVector hc_effect(const IntegerVector& x, const double& prb_of_continuation, const LogicalVector& pid);
-RcppExport SEXP _IMPACTncdEnglmisc_hc_effect(SEXP xSEXP, SEXP prb_of_continuationSEXP, SEXP pidSEXP) {
+RcppExport SEXP _IMPACTncdEngl_hc_effect(SEXP xSEXP, SEXP prb_of_continuationSEXP, SEXP pidSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -534,7 +534,7 @@ END_RCPP
 }
 // fbound
 NumericVector fbound(const NumericVector& x, NumericVector& a, NumericVector& b);
-RcppExport SEXP _IMPACTncdEnglmisc_fbound(SEXP xSEXP, SEXP aSEXP, SEXP bSEXP) {
+RcppExport SEXP _IMPACTncdEngl_fbound(SEXP xSEXP, SEXP aSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -547,7 +547,7 @@ END_RCPP
 }
 // dtsubset
 SEXP dtsubset(SEXP x, SEXP rows, SEXP cols);
-RcppExport SEXP _IMPACTncdEnglmisc_dtsubset(SEXP xSEXP, SEXP rowsSEXP, SEXP colsSEXP) {
+RcppExport SEXP _IMPACTncdEngl_dtsubset(SEXP xSEXP, SEXP rowsSEXP, SEXP colsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -560,7 +560,7 @@ END_RCPP
 }
 // QDiabetes
 DataFrame QDiabetes(const DataFrame& df, int surv);
-RcppExport SEXP _IMPACTncdEnglmisc_QDiabetes(SEXP dfSEXP, SEXP survSEXP) {
+RcppExport SEXP _IMPACTncdEngl_QDiabetes(SEXP dfSEXP, SEXP survSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -572,7 +572,7 @@ END_RCPP
 }
 // QDiabetes_vec_inputs
 DataFrame QDiabetes_vec_inputs(const IntegerVector& age, const IntegerVector& sex, const IntegerVector& b_corticosteroids, const IntegerVector& b_treatedhyp, const NumericVector& bmi, const IntegerVector& ethrisk, const IntegerVector& fh_diab, const IntegerVector& smoke_cat, const NumericVector& town, int surv);
-RcppExport SEXP _IMPACTncdEnglmisc_QDiabetes_vec_inputs(SEXP ageSEXP, SEXP sexSEXP, SEXP b_corticosteroidsSEXP, SEXP b_treatedhypSEXP, SEXP bmiSEXP, SEXP ethriskSEXP, SEXP fh_diabSEXP, SEXP smoke_catSEXP, SEXP townSEXP, SEXP survSEXP) {
+RcppExport SEXP _IMPACTncdEngl_QDiabetes_vec_inputs(SEXP ageSEXP, SEXP sexSEXP, SEXP b_corticosteroidsSEXP, SEXP b_treatedhypSEXP, SEXP bmiSEXP, SEXP ethriskSEXP, SEXP fh_diabSEXP, SEXP smoke_catSEXP, SEXP townSEXP, SEXP survSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -592,7 +592,7 @@ END_RCPP
 }
 // Qrisk2
 List Qrisk2(const DataFrame& df, const bool& ignore_bmi, const bool& ignore_sbp, const bool& ignore_chol);
-RcppExport SEXP _IMPACTncdEnglmisc_Qrisk2(SEXP dfSEXP, SEXP ignore_bmiSEXP, SEXP ignore_sbpSEXP, SEXP ignore_cholSEXP) {
+RcppExport SEXP _IMPACTncdEngl_Qrisk2(SEXP dfSEXP, SEXP ignore_bmiSEXP, SEXP ignore_sbpSEXP, SEXP ignore_cholSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -606,7 +606,7 @@ END_RCPP
 }
 // fscramble_trajectories
 NumericVector fscramble_trajectories(NumericVector& x, const LogicalVector& pid, const double& jumpiness, const bool& inplace);
-RcppExport SEXP _IMPACTncdEnglmisc_fscramble_trajectories(SEXP xSEXP, SEXP pidSEXP, SEXP jumpinessSEXP, SEXP inplaceSEXP) {
+RcppExport SEXP _IMPACTncdEngl_fscramble_trajectories(SEXP xSEXP, SEXP pidSEXP, SEXP jumpinessSEXP, SEXP inplaceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -620,7 +620,7 @@ END_RCPP
 }
 // shift_bypidNum
 NumericVector shift_bypidNum(const NumericVector& x, const int& lag, const double& replace, const IntegerVector& id);
-RcppExport SEXP _IMPACTncdEnglmisc_shift_bypidNum(SEXP xSEXP, SEXP lagSEXP, SEXP replaceSEXP, SEXP idSEXP) {
+RcppExport SEXP _IMPACTncdEngl_shift_bypidNum(SEXP xSEXP, SEXP lagSEXP, SEXP replaceSEXP, SEXP idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -634,7 +634,7 @@ END_RCPP
 }
 // shift_bypidInt
 IntegerVector shift_bypidInt(const IntegerVector& x, const int& lag, const int& replace, const IntegerVector& id);
-RcppExport SEXP _IMPACTncdEnglmisc_shift_bypidInt(SEXP xSEXP, SEXP lagSEXP, SEXP replaceSEXP, SEXP idSEXP) {
+RcppExport SEXP _IMPACTncdEngl_shift_bypidInt(SEXP xSEXP, SEXP lagSEXP, SEXP replaceSEXP, SEXP idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -648,7 +648,7 @@ END_RCPP
 }
 // shift_bypidBool
 IntegerVector shift_bypidBool(const LogicalVector& x, const int& lag, const bool& replace, const IntegerVector& id);
-RcppExport SEXP _IMPACTncdEnglmisc_shift_bypidBool(SEXP xSEXP, SEXP lagSEXP, SEXP replaceSEXP, SEXP idSEXP) {
+RcppExport SEXP _IMPACTncdEngl_shift_bypidBool(SEXP xSEXP, SEXP lagSEXP, SEXP replaceSEXP, SEXP idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -662,7 +662,7 @@ END_RCPP
 }
 // shift_bypidStr
 StringVector shift_bypidStr(const CharacterVector& x, const int& lag, const std::string& replace, const IntegerVector& id);
-RcppExport SEXP _IMPACTncdEnglmisc_shift_bypidStr(SEXP xSEXP, SEXP lagSEXP, SEXP replaceSEXP, SEXP idSEXP) {
+RcppExport SEXP _IMPACTncdEngl_shift_bypidStr(SEXP xSEXP, SEXP lagSEXP, SEXP replaceSEXP, SEXP idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -676,7 +676,7 @@ END_RCPP
 }
 // simsmok
 void simsmok(DataFrame& df, const NumericMatrix& pr_relapse, const int& relapse_cutoff);
-RcppExport SEXP _IMPACTncdEnglmisc_simsmok(SEXP dfSEXP, SEXP pr_relapseSEXP, SEXP relapse_cutoffSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simsmok(SEXP dfSEXP, SEXP pr_relapseSEXP, SEXP relapse_cutoffSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< DataFrame& >::type df(dfSEXP);
@@ -688,7 +688,7 @@ END_RCPP
 }
 // simsmok_sc
 void simsmok_sc(DataFrame& df, const NumericMatrix& pr_relapse, const int& relapse_cutoff, const IntegerVector& row_sel);
-RcppExport SEXP _IMPACTncdEnglmisc_simsmok_sc(SEXP dfSEXP, SEXP pr_relapseSEXP, SEXP relapse_cutoffSEXP, SEXP row_selSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simsmok_sc(SEXP dfSEXP, SEXP pr_relapseSEXP, SEXP relapse_cutoffSEXP, SEXP row_selSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< DataFrame& >::type df(dfSEXP);
@@ -701,7 +701,7 @@ END_RCPP
 }
 // simsmok_postcalibration
 void simsmok_postcalibration(DataFrame& df);
-RcppExport SEXP _IMPACTncdEnglmisc_simsmok_postcalibration(SEXP dfSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simsmok_postcalibration(SEXP dfSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< DataFrame& >::type df(dfSEXP);
@@ -711,7 +711,7 @@ END_RCPP
 }
 // simsmok_cig
 void simsmok_cig(DataFrame& df);
-RcppExport SEXP _IMPACTncdEnglmisc_simsmok_cig(SEXP dfSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simsmok_cig(SEXP dfSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< DataFrame& >::type df(dfSEXP);
@@ -721,7 +721,7 @@ END_RCPP
 }
 // simsmok_cig_sc
 void simsmok_cig_sc(DataFrame& df, const IntegerVector& row_sel);
-RcppExport SEXP _IMPACTncdEnglmisc_simsmok_cig_sc(SEXP dfSEXP, SEXP row_selSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simsmok_cig_sc(SEXP dfSEXP, SEXP row_selSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< DataFrame& >::type df(dfSEXP);
@@ -732,7 +732,7 @@ END_RCPP
 }
 // simsmok_cessation
 List simsmok_cessation(const IntegerVector& smok_status, const IntegerVector& smok_quit_yrs, const IntegerVector& smok_dur, const IntegerVector& sex, const IntegerVector& qimd, const LogicalVector& new_pid, const IntegerVector& hc_eff, const NumericVector& relapse_rn, const NumericMatrix& pr_relapse, const int& relapse_cutoff);
-RcppExport SEXP _IMPACTncdEnglmisc_simsmok_cessation(SEXP smok_statusSEXP, SEXP smok_quit_yrsSEXP, SEXP smok_durSEXP, SEXP sexSEXP, SEXP qimdSEXP, SEXP new_pidSEXP, SEXP hc_effSEXP, SEXP relapse_rnSEXP, SEXP pr_relapseSEXP, SEXP relapse_cutoffSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simsmok_cessation(SEXP smok_statusSEXP, SEXP smok_quit_yrsSEXP, SEXP smok_durSEXP, SEXP sexSEXP, SEXP qimdSEXP, SEXP new_pidSEXP, SEXP hc_effSEXP, SEXP relapse_rnSEXP, SEXP pr_relapseSEXP, SEXP relapse_cutoffSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -752,7 +752,7 @@ END_RCPP
 }
 // simsmok_policy_impact_incr
 List simsmok_policy_impact_incr(const IntegerVector& smok_status, const IntegerVector& smok_quit_yrs, const IntegerVector& smok_dur, const LogicalVector& new_pid, const IntegerVector& hc_eff);
-RcppExport SEXP _IMPACTncdEnglmisc_simsmok_policy_impact_incr(SEXP smok_statusSEXP, SEXP smok_quit_yrsSEXP, SEXP smok_durSEXP, SEXP new_pidSEXP, SEXP hc_effSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simsmok_policy_impact_incr(SEXP smok_statusSEXP, SEXP smok_quit_yrsSEXP, SEXP smok_durSEXP, SEXP new_pidSEXP, SEXP hc_effSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -767,7 +767,7 @@ END_RCPP
 }
 // simsmok_policy_impact_decr
 List simsmok_policy_impact_decr(const IntegerVector& smok_status, const IntegerVector& smok_quit_yrs, const IntegerVector& smok_dur, const IntegerVector& smok_cig, const LogicalVector& new_pid, const IntegerVector& hc_eff);
-RcppExport SEXP _IMPACTncdEnglmisc_simsmok_policy_impact_decr(SEXP smok_statusSEXP, SEXP smok_quit_yrsSEXP, SEXP smok_durSEXP, SEXP smok_cigSEXP, SEXP new_pidSEXP, SEXP hc_effSEXP) {
+RcppExport SEXP _IMPACTncdEngl_simsmok_policy_impact_decr(SEXP smok_statusSEXP, SEXP smok_quit_yrsSEXP, SEXP smok_durSEXP, SEXP smok_cigSEXP, SEXP new_pidSEXP, SEXP hc_effSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -783,7 +783,7 @@ END_RCPP
 }
 // wtd_ADstat
 double wtd_ADstat(const NumericVector& a, const NumericVector& wa, const NumericVector& b, const NumericVector& wb);
-RcppExport SEXP _IMPACTncdEnglmisc_wtd_ADstat(SEXP aSEXP, SEXP waSEXP, SEXP bSEXP, SEXP wbSEXP) {
+RcppExport SEXP _IMPACTncdEngl_wtd_ADstat(SEXP aSEXP, SEXP waSEXP, SEXP bSEXP, SEXP wbSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -797,7 +797,7 @@ END_RCPP
 }
 // wtd_KSstat
 double wtd_KSstat(const NumericVector& a, const NumericVector& wa, const NumericVector& b, const NumericVector& wb);
-RcppExport SEXP _IMPACTncdEnglmisc_wtd_KSstat(SEXP aSEXP, SEXP waSEXP, SEXP bSEXP, SEXP wbSEXP) {
+RcppExport SEXP _IMPACTncdEngl_wtd_KSstat(SEXP aSEXP, SEXP waSEXP, SEXP bSEXP, SEXP wbSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -811,63 +811,63 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_IMPACTncdEnglmisc_my_dBCPEo", (DL_FUNC) &_IMPACTncdEnglmisc_my_dBCPEo, 7},
-    {"_IMPACTncdEnglmisc_my_pBCPEo", (DL_FUNC) &_IMPACTncdEnglmisc_my_pBCPEo, 8},
-    {"_IMPACTncdEnglmisc_my_qBCPEo", (DL_FUNC) &_IMPACTncdEnglmisc_my_qBCPEo, 8},
-    {"_IMPACTncdEnglmisc_my_dBCT", (DL_FUNC) &_IMPACTncdEnglmisc_my_dBCT, 7},
-    {"_IMPACTncdEnglmisc_my_pBCT", (DL_FUNC) &_IMPACTncdEnglmisc_my_pBCT, 8},
-    {"_IMPACTncdEnglmisc_my_qBCT", (DL_FUNC) &_IMPACTncdEnglmisc_my_qBCT, 8},
-    {"_IMPACTncdEnglmisc_my_dBNB", (DL_FUNC) &_IMPACTncdEnglmisc_my_dBNB, 6},
-    {"_IMPACTncdEnglmisc_my_pBNB", (DL_FUNC) &_IMPACTncdEnglmisc_my_pBNB, 7},
-    {"_IMPACTncdEnglmisc_my_qBNB", (DL_FUNC) &_IMPACTncdEnglmisc_my_qBNB, 7},
-    {"_IMPACTncdEnglmisc_my_qZIBNB", (DL_FUNC) &_IMPACTncdEnglmisc_my_qZIBNB, 8},
-    {"_IMPACTncdEnglmisc_my_qZABNB", (DL_FUNC) &_IMPACTncdEnglmisc_my_qZABNB, 8},
-    {"_IMPACTncdEnglmisc_my_dDEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_dDEL, 6},
-    {"_IMPACTncdEnglmisc_my_pDEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_pDEL, 7},
-    {"_IMPACTncdEnglmisc_my_qDEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_qDEL, 7},
-    {"_IMPACTncdEnglmisc_my_get_C", (DL_FUNC) &_IMPACTncdEnglmisc_my_get_C, 3},
-    {"_IMPACTncdEnglmisc_my_dDPO", (DL_FUNC) &_IMPACTncdEnglmisc_my_dDPO, 5},
-    {"_IMPACTncdEnglmisc_my_pDPO", (DL_FUNC) &_IMPACTncdEnglmisc_my_pDPO, 5},
-    {"_IMPACTncdEnglmisc_my_qDPO", (DL_FUNC) &_IMPACTncdEnglmisc_my_qDPO, 7},
-    {"_IMPACTncdEnglmisc_simcpp", (DL_FUNC) &_IMPACTncdEnglmisc_simcpp, 3},
-    {"_IMPACTncdEnglmisc_my_qMN4", (DL_FUNC) &_IMPACTncdEnglmisc_my_qMN4, 7},
-    {"_IMPACTncdEnglmisc_my_dSICHEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_dSICHEL, 6},
-    {"_IMPACTncdEnglmisc_my_pSICHEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_pSICHEL, 7},
-    {"_IMPACTncdEnglmisc_my_qSICHEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_qSICHEL, 7},
-    {"_IMPACTncdEnglmisc_my_qZISICHEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_qZISICHEL, 8},
-    {"_IMPACTncdEnglmisc_my_pZISICHEL", (DL_FUNC) &_IMPACTncdEnglmisc_my_pZISICHEL, 8},
-    {"_IMPACTncdEnglmisc_carry_forward", (DL_FUNC) &_IMPACTncdEnglmisc_carry_forward, 4},
-    {"_IMPACTncdEnglmisc_carry_forward_incr", (DL_FUNC) &_IMPACTncdEnglmisc_carry_forward_incr, 5},
-    {"_IMPACTncdEnglmisc_carry_backward", (DL_FUNC) &_IMPACTncdEnglmisc_carry_backward, 3},
-    {"_IMPACTncdEnglmisc_carry_backward_decr", (DL_FUNC) &_IMPACTncdEnglmisc_carry_backward_decr, 2},
-    {"_IMPACTncdEnglmisc_mk_new_simulant_markers", (DL_FUNC) &_IMPACTncdEnglmisc_mk_new_simulant_markers, 1},
-    {"_IMPACTncdEnglmisc_identify_longdead", (DL_FUNC) &_IMPACTncdEnglmisc_identify_longdead, 2},
-    {"_IMPACTncdEnglmisc_identify_invitees", (DL_FUNC) &_IMPACTncdEnglmisc_identify_invitees, 5},
-    {"_IMPACTncdEnglmisc_hc_effect", (DL_FUNC) &_IMPACTncdEnglmisc_hc_effect, 3},
-    {"_IMPACTncdEnglmisc_fbound", (DL_FUNC) &_IMPACTncdEnglmisc_fbound, 3},
-    {"_IMPACTncdEnglmisc_dtsubset", (DL_FUNC) &_IMPACTncdEnglmisc_dtsubset, 3},
-    {"_IMPACTncdEnglmisc_QDiabetes", (DL_FUNC) &_IMPACTncdEnglmisc_QDiabetes, 2},
-    {"_IMPACTncdEnglmisc_QDiabetes_vec_inputs", (DL_FUNC) &_IMPACTncdEnglmisc_QDiabetes_vec_inputs, 10},
-    {"_IMPACTncdEnglmisc_Qrisk2", (DL_FUNC) &_IMPACTncdEnglmisc_Qrisk2, 4},
-    {"_IMPACTncdEnglmisc_fscramble_trajectories", (DL_FUNC) &_IMPACTncdEnglmisc_fscramble_trajectories, 4},
-    {"_IMPACTncdEnglmisc_shift_bypidNum", (DL_FUNC) &_IMPACTncdEnglmisc_shift_bypidNum, 4},
-    {"_IMPACTncdEnglmisc_shift_bypidInt", (DL_FUNC) &_IMPACTncdEnglmisc_shift_bypidInt, 4},
-    {"_IMPACTncdEnglmisc_shift_bypidBool", (DL_FUNC) &_IMPACTncdEnglmisc_shift_bypidBool, 4},
-    {"_IMPACTncdEnglmisc_shift_bypidStr", (DL_FUNC) &_IMPACTncdEnglmisc_shift_bypidStr, 4},
-    {"_IMPACTncdEnglmisc_simsmok", (DL_FUNC) &_IMPACTncdEnglmisc_simsmok, 3},
-    {"_IMPACTncdEnglmisc_simsmok_sc", (DL_FUNC) &_IMPACTncdEnglmisc_simsmok_sc, 4},
-    {"_IMPACTncdEnglmisc_simsmok_postcalibration", (DL_FUNC) &_IMPACTncdEnglmisc_simsmok_postcalibration, 1},
-    {"_IMPACTncdEnglmisc_simsmok_cig", (DL_FUNC) &_IMPACTncdEnglmisc_simsmok_cig, 1},
-    {"_IMPACTncdEnglmisc_simsmok_cig_sc", (DL_FUNC) &_IMPACTncdEnglmisc_simsmok_cig_sc, 2},
-    {"_IMPACTncdEnglmisc_simsmok_cessation", (DL_FUNC) &_IMPACTncdEnglmisc_simsmok_cessation, 10},
-    {"_IMPACTncdEnglmisc_simsmok_policy_impact_incr", (DL_FUNC) &_IMPACTncdEnglmisc_simsmok_policy_impact_incr, 5},
-    {"_IMPACTncdEnglmisc_simsmok_policy_impact_decr", (DL_FUNC) &_IMPACTncdEnglmisc_simsmok_policy_impact_decr, 6},
-    {"_IMPACTncdEnglmisc_wtd_ADstat", (DL_FUNC) &_IMPACTncdEnglmisc_wtd_ADstat, 4},
-    {"_IMPACTncdEnglmisc_wtd_KSstat", (DL_FUNC) &_IMPACTncdEnglmisc_wtd_KSstat, 4},
+    {"_IMPACTncdEngl_my_dBCPEo", (DL_FUNC) &_IMPACTncdEngl_my_dBCPEo, 7},
+    {"_IMPACTncdEngl_my_pBCPEo", (DL_FUNC) &_IMPACTncdEngl_my_pBCPEo, 8},
+    {"_IMPACTncdEngl_my_qBCPEo", (DL_FUNC) &_IMPACTncdEngl_my_qBCPEo, 8},
+    {"_IMPACTncdEngl_my_dBCT", (DL_FUNC) &_IMPACTncdEngl_my_dBCT, 7},
+    {"_IMPACTncdEngl_my_pBCT", (DL_FUNC) &_IMPACTncdEngl_my_pBCT, 8},
+    {"_IMPACTncdEngl_my_qBCT", (DL_FUNC) &_IMPACTncdEngl_my_qBCT, 8},
+    {"_IMPACTncdEngl_my_dBNB", (DL_FUNC) &_IMPACTncdEngl_my_dBNB, 6},
+    {"_IMPACTncdEngl_my_pBNB", (DL_FUNC) &_IMPACTncdEngl_my_pBNB, 7},
+    {"_IMPACTncdEngl_my_qBNB", (DL_FUNC) &_IMPACTncdEngl_my_qBNB, 7},
+    {"_IMPACTncdEngl_my_qZIBNB", (DL_FUNC) &_IMPACTncdEngl_my_qZIBNB, 8},
+    {"_IMPACTncdEngl_my_qZABNB", (DL_FUNC) &_IMPACTncdEngl_my_qZABNB, 8},
+    {"_IMPACTncdEngl_my_dDEL", (DL_FUNC) &_IMPACTncdEngl_my_dDEL, 6},
+    {"_IMPACTncdEngl_my_pDEL", (DL_FUNC) &_IMPACTncdEngl_my_pDEL, 7},
+    {"_IMPACTncdEngl_my_qDEL", (DL_FUNC) &_IMPACTncdEngl_my_qDEL, 7},
+    {"_IMPACTncdEngl_my_get_C", (DL_FUNC) &_IMPACTncdEngl_my_get_C, 3},
+    {"_IMPACTncdEngl_my_dDPO", (DL_FUNC) &_IMPACTncdEngl_my_dDPO, 5},
+    {"_IMPACTncdEngl_my_pDPO", (DL_FUNC) &_IMPACTncdEngl_my_pDPO, 5},
+    {"_IMPACTncdEngl_my_qDPO", (DL_FUNC) &_IMPACTncdEngl_my_qDPO, 7},
+    {"_IMPACTncdEngl_simcpp", (DL_FUNC) &_IMPACTncdEngl_simcpp, 3},
+    {"_IMPACTncdEngl_my_qMN4", (DL_FUNC) &_IMPACTncdEngl_my_qMN4, 7},
+    {"_IMPACTncdEngl_my_dSICHEL", (DL_FUNC) &_IMPACTncdEngl_my_dSICHEL, 6},
+    {"_IMPACTncdEngl_my_pSICHEL", (DL_FUNC) &_IMPACTncdEngl_my_pSICHEL, 7},
+    {"_IMPACTncdEngl_my_qSICHEL", (DL_FUNC) &_IMPACTncdEngl_my_qSICHEL, 7},
+    {"_IMPACTncdEngl_my_qZISICHEL", (DL_FUNC) &_IMPACTncdEngl_my_qZISICHEL, 8},
+    {"_IMPACTncdEngl_my_pZISICHEL", (DL_FUNC) &_IMPACTncdEngl_my_pZISICHEL, 8},
+    {"_IMPACTncdEngl_carry_forward", (DL_FUNC) &_IMPACTncdEngl_carry_forward, 4},
+    {"_IMPACTncdEngl_carry_forward_incr", (DL_FUNC) &_IMPACTncdEngl_carry_forward_incr, 5},
+    {"_IMPACTncdEngl_carry_backward", (DL_FUNC) &_IMPACTncdEngl_carry_backward, 3},
+    {"_IMPACTncdEngl_carry_backward_decr", (DL_FUNC) &_IMPACTncdEngl_carry_backward_decr, 2},
+    {"_IMPACTncdEngl_mk_new_simulant_markers", (DL_FUNC) &_IMPACTncdEngl_mk_new_simulant_markers, 1},
+    {"_IMPACTncdEngl_identify_longdead", (DL_FUNC) &_IMPACTncdEngl_identify_longdead, 2},
+    {"_IMPACTncdEngl_identify_invitees", (DL_FUNC) &_IMPACTncdEngl_identify_invitees, 5},
+    {"_IMPACTncdEngl_hc_effect", (DL_FUNC) &_IMPACTncdEngl_hc_effect, 3},
+    {"_IMPACTncdEngl_fbound", (DL_FUNC) &_IMPACTncdEngl_fbound, 3},
+    {"_IMPACTncdEngl_dtsubset", (DL_FUNC) &_IMPACTncdEngl_dtsubset, 3},
+    {"_IMPACTncdEngl_QDiabetes", (DL_FUNC) &_IMPACTncdEngl_QDiabetes, 2},
+    {"_IMPACTncdEngl_QDiabetes_vec_inputs", (DL_FUNC) &_IMPACTncdEngl_QDiabetes_vec_inputs, 10},
+    {"_IMPACTncdEngl_Qrisk2", (DL_FUNC) &_IMPACTncdEngl_Qrisk2, 4},
+    {"_IMPACTncdEngl_fscramble_trajectories", (DL_FUNC) &_IMPACTncdEngl_fscramble_trajectories, 4},
+    {"_IMPACTncdEngl_shift_bypidNum", (DL_FUNC) &_IMPACTncdEngl_shift_bypidNum, 4},
+    {"_IMPACTncdEngl_shift_bypidInt", (DL_FUNC) &_IMPACTncdEngl_shift_bypidInt, 4},
+    {"_IMPACTncdEngl_shift_bypidBool", (DL_FUNC) &_IMPACTncdEngl_shift_bypidBool, 4},
+    {"_IMPACTncdEngl_shift_bypidStr", (DL_FUNC) &_IMPACTncdEngl_shift_bypidStr, 4},
+    {"_IMPACTncdEngl_simsmok", (DL_FUNC) &_IMPACTncdEngl_simsmok, 3},
+    {"_IMPACTncdEngl_simsmok_sc", (DL_FUNC) &_IMPACTncdEngl_simsmok_sc, 4},
+    {"_IMPACTncdEngl_simsmok_postcalibration", (DL_FUNC) &_IMPACTncdEngl_simsmok_postcalibration, 1},
+    {"_IMPACTncdEngl_simsmok_cig", (DL_FUNC) &_IMPACTncdEngl_simsmok_cig, 1},
+    {"_IMPACTncdEngl_simsmok_cig_sc", (DL_FUNC) &_IMPACTncdEngl_simsmok_cig_sc, 2},
+    {"_IMPACTncdEngl_simsmok_cessation", (DL_FUNC) &_IMPACTncdEngl_simsmok_cessation, 10},
+    {"_IMPACTncdEngl_simsmok_policy_impact_incr", (DL_FUNC) &_IMPACTncdEngl_simsmok_policy_impact_incr, 5},
+    {"_IMPACTncdEngl_simsmok_policy_impact_decr", (DL_FUNC) &_IMPACTncdEngl_simsmok_policy_impact_decr, 6},
+    {"_IMPACTncdEngl_wtd_ADstat", (DL_FUNC) &_IMPACTncdEngl_wtd_ADstat, 4},
+    {"_IMPACTncdEngl_wtd_KSstat", (DL_FUNC) &_IMPACTncdEngl_wtd_KSstat, 4},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_IMPACTncdEnglmisc(DllInfo *dll) {
+RcppExport void R_init_IMPACTncdEngl(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
