@@ -32,6 +32,7 @@ To be completed...
 \item \href{#method-get_incd}{\code{Disease$get_incd()}}
 \item \href{#method-set_rr}{\code{Disease$set_rr()}}
 \item \href{#method-set_incd_prb}{\code{Disease$set_incd_prb()}}
+\item \href{#method-get_dur}{\code{Disease$get_dur()}}
 \item \href{#method-get_prvl}{\code{Disease$get_prvl()}}
 \item \href{#method-get_ftlt}{\code{Disease$get_ftlt()}}
 \item \href{#method-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
@@ -237,6 +238,20 @@ Set disease incident probability in a new col in sp$pop.
 }
 \subsection{Returns}{
 The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-get_dur"></a>}}
+\if{latex}{\out{\hypertarget{method-get_dur}{}}}
+\subsection{Method \code{get_dur()}}{
+Get disease duration distribution parameters.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$get_dur()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A data.table with duration distribution parameters. unless
+  incidence type: Universal when it returns data.table(NULL).
 }
 }
 \if{html}{\out{<hr>}}

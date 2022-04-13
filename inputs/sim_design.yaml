@@ -99,6 +99,19 @@ diseases:
       type: 1
       code: 5
   notes: .na
+- name: copd
+  friendly_name: COPD
+  meta:
+    incidence:
+      type: 2
+      can_recur: false
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 7
 - name: nonmodelled
   friendly_name: nonmodelled
   meta:
