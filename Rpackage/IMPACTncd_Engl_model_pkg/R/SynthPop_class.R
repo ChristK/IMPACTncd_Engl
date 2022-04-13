@@ -1648,7 +1648,7 @@ SynthPop <-
           } else stop("pid larger than int32 limit.")
           # generate population weights
           private$gen_pop_weights(dt, private$design) # TODO replace?
-          dt[, smok_packyrs_curr_xps := smok_cig_curr_xps * smok_dur_curr_xps / 20]
+          dt[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]
           set(dt, NULL, "all_cause_mrtl", 0L)
 
           # dt[, dead := identify_longdead(all_cause_mrtl, pid_mrk)]

@@ -702,6 +702,22 @@ Disease <-
         invisible(self)
       },
 
+      #' @description Get disease duration distribution parameters.
+      #' @return A data.table with duration distribution parameters. unless
+      #'   incidence type: Universal when it returns data.table(NULL).
+      get_dur = function() {
+        if (!is.null(private$filenams$dur)) {
+          out <- read_fst(
+            private$filenams$dur,
+            as.data.table = TRUE
+          )
+        } else {
+          message("Incidence type: ", self$meta$incidence$type)
+          out <- data.table(NULL)
+        }
+        return(out)
+      },
+
       #' @description Get disease prevalent probability.
       #' @param year_ A vector of years to return. All if missing.
       #' @return A data.table with disease prevalent probabilities unless
@@ -775,13 +791,14 @@ Disease <-
 
           tt <-
             self$get_ftlt(seq(design_$sim_prm$init_year, sp$pop[, max(year)]))
-          if (!"mu1" %in% names(tt)) {
-            nam <- paste0("prb_", self$name, "_mrtl2")
-            setnames(tt, "mu2", nam)
-          } else {
+          hlp <- grep("^mu", names(tt), value = TRUE)
+          if (length(hlp) == 2L) {
             nam <- paste0("prb_", self$name, "_mrtl", 1:2)
             setnames(tt, c("mu1", "mu2"), nam)
             private$mrtl2flag <- TRUE
+          } else {
+            nam <- paste0("prb_", self$name, "_mrtl2")
+            setnames(tt, hlp, nam)
           }
 
           absorb_dt(sp$pop, tt)
@@ -1306,7 +1323,8 @@ Disease <-
           }
 
           # Smoking ----
-          xps <- c("smok_status", "smok_cig", "t2dm_prvl", "af_prvl")
+          xps <- c("smok_status", "smok_cig", "smok_packyrs",
+                   "ets", "t2dm_prvl", "af_prvl")
           if (any(xps %in% sapply(rr, `[[`, "name"))) {
             if (all(xps %in% sapply(rr, `[[`, "name"))) {
               stop("smok_status & smok_cig cannot be both risk factors for a disease.")
@@ -1318,6 +1336,10 @@ Disease <-
 
             if (xps[[2]] %in% sapply(rr, `[[`, "name")) {
               lag <- rr[[paste0(xps[[2]], "~", self$name)]]$lag
+            }
+
+            if (xps[[3]] %in% sapply(rr, `[[`, "name")) {
+              lag <- rr[[paste0(xps[[3]], "~", self$name)]]$lag
             }
 
             ff[, year := year - lag]
@@ -1422,6 +1444,8 @@ Disease <-
             ]
             ff[, (col_nam) := NULL]
             ff[, smok_status_curr_xps := factor(smok_status_curr_xps)]
+            ff[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]
+
             ff[, year := year + lag]
           }
 
