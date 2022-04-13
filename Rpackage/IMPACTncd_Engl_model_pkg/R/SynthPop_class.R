@@ -68,7 +68,7 @@ SynthPop <-
       #' @param mc_ The Monte Carlo iteration of the synthetic population. Each
       #'   integer generates a unique synthetic population. If `mc = 0` an
       #'   object with an empty synthpop is initiated.
-      #' @param design_ A \code{\link[IMPACTncdEnglmisc]{Design}} object.
+      #' @param design_ A \code{\link[IMPACTncdEngl]{Design}} object.
       #' @param synthpop_dir_ The directory where 'SynthPop' objects are stored.
       #'   The synthpop file in \code{\link[fst]{fst-package}} format. If
       #'   `filename` already exists, then the synthpop is loaded from there.
@@ -614,7 +614,7 @@ SynthPop <-
             "qs",
             "fst",
             "CKutils",
-            "IMPACTncdEnglmisc",
+            "IMPACTncdEngl",
             "data.table"
           ),
           .export = NULL,

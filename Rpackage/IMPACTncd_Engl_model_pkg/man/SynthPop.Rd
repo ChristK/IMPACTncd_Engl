@@ -85,7 +85,7 @@ for each 'synthpop'. A metadata file, and an index file.
 integer generates a unique synthetic population. If `mc = 0` an
 object with an empty synthpop is initiated.}
 
-\item{\code{design_}}{A \code{\link[IMPACTncdEnglmisc]{Design}} object.}
+\item{\code{design_}}{A \code{\link[IMPACTncdEngl]{Design}} object.}
 
 \item{\code{synthpop_dir_}}{The directory where 'SynthPop' objects are stored.
 The synthpop file in \code{\link[fst]{fst-package}} format. If

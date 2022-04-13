@@ -3,265 +3,265 @@
 
 #' @export
 my_dBCPEo <- function(x, mu, sigma, nu, tau, log_ = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_dBCPEo', PACKAGE = 'IMPACTncdEnglmisc', x, mu, sigma, nu, tau, log_, n_cpu)
+    .Call('_IMPACTncdEngl_my_dBCPEo', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, nu, tau, log_, n_cpu)
 }
 
 #' @export
 my_pBCPEo <- function(q, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_pBCPEo', PACKAGE = 'IMPACTncdEnglmisc', q, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_pBCPEo', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_qBCPEo <- function(p, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qBCPEo', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qBCPEo', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_dBCT <- function(x, mu, sigma, nu, tau, log_ = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_dBCT', PACKAGE = 'IMPACTncdEnglmisc', x, mu, sigma, nu, tau, log_, n_cpu)
+    .Call('_IMPACTncdEngl_my_dBCT', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, nu, tau, log_, n_cpu)
 }
 
 #' @export
 my_pBCT <- function(q, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_pBCT', PACKAGE = 'IMPACTncdEnglmisc', q, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_pBCT', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_qBCT <- function(p, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qBCT', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qBCT', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_dBNB <- function(x, mu, sigma, nu, log = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_dBNB', PACKAGE = 'IMPACTncdEnglmisc', x, mu, sigma, nu, log, n_cpu)
+    .Call('_IMPACTncdEngl_my_dBNB', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, nu, log, n_cpu)
 }
 
 #' @export
 my_pBNB <- function(q, mu, sigma, nu, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_pBNB', PACKAGE = 'IMPACTncdEnglmisc', q, mu, sigma, nu, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_pBNB', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, nu, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_qBNB <- function(p, mu, sigma, nu, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qBNB', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qBNB', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_qZIBNB <- function(p, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qZIBNB', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qZIBNB', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_qZABNB <- function(p, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qZABNB', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qZABNB', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_dDEL <- function(x, mu, sigma, nu, log_ = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_dDEL', PACKAGE = 'IMPACTncdEnglmisc', x, mu, sigma, nu, log_, n_cpu)
+    .Call('_IMPACTncdEngl_my_dDEL', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, nu, log_, n_cpu)
 }
 
 #' @export
 my_pDEL <- function(q, mu, sigma, nu, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_pDEL', PACKAGE = 'IMPACTncdEnglmisc', q, mu, sigma, nu, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_pDEL', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, nu, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_qDEL <- function(p, mu, sigma, nu, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qDEL', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qDEL', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_get_C <- function(x, mu, sigma) {
-    .Call('_IMPACTncdEnglmisc_my_get_C', PACKAGE = 'IMPACTncdEnglmisc', x, mu, sigma)
+    .Call('_IMPACTncdEngl_my_get_C', PACKAGE = 'IMPACTncdEngl', x, mu, sigma)
 }
 
 #' @export
 my_dDPO <- function(x, mu, sigma, log_ = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_dDPO', PACKAGE = 'IMPACTncdEnglmisc', x, mu, sigma, log_, n_cpu)
+    .Call('_IMPACTncdEngl_my_dDPO', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, log_, n_cpu)
 }
 
 #' @export
 my_pDPO <- function(q, mu, sigma, lower_tail = TRUE, log_p = FALSE) {
-    .Call('_IMPACTncdEnglmisc_my_pDPO', PACKAGE = 'IMPACTncdEnglmisc', q, mu, sigma, lower_tail, log_p)
+    .Call('_IMPACTncdEngl_my_pDPO', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, lower_tail, log_p)
 }
 
 #' @export
 my_qDPO <- function(p, mu, sigma, lower_tail = TRUE, log_p = FALSE, max_value = 0L, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qDPO', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, lower_tail, log_p, max_value, n_cpu)
+    .Call('_IMPACTncdEngl_my_qDPO', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, lower_tail, log_p, max_value, n_cpu)
 }
 
 #' @export
 simcpp <- function(dt, l, mc) {
-    invisible(.Call('_IMPACTncdEnglmisc_simcpp', PACKAGE = 'IMPACTncdEnglmisc', dt, l, mc))
+    invisible(.Call('_IMPACTncdEngl_simcpp', PACKAGE = 'IMPACTncdEngl', dt, l, mc))
 }
 
 #' @export
 my_qMN4 <- function(p, mu, sigma, nu, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qMN4', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qMN4', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_dSICHEL <- function(x, mu, sigma, nu, log_ = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_dSICHEL', PACKAGE = 'IMPACTncdEnglmisc', x, mu, sigma, nu, log_, n_cpu)
+    .Call('_IMPACTncdEngl_my_dSICHEL', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, nu, log_, n_cpu)
 }
 
 #' @export
 my_pSICHEL <- function(q, mu, sigma, nu, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_pSICHEL', PACKAGE = 'IMPACTncdEnglmisc', q, mu, sigma, nu, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_pSICHEL', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, nu, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_qSICHEL <- function(p, mu, sigma, nu, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qSICHEL', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qSICHEL', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_qZISICHEL <- function(p, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_qZISICHEL', PACKAGE = 'IMPACTncdEnglmisc', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_qZISICHEL', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 my_pZISICHEL <- function(q, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE, n_cpu = 1L) {
-    .Call('_IMPACTncdEnglmisc_my_pZISICHEL', PACKAGE = 'IMPACTncdEnglmisc', q, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
+    .Call('_IMPACTncdEngl_my_pZISICHEL', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, nu, tau, lower_tail, log_p, n_cpu)
 }
 
 #' @export
 carry_forward <- function(x, pid_mrk, y, byref = FALSE) {
-    .Call('_IMPACTncdEnglmisc_carry_forward', PACKAGE = 'IMPACTncdEnglmisc', x, pid_mrk, y, byref)
+    .Call('_IMPACTncdEngl_carry_forward', PACKAGE = 'IMPACTncdEngl', x, pid_mrk, y, byref)
 }
 
 #' @export
 carry_forward_incr <- function(x, pid_mrk, recur, y = 1L, byref = FALSE) {
-    .Call('_IMPACTncdEnglmisc_carry_forward_incr', PACKAGE = 'IMPACTncdEnglmisc', x, pid_mrk, recur, y, byref)
+    .Call('_IMPACTncdEngl_carry_forward_incr', PACKAGE = 'IMPACTncdEngl', x, pid_mrk, recur, y, byref)
 }
 
 #' @export
 carry_backward <- function(x, pid_mrk, y = 0L) {
-    .Call('_IMPACTncdEnglmisc_carry_backward', PACKAGE = 'IMPACTncdEnglmisc', x, pid_mrk, y)
+    .Call('_IMPACTncdEngl_carry_backward', PACKAGE = 'IMPACTncdEngl', x, pid_mrk, y)
 }
 
 #' @export
 carry_backward_decr <- function(x, pid_mrk) {
-    .Call('_IMPACTncdEnglmisc_carry_backward_decr', PACKAGE = 'IMPACTncdEnglmisc', x, pid_mrk)
+    .Call('_IMPACTncdEngl_carry_backward_decr', PACKAGE = 'IMPACTncdEngl', x, pid_mrk)
 }
 
 #' @export
 mk_new_simulant_markers <- function(pid) {
-    .Call('_IMPACTncdEnglmisc_mk_new_simulant_markers', PACKAGE = 'IMPACTncdEnglmisc', pid)
+    .Call('_IMPACTncdEngl_mk_new_simulant_markers', PACKAGE = 'IMPACTncdEngl', pid)
 }
 
 #' @export
 identify_longdead <- function(x, pid) {
-    .Call('_IMPACTncdEnglmisc_identify_longdead', PACKAGE = 'IMPACTncdEnglmisc', x, pid)
+    .Call('_IMPACTncdEngl_identify_longdead', PACKAGE = 'IMPACTncdEngl', x, pid)
 }
 
 #' @export
 identify_invitees <- function(elig, prev_inv, prb, freq, pid) {
-    .Call('_IMPACTncdEnglmisc_identify_invitees', PACKAGE = 'IMPACTncdEnglmisc', elig, prev_inv, prb, freq, pid)
+    .Call('_IMPACTncdEngl_identify_invitees', PACKAGE = 'IMPACTncdEngl', elig, prev_inv, prb, freq, pid)
 }
 
 #' @export
 hc_effect <- function(x, prb_of_continuation, pid) {
-    .Call('_IMPACTncdEnglmisc_hc_effect', PACKAGE = 'IMPACTncdEnglmisc', x, prb_of_continuation, pid)
+    .Call('_IMPACTncdEngl_hc_effect', PACKAGE = 'IMPACTncdEngl', x, prb_of_continuation, pid)
 }
 
 #' @export
 fbound <- function(x, a, b) {
-    .Call('_IMPACTncdEnglmisc_fbound', PACKAGE = 'IMPACTncdEnglmisc', x, a, b)
+    .Call('_IMPACTncdEngl_fbound', PACKAGE = 'IMPACTncdEngl', x, a, b)
 }
 
 dtsubset <- function(x, rows, cols) {
-    .Call('_IMPACTncdEnglmisc_dtsubset', PACKAGE = 'IMPACTncdEnglmisc', x, rows, cols)
+    .Call('_IMPACTncdEngl_dtsubset', PACKAGE = 'IMPACTncdEngl', x, rows, cols)
 }
 
 #' @export
 QDiabetes <- function(df, surv = 1L) {
-    .Call('_IMPACTncdEnglmisc_QDiabetes', PACKAGE = 'IMPACTncdEnglmisc', df, surv)
+    .Call('_IMPACTncdEngl_QDiabetes', PACKAGE = 'IMPACTncdEngl', df, surv)
 }
 
 #' @export
 QDiabetes_vec_inputs <- function(age, sex, b_corticosteroids, b_treatedhyp, bmi, ethrisk, fh_diab, smoke_cat, town, surv = 1L) {
-    .Call('_IMPACTncdEnglmisc_QDiabetes_vec_inputs', PACKAGE = 'IMPACTncdEnglmisc', age, sex, b_corticosteroids, b_treatedhyp, bmi, ethrisk, fh_diab, smoke_cat, town, surv)
+    .Call('_IMPACTncdEngl_QDiabetes_vec_inputs', PACKAGE = 'IMPACTncdEngl', age, sex, b_corticosteroids, b_treatedhyp, bmi, ethrisk, fh_diab, smoke_cat, town, surv)
 }
 
 #' @export
 Qrisk2 <- function(df, ignore_bmi = FALSE, ignore_sbp = FALSE, ignore_chol = FALSE) {
-    .Call('_IMPACTncdEnglmisc_Qrisk2', PACKAGE = 'IMPACTncdEnglmisc', df, ignore_bmi, ignore_sbp, ignore_chol)
+    .Call('_IMPACTncdEngl_Qrisk2', PACKAGE = 'IMPACTncdEngl', df, ignore_bmi, ignore_sbp, ignore_chol)
 }
 
 #' @export
 fscramble_trajectories <- function(x, pid, jumpiness = 1.0, inplace = TRUE) {
-    .Call('_IMPACTncdEnglmisc_fscramble_trajectories', PACKAGE = 'IMPACTncdEnglmisc', x, pid, jumpiness, inplace)
+    .Call('_IMPACTncdEngl_fscramble_trajectories', PACKAGE = 'IMPACTncdEngl', x, pid, jumpiness, inplace)
 }
 
 #' @export
 shift_bypidNum <- function(x, lag, replace, id) {
-    .Call('_IMPACTncdEnglmisc_shift_bypidNum', PACKAGE = 'IMPACTncdEnglmisc', x, lag, replace, id)
+    .Call('_IMPACTncdEngl_shift_bypidNum', PACKAGE = 'IMPACTncdEngl', x, lag, replace, id)
 }
 
 #' @export
 shift_bypidInt <- function(x, lag, replace, id) {
-    .Call('_IMPACTncdEnglmisc_shift_bypidInt', PACKAGE = 'IMPACTncdEnglmisc', x, lag, replace, id)
+    .Call('_IMPACTncdEngl_shift_bypidInt', PACKAGE = 'IMPACTncdEngl', x, lag, replace, id)
 }
 
 #' @export
 shift_bypidBool <- function(x, lag, replace, id) {
-    .Call('_IMPACTncdEnglmisc_shift_bypidBool', PACKAGE = 'IMPACTncdEnglmisc', x, lag, replace, id)
+    .Call('_IMPACTncdEngl_shift_bypidBool', PACKAGE = 'IMPACTncdEngl', x, lag, replace, id)
 }
 
 #' @export
 shift_bypidStr <- function(x, lag, replace, id) {
-    .Call('_IMPACTncdEnglmisc_shift_bypidStr', PACKAGE = 'IMPACTncdEnglmisc', x, lag, replace, id)
+    .Call('_IMPACTncdEngl_shift_bypidStr', PACKAGE = 'IMPACTncdEngl', x, lag, replace, id)
 }
 
 #' @export
 simsmok <- function(df, pr_relapse, relapse_cutoff) {
-    invisible(.Call('_IMPACTncdEnglmisc_simsmok', PACKAGE = 'IMPACTncdEnglmisc', df, pr_relapse, relapse_cutoff))
+    invisible(.Call('_IMPACTncdEngl_simsmok', PACKAGE = 'IMPACTncdEngl', df, pr_relapse, relapse_cutoff))
 }
 
 #' @export
 simsmok_sc <- function(df, pr_relapse, relapse_cutoff, row_sel) {
-    invisible(.Call('_IMPACTncdEnglmisc_simsmok_sc', PACKAGE = 'IMPACTncdEnglmisc', df, pr_relapse, relapse_cutoff, row_sel))
+    invisible(.Call('_IMPACTncdEngl_simsmok_sc', PACKAGE = 'IMPACTncdEngl', df, pr_relapse, relapse_cutoff, row_sel))
 }
 
 #' @export
 simsmok_postcalibration <- function(df) {
-    invisible(.Call('_IMPACTncdEnglmisc_simsmok_postcalibration', PACKAGE = 'IMPACTncdEnglmisc', df))
+    invisible(.Call('_IMPACTncdEngl_simsmok_postcalibration', PACKAGE = 'IMPACTncdEngl', df))
 }
 
 #' @export
 simsmok_cig <- function(df) {
-    invisible(.Call('_IMPACTncdEnglmisc_simsmok_cig', PACKAGE = 'IMPACTncdEnglmisc', df))
+    invisible(.Call('_IMPACTncdEngl_simsmok_cig', PACKAGE = 'IMPACTncdEngl', df))
 }
 
 #' @export
 simsmok_cig_sc <- function(df, row_sel) {
-    invisible(.Call('_IMPACTncdEnglmisc_simsmok_cig_sc', PACKAGE = 'IMPACTncdEnglmisc', df, row_sel))
+    invisible(.Call('_IMPACTncdEngl_simsmok_cig_sc', PACKAGE = 'IMPACTncdEngl', df, row_sel))
 }
 
 #' @export
 simsmok_cessation <- function(smok_status, smok_quit_yrs, smok_dur, sex, qimd, new_pid, hc_eff, relapse_rn, pr_relapse, relapse_cutoff) {
-    .Call('_IMPACTncdEnglmisc_simsmok_cessation', PACKAGE = 'IMPACTncdEnglmisc', smok_status, smok_quit_yrs, smok_dur, sex, qimd, new_pid, hc_eff, relapse_rn, pr_relapse, relapse_cutoff)
+    .Call('_IMPACTncdEngl_simsmok_cessation', PACKAGE = 'IMPACTncdEngl', smok_status, smok_quit_yrs, smok_dur, sex, qimd, new_pid, hc_eff, relapse_rn, pr_relapse, relapse_cutoff)
 }
 
 #' @export
 simsmok_policy_impact_incr <- function(smok_status, smok_quit_yrs, smok_dur, new_pid, hc_eff) {
-    .Call('_IMPACTncdEnglmisc_simsmok_policy_impact_incr', PACKAGE = 'IMPACTncdEnglmisc', smok_status, smok_quit_yrs, smok_dur, new_pid, hc_eff)
+    .Call('_IMPACTncdEngl_simsmok_policy_impact_incr', PACKAGE = 'IMPACTncdEngl', smok_status, smok_quit_yrs, smok_dur, new_pid, hc_eff)
 }
 
 #' @export
 simsmok_policy_impact_decr <- function(smok_status, smok_quit_yrs, smok_dur, smok_cig, new_pid, hc_eff) {
-    .Call('_IMPACTncdEnglmisc_simsmok_policy_impact_decr', PACKAGE = 'IMPACTncdEnglmisc', smok_status, smok_quit_yrs, smok_dur, smok_cig, new_pid, hc_eff)
+    .Call('_IMPACTncdEngl_simsmok_policy_impact_decr', PACKAGE = 'IMPACTncdEngl', smok_status, smok_quit_yrs, smok_dur, smok_cig, new_pid, hc_eff)
 }
 
 #' @export
 wtd_ADstat <- function(a, wa, b, wb) {
-    .Call('_IMPACTncdEnglmisc_wtd_ADstat', PACKAGE = 'IMPACTncdEnglmisc', a, wa, b, wb)
+    .Call('_IMPACTncdEngl_wtd_ADstat', PACKAGE = 'IMPACTncdEngl', a, wa, b, wb)
 }
 
 #' @export
 wtd_KSstat <- function(a, wa, b, wb) {
-    .Call('_IMPACTncdEnglmisc_wtd_KSstat', PACKAGE = 'IMPACTncdEnglmisc', a, wa, b, wb)
+    .Call('_IMPACTncdEngl_wtd_KSstat', PACKAGE = 'IMPACTncdEngl', a, wa, b, wb)
 }
 
