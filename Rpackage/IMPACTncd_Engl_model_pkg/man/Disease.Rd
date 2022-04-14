@@ -39,6 +39,7 @@ To be completed...
 \item \href{#method-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
 \item \href{#method-get_seed}{\code{Disease$get_seed()}}
 \item \href{#method-get_rr}{\code{Disease$get_rr()}}
+\item \href{#method-del_stochastic_effect}{\code{Disease$del_stochastic_effect()}}
 \item \href{#method-get_risks}{\code{Disease$get_risks()}}
 \item \href{#method-get_parf}{\code{Disease$get_parf()}}
 \item \href{#method-harmonise_epi_tables}{\code{Disease$harmonise_epi_tables()}}
@@ -365,6 +366,20 @@ Get the list of rr for all relevant exposures.
 
 \subsection{Returns}{
 A list of exposure objects.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-del_stochastic_effect"></a>}}
+\if{latex}{\out{\hypertarget{method-del_stochastic_effect}{}}}
+\subsection{Method \code{del_stochastic_effect()}}{
+Deletes the stochastic effect files and indices from disk
+  for all relevant RR.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$del_stochastic_effect()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}

@@ -128,6 +128,20 @@ diseases:
       type: 1
       code: 8
   notes: .na
+- name: asthma
+  friendly_name: asthma
+  meta:
+    incidence:
+      type: 2
+      can_recur: false
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 9
+  notes: .na
 - name: nonmodelled
   friendly_name: nonmodelled
   meta:
