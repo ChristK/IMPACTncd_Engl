@@ -154,7 +154,9 @@ Disease <-
       gen_parf = function(design_ = design, diseases_ = diseases,
                           popsize = 100, check = design_$sim_prm$logs) {
 
-        if (is.numeric(self$meta$incidence$type) && self$meta$incidence$type == 1L) {
+        if ((is.numeric(self$meta$incidence$type) &&
+            self$meta$incidence$type == 1L) ||
+            length(private$rr) == 0L) {
           # Early break for type 1 incidence
           return(invisible(self))
         }
@@ -824,6 +826,15 @@ Disease <-
         private$rr
       },
 
+      #' @description Deletes the stochastic effect files and indices from disk
+      #'   for all relevant RR.
+      #' @return The invisible self for chaining.
+      del_stochastic_effect = function() {
+        file.remove(private$filenam)
+        file.remove(private$filenam_indx)
+        lapply(private$rr, function(x) x$del_stochastic_effect)
+        invisible(self)
+      },
 
       #' @description Get the risks for all individuals in a synthetic
       #'   population.
@@ -1325,10 +1336,10 @@ Disease <-
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
             absorb_dt(ff, tbl)
-            set(ff, NULL, "smok_quit_yrs", 0L)
+            set(ff, NULL, "smok_quit_yrs_curr_xps", 0L)
             ff[
               smok_status_curr_xps %in% 2:3,
-              smok_quit_yrs := my_qDPO(rankstat_smok_quit_yrs, mu, sigma)
+              smok_quit_yrs_curr_xps := my_qDPO(rankstat_smok_quit_yrs, mu, sigma)
             ]
             ff[, rankstat_smok_quit_yrs := NULL]
             ff[, (col_nam) := NULL]

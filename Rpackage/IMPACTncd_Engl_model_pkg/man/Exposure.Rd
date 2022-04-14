@@ -48,6 +48,7 @@ Currently lognormal and normal are supported.}
 \itemize{
 \item \href{#method-new}{\code{Exposure$new()}}
 \item \href{#method-gen_stochastic_effect}{\code{Exposure$gen_stochastic_effect()}}
+\item \href{#method-del_stochastic_effect}{\code{Exposure$del_stochastic_effect()}}
 \item \href{#method-get_rr}{\code{Exposure$get_rr()}}
 \item \href{#method-clear_cache}{\code{Exposure$clear_cache()}}
 \item \href{#method-xps_to_rr}{\code{Exposure$xps_to_rr()}}
@@ -138,6 +139,19 @@ af_stroke$gen_stochastic_effect(design, TRUE)
 
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-del_stochastic_effect"></a>}}
+\if{latex}{\out{\hypertarget{method-del_stochastic_effect}{}}}
+\subsection{Method \code{del_stochastic_effect()}}{
+Deletes the stochastic effect file and index from disk.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Exposure$del_stochastic_effect()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-get_rr"></a>}}
 \if{latex}{\out{\hypertarget{method-get_rr}{}}}
 \subsection{Method \code{get_rr()}}{
@@ -183,7 +197,8 @@ The `Exposure` object.
 \if{latex}{\out{\hypertarget{method-xps_to_rr}{}}}
 \subsection{Method \code{xps_to_rr()}}{
 Apply the RR in a new column in sp$pop based on the
-  exposure level.
+  exposure level. I the case of smok_quit_yrs it modifies the risk of
+  smok_cig or packyrs and no new column is created.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$xps_to_rr(
   sp,
