@@ -282,6 +282,16 @@ Exposure <-
         invisible(self)
       },
 
+
+      #' @description Deletes the stochastic effect file and index from disk.
+      #' @return The invisible self for chaining.
+      del_stochastic_effect = function() {
+        file.remove(private$filenam)
+        file.remove(private$filenam_indx)
+
+        invisible(self)
+      },
+
       #' @description Get relative risks from disk.
       #' @param mc An integer that signifies the Monte Carlo iteration.
       #' @param design_ A design object with the simulation parameters.
@@ -364,7 +374,8 @@ Exposure <-
 
 
       #' @description Apply the RR in a new column in sp$pop based on the
-      #'   exposure level.
+      #'   exposure level. I the case of smok_quit_yrs it modifies the risk of
+      #'   smok_cig or packyrs and no new column is created.
       #' @param sp A synthetic population.
       #' @param design_ A design object with the simulation parameters.
       #' @param checkNAs If `TRUE`, prints the table of NAs before they get
@@ -406,7 +417,9 @@ Exposure <-
 
           private$apply_rr_extra(sp)
 
-          if (checkNAs) {
+          if (checkNAs && private$nam_rr %in% names(sp$pop)) {
+            # Note that in case of smok_quit_yrs the risk column is deleted
+            # from the rr_extra_fn()
             print(self$name)
             print(sp$pop[!is.na(get(self$name)) & is.na(get(private$nam_rr)) &
                            age >= design_$sim_prm$ageL &
@@ -414,13 +427,17 @@ Exposure <-
                            table(get(self$name), useNA = "always")])
           }
 
-          if (is.numeric(sp$pop[[private$nam_rr]]))
+          if (private$nam_rr %in% names(sp$pop) &&
+              is.numeric(sp$pop[[private$nam_rr]]))
             setnafill(sp$pop, type = "const", 1, cols = private$nam_rr)
+
           sp$pop[, (self$name) := NULL]
+
           if (paste0(self$name, "____") %in% names(sp$pop)) {
             # To prevent overwriting t2dm_prvl
             setnames(sp$pop, paste0(self$name, "____"), self$name)
           }
+
         return(invisible(self))
       },
 
