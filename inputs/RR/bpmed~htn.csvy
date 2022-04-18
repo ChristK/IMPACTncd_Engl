@@ -1,5 +1,5 @@
 ---
-exps_name: bpmed
+xps_name: bpmed
 outcome: htn
 lag: 0
 distribution: normal # because of 0s in rr & ci

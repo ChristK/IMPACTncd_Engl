@@ -1,5 +1,5 @@
 ---
-exps_name: sbp
+xps_name: sbp
 outcome: nonmodelled
 lag: 5
 distribution: lognormal
@@ -31,8 +31,8 @@ agegroup,sex,rr,ci_rr
 75-79,men,1.29,1.38
 80-84,men,1.29,1.38
 85-89,men,1.29,1.38
-90-94,men,1,1
-95-99,men,1,1
+90-94,men,1.29,1.38
+95-99,men,1.29,1.38
 <1,women,1,1
 01-04,women,1,1
 05-09,women,1,1
@@ -52,5 +52,5 @@ agegroup,sex,rr,ci_rr
 75-79,women,1.29,1.38
 80-84,women,1.29,1.38
 85-89,women,1.29,1.38
-90-94,women,1,1
-95-99,women,1,1
+90-94,women,1.29,1.38
+95-99,women,1.29,1.38

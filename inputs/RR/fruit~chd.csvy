@@ -1,5 +1,5 @@
 ---
-exps_name: fruit
+xps_name: fruit
 outcome: chd
 lag: 4
 distribution: lognormal

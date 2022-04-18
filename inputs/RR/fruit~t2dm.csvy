@@ -1,5 +1,5 @@
 ---
-exps_name: fruit
+xps_name: fruit
 outcome: t2dm
 lag: 4
 distribution: lognormal

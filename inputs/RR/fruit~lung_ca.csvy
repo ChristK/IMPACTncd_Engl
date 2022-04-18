@@ -1,5 +1,5 @@
 ---
-exps_name: fruit
+xps_name: fruit
 outcome: lung_ca
 lag: 9
 distribution: lognormal
@@ -7,6 +7,20 @@ source: Ann Oncol 2016;27:81-96. doi:10.1093/annonc/mdv381
 notes: RR very similar to Lung Cancer 2015;88:124-30. doi:10.1016/j.lungcan.2015.02.015.
   RR raised to ^0.8 already, to adjust risk of reported 100gr servings to 80gr UK
   servings.
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    sp$pop[, fruit_rr := clamp(fruit_rr^((fruit - 80 * self$get_ideal_xps_lvl(sp$mc_aggr)) / 80), 1, 20)]
+  }
+ideal_xps_lvl_fn: >
+  function(design_) { # from: PLOS ONE 2013;8:e65174 p7
+    if (!inherits(design_, 'Design')) stop('Argument design needs to be a Design object.')
+    save.seed <- get('.Random.seed', .GlobalEnv)
+    set.seed(851746L) # Same for stroke and CHD
+    res <- sample(x = 3:5, size = design$sim_prm$iteration_n_max, replace = TRUE)
+    assign('.Randon.seed', save.seed, .GlobalEnv)
+    res
+    }
 ---
 agegroup,sex,rr,ci_rr
 <1,men,1,1

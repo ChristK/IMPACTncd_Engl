@@ -1,5 +1,5 @@
 ---
-exps_name: smok_status
+xps_name: smok_status
 outcome: nonmodelled
 lag: 5
 distribution: lognormal
@@ -26,8 +26,8 @@ agegroup,sex,smok_status,rr,ci_rr
 75-79,men,4,1.99,2.14
 80-84,men,4,1.99,2.14
 85-89,men,4,1.99,2.14
-90-94,men,4,1,1
-95-99,men,4,1,1
+90-94,men,4,1.99,2.14
+95-99,men,4,1.99,2.14
 <1,women,4,1,1
 01-04,women,4,1,1
 05-09,women,4,1,1
@@ -47,5 +47,5 @@ agegroup,sex,smok_status,rr,ci_rr
 75-79,women,4,1.99,2.14
 80-84,women,4,1.99,2.14
 85-89,women,4,1.99,2.14
-90-94,women,4,1,1
-95-99,women,4,1,1
+90-94,women,4,1.99,2.14
+95-99,women,4,1.99,2.14

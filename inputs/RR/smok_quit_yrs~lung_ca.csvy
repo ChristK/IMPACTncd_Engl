@@ -1,7 +1,7 @@
 ---
-exps_name: smok_quit_yrs
+xps_name: smok_quit_yrs
 outcome: lung_ca
-lag: 0
+lag: 9
 distribution: normal
 source: GBD2019.
 notes: Applies a percentage reduction to the risk from smoking to exsmokers. Not
@@ -14,7 +14,7 @@ apply_rr_extra_fn: >
     sp$pop[smok_quit_yrs > qymax, smok_quit_yrs := qymax]
     absorb_dt(sp$pop, tt, on = c('age', 'sex', 'smok_quit_yrs'))
 
-    sp$pop[smok_status_curr_xps %in% c("2", "3"), smok_cig_rr := (smok_cig_rr -
+    sp$pop[smok_status_curr_xps %in% c("2", "3"), smok_packyrs_rr := (smok_packyrs_rr -
     1) * smok_quit_yrs_rr + 1]
     sp$pop[, smok_quit_yrs_rr := NULL]
   }

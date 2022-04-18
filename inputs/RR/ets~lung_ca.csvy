@@ -1,11 +1,25 @@
 ---
-exps_name: ets
+xps_name: ets
 outcome: lung_ca
 lag: 9
 distribution: lognormal
 source: Int J Cancer 2014;135:1918-30. doi:10.1002/ijc.28835
 notes: RR very similar to Taylor R, et al. Int J Epidemiol. 2007;36(5):1048-59. Table
   4 for Europe
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    if (sp$mc > 0) {
+        set(sp$pop, NULL, 'smok_status_hlp', shift_bypid(sp$pop[['smok_status_curr_xps']],
+        private$lag_mc[sp$mc_aggr], sp$pop$pid))
+    } else { # forPARF
+        set(sp$pop, NULL, 'smok_status_hlp', sp$pop[['smok_status_curr_xps']])
+    }
+
+    sp$pop[ets == 0L | smok_status_hlp == '4', ets_rr := 1]
+    sp$pop[, smok_status_hlp := NULL]
+    NULL
+    }
 ---
 agegroup,sex,rr,ci_rr
 <1,men,1,1

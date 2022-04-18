@@ -1,5 +1,5 @@
 ---
-exps_name: met
+xps_name: met
 outcome: t2dm
 lag: 4
 distribution: lognormal

@@ -36,10 +36,6 @@ namespace
   generator runif_impl = [] () {return uniform(*rng);};
 }
 
-
-
-
-// https://codescracker.com/cpp/cpp-nested-structures.htm
 struct infl
 {
   vector<IntegerVector> disease_prvl;
@@ -51,11 +47,13 @@ struct disease_epi
 {
   string type;
   IntegerVector prvl;
-  NumericVector prbl1;
-  NumericVector prbl2; // for 1st year case fatality
+  NumericVector prbl1; // for 1st year case fatality
+  NumericVector prbl2; // for prevalent cases case fatality
   infl influenced_by;
   CharacterVector aggregate;
   bool can_recur;
+  bool flag; // set true the first time incidence occurs & set tru to cure in the next year
+  int cure;
   int death_code;
 };
 
@@ -64,6 +62,7 @@ struct disease_meta
   disease_epi incd;
   disease_epi dgns;
   disease_epi mrtl;
+  bool mrtl1flag;
   int seed;
 };
 
@@ -143,8 +142,13 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
     mrtl = l["mortality"];
     out.mrtl.type = as<string>(mrtl["type"]);
 
-    if (mrtl.containsElementNamed("probability")) out.mrtl.prbl1 = dt[as<string>(mrtl["probability"])];
-    if (mrtl.containsElementNamed("probability1styear")) out.mrtl.prbl2 =  dt[as<string>(mrtl["probability1styear"])];
+    if (mrtl.containsElementNamed("probability")) out.mrtl.prbl2 = dt[as<string>(mrtl["probability"])];
+    if (mrtl.containsElementNamed("probability1styear"))
+    {
+      out.mrtl.prbl1 =  dt[as<string>(mrtl["probability1styear"])];
+      out.mrtl1flag = true;
+    }
+    if (mrtl.containsElementNamed("cure")) out.mrtl.cure = as<int>(mrtl["cure"]);
     if (mrtl.containsElementNamed("code")) out.mrtl.death_code = as<int>(mrtl["code"]);
 
     if (mrtl.containsElementNamed("influenced_by"))
@@ -193,14 +197,21 @@ void simcpp(DataFrame dt, const List l, const int mc) {
   double mltp = 1.0; // to be used for influence_by multiplier
   vector<int> tempdead; // temporary dead perhaps from multiple causes
   double rn1, rn2;
+  bool pid_mrk;
   for (int i = 0; i < n; ++i) // loop over dt rows (and resolve all diseases for each row before you move on)
   {
+
+    // set true when new participant (need to be here and not below)
+    if (i == 0) pid_mrk = true;
+    else if (meta.pid[i] != meta.pid[i - 1]) pid_mrk = true;
+    else pid_mrk = false; // updated for each row (i).
 
     if (meta.year[i] >= meta.init_year && meta.age[i] >= meta.age_low && meta.dead[i - 1] == 0) // if year >= init_year & alive
     {
       // NOTE values of i - x are certainly inbound and belong to the same
       // individual as long as x <= max_lag
       // NA_INTEGER == 0 is false
+
 
       _seed = u32tou64(meta.pid[i], meta.year[i]);
 
@@ -213,14 +224,25 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         // reproducibility and to remove stochastic noise between scenarios
         rn1 = runif_impl();
 
-        if (dsmeta[j].incd.type == "Type1")
+        // reset flags for new simulants
+        if (pid_mrk) dsmeta[j].incd.flag = false;
+        if (pid_mrk) dsmeta[j].mrtl.flag = false;
+
+        // reset prvl if cure and this is not the beginning of a new patient
+        if (dsmeta[j].mrtl.flag)
         {
+          dsmeta[j].incd.prvl[i] = 0;
+          dsmeta[j].mrtl.flag = false;
+        }
+
+        if (dsmeta[j].incd.type == "Type1")
+        { // NOTE Type 1 dosn't need to use flags for recurrence
           if (dsmeta[j].incd.can_recur)
           {
-            if (dsmeta[j].incd.prbl1[i] == 1.0) // logic overwrite prvl for init year
+            if (dsmeta[j].incd.prbl1[i] == 1.0) // logic overwrites prvl for init year
               dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
           }
-          else // in can_recur = false
+          else // if can_recur = false
           {
             if (dsmeta[j].incd.prvl[i - 1] == 0 && dsmeta[j].incd.prbl1[i] == 1.0)
               dsmeta[j].incd.prvl[i] = 1;
@@ -231,15 +253,22 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         if (dsmeta[j].incd.type == "Type2")
         {
-          if (dsmeta[j].incd.can_recur)
-          {
-            // TODO can_recur
-
-          }
-          else // in can_recur = false
+          if (dsmeta[j].incd.can_recur) // if can recur no need to use flag
           {
             if (dsmeta[j].incd.prvl[i - 1] == 0 && rn1 <= dsmeta[j].incd.prbl1[i])
+            {
               dsmeta[j].incd.prvl[i] = 1;
+            }
+            if (dsmeta[j].incd.prvl[i - 1] > 0)
+              dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
+          }
+          else // if can_recur = false
+          {
+            if (!dsmeta[j].incd.flag && dsmeta[j].incd.prvl[i - 1] == 0 && rn1 <= dsmeta[j].incd.prbl1[i])
+            {
+              dsmeta[j].incd.prvl[i] = 1;
+              dsmeta[j].incd.flag = true; // Set flag
+            }
             if (dsmeta[j].incd.prvl[i - 1] > 0)
               dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
           }
@@ -247,7 +276,6 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         if (dsmeta[j].incd.type == "Type3")
         {
-          // TODO can_recur
           for (int k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
             if (dsmeta[j].incd.influenced_by.disease_prvl[k][i - dsmeta[j].incd.influenced_by.lag[k]] > 0)
@@ -258,13 +286,18 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
           if (dsmeta[j].incd.can_recur)
           {
-            // TODO can_recur
-
-          }
-          else // in can_recur = false
-          {
             if (dsmeta[j].incd.prvl[i - 1] == 0 && rn1 <= (dsmeta[j].incd.prbl1[i] * mltp))
               dsmeta[j].incd.prvl[i] = 1;
+            if (dsmeta[j].incd.prvl[i - 1] > 0)
+              dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
+          }
+          else // if can_recur = false
+          {
+            if (!dsmeta[j].incd.flag && dsmeta[j].incd.prvl[i - 1] == 0 && rn1 <= (dsmeta[j].incd.prbl1[i] * mltp))
+            {
+              dsmeta[j].incd.prvl[i] = 1;
+              dsmeta[j].incd.flag = true;
+            }
             if (dsmeta[j].incd.prvl[i - 1] > 0)
               dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
           }
@@ -293,68 +326,74 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         // mortality ----------------------------------------------
         rn1 = runif_impl();
 
-        if (dsmeta[j].incd.type == "Universal") // enter branch only for prevalent cases or Universal incidence
+        if (dsmeta[j].incd.type == "Universal" || dsmeta[j].incd.prvl[i] > 0) // enter branch only for prevalent cases or Universal incidence
         {
-          if (rn1 < dsmeta[j].mrtl.prbl1[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
-        }
-
-        if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].mrtl.type == "Type1")
-        {
-          if (dsmeta[j].mrtl.prbl2.size() > 0)  // if fatality for incident cases estimated separately
+          // Type 1 mortality
+          if (dsmeta[j].mrtl.type == "Type1")
           {
-            if (dsmeta[j].incd.prvl[i] == 1 && rn1 < dsmeta[j].mrtl.prbl2[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
-            if (dsmeta[j].incd.prvl[i] > 1 && rn1 < dsmeta[j].mrtl.prbl1[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
-          }
-          else
-          {
-            if (rn1 < dsmeta[j].mrtl.prbl1[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
-          }
-        }
-
-        if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].mrtl.type == "Type2")
-        {
-          // TODO for cancers that can be cured
-        }
-
-        if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].mrtl.type == "Type3")
-        {
-          for (int k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
-          {
-            if (dsmeta[j].mrtl.influenced_by.disease_prvl[k][i - dsmeta[j].mrtl.influenced_by.lag[k]] > 0)
+            if (dsmeta[j].mrtl1flag)  // Type universal never enters this branch
             {
-              mltp *= dsmeta[j].mrtl.influenced_by.mltp[k][i]; // no lag here
+              if (dsmeta[j].incd.prvl[i] == 1 && rn1 < dsmeta[j].mrtl.prbl1[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
+              if (dsmeta[j].incd.prvl[i] > 1 && rn1 < dsmeta[j].mrtl.prbl2[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
             }
-          }
+            else if (rn1 < dsmeta[j].mrtl.prbl2[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
+          } // End Type 1
 
-          if (dsmeta[j].mrtl.prbl2.size() > 0)  // if fatality for incident cases estimated separately
+          // Type 2 mortality (not compatible with universal incidence (would be
+          // meaningless as Type 2 mortality is allows cure)
+          else if (dsmeta[j].mrtl.type == "Type2")
           {
-            if (dsmeta[j].incd.prvl[i] == 1 && rn1 < dsmeta[j].mrtl.prbl2[i] * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
-            if (dsmeta[j].incd.prvl[i] > 1 && rn1 < dsmeta[j].mrtl.prbl1[i] * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
-          }
-          else
+            if (dsmeta[j].incd.prvl[i] < dsmeta[j].mrtl.cure) // Valid since not universal incidence
+            {
+              if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
+              {
+                if (dsmeta[j].incd.prvl[i] == 1 && rn1 < dsmeta[j].mrtl.prbl1[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
+                if (dsmeta[j].incd.prvl[i] > 1 && rn1 < dsmeta[j].mrtl.prbl2[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
+              }
+              else if (rn1 < dsmeta[j].mrtl.prbl2[i]) tempdead.push_back(dsmeta[j].mrtl.death_code);
+            }
+            else if (dsmeta[j].incd.prvl[i] >= dsmeta[j].mrtl.cure) dsmeta[j].mrtl.flag = true; // if alive cure after defined period
+          } // End Type 2 mortality
+
+          // Type 3 mortality
+          else if (dsmeta[j].mrtl.type == "Type3")
           {
-            if (rn1 < dsmeta[j].mrtl.prbl1[i] * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
-          }
-          mltp = 1.0;
-        }
+            for (int k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+            {
+              if (dsmeta[j].mrtl.influenced_by.disease_prvl[k][i - dsmeta[j].mrtl.influenced_by.lag[k]] > 0)
+              {
+                mltp *= dsmeta[j].mrtl.influenced_by.mltp[k][i]; // no lag here
+              }
+            }
+
+            if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
+            {
+              if (dsmeta[j].incd.prvl[i] == 1 && rn1 < dsmeta[j].mrtl.prbl1[i] * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
+              if (dsmeta[j].incd.prvl[i] > 1 && rn1 < dsmeta[j].mrtl.prbl2[i] * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
+            }
+            else if (rn1 < dsmeta[j].mrtl.prbl2[i] * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
+
+            mltp = 1.0;
+          } // End Type 3 mortality
+
+        } // end if prevalent case
 
       } // end loop over diseases
 
 
       // resolve mortality from multiple causes in a year
 
+      _stream = u32tou64(mc, 1L); //
+      rng->seed(_seed, _stream);
+      rn2 = runif_impl();
+
       if (tempdead.size() == 1) meta.dead[i] = tempdead[0];
       if (tempdead.size() > 1)
       {
-        _stream = u32tou64(mc, 1L); //
-        rng->seed(_seed, _stream);
-        rn2 = runif_impl();
-
         int ind = (int)(rn2 * 100000000) % tempdead.size();
         meta.dead[i] = tempdead[ind];
       }
       tempdead.clear();
-
 
     } // end year >= init_year & alive
 

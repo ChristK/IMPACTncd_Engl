@@ -21,10 +21,6 @@ design <- Design$new("./validation/design_for_trends_validation.yaml")
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
 \item{\code{sim_prm}}{The simulation parameters.}
-
-\item{\code{lags_mc}}{The disease lag times.}
-
-\item{\code{max_lag_mc}}{The longest disease lag time.}
 }
 \if{html}{\out{</div>}}
 }

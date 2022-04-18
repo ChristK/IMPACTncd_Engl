@@ -1,5 +1,5 @@
 ---
-exps_name: stroke
+xps_name: stroke
 outcome: dementia
 lag: 4
 distribution: lognormal

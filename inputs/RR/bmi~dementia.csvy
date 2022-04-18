@@ -1,5 +1,5 @@
 ---
-exps_name: bmi
+xps_name: bmi
 outcome: dementia
 lag: 9
 distribution: lognormal

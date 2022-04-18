@@ -59,3 +59,5 @@ validate_plots <- function(dt, y, mod_max, suffix, disnm, strata) {
     dev.off()
   }
 }
+
+mod_sel <- function(m, ncpus = 10L) stepGAIC(m, direction = "backward", parallel = "multicore", ncpus = ncpus)

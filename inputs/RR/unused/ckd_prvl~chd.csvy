@@ -1,19 +1,19 @@
 ---
-exps_name: CKD
+xps_name: ckd_prvl
 outcome: chd
 lag: 4
 distribution: lognormal
 source: GBD 2019.
-notes: Ischacemic heart diases was used 
-0=none
-1=Stage 1-2 CKD 
-2=Stage 3 CKD
-3=Stage 4 CKD
-4=Stage 5 CKD
+notes: Ischacemic heart disease was used 0=none 1=Stage 1-2 CKD | 2=Stage 3 CKD | 3=Stage 4 CKD | 4=Stage 5 CKD
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    # multiplier for the risk of chd for ckd patients
+    if (!'chd_incd_ckd_prvl_mltp' %in% names(sp$pop)) sp$pop[, chd_incd_ckd_prvl_mltp := ckd_prvl_rr]
+    sp$pop[ckd_prvl == 0L, ckd_prvl_rr := 1]
+  }
 --- 
-agegroup,sex,active_days,rr,ci_rr
-
-
+agegroup,sex,ckd_stage,rr,ci_rr
 <1,men,0,1,1
 01-04,men,0,1,1
 05-09,men,0,1,1
@@ -98,7 +98,6 @@ agegroup,sex,active_days,rr,ci_rr
 85-89,women,1,1.227,1.548
 90-94,women,1,1.227,1.548
 95-99,women,1,1.227,1.548
-
 <1,men,2,1,1
 01-04,men,2,1,1
 05-09,men,2,1,1
@@ -225,4 +224,3 @@ agegroup,sex,active_days,rr,ci_rr
 85-89,women,4,3.779,6.325
 90-94,women,4,3.779,6.325
 95-99,women,4,3.779,6.325
-

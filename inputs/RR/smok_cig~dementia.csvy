@@ -1,5 +1,5 @@
 ---
-exps_name: smok_cig 
+xps_name: smok_cig 
 outcome: dementia
 lag: 9
 distribution: lognormal

@@ -30,7 +30,7 @@ if (!require(CKutils)) {
 dependencies(c("fst", "data.table"))
 
 # Load single datasets -----------------------------------------
-HSE_files <- sort(list.files("./preparatory_work/HSE_data", "\\.tab$", full.names = TRUE))
+HSE_files <- sort(list.files("./secure_data/HSE_data", "\\.tab$", full.names = TRUE))
 names(HSE_files) <- paste0("hse", 2003:2014)
 HSE_files <- lapply(HSE_files, data.table::fread)
 invisible(lapply(HSE_files, function(x) setnames(x, tolower(names(x)))))

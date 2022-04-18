@@ -27,21 +27,22 @@ To be completed...
 \itemize{
 \item \href{#method-new}{\code{Disease$new()}}
 \item \href{#method-gen_parf}{\code{Disease$gen_parf()}}
-\item \href{#method-del_parf_file}{\code{Disease$del_parf_file()}}
 \item \href{#method-set_init_prvl}{\code{Disease$set_init_prvl()}}
-\item \href{#method-get_incd}{\code{Disease$get_incd()}}
 \item \href{#method-set_rr}{\code{Disease$set_rr()}}
 \item \href{#method-set_incd_prb}{\code{Disease$set_incd_prb()}}
+\item \href{#method-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
+\item \href{#method-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
+\item \href{#method-del_parf_file}{\code{Disease$del_parf_file()}}
+\item \href{#method-get_incd}{\code{Disease$get_incd()}}
 \item \href{#method-get_dur}{\code{Disease$get_dur()}}
 \item \href{#method-get_prvl}{\code{Disease$get_prvl()}}
 \item \href{#method-get_ftlt}{\code{Disease$get_ftlt()}}
-\item \href{#method-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
-\item \href{#method-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
 \item \href{#method-get_seed}{\code{Disease$get_seed()}}
 \item \href{#method-get_rr}{\code{Disease$get_rr()}}
 \item \href{#method-del_stochastic_effect}{\code{Disease$del_stochastic_effect()}}
 \item \href{#method-get_risks}{\code{Disease$get_risks()}}
 \item \href{#method-get_parf}{\code{Disease$get_parf()}}
+\item \href{#method-get_parf_filename}{\code{Disease$get_parf_filename()}}
 \item \href{#method-harmonise_epi_tables}{\code{Disease$harmonise_epi_tables()}}
 \item \href{#method-to_cpp}{\code{Disease$to_cpp()}}
 \item \href{#method-to_cpp_Peter}{\code{Disease$to_cpp_Peter()}}
@@ -91,19 +92,23 @@ A new `Disease` object.
 \if{html}{\out{<a id="method-gen_parf"></a>}}
 \if{latex}{\out{\hypertarget{method-gen_parf}{}}}
 \subsection{Method \code{gen_parf()}}{
-Get disease incident probability.
+Generates PARF and stores it to disk.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$gen_parf(
+  sp = sp,
   design_ = design,
   diseases_ = diseases,
   popsize = 100,
-  check = design_$sim_prm$logs
+  check = design_$sim_prm$logs,
+  keep_intermediate_file = FALSE
 )}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
+\item{\code{sp}}{A synthpop object}
+
 \item{\code{design_}}{A design object with the simulation parameters.}
 
 \item{\code{diseases_}}{A list of Disease objects}
@@ -111,30 +116,8 @@ Get disease incident probability.
 \item{\code{popsize}}{The population size for each stratum}
 
 \item{\code{check}}{Check for NAs in parf_dt.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-del_parf_file"></a>}}
-\if{latex}{\out{\hypertarget{method-del_parf_file}{}}}
-\subsection{Method \code{del_parf_file()}}{
-Deletes the PARF file from disk. If both arguments
-  missing, deletes ALL parf files for this disease.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$del_parf_file(design_ = design, invert = FALSE)}\if{html}{\out{</div>}}
-}
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{design_}}{A design object with the simulation parameters.}
-
-\item{\code{invert}}{deletes all other disease relevant PARF file except those
-that are associated to the curent settings.}
+\item{\code{keep_intermediate_file}}{Whether to keep the intermediade synthpop file}
 }
 \if{html}{\out{</div>}}
 }
@@ -162,27 +145,6 @@ Set disease prevalence & diagnosisin a new col in sp$pop.
 }
 \subsection{Returns}{
 The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_incd"></a>}}
-\if{latex}{\out{\hypertarget{method-get_incd}{}}}
-\subsection{Method \code{get_incd()}}{
-Get disease incident probability.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$get_incd(year_)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{year_}}{A vector of years to return. All if missing.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A data.table with disease incident probabilities unless
-  incidence type: Universal when it returns data.table(NULL).
 }
 }
 \if{html}{\out{<hr>}}
@@ -242,6 +204,93 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-set_dgns_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-set_dgns_prb}{}}}
+\subsection{Method \code{set_dgns_prb()}}{
+Set diagnosis probability in a new col in sp$pop.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$set_dgns_prb(sp, design_ = design)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{sp}}{A synthetic population.}
+
+\item{\code{design_}}{A design object with the simulation parameters.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-set_mrtl_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-set_mrtl_prb}{}}}
+\subsection{Method \code{set_mrtl_prb()}}{
+Set disease case fatality when relevant, in a new col in
+  sp$pop.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$set_mrtl_prb(sp, design_ = design)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{sp}}{A synthetic population.}
+
+\item{\code{design_}}{A design object with the simulation parameters.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-del_parf_file"></a>}}
+\if{latex}{\out{\hypertarget{method-del_parf_file}{}}}
+\subsection{Method \code{del_parf_file()}}{
+Deletes the PARF file from disk.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$del_parf_file(invert = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{invert}}{deletes all other disease relevant PARF file except those
+that are associated to the curent settings.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-get_incd"></a>}}
+\if{latex}{\out{\hypertarget{method-get_incd}{}}}
+\subsection{Method \code{get_incd()}}{
+Get disease incident probability.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$get_incd(year_)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{year_}}{A vector of years to return. All if missing.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A data.table with disease incident probabilities unless
+  incidence type: Universal when it returns data.table(NULL).
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-get_dur"></a>}}
 \if{latex}{\out{\hypertarget{method-get_dur}{}}}
 \subsection{Method \code{get_dur()}}{
@@ -295,50 +344,6 @@ Get disease case fatality probability.
 \subsection{Returns}{
 A data.table with disease case fatality probabilities unless
   mortality type: Non-fatal when it returns data.table(NULL).
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_mrtl_prb"></a>}}
-\if{latex}{\out{\hypertarget{method-set_mrtl_prb}{}}}
-\subsection{Method \code{set_mrtl_prb()}}{
-Set disease case fatality in a new col in sp$pop.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$set_mrtl_prb(sp, design_ = design)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{sp}}{A synthetic population.}
-
-\item{\code{design_}}{A design object with the simulation parameters.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_dgns_prb"></a>}}
-\if{latex}{\out{\hypertarget{method-set_dgns_prb}{}}}
-\subsection{Method \code{set_dgns_prb()}}{
-Set diagnosis probability in a new col in sp$pop.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$set_dgns_prb(sp, design_ = design)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{sp}}{A synthetic population.}
-
-\item{\code{design_}}{A design object with the simulation parameters.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
@@ -403,7 +408,27 @@ A data.table with columns for pid, year, and all associated
 \subsection{Method \code{get_parf()}}{
 Get the PARF by age/sex/dimd/ethnicity/sha.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$get_parf()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$get_parf(what = c("parf", "p0", "m0"))}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{what}}{Columns to return (p0, m0, parf)}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A data.table with PARF.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-get_parf_filename"></a>}}
+\if{latex}{\out{\hypertarget{method-get_parf_filename}{}}}
+\subsection{Method \code{get_parf_filename()}}{
+Get the PARF filename.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$get_parf_filename()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{

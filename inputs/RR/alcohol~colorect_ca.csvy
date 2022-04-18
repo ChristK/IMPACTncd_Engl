@@ -1,12 +1,18 @@
 ---
-exps_name: alcohol
-outcome: colon_ca
+xps_name: alcohol
+outcome: colorect_ca
 lag: 9
 distribution: lognormal
-source: 'Global Burden of Disease Collaborative Network. Global Burden of Disease
-  Study 2016 (GBD 2016) Burden by Risk 1990-2016. Seattle, United States, Institute
-  for Health Metrics and Evaluation (IHME), 2017.'
+source: GBD2019.
 notes: Alcohol in g/day
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    tt <- private$cache[alcohol == max(alcohol)] # holds rr for the latest used mc
+    alcmax <- max(tt$alcohol)
+    sp$pop[alcohol > alcmax, alcohol := alcmax]
+    absorb_dt(sp$pop, tt, on = c('age', 'sex', 'alcohol'))
+  }
 ---
 agegroup,sex,alcohol,rr,ci_rr
 <1,men,0,1,1

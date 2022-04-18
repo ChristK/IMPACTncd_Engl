@@ -1,5 +1,5 @@
 ---
-exps_name: bmi
+xps_name: bmi
 outcome: t2dm
 lag: 5
 distribution: lognormal

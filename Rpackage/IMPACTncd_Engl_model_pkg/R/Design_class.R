@@ -37,10 +37,6 @@ Design <-
     public = list(
       #' @field sim_prm The simulation parameters.
       sim_prm = NA,
-      #' @field lags_mc The disease lag times.
-      lags_mc = NA,
-      #' @field max_lag_mc The longest disease lag time.
-      max_lag_mc = NA,
 
       #' @description Create a new design object.
       #' @param sim_prm Either a path to a yaml file or a list with
@@ -90,7 +86,6 @@ Design <-
             "simsmok_calibration"   ,
             "output_dir"            ,
             "synthpop_dir"          ,
-            "cancer_cure"           ,
             "validation"            ,
             "max_prvl_for_outputs"  ,
             "iteration_n_max"       ,
@@ -105,16 +100,6 @@ Design <-
               TRUE)
         )
 
-        # tt <- sim_prm[grepl("_lag$", names(sim_prm))]
-        # l <- lapply(names(tt), function(x) {
-        #   disease_enum <-
-        #     (cumsum(unlist(tt) == tt[[x]]) * duplicated(tt))[[x]]
-        #   if (disease_enum == 0L)
-        #     disease_enum <- 1L
-        #   names(disease_enum) <- NULL
-        #   return(disease_enum)
-        # })
-        # names(l) <- paste0(names(tt), "_enum")
 
         sim_prm$sim_horizon_max <- sim_prm$sim_horizon_max - sim_prm$init_year_long
         sim_prm$init_year <- sim_prm$init_year_long - 2000L
@@ -136,7 +121,9 @@ Design <-
         # Reorder the diseases so dependencies are always calculated first
         # (topological ordering). This is crucial for init_prevalence
         # first name the list and
-        sim_prm$diseases <- setNames(sim_prm$diseases, sapply(sim_prm$diseases, function(x) x$name))
+        sim_prm$diseases <-
+          setNames(sim_prm$diseases, sapply(sim_prm$diseases, function(x)
+            x$name))
 
         out <- vector() # will hold graph structure
         ds <- names(sim_prm$diseases)
@@ -216,21 +203,6 @@ Design <-
         self$sim_prm$bpmed_adherence        <- GUI_prm$bpmed_adherence_gui
         self$sim_prm$decision_aid           <- GUI_prm$decision_aid_gui
         self$sim_prm$logs                   <- GUI_prm$logs_gui
-
-        # Gen new lags enum after deleting existing ones
-        self$sim_prm[grepl("_enum$", names(self$sim_prm))] <- NULL
-
-        tt <- self$sim_prm[grepl("_lag$", names(self$sim_prm))]
-        l <- lapply(names(tt), function(x) {
-          disease_enum <-
-            (cumsum(unlist(tt) == tt[[x]]) * duplicated(tt))[[x]]
-          if (disease_enum == 0L)
-            disease_enum <- 1L
-          names(disease_enum) <- NULL
-          return(disease_enum)
-        })
-        names(l) <- paste0(names(tt), "_enum")
-        self$sim_prm <- c(self$sim_prm, l)
 
         invisible(self)
       },

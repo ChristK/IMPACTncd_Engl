@@ -1,5 +1,5 @@
 ---
-exps_name: t2dm_prvl
+xps_name: t2dm_prvl
 outcome: chd
 lag: 4
 distribution: lognormal

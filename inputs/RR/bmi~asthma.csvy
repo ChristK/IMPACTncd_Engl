@@ -1,5 +1,5 @@
 ---
-exps_name: bmi
+xps_name: bmi
 outcome: asthma
 lag: 5
 distribution: lognormal
