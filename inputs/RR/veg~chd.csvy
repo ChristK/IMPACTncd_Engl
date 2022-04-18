@@ -1,5 +1,5 @@
 ---
-exps_name: veg
+xps_name: veg
 outcome: chd
 lag: 4
 distribution: lognormal

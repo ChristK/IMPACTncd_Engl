@@ -144,9 +144,17 @@ af_stroke$gen_stochastic_effect(design, TRUE)
 \subsection{Method \code{del_stochastic_effect()}}{
 Deletes the stochastic effect file and index from disk.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$del_stochastic_effect()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Exposure$del_stochastic_effect(invert = FALSE)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{invert}}{If TRUE keeps the  file with the current checksum and deletes
+all other files for this exposure~outcome.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
 The invisible self for chaining.
 }

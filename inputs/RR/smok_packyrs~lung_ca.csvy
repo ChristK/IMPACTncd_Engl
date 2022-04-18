@@ -1,24 +1,20 @@
 ---
-exps_name: packyear  
+xps_name: smok_packyrs  
 outcome: lung_ca
 lag: 9
 distribution: lognormal
 source: cigarettes per day.
-notes: 
-0 pack year 
-10 pack year
-20 pack year
-30 pack year
-40 pack year
-50 pack year
-60 pack year
-70 pack year
-80 pack year
-90 pack year
-100 pack year
-.
+notes: Units - packyears.
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    tt <- private$cache[smok_packyrs == max(smok_packyrs)] # holds rr for the latest used mc
+    pymax <- max(tt$smok_packyrs)
+    sp$pop[smok_packyrs > pymax, smok_packyrs := pymax]
+    absorb_dt(sp$pop, tt, on = c('age', 'sex', 'smok_packyrs'))
+  }
 --- 
-agegroup,sex,packyears,rr,ci_rr
+agegroup,sex,smok_packyrs,rr,ci_rr
 <1,men,0,1,1
 01-04,men,0,1,1
 05-09,men,0,1,1

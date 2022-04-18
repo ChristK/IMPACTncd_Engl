@@ -1,5 +1,5 @@
 ---
-exps_name: statin_px
+xps_name: statin_px
 outcome: t2dm
 lag: 4
 distribution: lognormal

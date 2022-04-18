@@ -102,21 +102,21 @@ Exposure <-
 
         # Validation
         stopifnot(
-          c("exps_name", "outcome", "distribution", "lag") %in% names(metadata),
+          c("xps_name", "outcome", "distribution", "lag") %in% names(metadata),
           metadata$lag >= 1 | (metadata$lag == 0L & metadata$incidence$type == 1L),
           metadata$lag <= design_$sim_prm$maxlag,
           length(metadata$distribution) == 1L,
           metadata$distribution %in% c("lognormal", "normal")
         )
 
-        self$name         <- metadata$exps_name
+        self$name         <- metadata$xps_name
         self$outcome      <- metadata$outcome
         self$lag          <- metadata$lag
         self$distribution <- metadata$distribution
         self$source       <- metadata$source
         self$notes        <- metadata$notes
 
-        private$nam_rr = paste0(self$name, "_rr") # i.e. bmi_rr
+        private$nam_rr <- paste0(self$name, "_rr") # i.e. bmi_rr
 
         if ("apply_rr_extra_fn" %in% names(metadata) &&
             startsWith(metadata$apply_rr_extra_fn, "function(")) {
@@ -127,11 +127,23 @@ Exposure <-
         } else private$apply_rr_extra <- function(...) NULL
 
         dqRNGkind("pcg64")
-        private$seed <- abs(digest2int(paste0(self$name, self$outcome),
-                                       seed = 764529L))
+
+        # NOTE that for the different dimensions of smoking per disease we need
+        # the same lag, so quit-yrs applied with the correct lag. Hence self$name
+        private$seed <- abs(digest2int(paste0(ifelse(
+          grepl("^smok_", self$name), "smoking", self$name), # rename all smoking dimensions to smoking
+          self$outcome), seed = 764529L))
+        private$chksum <- digest(effect) # NOTE not affected by metadata changes
         private$suffix <- paste0(self$name, "~", self$outcome)
-        private$filenam <- file.path(getwd(), "simulation", "rr", paste0(private$suffix, "_rr_l.fst"))
-        private$filenam_indx <- file.path(getwd(), "simulation", "rr", paste0(private$suffix, "_rr_indx.fst"))
+
+        private$filedir <- file.path(getwd(), "simulation", "rr")
+        if (!dir.exists(private$filedir)) dir.create(private$filedir)
+        private$filenam <- file.path(private$filedir,
+                                     paste0("rr_", private$suffix, "_",
+                                            private$chksum, "_l.fst"))
+        private$filenam_indx <- file.path(private$filedir,
+                                          paste0("rr_", private$suffix, "_",
+                                                 private$chksum, "_indx.fst"))
 
         dqset.seed(private$seed, stream = 1) # stream = 1 for lags
 
@@ -246,6 +258,11 @@ Exposure <-
             )) || (max(read_fst(private$filenam, columns = "age")) <
                    design_$sim_prm$ageH)
             ) {
+          if (design_$sim_prm$logs)
+            message(paste0(self$name, "~", self$outcome, " simulate RR uncertainty."))
+
+          self$del_stochastic_effect(invert = TRUE) # deletes previous versions
+
           stoch_effect <-
             private$generate_rr_l(private$effect,
               private$input_rr[, .SD, .SDcols = !c("rr")],
@@ -284,13 +301,31 @@ Exposure <-
 
 
       #' @description Deletes the stochastic effect file and index from disk.
+      #' @param invert If TRUE keeps the  file with the current checksum and deletes
+      #'   all other files for this exposure~outcome.
       #' @return The invisible self for chaining.
-      del_stochastic_effect = function() {
-        file.remove(private$filenam)
-        file.remove(private$filenam_indx)
+      del_stochastic_effect = function(invert = FALSE) {
+        stopifnot(is.logical(invert))
 
+        if (invert) {
+          fl <- list.files(
+            private$filedir,
+            pattern = paste0("^rr_", private$suffix, ".*\\.fst$"),
+            full.names = TRUE
+          )
+
+          fl <- setdiff(fl, c(private$filenam, private$filenam_indx))
+
+          file.remove(fl)
+
+        } else {
+
+          file.remove(c(private$filenam, private$filenam_indx))
+
+        }
         invisible(self)
       },
+
 
       #' @description Get relative risks from disk.
       #' @param mc An integer that signifies the Monte Carlo iteration.
@@ -507,7 +542,7 @@ Exposure <-
         function(file_path = "./inputs/RR/template.csvy") {
           file_path <- normalizePath(file_path, mustWork = FALSE)
           metadata <- list(
-            "exps_name"     = "Exposure name",
+            "xps_name"     = "Exposure name",
             "outcome"       = "Disease name",
             "distribution"  = "lognormal or normal",
             "source"        = "Citation for the effectsize",
@@ -667,9 +702,12 @@ Exposure <-
        suffix = NA_character_,
        filenam = NA_character_,
        filenam_indx = NA_character_,
+       filedir = NA_character_,
        cache = NA,
        cache_mc = NA,
        nam_rr = NA,
+       chksum = NA,
+
        write_xps_prm_file = function(dt, metadata, file_path) {
          y <- paste0("---\n", yaml::as.yaml(metadata), "---\n")
          con <- textConnection(y)

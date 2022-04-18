@@ -1,5 +1,5 @@
 ---
-exps_name: sbp
+xps_name: sbp
 outcome: stroke
 lag: 4
 distribution: lognormal

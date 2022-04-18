@@ -1,5 +1,5 @@
 ---
-exps_name: smok_packyrs
+xps_name: smok_packyrs
 outcome: copd
 lag: 5
 distribution: lognormal

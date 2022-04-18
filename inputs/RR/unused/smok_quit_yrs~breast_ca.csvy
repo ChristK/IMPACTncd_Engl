@@ -1,7 +1,7 @@
 ---
-exps_name: smok_quit_yrs
+xps_name: smok_quit_yrs
 outcome: breast_ca
-lag: 0
+lag: 9
 distribution: normal
 source: GBD2019.
 notes: Applies a percentage reduction to the risk from smoking to exsmokers. Not
@@ -14,33 +14,12 @@ apply_rr_extra_fn: >
     sp$pop[smok_quit_yrs > qymax, smok_quit_yrs := qymax]
     absorb_dt(sp$pop, tt, on = c('age', 'sex', 'smok_quit_yrs'))
 
-    sp$pop[smok_status_curr_xps %in% c("2", "3"), smok_cig_rr := (smok_cig_rr -
+    sp$pop[smok_status_curr_xps %in% c("2", "3"), smok_packyrs_rr := (smok_packyrs_rr -
     1) * smok_quit_yrs_rr + 1]
     sp$pop[, smok_quit_yrs_rr := NULL]
   }
 ---
 agegroup,sex,smok_quit_yrs,rr,ci_rr
-<1,men,0,0,0
-01-04,men,0,0,0
-05-09,men,0,0,0
-10-14,men,0,0,0
-15-19,men,0,0,0
-20-24,men,0,0,0
-25-29,men,0,0,0
-30-34,men,0,0,0
-35-39,men,0,0,0
-40-44,men,0,0,0
-45-49,men,0,0,0
-50-54,men,0,0,0
-55-59,men,0,0,0
-60-64,men,0,0,0
-65-69,men,0,0,0
-70-74,men,0,0,0
-75-79,men,0,0,0
-80-84,men,0,0,0
-85-89,men,0,0,0
-90-94,men,0,0,0
-95-99,men,0,0,0
 <1,women,0,1,1
 01-04,women,0,1,1
 05-09,women,0,1,1
@@ -62,27 +41,6 @@ agegroup,sex,smok_quit_yrs,rr,ci_rr
 85-89,women,0,1,1
 90-94,women,0,1,1
 95-99,women,0,1,1
-<1,men,10,0,0
-01-04,men,10,0,0
-05-09,men,10,0,0
-10-14,men,10,0,0
-15-19,men,10,0,0
-20-24,men,10,0,0
-25-29,men,10,0,0
-30-34,men,10,0,0
-35-39,men,10,0,0
-40-44,men,10,0,0
-45-49,men,10,0,0
-50-54,men,10,0,0
-55-59,men,10,0,0
-60-64,men,10,0,0
-65-69,men,10,0,0
-70-74,men,10,0,0
-75-79,men,10,0,0
-80-84,men,10,0,0
-85-89,men,10,0,0
-90-94,men,10,0,0
-95-99,men,10,0,0
 <1,women,10,1,1
 01-04,women,10,1,1
 05-09,women,10,1,1
@@ -104,27 +62,6 @@ agegroup,sex,smok_quit_yrs,rr,ci_rr
 85-89,women,10,0.5599,0.6974
 90-94,women,10,0.5599,0.6974
 95-99,women,10,0.5599,0.6974
-<1,men,20,0,0
-01-04,men,20,0,0
-05-09,men,20,0,0
-10-14,men,20,0,0
-15-19,men,20,0,0
-20-24,men,20,0,0
-25-29,men,20,0,0
-30-34,men,20,0,0
-35-39,men,20,0,0
-40-44,men,20,0,0
-45-49,men,20,0,0
-50-54,men,20,0,0
-55-59,men,20,0,0
-60-64,men,20,0,0
-65-69,men,20,0,0
-70-74,men,20,0,0
-75-79,men,20,0,0
-80-84,men,20,0,0
-85-89,men,20,0,0
-90-94,men,20,0,0
-95-99,men,20,0,0
 <1,women,20,1,1
 01-04,women,20,1,1
 05-09,women,20,1,1
@@ -146,27 +83,6 @@ agegroup,sex,smok_quit_yrs,rr,ci_rr
 85-89,women,20,04134,0.4965
 90-94,women,20,04134,0.4965
 95-99,women,20,04134,0.4965
-<1,men,30,0,0
-01-04,men,30,0,0
-05-09,men,30,0,0
-10-14,men,30,0,0
-15-19,men,30,0,0
-20-24,men,30,0,0
-25-29,men,30,0,0
-30-34,men,30,0,0
-35-39,men,30,0,0
-40-44,men,30,0,0
-45-49,men,30,0,0
-50-54,men,30,0,0
-55-59,men,30,0,0
-60-64,men,30,0,0
-65-69,men,30,0,0
-70-74,men,30,0,0
-75-79,men,30,0,0
-80-84,men,30,0,0
-85-89,men,30,0,0
-90-94,men,30,0,0
-95-99,men,30,0,0
 <1,women,30,1,1
 01-04,women,30,1,1
 05-09,women,30,1,1
@@ -188,27 +104,6 @@ agegroup,sex,smok_quit_yrs,rr,ci_rr
 85-89,women,30,0.3049,0.4026
 90-94,women,30,0.3049,0.4026
 95-99,women,30,0.3049,0.4026
-<1,men,40,0,0
-01-04,men,40,0,0
-05-09,men,40,0,0
-10-14,men,40,0,0
-15-19,men,40,0,0
-20-24,men,40,0,0
-25-29,men,40,0,0
-30-34,men,40,0,0
-35-39,men,40,0,0
-40-44,men,40,0,0
-45-49,men,40,0,0
-50-54,men,40,0,0
-55-59,men,40,0,0
-60-64,men,40,0,0
-65-69,men,40,0,0
-70-74,men,40,0,0
-75-79,men,40,0,0
-80-84,men,40,0,0
-85-89,men,40,0,0
-90-94,men,40,0,0
-95-99,men,40,0,0
 <1,women,40,1,1
 01-04,women,40,1,1
 05-09,women,40,1,1

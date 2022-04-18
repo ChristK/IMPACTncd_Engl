@@ -1,5 +1,5 @@
 ---
-exps_name: t2dm_prvl
+xps_name: t2dm_prvl
 outcome: nonmodelled
 lag: 5
 distribution: lognormal
@@ -33,8 +33,8 @@ agegroup,sex,rr,ci_rr
 75-79,men,2.08,2.26
 80-84,men,2.08,2.26
 85-89,men,2.08,2.26
-90-94,men,1,1
-95-99,men,1,1
+90-94,men,2.08,2.26
+95-99,men,2.08,2.26
 <1,women,1,1
 01-04,women,1,1
 05-09,women,1,1
@@ -54,5 +54,5 @@ agegroup,sex,rr,ci_rr
 75-79,women,2.08,2.26
 80-84,women,2.08,2.26
 85-89,women,2.08,2.26
-90-94,women,1,1
-95-99,women,1,1
+90-94,women,2.08,2.26
+95-99,women,2.08,2.26

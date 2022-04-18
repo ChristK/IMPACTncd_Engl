@@ -36,13 +36,13 @@ dependencies(c("Rcpp", "dqrng", "fst", "qs", "gamlss", "reldist", "future", "fut
 options(future.fork.enable = TRUE) # enable fork in Rstudio
 plan(multiprocess)
 
-if (file.exists("./preparatory_work/HSE_ts.fst")) {
-  HSE_ts <- read_fst("./preparatory_work/HSE_ts.fst", as.data.table = TRUE)
+if (file.exists("./secure_data/HSE_ts.fst")) {
+  HSE_ts <- read_fst("./secure_data/HSE_ts.fst", as.data.table = TRUE)
 } else {
-  source("./preparatory_work/preprocess_HSE.R", local = TRUE)
+  source("./secure_data/preprocess_HSE.R", local = TRUE)
 }
-source("./preparatory_work/aux_functions.R", local = TRUE)
-sourceCpp("./preparatory_work/BCPEo_distribution.cpp", cacheDir = "./.CppCache/")
+source("./secure_data/aux_functions.R", local = TRUE)
+sourceCpp("./secure_data/BCPEo_distribution.cpp", cacheDir = "./.CppCache/")
 
 dt <- na.omit(HSE_ts[wt_nurse > 0 & between(age, 20, 90),
                      .(sbp, year, age, agegrp10, sex, qimd, ethnicity, sha, smok_status, wt_nurse)])
@@ -50,11 +50,11 @@ dt[, age := scale(age, 52.1, 17.1)]
 set.seed(seed)
 
 
-if (file.exists("./preparatory_work/marginal_distr_sbp.qs")) {
-  marg_distr <- qread("./preparatory_work/marginal_distr_sbp.qs")
+if (file.exists("./secure_data/marginal_distr_sbp.qs")) {
+  marg_distr <- qread("./secure_data/marginal_distr_sbp.qs")
 } else {
   marg_distr <- distr_best_fit(dt, "sbp", "wt_nurse", "realplus")
-  qsave(marg_distr, "./preparatory_work/marginal_distr_sbp.qs")
+  qsave(marg_distr, "./secure_data/marginal_distr_sbp.qs")
 }
 head(marg_distr$fits)
 # distr_validation(marg_distr, dt[between(sbp, 16, 50), .(var = sbp, wt = wt_nurse)],

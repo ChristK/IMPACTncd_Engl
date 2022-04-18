@@ -1,5 +1,5 @@
 ---
-exps_name: statins
+xps_name: statins
 outcome: tchol
 lag: 1
 distribution: normal
