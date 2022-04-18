@@ -1,5 +1,5 @@
 ---
-exps_name: alcohol
+xps_name: alcohol
 outcome: stroke
 lag: 4
 distribution: lognormal

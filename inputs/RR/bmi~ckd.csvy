@@ -1,10 +1,24 @@
 ---
-exps_name: bmi
-outcome: CKD
-lag: 4
+xps_name: bmi
+outcome: ckd
+lag: 5
 distribution: lognormal
 source: GBD2019
-notes: RR per 5kg/m2, ckd due to hypertension was chosen.
+notes: RR per 5kg/m2, ckd due to hypertension was chosen (RR for other cuase CKD were very close).
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    sp$pop[, bmi_rr := clamp(bmi_rr^((bmi - self$get_ideal_xps_lvl(sp$mc_aggr)) / 5), 1, 20)]
+  }
+ideal_exps_lvl_fn: >
+  function(design_) { # from: PLOS ONE 2013;8:e65174 p7
+    if (!inherits(design_, 'Design')) stop('Argument design needs to be a Design object.')
+    save.seed <- get('.Random.seed', .GlobalEnv)
+    set.seed(851747L) # Same for stroke, CHD & T2DM
+    res <- rnorm(design_$sim_prm$iteration_n_max, mean = runif(design_$sim_prm$iteration_n_max, 21, 23), sd = runif(design_$sim_prm$iteration_n_max, 1.1, 1.8))
+    assign('.Randon.seed', save.seed, .GlobalEnv)
+    res
+    }
 ---
 agegroup,sex,rr,ci_rr
 <1,men,1,1

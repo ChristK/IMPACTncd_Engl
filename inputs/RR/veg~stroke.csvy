@@ -1,5 +1,5 @@
 ---
-exps_name: veg
+xps_name: veg
 outcome: stroke
 lag: 4
 distribution: lognormal

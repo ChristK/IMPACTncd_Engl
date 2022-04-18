@@ -1,0 +1,38 @@
+# Disease Duration Models - distributions
+
+# CHD - ZANBI
+
+# Type 2 Diabetes Mellitus - ZANBI
+
+# Stroke - ZANBI
+
+# "Anxiety_Depression" - ZANBI
+
+# "Asthma" - ZANBI
+
+# "Atrial Fibrillation" - ZANBI         
+
+#"Chronic Kidney Disease" - ZANBI         
+
+# "COPD" - ZANBI                        
+
+# "Dementia" - ZANBI. NB: ZAPIG was no1, but slower? 3 parameters + q has a max value. BICs:
+    #   ZAPIG    ZANBI   
+    #  27168.36 27227.41                     
+
+#"Heart failure" - ZANBI       
+
+# "Hypertension"     - ZANBI                
+
+# "Obesity"   - ZANBI       
+
+# "Other cancers"    - ZANBI             
+
+#"Primary Malignancy_Breast" - ZANBI    
+
+# "Primary Malignancy_Colorectal" - ZANBI    
+
+#"Primary Malignancy_Lung" - ZANBI    
+
+# "Primary Malignancy_Prostate" - ZANBI    
+

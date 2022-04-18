@@ -1,7 +1,7 @@
 ---
-exps_name: smok_quit_yrs
+xps_name: smok_quit_yrs
 outcome: asthma
-lag: 0
+lag: 5
 distribution: normal
 source: GBD2019.
 notes: Applies a percentage reduction to the risk from smoking to exsmokers. Not

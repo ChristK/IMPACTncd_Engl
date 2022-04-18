@@ -1,5 +1,5 @@
 ---
-exps_name: ets
+xps_name: ets
 outcome: copd
 lag: 5
 distribution: lognormal

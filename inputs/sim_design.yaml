@@ -11,6 +11,8 @@ init_year_long: 2013 # 2008 to 2020 but be careful with max lags
 sim_horizon_max: 2043 # population projections do not support longer horizon
 ageL: 30
 ageH: 99
+apply_RR_to_mrtl2: true # Is disease mortality influenced by exposures like incidence?
+model_trends_in_redidual_incd: false # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
 diseases:
 - name: obesity
   friendly_name: obesity
@@ -142,6 +144,125 @@ diseases:
       type: 1
       code: 9
   notes: .na
+- name: ckd
+  friendly_name: ckd
+  meta:
+    incidence:
+      type: 2
+      can_recur: false
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 10
+  notes: .na
+- name: lung_ca
+  friendly_name: lung cancer
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: t2dm
+      can_recur: true
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 2
+      cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
+      code: 11
+  notes: .na
+- name: colorect_ca
+  friendly_name: colorectal cancer
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: t2dm
+      can_recur: true
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 2
+      cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
+      code: 12
+  notes: .na
+- name: prostate_ca
+  friendly_name: prostate cancer
+  meta:
+    incidence:
+      type: 2
+      can_recur: false
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 2
+      cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
+      code: 13
+  notes: .na
+- name: breast_ca
+  friendly_name: breast cancer
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: t2dm
+      can_recur: true
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 2
+      cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
+      code: 14
+  notes: .na
+- name: andep
+  friendly_name: andep
+  meta:
+    incidence:
+      type: 2
+      can_recur: false
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 15
+  notes: .na
+- name: other_ca
+  friendly_name: other cancers
+  meta:
+    incidence:
+      type: 2
+      can_recur: true
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 16
+  notes: .na
+- name: hf
+  friendly_name: heart failure
+  meta:
+    incidence:
+      type: 2
+      can_recur: false
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 17
+  notes: .na
 - name: nonmodelled
   friendly_name: nonmodelled
   meta:
@@ -155,7 +276,6 @@ diseases:
       code: 1
   notes: .na
 maxlag: 10
-cancer_cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
 statin_adherence: 0.9

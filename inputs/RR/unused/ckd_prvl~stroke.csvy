@@ -1,17 +1,19 @@
 ---
-exps_name: CKD
+xps_name: ckd_prvl
 outcome: stroke
 lag: 4
 distribution: lognormal
 source: GBD 2019.
-notes: ischaemic stroke was used  
-0=none
-1=Stage 1-2 CKD 
-2=Stage 3 CKD
-3=Stage 4 CKD
-4=Stage 5 CKD
+notes: ischaemic stroke was used 0=none 1=Stage 1-2 CKD | 2=Stage 3 CKD | 3=Stage 4 CKD | 4=Stage 5 CKD
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    # multiplier for the risk of stroke for ckd patients
+    if (!'stroke_incd_ckd_prvl_mltp' %in% names(sp$pop)) sp$pop[, stroke_incd_ckd_prvl_mltp := ckd_prvl_rr]
+    sp$pop[ckd_prvl == 0L, ckd_prvl_rr := 1]
+  }
 --- 
-agegroup,sex,active_days,rr,ci_rr
+agegroup,sex,ckd_stage,rr,ci_rr
 <1,men,0,1,1
 01-04,men,0,1,1
 05-09,men,0,1,1
@@ -96,7 +98,6 @@ agegroup,sex,active_days,rr,ci_rr
 85-89,women,1,1.179,1.346
 90-94,women,1,1.179,1.346
 95-99,women,1,1.179,1.346
-
 <1,men,2,1,1
 01-04,men,2,1,1
 05-09,men,2,1,1
@@ -139,7 +140,6 @@ agegroup,sex,active_days,rr,ci_rr
 85-89,women,2,1.022,1.113
 90-94,women,2,1.022,1.113
 95-99,women,2,1.022,1.113
-
 <1,men,3,1,1
 01-04,men,3,1,1
 05-09,men,3,1,1
@@ -182,7 +182,6 @@ agegroup,sex,active_days,rr,ci_rr
 85-89,women,3,1.396,1.491
 90-94,women,3,1.016,1.16
 95-99,women,3,1.016,1.16
-
 <1,men,4,1,1
 01-04,men,4,1,1
 05-09,men,4,1,1
@@ -225,4 +224,3 @@ agegroup,sex,active_days,rr,ci_rr
 85-89,women,4,1.193,1.606
 90-94,women,4,1.193,1.606
 95-99,women,4,1.193,1.606
-

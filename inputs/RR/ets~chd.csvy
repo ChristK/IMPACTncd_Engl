@@ -1,5 +1,5 @@
 ---
-exps_name: ets
+xps_name: ets
 outcome: chd
 lag: 4
 distribution: lognormal

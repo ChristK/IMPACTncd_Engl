@@ -1,5 +1,5 @@
 ---
-exps_name: tchol
+xps_name: tchol
 outcome: stroke
 lag: 4
 distribution: lognormal

@@ -778,7 +778,7 @@ SynthPop <-
           lsoas_ <- private$get_unique_LSOAs(design_)
 
           locality_years_age_id <-
-            digest::digest(paste(lsoas_, fcall, sep = ",", collapse = ","),
+            digest(paste(lsoas_, fcall, sep = ",", collapse = ","),
                            serialize = FALSE)
           return(locality_years_age_id)
         },
@@ -866,8 +866,8 @@ SynthPop <-
 
 
             # Generate correlated ranks for the individuals ----
-            if (design_$sim_prm$logs) message("Generate correlated ranks for the
-                                              individuals")
+            if (design_$sim_prm$logs)
+              message("Generate correlated ranks for the individuals")
 
             cm_mean <- as.matrix(
               read_fst(
@@ -935,8 +935,6 @@ SynthPop <-
             rank_cols <-
               c(
                 "rankstat_ncc",
-                "rankstat_ca_history",
-                "rankstat_famlungca",
                 "rankstat_pa_dur",
                 "rankstat_pa_met",
                 "rankstat_bpmed_adherence",
@@ -949,6 +947,10 @@ SynthPop <-
 
             # Generate education (exception as it remains stable through lifecourse) ----
             if (design_$sim_prm$logs) message("Generate education")
+            if (max(dt$age) > 90L) {
+              dt[, age100 := age]
+              dt[age > 90L, age := 90L]
+            }
 
             tbl <-
               read_fst("./inputs/exposure_distributions/education_table.fst",
@@ -980,6 +982,11 @@ SynthPop <-
               )
             )]
             dt[, rank_education := NULL]
+
+            if ("age100" %in% names(dt)) {
+              dt[, age := NULL]
+              setnames(dt, "age100", "age")
+            }
 
             # Project forward for simulation and back project for lags  ----
             if (design_$sim_prm$logs) message("Project forward and back project")
@@ -1542,24 +1549,6 @@ SynthPop <-
               rankstat_ncc = NULL
             )]
 
-            # Estimate history of cancer
-            tbl <-
-              read_fst("./inputs/exposure_distributions/history_of_cancer.fst",
-                       as.data.table = TRUE)
-            col_nam <-
-              setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            absorb_dt(dt, tbl)
-            dt[, history_of_ca := as.integer(rankstat_ca_history < mu)]
-            dt[, c(col_nam, "rankstat_ca_history") := NULL]
-
-            # Estimate family history of lung ca (crude approx)
-            # The prob of having lung ca is around 50/1e5.
-            # So the probability of having at least
-            # one of 3 family members with lung ca is 1 - (1-50/1e5)^3.
-            tt <- 1 - (1 - 50 / 1e5) ^ 3
-            dt[, fam_lung_ca := as.integer(rankstat_famlungca < tt)]
-            dt[, ("rankstat_famlungca") := NULL]
-
 
             dt[, statin_adherence := qBE(rankstat_statin_adherence, design_$sim_prm$statin_adherence, 0.2)]
             dt[, bpmed_adherence := qBE(rankstat_bpmed_adherence, design_$sim_prm$bpmed_adherence, 0.2)]
@@ -1682,9 +1671,9 @@ SynthPop <-
                    between(age, min(dt$age), max(dt$age)) &
                    between(year, min(dt$year), max(dt$year)),
                  .(pops = sum(pops)), keyby = .(year, age, sex)]
-        dt[, wt := .N, by = .(year, age, sex)]
+        dt[, wt_immrtl := .N, by = .(year, age, sex)]
         absorb_dt(dt, tt)
-        dt[, wt := pops / (wt * design$sim_prm$n_synthpop_aggregation)]
+        dt[, wt_immrtl := pops / (wt_immrtl * design$sim_prm$n_synthpop_aggregation)]
         dt[, pops := NULL]
 
         invisible(dt)
