@@ -10,6 +10,7 @@ apply_rr_extra_fn: >
     if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
     # multiplier for the risk of stroke for AF
     if (!'stroke_incd_af_prvl_mltp' %in% names(sp$pop)) sp$pop[, stroke_incd_af_prvl_mltp := af_prvl_rr]
+    if (!'stroke_mrtl_af_prvl_mltp' %in% names(sp$pop)) sp$pop[, stroke_mrtl_af_prvl_mltp := af_prvl_rr]
     sp$pop[af_prvl == 0L, af_prvl_rr := 1]
   }
 ---
