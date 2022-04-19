@@ -118,17 +118,17 @@ Disease <-
         # TODO add check for stop('For type 1 incidence aggregation of RF need
         # to be "any" or "all".')
 
-        nam <- paste0("prb_", self$name, "_incd")
-
-        if (self$meta$incidence$type == 3) {
-          nam <- paste0(
-            nam, "_no",
-            paste(self$meta$incidence$influenced_by_disease_name,
-              collapse = ""
-            )
-          )
-        }
-        private$incd_colnam  <- nam
+        # nam <- paste0("prb_", self$name, "_incd")
+        #
+        # if (self$meta$incidence$type == 3) {
+        #   nam <- paste0(
+        #     nam, "_no",
+        #     paste(self$meta$incidence$influenced_by_disease_name,
+        #       collapse = ""
+        #     )
+        #   )
+        # }
+        private$incd_colnam  <- paste0("prb_", self$name, "_incd")
         private$dgns_colnam  <- paste0("prb_", self$name, "_dgns")
         private$mrtl_colnam2 <- paste0("prb_", self$name, "_mrtl2") # Only for mrtl 2
 
@@ -423,8 +423,36 @@ Disease <-
             parf_dt[, "mu" := NULL]
 
           }
+
           if (sum(dim(private$ftlt_indx)) > 0) {
             if (design_$sim_prm$logs) message("Estimating m0.")
+
+            # Re-estimate parf without exposures and only for diseases when
+            # apply_rr_to_mrtl2 is FALSE
+            if (!design_$sim_prm$apply_RR_to_mrtl2) {
+              riskcolnam <- grep(
+                paste0(
+                  "^((?!",
+                  paste(self$meta$mortality$influenced_by_disease_name,
+                        collapse = "|"),
+                  ").)*_rr$"
+                ),
+                names(private$risks),
+                value = TRUE,
+                perl = TRUE
+              )
+
+              if (length(riskcolnam) > 0) {
+                parf_dt_mrtl <-
+                  ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
+                          .(parf_mrtl = 1 - 1 / (sum(Reduce(`*`, mget(nam))) / .N)),
+                          keyby = .(age, sex, dimd, ethnicity, sha)
+                  ]
+                absorb_dt(parf_dt, parf_dt_mrtl)
+              }
+            }
+
+
             yrs <- seq(
               design_$sim_prm$init_year,
               design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max
@@ -434,7 +462,7 @@ Disease <-
 
             setnames(tt, "mu2", "mu")
             if ("mu1" %in% names(tt)) tt[, mu1 := NULL]
-            nam <- "m0"
+            # nam <- "m0"
 
             if (!all(yrs %in% unique(parf_dt$years))) { # TODO safer logic here
               parf_dt <- clone_dt(parf_dt, length(yrs))
@@ -443,7 +471,13 @@ Disease <-
             }
             absorb_dt(parf_dt, tt)
             setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
-            parf_dt[, (nam) := mu * (1 - parf)]
+
+            if ("parf_mrtl" %in% names(parf_dt)) {
+              parf_dt[, "m0" := mu * (1 - parf_mrtl)]
+              parf_dt[, parf_mrtl := NULL]
+            } else {
+              parf_dt[, "m0" := mu * (1 - parf)]
+            }
             parf_dt[, "mu" := NULL]
           }
 
@@ -843,20 +877,20 @@ Disease <-
 
           # if (not apply_RR_to_mrtl2 and not depend on other diseases) or ----
           # length(private$rr) == 0L
-          if ((!design$sim_prm$apply_RR_to_mrtl2 &&
-               self$meta$mortality$type != 3L) ||
+          if ((!design_$sim_prm$apply_RR_to_mrtl2 &&
+               !self$meta$mortality$type %in% 3:4) ||
               length(private$rr) == 0L) {
             setnames(ftlt, "mu2", private$mrtl_colnam2)
             absorb_dt(sp$pop, ftlt)
           } else {
-            if (self$meta$mortality$type == 3L) {
+            if (self$meta$mortality$type %in% 3:4) {
               # private$rr never NULL here but riskcolnam can be empty if disease
               # only influenced by other diseases but not exposures
               riskcolnam <- grep(
                 paste0(
                   "^((?!",
                   paste(
-                    self$meta$incidence$influenced_by_disease_name,
+                    self$meta$mortality$influenced_by_disease_name,
                     collapse = "|"
                   ),
                   ").)*_rr$"
@@ -1178,8 +1212,15 @@ Disease <-
           "probability" = paste0(private$incd_colnam, scenario_suffix),
           "can_recur" = self$meta$incidence$can_recur
         )
-        if (is.null(out$incidence$can_recur)) out$incidence <- within(out$incidence, rm("can_recur"))
-        if (out$incidence$type == "Universal") out$incidence <- within(out$incidence, rm("prevalence", "probability"))
+        if (is.null(out$incidence$can_recur))
+          out$incidence <- within(out$incidence, rm("can_recur"))
+        if (out$incidence$type == "Universal")
+          out$incidence <- within(out$incidence, rm("prevalence", "probability"))
+
+        # TODO resolve influenced by disease automatically from
+        # paste0(names(design_$sim_prm$diseases), "_prvl") %in% private$rr
+
+
 
         if (self$meta$incidence$type == 3) {
           influenced_by_incd <- list()
@@ -1233,7 +1274,7 @@ Disease <-
           }
 
 
-          if (self$meta$mortality$type == 3) {
+          if (self$meta$mortality$type %in% 3:4) {
             influenced_by_mrtl <- list()
             for (i in self$meta$mortality$influenced_by_disease_name) {
               influenced_by_mrtl[[paste0(i, "_prvl")]] <-

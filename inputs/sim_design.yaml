@@ -11,16 +11,16 @@ init_year_long: 2013 # 2008 to 2020 but be careful with max lags
 sim_horizon_max: 2043 # population projections do not support longer horizon
 ageL: 30
 ageH: 99
-apply_RR_to_mrtl2: true # Is disease mortality influenced by exposures like incidence?
+apply_RR_to_mrtl2: true # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
 model_trends_in_redidual_incd: false # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
 diseases:
 - name: obesity
   friendly_name: obesity
   meta:
     incidence:
-      type: 1
+      type: 1 # deterministically depend on exposure(s)
       aggregation: 'any' # Other option is "all". If more than one RF is case definition expects any or all to be present?. Irrelevant for 1 RF
-      can_recur: true
+      can_recur: true # cure depends on the relevant exposure(s)
     diagnosis:
       type: 1
       probability: 1
@@ -31,12 +31,12 @@ diseases:
   friendly_name: hypertension
   meta:
     incidence:
-      type: 1
-      aggregation: 'any' # Other option is "all". If more than one RF is case definition expects any or all to be present?. Irrelevant for 1 RF
-      can_recur: false
+      type: 2
+      can_recur: false # assumes no cure after incidence till death
     diagnosis:
       type: 1
       probability: 1
+      duration_distr: ZANBI
     mortality:
       type: 1
       code: 6
@@ -45,7 +45,7 @@ diseases:
   friendly_name: CHD
   meta:
     incidence:
-      type: 3
+      type: 3 # incidence depends on disease
       influenced_by_disease_name: t2dm
       can_recur: false
     diagnosis:
@@ -53,7 +53,8 @@ diseases:
       probability: 1
       duration_distr: ZANBI
     mortality:
-      type: 1
+      type: 3
+      influenced_by_disease_name: t2dm
       code: 2
   notes: .na
 - name: stroke
@@ -70,7 +71,10 @@ diseases:
       probability: 1
       duration_distr: ZANBI
     mortality:
-      type: 1
+      type: 3
+      influenced_by_disease_name:
+        - t2dm
+        - af
       code: 3
   notes: .na
 - name: t2dm
@@ -127,7 +131,8 @@ diseases:
       probability: 1
       duration_distr: ZANBI
     mortality:
-      type: 1
+      type: 3
+      influenced_by_disease_name: t2dm
       code: 8
   notes: .na
 - name: asthma
@@ -170,7 +175,8 @@ diseases:
       probability: 1
       duration_distr: ZANBI
     mortality:
-      type: 2
+      type: 4 # Both cure and depend on disease(s)
+      influenced_by_disease_name: t2dm
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
       code: 11
   notes: .na
@@ -186,7 +192,8 @@ diseases:
       probability: 1
       duration_distr: ZANBI
     mortality:
-      type: 2
+      type: 4
+      influenced_by_disease_name: t2dm
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
       code: 12
   notes: .na
@@ -201,7 +208,7 @@ diseases:
       probability: 1
       duration_distr: ZANBI
     mortality:
-      type: 2
+      type: 2 # cure, not disease dependent
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
       code: 13
   notes: .na
@@ -217,7 +224,8 @@ diseases:
       probability: 1
       duration_distr: ZANBI
     mortality:
-      type: 2
+      type: 4
+      influenced_by_disease_name: t2dm
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
       code: 14
   notes: .na
@@ -246,7 +254,8 @@ diseases:
       probability: 1
       duration_distr: ZANBI
     mortality:
-      type: 1
+      type: 2
+      cure: 10
       code: 16
   notes: .na
 - name: hf

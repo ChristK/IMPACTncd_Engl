@@ -10,6 +10,7 @@ apply_rr_extra_fn: >
     if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
     # multiplier for the risk of CHD for diabetic
     if (!'colorect_ca_incd_t2dm_prvl_mltp' %in% names(sp$pop)) sp$pop[, colorect_ca_incd_t2dm_prvl_mltp := t2dm_prvl_rr]
+    if (!'colorect_ca_mrtl_t2dm_prvl_mltp' %in% names(sp$pop)) sp$pop[, colorect_ca_mrtl_t2dm_prvl_mltp := t2dm_prvl_rr]
     sp$pop[t2dm_prvl == 0L, t2dm_prvl_rr := 1]
   }
 ---
