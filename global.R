@@ -127,3 +127,39 @@ names(diseases) <- sapply(design$sim_prm$diseases, `[[`, "name")
 #     vertex.label.cex = .7, edge.color = "gray85", layout = layout_components)
 rm(RR)
 
+# TODO move to class Simulation
+mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
+  # scenario_suffix_for_pop <- paste0("_", scenario_name) # TODO get suffix from design
+  scenario_suffix_for_pop <- scenario_name
+  list(
+    "exposures"          = design_$sim_prm$exposures,
+    "scenarios"          = design_$sim_prm$scenarios, # to be generated programmatically
+    "scenario"           = scenario_name,
+    "kismet"             = design_$sim_prm$kismet, # If TRUE random numbers are the same for each scenario.
+    "init_year"          = design_$sim_prm$init_year,
+    "pids"               = "pid",
+    "years"              = "year",
+    "ages"               = "age",
+    "ageL"               = design_$sim_prm$ageL,
+    "all_cause_mrtl"     = paste0("all_cause_mrtl", scenario_suffix_for_pop),
+    "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
+    "diseases"           = lapply(diseases_, function(x) x$to_cpp(sp, design_))
+  )
+}
+
+run_sim <- function(mc, sp, diseases, design) {
+  sp <- SynthPop$new(mc, design)
+  lapply(diseases, function(x) {
+    x$gen_parf(sp, design)$
+      set_init_prvl(sp, design)$
+      set_rr(sp, design)$
+      set_incd_prb(sp, design)$
+      set_dgns_prb(sp, design)$
+      set_mrtl_prb(sp, design)
+  })
+  l <- mk_scenario_init2("", diseases, sp, design)
+  simcpp(sp$pop, l, sp$mc)
+
+  sp$update_pop_weights()
+
+}
