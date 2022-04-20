@@ -93,6 +93,7 @@ Exposure <-
           setkeyv(effect, nam)
 
           metadata <- attr(effect, "yaml_metadata")
+          setattr(effect, "yaml_metadata", NULL)
             # private$get_yaml_header(xps_prm, verbose = design_$sim_prm$logs)
         } else {
           stop(
@@ -442,12 +443,13 @@ Exposure <-
 
           if (forPARF) {
             set(sp$pop, NULL, self$name, sp$pop[[exps_tolag]])
-            absorb_dt(sp$pop, self$get_input_rr())
+            lookup_dt(sp$pop, self$get_input_rr(), check_lookup_tbl_validity = FALSE)
 
           } else {
             set(sp$pop, NULL, self$name, # column without _curr_xps is lagged
                 shift_bypid(sp$pop[[exps_tolag]], private$lag_mc[sp$mc_aggr], sp$pop$pid))
-            absorb_dt(sp$pop, self$get_rr(sp$mc_aggr, design_, drop = FALSE))
+            lookup_dt(sp$pop, self$get_rr(sp$mc_aggr, design_, drop = FALSE),
+                      check_lookup_tbl_validity = FALSE)
           }
 
           private$apply_rr_extra(sp)
