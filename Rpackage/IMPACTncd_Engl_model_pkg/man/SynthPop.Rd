@@ -50,6 +50,7 @@ first generated, then saved to disk, and then loaded from disk.}
 \itemize{
 \item \href{#method-new}{\code{SynthPop$new()}}
 \item \href{#method-update_design}{\code{SynthPop$update_design()}}
+\item \href{#method-update_pop_weights}{\code{SynthPop$update_pop_weights()}}
 \item \href{#method-delete_synthpop}{\code{SynthPop$delete_synthpop()}}
 \item \href{#method-delete_incomplete_synthpop}{\code{SynthPop$delete_incomplete_synthpop()}}
 \item \href{#method-check_integridy}{\code{SynthPop$check_integridy()}}
@@ -132,6 +133,19 @@ Updates the Design object that is stored in the SynthPop object.
 }
 \if{html}{\out{</div>}}
 }
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-update_pop_weights"></a>}}
+\if{latex}{\out{\hypertarget{method-update_pop_weights}{}}}
+\subsection{Method \code{update_pop_weights()}}{
+Updates the wt_immrtl to account for mortality in baseline scenario.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SynthPop$update_pop_weights()}\if{html}{\out{</div>}}
+}
+
 \subsection{Returns}{
 The invisible self for chaining.
 }
