@@ -188,6 +188,26 @@ SynthPop <-
       },
 
       #' @description
+      #' Updates the wt_immrtl to account for mortality in baseline scenario.
+      #' @return The invisible self for chaining.
+      update_pop_weights = function() {
+        if (!"wt" %in% names(self$pop)) { # baseline
+          self$pop[, tmp := sum(wt_immrtl), keyby = .(year, age, sex)]
+          set(self$pop, NULL, "wt", 0)
+          self$pop[all_cause_mrtl == 0L, wt := wt_immrtl * tmp / sum(wt_immrtl),
+                   by = .(year, age, sex)]
+
+          self[, tmp := NULL]
+        } else { # For policy scenarios
+          self$pop[wt == 0 & sc_all_cause_mrtl == 0L, wt := wt_immrtl]
+        }
+
+
+        invisible(self)
+      },
+
+
+      #' @description
       #' Delete (all) synthpop files in the synthpop directory.
       #' @param mc_ If `mc_ = NULL`, delete all files in the synthpop directory.
       #'   If `mc_` is an integer vector delete the specific synthpop files
@@ -1624,7 +1644,7 @@ SynthPop <-
                     private$design$sim_prm$ageL - private$design$sim_prm$maxlag,
                     private$design$sim_prm$ageH)]
 
-          dt[, pid_mrk := mk_new_simulant_markers(pid)]
+          dt[, pid_mrk := mk_new_simulant_markers(pid)] # TODO Do I need this?
           # Above necessary because of pruning  and potential merging above
 
           # Ensure pid does not overlap for files from different mc
@@ -1636,7 +1656,7 @@ SynthPop <-
             dt[, pid := as.integer(pid + it * new_n)]
           } else stop("pid larger than int32 limit.")
           # generate population weights
-          private$gen_pop_weights(dt, private$design) # TODO replace?
+          private$gen_pop_weights(dt, private$design)
           dt[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]
           set(dt, NULL, "all_cause_mrtl", 0L)
 
