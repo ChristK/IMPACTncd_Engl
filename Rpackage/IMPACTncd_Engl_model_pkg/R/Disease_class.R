@@ -417,7 +417,7 @@ Disease <-
               year = .id - 1L + design_$sim_prm$init_year,
               .id = NULL
               )]
-            absorb_dt(parf_dt, tt)
+            lookup_dt(parf_dt, tt, check_lookup_tbl_validity = FALSE)
             setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
             parf_dt[, (nam) := mu * (1 - parf)]
             parf_dt[, "mu" := NULL]
@@ -469,7 +469,7 @@ Disease <-
               parf_dt[, year := .id - 1L + design_$sim_prm$init_year]
               parf_dt[, .id := NULL]
             }
-            absorb_dt(parf_dt, tt)
+            lookup_dt(parf_dt, tt, check_lookup_tbl_validity = FALSE)
             setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
 
             if ("parf_mrtl" %in% names(parf_dt)) {
@@ -562,7 +562,8 @@ Disease <-
             )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
             strata <- setdiff(names(tbl), c("mu"))
 
-            absorb_dt(sp$pop, tbl)
+            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = FALSE)
+
             setnafill(sp$pop, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
             sp$pop[
               year == design_$sim_prm$init_year,
@@ -571,10 +572,11 @@ Disease <-
             sp$pop[, mu := NULL]
 
             tbl <- self$get_prvl(seq(design_$sim_prm$init_year + 1L,
-                                     design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max)
+                                     design_$sim_prm$init_year +
+                                       design_$sim_prm$sim_horizon_max)
             )[age == design_$sim_prm$ageL]
 
-            absorb_dt(sp$pop, tbl)
+            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = FALSE)
             setnafill(sp$pop, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
 
             sp$pop[
@@ -594,10 +596,11 @@ Disease <-
             # have better RF control post diagnosis. For that I will arbitrarily
             # assume that the risk for prevalence is half of that for incidence.
 
-            if (length(private$rr) > 0L) {
+            if (length(private$rr) > 0L && any(sp$pop[[namprvl]] > 0L)) {
               # ncases is the number of prevalent cases expected in each stratum
               sp$pop[year >= design_$sim_prm$init_year,
-                     ncases := sum(get(namprvl)), by = eval(strata)]
+                     ncases := sum(get(namprvl), na.rm = TRUE),
+                     by = eval(strata)]
               # Generate unique name using the relevant RR and lags
 
               # TODO below should apply only to strata with ncases > 0 for efficiency
@@ -621,7 +624,7 @@ Disease <-
             tbl <- read_fst(private$filenams$dur, as.data.table = TRUE)
             col_nam <- setdiff(names(tbl), intersect(names(sp$pop), names(tbl)))
             tbl[, (namprvl) := 1L]
-            absorb_dt(sp$pop, tbl)
+            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = FALSE)
             fn <- paste0("q", self$meta$diagnosis$duration_distr)
             sp$pop[get(namprvl) == 1L,
                    (namprvl) := 1L + do.call(fn, c(p = list(dqrunif(.N)), .SD)),
@@ -793,7 +796,7 @@ Disease <-
                                      design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max)
             )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
             setnames(tbl, "mu", private$incd_colnam)
-            absorb_dt(sp$pop, tbl)
+            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = FALSE)
           } # End if no associated RF
 
           setnafill(sp$pop, "c", 0, cols = private$incd_colnam)
@@ -867,11 +870,13 @@ Disease <-
             if (nam %in% names(sp$pop))
               stop("Column ", nam, " exists already in sp$pop.")
             setnames(ftlt, "mu1", nam)
-            absorb_dt(sp$pop, ftlt[, .SD, .SDcols = !"mu2"])
+            lookup_dt(sp$pop, ftlt[, .SD, .SDcols = !"mu2"],
+                      check_lookup_tbl_validity = FALSE)
             setnafill(sp$pop,
                       type = "const",
                       fill = 0,
                       cols = nam)
+            ftlt[, (nam) := NULL]
           } else {
             private$mrtl2flag <- FALSE
           }
@@ -882,7 +887,7 @@ Disease <-
                !self$meta$mortality$type %in% 3:4) ||
               length(private$rr) == 0L) {
             setnames(ftlt, "mu2", private$mrtl_colnam2)
-            absorb_dt(sp$pop, ftlt)
+            lookup_dt(sp$pop, ftlt, check_lookup_tbl_validity = FALSE)
           } else {
             if (self$meta$mortality$type %in% 3:4) {
               # private$rr never NULL here but riskcolnam can be empty if disease
@@ -1123,39 +1128,59 @@ Disease <-
           stop("Argument sp needs to be a SynthPop object.")
         }
 
-        for (i in seq_along(private$filenams)) {
-          tbl <- read_fst(private$filenams[[i]], as.data.table = TRUE)
-          k <- key(tbl)
+        # TODO add logic to track file changes
 
-          if (!"sex" %in% names(tbl)) {
+        for (i in seq_along(private$filenams)) {
+          if (grepl("_indx.fst$", private$filenams[[i]])) next
+          print( private$filenams[[i]])
+          tbl <- read_fst(private$filenams[[i]], as.data.table = TRUE)
+          val <- setdiff(names(tbl), names(sp$pop))
+          com <- sort(intersect(names(tbl), names(sp$pop)))
+          # Ensure year is always the first key if present
+          com <- com[order(match(com, "year"))]
+
+
+          # TODO add a rpoperty on yaml to recognise diseases apply to only one sex
+          if (!"sex" %in% names(tbl) || uniqueN(tbl$sex) == 1L) {
+            tbl2 <- copy(tbl)
             if (self$name == "breast_ca") {
               tbl[, sex := factor("women", levels = c("men", "women"))]
+              tbl2[, sex := factor("men", levels = c("men", "women"))]
             }
 
             if (self$name == "prostate_ca") {
               tbl[, sex := factor("men", levels = c("men", "women"))]
+              tbl2[, sex := factor("women", levels = c("men", "women"))]
             }
+
+            for (j in val) set(tbl2, NULL, j, NA)
+
+            tbl <- rbind(tbl, tbl2)
           }
 
-          for (j in names(tbl)) {
-            if (j %in% names(sp$pop)) {
-              if (inherits(sp$pop[[j]], "integer") && !inherits(tbl[[j]], "integer")) {
-                tbl[, (j) := as.integer(get(j))]
-              }
-              if (inherits(sp$pop[[j]], "numeric") && !inherits(tbl[[j]], "numeric")) {
-                tbl[, (j) := as.numeric(get(j))]
-              }
-              if (inherits(sp$pop[[j]], "character") && !inherits(tbl[[j]], "character")) {
-                tbl[, (j) := as.character(get(j))]
-              }
-              if (inherits(sp$pop[[j]], "factor")) {
-                # irrespective of class(j) to make sure that levels are the same
-                # and in the right order.
-                if (j == "dimd" && levels(tbl[[j]])[1] != "1 most deprived") {
-                  tbl[, (j) := factor(get(j), levels = as.character(10:1), labels = levels(sp$pop[[j]]))]
-                } else {
-                  tbl[, (j) := factor(get(j), levels = levels(sp$pop[[j]]))]
-                }
+          for (j in com) {
+            if (inherits(sp$pop[[j]], "integer") &&
+                !inherits(tbl[[j]], "integer")) {
+              tbl[, (j) := as.integer(get(j))]
+            }
+            if (inherits(sp$pop[[j]], "numeric") &&
+                !inherits(tbl[[j]], "numeric")) {
+              tbl[, (j) := as.numeric(get(j))]
+            }
+            if (inherits(sp$pop[[j]], "character") &&
+                !inherits(tbl[[j]], "character")) {
+              tbl[, (j) := as.character(get(j))]
+            }
+            if (inherits(sp$pop[[j]], "factor")) {
+              # irrespective of class(j) to make sure that levels are the same
+              # and in the right order.
+              if (j == "dimd" &&
+                  levels(tbl[[j]])[1] != "1 most deprived") {
+                tbl[, (j) := factor(get(j),
+                                    levels = as.character(10:1),
+                                    labels = levels(sp$pop[[j]]))]
+              } else {
+                tbl[, (j) := factor(get(j), levels = levels(sp$pop[[j]]))]
               }
             }
           }
@@ -1165,10 +1190,17 @@ Disease <-
             setnames(tbl, "mu", "mu2")
           }
 
-          if (anyNA(tbl)) stop("NAs in ", private$filenams[[i]])
-          setkeyv(tbl, k)
-          write_fst(tbl, private$filenams[[i]])
-        }
+          if (!self$name %in% c("breast_ca", "prostate_ca") &&  anyNA(tbl))
+            stop("NAs in ", private$filenams[[i]])
+
+          setkeyv(tbl, com)
+
+          if (!is_valid_lookup_tbl(tbl, com))
+            stop("Not a valid lookup table.")
+
+          if (!identical(read_fst(private$filenams[[i]], as.data.table = TRUE), tbl))
+            write_fst(tbl, private$filenams[[i]])
+          } # End loop over relevant files
       },
 
       #' @description Returns a list to pass to the C++ side for Chris' parser.
@@ -1555,7 +1587,7 @@ Disease <-
               read_fst("./inputs/exposure_distributions/frtpor_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, fruit_curr_xps :=
               my_qZISICHEL(rank_fruit,
                 mu, sigma, nu, tau,
@@ -1575,7 +1607,7 @@ Disease <-
               read_fst("./inputs/exposure_distributions/vegpor_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, veg_curr_xps :=
               my_qDEL(rank_veg, mu, sigma, nu, n_cpu = design_$sim_prm$n_cpu) * 80L] # g/d
             ff[, (col_nam) := NULL]
@@ -1610,7 +1642,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, smok_status_curr_xps := my_qMN4(rankstat_smok, mu, sigma, nu)] # for calibration
             ff[, (col_nam) := NULL]
 
@@ -1622,7 +1654,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             set(ff, NULL, "smok_quit_yrs_curr_xps", 0L)
             ff[
               smok_status_curr_xps %in% 2:3,
@@ -1638,7 +1670,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             set(ff, NULL, "smok_dur_curr_xps", 0L)
             ff[smok_status_curr_xps %in% 2:3, smok_dur_curr_xps := my_qDPO(rankstat_smok_dur_ex, mu, sigma)]
             ff[, rankstat_smok_dur_ex := NULL]
@@ -1651,7 +1683,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[smok_status_curr_xps == 4, smok_dur_curr_xps := as.integer(round(qNBI(rankstat_smok_dur_curr, mu, sigma)))]
             ff[, rankstat_smok_dur_curr := NULL]
             ff[, (col_nam) := NULL]
@@ -1676,7 +1708,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[
               smok_status_curr_xps == 4L,
               smok_cig_curr_xps :=
@@ -1694,7 +1726,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[
               smok_status_curr_xps == 3L,
               smok_cig_curr_xps := my_qZABNB(rankstat_smok_cig_ex,
@@ -1731,7 +1763,7 @@ Disease <-
               read_fst("./inputs/exposure_distributions/ets_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, ets_curr_xps := as.integer(rank_ets < mu)]
             ff[, rank_ets := NULL]
             ff[, (col_nam) := NULL]
@@ -1751,7 +1783,7 @@ Disease <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, alcohol_curr_xps := as.integer(
               qZINBI(rank_alcohol, mu, sigma, nu))]
             ff[, rank_alcohol := NULL]
@@ -1772,7 +1804,7 @@ Disease <-
               read_fst("./inputs/exposure_distributions/bmi_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, bmi_curr_xps := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             ff[, rank_bmi := NULL]
             ff[, (col_nam) := NULL]
@@ -1791,7 +1823,7 @@ Disease <-
               read_fst("./inputs/exposure_distributions/sbp_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, sbp_curr_xps := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             ff[, rank_sbp := NULL]
             ff[, (col_nam) := NULL]
@@ -1810,7 +1842,7 @@ Disease <-
               read_fst("./inputs/exposure_distributions/tchol_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, tchol_curr_xps := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             ff[, rank_tchol := NULL]
             ff[, (col_nam) := NULL]
@@ -1825,7 +1857,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, tchol_hdl_ratio := 1 / qGB1(rank_hdl, mu, sigma, nu, tau)]
             ff[, rank_hdl := NULL]
             ff[, (col_nam) := NULL]
@@ -1848,7 +1880,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            absorb_dt(ff, tbl)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
             ff[, statin_px_curr_xps := as.integer(rank_statin_px < mu)]
             ff[, rank_statin_px := NULL]
             ff[, (col_nam) := NULL]
