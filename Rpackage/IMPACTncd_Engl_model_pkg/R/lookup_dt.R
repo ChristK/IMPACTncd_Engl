@@ -30,16 +30,21 @@ fct_to_int <- function(x, byref = FALSE) {
 }
 
 # ensure integers start from 1 in lookup_tbl
-starts_from_1 <- function(tbl, on, i, min_lookup) {
+starts_from_1 <- function(tbl, on, i, min_lookup, cardinality) {
   minx <- min_lookup[[i]]
   if (is.integer(tbl[[on[[i]]]])) {
     if (minx == 1L) {
-      return(tbl[[on[[i]]]])
+      out <- tbl[[on[[i]]]]
     } else {
       minx <- minx - 1L
-      return(tbl[[on[[i]]]] - minx)
+      out <- tbl[[on[[i]]]] - minx
     }
-
+    # Account for rows in tbl with no match on dt_table because integer key cols are out of range
+    # TODO consider similar treat for factors. All we need is the levels in
+    # lookp_tbl to be included in the levels in tbl, without gaps.
+    # TODO use C++ to replace by reference the line below
+    out[out < 1L | out > cardinality[[i]]] <- NA_integer_
+    return(out)
   } else {
     if (minx == 1L) {
       return(fct_to_int(tbl[[on[[i]]]]))
@@ -72,6 +77,9 @@ lookup_dt <- function(tbl,
   nam_x <- names(tbl)
   nam_i <- names(lookup_tbl)
   on <- sort(setdiff(intersect(nam_x, nam_i), exclude_col))
+  # Ensure year is always the first key if present
+  on <- on[order(match(on, "year"))]
+
   return_cols_nam <- setdiff(nam_i, on)
   return_cols <- which(nam_i %in% return_cols_nam)
 
@@ -82,7 +90,7 @@ lookup_dt <- function(tbl,
   if (check_lookup_tbl_validity) is_valid_lookup_tbl(lookup_tbl, on)
 
   # prepare lookup_tbl
-  setkeyv(lookup_tbl, cols = on) # alphabetic order (breaks early if already keyd on on)
+  setkeyv(lookup_tbl, cols = on) # alphabetic order (breaks early if already keyed on on)
   cardinality <- vector("integer", length(on))
   names(cardinality) <- on
   min_lookup <- cardinality
@@ -113,19 +121,14 @@ lookup_dt <- function(tbl,
 
   # core algo
   rownum <-
-    as.integer(starts_from_1(tbl, on, 1L, min_lookup) * cardinality_prod[[1L]])
+    as.integer(starts_from_1(tbl, on, 1L, min_lookup, cardinality) * cardinality_prod[[1L]])
   if (length(on) > 1L) {
     for (i in 2:length(on)) {
       rownum <- as.integer(rownum -
-          (cardinality[[i]] - starts_from_1(tbl, on, i, min_lookup)) * cardinality_prod[[i]])
+          (cardinality[[i]] - starts_from_1(tbl, on, i, min_lookup, cardinality)) * cardinality_prod[[i]])
     }
   }
 
-  # Account for rows in tbl with no match on dt_table because integer key cols are out of range
-  # TODO consider similar treat for factors. All we need is the levels in
-  # lookp_tbl to be included in the levels in tbl, without gaps.
-  # TODO use C++ to replace by reference the line below
-  rownum[rownum < 1L | rownum > nrow(lookup_tbl)] <- NA_integer_
 
   # absorb value cols into tbl
   if (merge) {
@@ -147,13 +150,18 @@ lookup_dt <- function(tbl,
 
 #' @export
 is_valid_lookup_tbl <- function(lookup_tbl, keycols) {
+  if (!is.data.table(lookup_tbl)) stop("lookup_tbl should be a data.table.")
+  if (missing(keycols) || length(keycols) == 0L) stop("keycols argument is missing.")
+  keycols <- sort(keycols)
+  # Ensure year is always the first key if present
+  keycols <- keycols[order(match(keycols, "year"))]
+
   if (any(duplicated(lookup_tbl, by = keycols)))
     stop("Lookup table need to have unique combination of key columns!") # test unique keycols
 
-  expected_rows <- 1
+  expected_rows <- 1L
   # l <- list()
   for (j in keycols) {
-    expected_rows <- uniqueN(lookup_tbl[[j]]) * expected_rows
     # l[[j]] <- unique(lookup_tbl[[j]])
     # check type of keys
     if (typeof(lookup_tbl[[j]]) != "integer")
@@ -164,6 +172,8 @@ is_valid_lookup_tbl <- function(lookup_tbl, keycols) {
           " is not an integer!"
         )
       )
+    expected_rows <- fifelse(is.integer(lookup_tbl[[j]]), uniqueN(lookup_tbl[[j]]),
+                             length(levels(lookup_tbl[[j]]))) * expected_rows
 
     # check integer keys have all integer values between min and max
     if (is.integer(lookup_tbl[[j]])) {
@@ -179,6 +189,7 @@ is_valid_lookup_tbl <- function(lookup_tbl, keycols) {
         )
     }
 
+    if (!identical(key(lookup_tbl), keycols)) warning("for best performance, set key to lookup_tbl to ", keycols)
   }
 
   if (nrow(lookup_tbl) != expected_rows) stop(paste0("If all possible combinations of key columns would be present in the lookup table it should have ", expected_rows, " rows. This table has ", nrow(lookup_tbl), " rows."))

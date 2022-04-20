@@ -176,21 +176,6 @@ dtsubset <- function(x, rows, cols) {
 }
 
 #' @export
-QDiabetes <- function(df, surv = 1L) {
-    .Call('_IMPACTncdEngl_QDiabetes', PACKAGE = 'IMPACTncdEngl', df, surv)
-}
-
-#' @export
-QDiabetes_vec_inputs <- function(age, sex, b_corticosteroids, b_treatedhyp, bmi, ethrisk, fh_diab, smoke_cat, town, surv = 1L) {
-    .Call('_IMPACTncdEngl_QDiabetes_vec_inputs', PACKAGE = 'IMPACTncdEngl', age, sex, b_corticosteroids, b_treatedhyp, bmi, ethrisk, fh_diab, smoke_cat, town, surv)
-}
-
-#' @export
-Qrisk2 <- function(df, ignore_bmi = FALSE, ignore_sbp = FALSE, ignore_chol = FALSE) {
-    .Call('_IMPACTncdEngl_Qrisk2', PACKAGE = 'IMPACTncdEngl', df, ignore_bmi, ignore_sbp, ignore_chol)
-}
-
-#' @export
 fscramble_trajectories <- function(x, pid, jumpiness = 1.0, inplace = TRUE) {
     .Call('_IMPACTncdEngl_fscramble_trajectories', PACKAGE = 'IMPACTncdEngl', x, pid, jumpiness, inplace)
 }

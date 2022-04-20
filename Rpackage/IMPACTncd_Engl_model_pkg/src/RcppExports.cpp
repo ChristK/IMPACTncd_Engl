@@ -558,52 +558,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// QDiabetes
-DataFrame QDiabetes(const DataFrame& df, int surv);
-RcppExport SEXP _IMPACTncdEngl_QDiabetes(SEXP dfSEXP, SEXP survSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const DataFrame& >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< int >::type surv(survSEXP);
-    rcpp_result_gen = Rcpp::wrap(QDiabetes(df, surv));
-    return rcpp_result_gen;
-END_RCPP
-}
-// QDiabetes_vec_inputs
-DataFrame QDiabetes_vec_inputs(const IntegerVector& age, const IntegerVector& sex, const IntegerVector& b_corticosteroids, const IntegerVector& b_treatedhyp, const NumericVector& bmi, const IntegerVector& ethrisk, const IntegerVector& fh_diab, const IntegerVector& smoke_cat, const NumericVector& town, int surv);
-RcppExport SEXP _IMPACTncdEngl_QDiabetes_vec_inputs(SEXP ageSEXP, SEXP sexSEXP, SEXP b_corticosteroidsSEXP, SEXP b_treatedhypSEXP, SEXP bmiSEXP, SEXP ethriskSEXP, SEXP fh_diabSEXP, SEXP smoke_catSEXP, SEXP townSEXP, SEXP survSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerVector& >::type age(ageSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type sex(sexSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type b_corticosteroids(b_corticosteroidsSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type b_treatedhyp(b_treatedhypSEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type bmi(bmiSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type ethrisk(ethriskSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type fh_diab(fh_diabSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type smoke_cat(smoke_catSEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type town(townSEXP);
-    Rcpp::traits::input_parameter< int >::type surv(survSEXP);
-    rcpp_result_gen = Rcpp::wrap(QDiabetes_vec_inputs(age, sex, b_corticosteroids, b_treatedhyp, bmi, ethrisk, fh_diab, smoke_cat, town, surv));
-    return rcpp_result_gen;
-END_RCPP
-}
-// Qrisk2
-List Qrisk2(const DataFrame& df, const bool& ignore_bmi, const bool& ignore_sbp, const bool& ignore_chol);
-RcppExport SEXP _IMPACTncdEngl_Qrisk2(SEXP dfSEXP, SEXP ignore_bmiSEXP, SEXP ignore_sbpSEXP, SEXP ignore_cholSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const DataFrame& >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< const bool& >::type ignore_bmi(ignore_bmiSEXP);
-    Rcpp::traits::input_parameter< const bool& >::type ignore_sbp(ignore_sbpSEXP);
-    Rcpp::traits::input_parameter< const bool& >::type ignore_chol(ignore_cholSEXP);
-    rcpp_result_gen = Rcpp::wrap(Qrisk2(df, ignore_bmi, ignore_sbp, ignore_chol));
-    return rcpp_result_gen;
-END_RCPP
-}
 // fscramble_trajectories
 NumericVector fscramble_trajectories(NumericVector& x, const LogicalVector& pid, const double& jumpiness, const bool& inplace);
 RcppExport SEXP _IMPACTncdEngl_fscramble_trajectories(SEXP xSEXP, SEXP pidSEXP, SEXP jumpinessSEXP, SEXP inplaceSEXP) {
@@ -846,9 +800,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_IMPACTncdEngl_hc_effect", (DL_FUNC) &_IMPACTncdEngl_hc_effect, 3},
     {"_IMPACTncdEngl_fbound", (DL_FUNC) &_IMPACTncdEngl_fbound, 3},
     {"_IMPACTncdEngl_dtsubset", (DL_FUNC) &_IMPACTncdEngl_dtsubset, 3},
-    {"_IMPACTncdEngl_QDiabetes", (DL_FUNC) &_IMPACTncdEngl_QDiabetes, 2},
-    {"_IMPACTncdEngl_QDiabetes_vec_inputs", (DL_FUNC) &_IMPACTncdEngl_QDiabetes_vec_inputs, 10},
-    {"_IMPACTncdEngl_Qrisk2", (DL_FUNC) &_IMPACTncdEngl_Qrisk2, 4},
     {"_IMPACTncdEngl_fscramble_trajectories", (DL_FUNC) &_IMPACTncdEngl_fscramble_trajectories, 4},
     {"_IMPACTncdEngl_shift_bypidNum", (DL_FUNC) &_IMPACTncdEngl_shift_bypidNum, 4},
     {"_IMPACTncdEngl_shift_bypidInt", (DL_FUNC) &_IMPACTncdEngl_shift_bypidInt, 4},

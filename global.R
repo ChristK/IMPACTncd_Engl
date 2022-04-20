@@ -16,7 +16,7 @@
 ## Boston, MA 02110-1301 USA.
 
 # file.remove(list.files("./output/", full.names = TRUE, recursive = TRUE))
-# file.remove(list.files("./Rpackage/IMPACTncd_Engl_model_pkg/src/", full.names = TRUE, recursive = TRUE, pattern = ".o$"))
+# file.remove(list.files("./Rpackage/IMPACTncd_Engl_model_pkg/src", full.names = TRUE, recursive = TRUE, pattern = "\\.o$|\\.so$"))
 
 # If segfault from C stack overflow see
 # https://github.com/Rdatatable/data.table/issues/1967
