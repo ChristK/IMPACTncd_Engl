@@ -43,12 +43,15 @@ starts_from_1 <- function(tbl, on, i, min_lookup) {
   } else {
     if (minx == 1L) {
       return(fct_to_int(tbl[[on[[i]]]]))
-    } else {
+    } else { # is this necessary? minx = 1 always for factors
       minx <- minx - 1L
       return(fct_to_int(tbl[[on[[i]]]] - minx))
     }
   }
 }
+
+# lookup_tbl = CJ(b=1:4, a = factor(letters[1:4]))[, c:=rep(1:4, 4)]
+# tbl = data.table(b=0:5, a = factor(letters[1:4]))
 
 #' @export
 lookup_dt <- function(tbl,
@@ -73,12 +76,13 @@ lookup_dt <- function(tbl,
   return_cols <- which(nam_i %in% return_cols_nam)
 
   if (length(on) == 0L) stop("No common keys in the two tables")
-  if (length(on) == length(nam_i)) stop("No value cols identified in lookup_tbl. Most likely all column names in lookup_tbl are present in tbl. Consider using arg exclude_col")
+  if (length(on) == length(nam_i))
+    stop("No value cols identified in lookup_tbl. Most likely all column names in lookup_tbl are present in tbl. Consider using arg exclude_col")
 
   if (check_lookup_tbl_validity) is_valid_lookup_tbl(lookup_tbl, on)
 
   # prepare lookup_tbl
-  setkeyv(lookup_tbl, cols = on) # alphabetic order
+  setkeyv(lookup_tbl, cols = on) # alphabetic order (breaks early if already keyd on on)
   cardinality <- vector("integer", length(on))
   names(cardinality) <- on
   min_lookup <- cardinality
@@ -97,7 +101,7 @@ lookup_dt <- function(tbl,
       xmin <- first(lookup_tbl[[j]])
       if (check_lookup_tbl_validity &&
          (min(tbl[[j]]) < xmin || max(tbl[[j]]) > xmin))
-        stop(j, " has rows in tbl without a match in lookup_tbl!")
+        warning(j, " has rows in tbl without a match in lookup_tbl!")
       cardinality[[j]] <- xmax - xmin + 1L
       min_lookup[[j]] <- xmin
     }
@@ -117,8 +121,13 @@ lookup_dt <- function(tbl,
     }
   }
 
-  # absorb value cols into tbl
+  # Account for rows in tbl with no match on dt_table because integer key cols are out of range
+  # TODO consider similar treat for factors. All we need is the levels in
+  # lookp_tbl to be included in the levels in tbl, without gaps.
+  # TODO use C++ to replace by reference the line below
+  rownum[rownum < 1L | rownum > nrow(lookup_tbl)] <- NA_integer_
 
+  # absorb value cols into tbl
   if (merge) {
     # lookup_tbl[, (on) := NULL]
     # # tbl[, (return_cols) := lookup_tbl[rownum]]
