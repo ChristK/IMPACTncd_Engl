@@ -681,6 +681,7 @@ Disease <-
           if (!forPARF) {
             nam <- grep("_rr$", names(sp$pop), value = TRUE)
             private$risks <- sp$pop[, .SD, .SDcols = c("pid", "year", nam)]
+            # TODO remove pid & year from above. Currently there for extra safety.
             sp$pop[, (nam) := NULL]
           }
         }
@@ -788,7 +789,7 @@ Disease <-
             }
 
           } else { # End of incident$type not 1 and no associated RF
-            tbl <- self$get_incd(seq(design_$sim_prm$init_year + 1L,
+            tbl <- self$get_incd(seq(design_$sim_prm$init_year,
                                      design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max)
             )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
             setnames(tbl, "mu", private$incd_colnam)
