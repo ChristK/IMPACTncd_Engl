@@ -1660,6 +1660,7 @@ SynthPop <-
           dt[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]
           set(dt, NULL, "all_cause_mrtl", 0L)
 
+          setkey(dt, pid, year)
           # dt[, dead := identify_longdead(all_cause_mrtl, pid_mrk)]
           # dt[, ncc := clamp(
           #   ncc - (chd_prvl > 0) - (stroke_prvl > 0) -

@@ -147,8 +147,8 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
   )
 }
 
-run_sim <- function(mc, sp, diseases, design) {
-  sp <- SynthPop$new(mc, design)
+run_sim <- function(mc_, diseases, design) {
+  sp <- SynthPop$new(mc_, design)
   lapply(diseases, function(x) {
     x$gen_parf(sp, design)$
       set_init_prvl(sp, design)$
@@ -161,5 +161,39 @@ run_sim <- function(mc, sp, diseases, design) {
   simcpp(sp$pop, l, sp$mc)
 
   sp$update_pop_weights()
-
+  nam <- c("mc", "pid", "year", "sex", "dimd", "ethnicity", "sha", grep("_prvl$|_mrtl$", names(sp$pop), value = TRUE))
+  sp$pop[, mc := sp$mc_aggr]
+  fwrite_safe(sp$pop[all_cause_mrtl >= 0L, ..nam],
+              file.path(design$sim_prm$output_dir, "lifecourse", paste0(sp$mc_aggr, "_lifecourse.csv")))
 }
+# lapply(2, run_sim, diseases = diseases, design = design)
+
+# future_lapply(1:100, run_sim, diseases = diseases, design = design, future.seed = 32168731L)
+
+# NOTE future and mclapply do not work here for some reason
+if (Sys.info()["sysname"] == "Windows") {
+  cl <-
+    makeCluster(design$sim_prm$clusternumber) # used for clustering. Windows compatible
+  registerDoParallel(cl)
+} else {
+  registerDoParallel(design$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
+}
+xps_dt <- foreach(
+  mc_iter = 1:100,
+  .inorder = FALSE,
+  .verbose = design$sim_prm$logs,
+  .packages = c(
+    "R6",
+    "gamlss.dist",
+    "dqrng",
+    "CKutils",
+    "IMPACTncdEngl",
+    "fst",
+    "data.table"
+  ),
+  .export = NULL,
+  .noexport = NULL # c("time_mark")
+) %dopar% {
+  run_sim(mc = mc_iter, diseases = diseases, design = design)
+}
+if (exists("cl")) stopCluster(cl)
