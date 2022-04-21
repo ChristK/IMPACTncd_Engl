@@ -161,7 +161,7 @@ run_sim <- function(mc_, diseases, design) {
   simcpp(sp$pop, l, sp$mc)
 
   sp$update_pop_weights()
-  nam <- c("mc", "pid", "year", "sex", "dimd", "ethnicity", "sha", grep("_prvl$|_mrtl$", names(sp$pop), value = TRUE))
+  nam <- c("mc", "pid", "year", "sex", "dimd", "ethnicity", "sha", "wt", grep("_prvl$|_mrtl$", names(sp$pop), value = TRUE))
   sp$pop[, mc := sp$mc_aggr]
   fwrite_safe(sp$pop[all_cause_mrtl >= 0L, ..nam],
               file.path(design$sim_prm$output_dir, "lifecourse", paste0(sp$mc_aggr, "_lifecourse.csv")))
