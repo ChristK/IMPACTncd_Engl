@@ -1,6 +1,6 @@
 iteration_n: 15
 iteration_n_final: 100
-clusternumber: 10 # explicit parallelisation
+clusternumber: 15 # explicit parallelisation
 n_cpus: 1 # implicit parallelisation
 logs: yes
 export_xps: yes
@@ -296,8 +296,8 @@ simsmok_calibration: yes
 validation: no # or yes. Note, no true/false
 max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
 iteration_n_max: 1000
-export_PARF: no
-output_dir: ./output/
+export_PARF: yes
+output_dir: /mnt/storage_fast/output/hf_real
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 # synthpop_dir: c:/synthpop
 scenarios: ''

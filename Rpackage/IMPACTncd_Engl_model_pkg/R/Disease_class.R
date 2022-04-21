@@ -780,11 +780,10 @@ Disease <-
               }
 
               parf_dt <-
-                cbind(private$parf$parf,
-                      sp$pop[, .(wt_immrtl, age, sex, dimd, ethnicity, sha)]
-                      )
+                cbind(sp$pop[, .(wt_immrtl, age, sex, dimd, ethnicity, sha)],
+                      "parf" = private$parf$parf)
               parf_dt <-
-                parf_dt[, .(parf = unique(parf), pop_size = sum(wt_immrtl)),
+                parf_dt[!is.na(parf), .(parf = unique(parf), pop_size = sum(wt_immrtl)),
                        keyby = .(age, sex, dimd, ethnicity, sha)]
               parf_dt[, `:=`(disease = self$name, mc = sp$mc)] # not sp$mc_aggr
               # EXAMPLE parf[, weighted.mean(parf, pop_size), keyby = sex]
