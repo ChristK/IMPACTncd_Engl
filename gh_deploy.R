@@ -1,5 +1,5 @@
 library(piggyback)
-tag <- "v0.0.1"
+tag <- "v0.0.2"
 repo <- "ChristK/IMPACTncd_Engl"
 
 if (interactive()) {
