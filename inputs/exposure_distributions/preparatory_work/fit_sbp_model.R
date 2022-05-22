@@ -57,10 +57,10 @@ if (file.exists("./secure_data/marginal_distr_sbp.qs")) {
   qsave(marg_distr, "./secure_data/marginal_distr_sbp.qs")
 }
 head(marg_distr$fits)
-# distr_validation(marg_distr, dt[between(sbp, 16, 50), .(var = sbp, wt = wt_nurse)],
-#                  expression(bold(SBP ~ (mmHg))))
+distr_validation(marg_distr, dt[between(sbp, 70, 240), .(var = sbp, wt = wt_nurse)],
+                 expression(bold(SBP ~ (mmHg))))
 
-distr_nam <- names(marg_distr$fits[2]) # For convenience as I already have BCPEo in C++
+distr_nam <- names(marg_distr$fits[1]) # For convenience as I already have BCPEo in C++
 con1 <- gamlss.control(c.crit = 1e-3) # increase for faster exploratory analysis.
 
 if (univariate_analysis) {

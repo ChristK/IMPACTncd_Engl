@@ -80,120 +80,59 @@ if (interactive()) {
 }
 library(IMPACTncdEngl)
 
-design <- Design$new("./inputs/sim_design.yaml")
 
-setDTthreads(threads = design$sim_prm$clusternumber, restore_after_fork = NULL)
-threads_fst(nr_of_threads = design$sim_prm$clusternumber, reset_after_fork = NULL)
 # registerDoFuture()
-plan(multicore, workers = design$sim_prm$clusternumber)
-
-
-# RR ----
-# Create a named list of Exposure objects for the files in ./inputs/RR
-fl <- list.files(path = "./inputs/RR", pattern = ".csvy$", full.names = TRUE)
-RR <- future_lapply(fl, Exposure$new, future.seed = 950480304L)
-names(RR) <- sapply(RR, function(x) x$get_name())
-invisible(future_lapply(RR, function(x) {
-  x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
-},
-future.seed = 627524136L))
-# NOTE smooth cannot be exported to Design for now, because the first time
-# this parameter changes we need logic to overwrite unsmoothed files
-rm(fl)
-
-# Generate diseases ----
-diseases <- lapply(design$sim_prm$diseases, function(x) {
-  x[["design_"]] <- design
-  x[["RR"]] <- RR
-  do.call(Disease$new, x)
-})
-names(diseases) <- sapply(design$sim_prm$diseases, `[[`, "name")
+# plan(multicore, workers = design$sim_prm$clusternumber)
 
 
 
-
-# Plot causality structure
-# ds <- unlist(strsplit(names(RR), "~"))
-# ds[grep("^smok_", ds)] <- "smoking"
-# ds <- gsub("_prvl$", "", ds)
+# run_sim <- function(mc_, diseases, design) {
+#   sp <- SynthPop$new(mc_, design)
+#   lapply(diseases, function(x) {
+#     x$gen_parf(sp, design)$
+#       set_init_prvl(sp, design)$
+#       set_rr(sp, design)$
+#       set_incd_prb(sp, design)$
+#       set_dgns_prb(sp, design)$
+#       set_mrtl_prb(sp, design)
+#   })
+#   l <- mk_scenario_init2("", diseases, sp, design)
+#   simcpp(sp$pop, l, sp$mc)
 #
-# ds1 <- ds[as.logical(seq_along(ds) %% 2)]
-# ds2 <- ds[!as.logical(seq_along(ds) %% 2)]
-# ds <- unique(data.table(ds1, ds2))
-#
-# g <- make_graph(unlist(transpose(ds)), directed = TRUE)
-# plot(g, vertex.shape = "none", edge.arrow.size = .3,
-#     vertex.label.font = 2, vertex.label.color = "gray40",edge.arrow.width = .7,
-#     vertex.label.cex = .7, edge.color = "gray85", layout = layout_components)
-rm(RR)
-
-# TODO move to class Simulation
-mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
-  # scenario_suffix_for_pop <- paste0("_", scenario_name) # TODO get suffix from design
-  scenario_suffix_for_pop <- scenario_name
-  list(
-    "exposures"          = design_$sim_prm$exposures,
-    "scenarios"          = design_$sim_prm$scenarios, # to be generated programmatically
-    "scenario"           = scenario_name,
-    "kismet"             = design_$sim_prm$kismet, # If TRUE random numbers are the same for each scenario.
-    "init_year"          = design_$sim_prm$init_year,
-    "pids"               = "pid",
-    "years"              = "year",
-    "ages"               = "age",
-    "ageL"               = design_$sim_prm$ageL,
-    "all_cause_mrtl"     = paste0("all_cause_mrtl", scenario_suffix_for_pop),
-    "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
-    "diseases"           = lapply(diseases_, function(x) x$to_cpp(sp, design_))
-  )
-}
-
-run_sim <- function(mc_, diseases, design) {
-  sp <- SynthPop$new(mc_, design)
-  lapply(diseases, function(x) {
-    x$gen_parf(sp, design)$
-      set_init_prvl(sp, design)$
-      set_rr(sp, design)$
-      set_incd_prb(sp, design)$
-      set_dgns_prb(sp, design)$
-      set_mrtl_prb(sp, design)
-  })
-  l <- mk_scenario_init2("", diseases, sp, design)
-  simcpp(sp$pop, l, sp$mc)
-
-  sp$update_pop_weights()
-  nam <- c("mc", "pid", "year", "sex", "dimd", "ethnicity", "sha", "wt", grep("_prvl$|_mrtl$", names(sp$pop), value = TRUE))
-  sp$pop[, mc := sp$mc_aggr]
-  fwrite_safe(sp$pop[all_cause_mrtl >= 0L, ..nam],
-              file.path(design$sim_prm$output_dir, "lifecourse", paste0(sp$mc_aggr, "_lifecourse.csv")))
-}
+#   sp$update_pop_weights()
+#   nam <- c("mc", "pid", "year", "sex", "dimd", "ethnicity", "sha", "wt", grep("_prvl$|_mrtl$", names(sp$pop), value = TRUE))
+#   sp$pop[, mc := sp$mc_aggr]
+#   fwrite_safe(sp$pop[all_cause_mrtl >= 0L, ..nam],
+#               file.path(design$sim_prm$output_dir, "lifecourse", paste0(sp$mc_aggr, "_lifecourse.csv")))
+# }
 # lapply(2, run_sim, diseases = diseases, design = design)
 
 # future_lapply(1:100, run_sim, diseases = diseases, design = design, future.seed = 32168731L)
 
 # NOTE future and mclapply do not work here for some reason
-if (Sys.info()["sysname"] == "Windows") {
-  cl <-
-    makeCluster(design$sim_prm$clusternumber) # used for clustering. Windows compatible
-  registerDoParallel(cl)
-} else {
-  registerDoParallel(design$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
-}
-xps_dt <- foreach(
-  mc_iter = 1:100,
-  .inorder = FALSE,
-  .verbose = design$sim_prm$logs,
-  .packages = c(
-    "R6",
-    "gamlss.dist",
-    "dqrng",
-    "CKutils",
-    "IMPACTncdEngl",
-    "fst",
-    "data.table"
-  ),
-  .export = NULL,
-  .noexport = NULL # c("time_mark")
-) %dopar% {
-  run_sim(mc = mc_iter, diseases = diseases, design = design)
-}
-if (exists("cl")) stopCluster(cl)
+# if (Sys.info()["sysname"] == "Windows") {
+#   cl <-
+#     makeCluster(design$sim_prm$clusternumber) # used for clustering. Windows compatible
+#   registerDoParallel(cl)
+# } else {
+#   registerDoParallel(design$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
+# }
+# xps_dt <- foreach(
+#   mc_iter = 1:100,
+#   .inorder = FALSE,
+#   .verbose = design$sim_prm$logs,
+#   .packages = c(
+#     "R6",
+#     "gamlss.dist",
+#     "dqrng",
+#     "CKutils",
+#     "IMPACTncdEngl",
+#     "fst",
+#     "data.table"
+#   ),
+#   .export = NULL,
+#   .noexport = NULL # c("time_mark")
+# ) %dopar% {
+#   run_sim(mc = mc_iter, diseases = diseases, design = design)
+# }
+# if (exists("cl")) stopCluster(cl)

@@ -1,7 +1,7 @@
 ---
 xps_name: ets
 outcome: breast_ca
-lag: 9
+lag: 1
 distribution: lognormal
 source: GBD 2016
 notes: ''

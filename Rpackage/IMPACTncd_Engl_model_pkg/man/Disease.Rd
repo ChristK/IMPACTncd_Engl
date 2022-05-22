@@ -25,45 +25,38 @@ To be completed...
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-new}{\code{Disease$new()}}
-\item \href{#method-gen_parf}{\code{Disease$gen_parf()}}
-\item \href{#method-set_init_prvl}{\code{Disease$set_init_prvl()}}
-\item \href{#method-set_rr}{\code{Disease$set_rr()}}
-\item \href{#method-set_incd_prb}{\code{Disease$set_incd_prb()}}
-\item \href{#method-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
-\item \href{#method-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
-\item \href{#method-del_parf_file}{\code{Disease$del_parf_file()}}
-\item \href{#method-get_incd}{\code{Disease$get_incd()}}
-\item \href{#method-get_dur}{\code{Disease$get_dur()}}
-\item \href{#method-get_prvl}{\code{Disease$get_prvl()}}
-\item \href{#method-get_ftlt}{\code{Disease$get_ftlt()}}
-\item \href{#method-get_seed}{\code{Disease$get_seed()}}
-\item \href{#method-get_rr}{\code{Disease$get_rr()}}
-\item \href{#method-del_stochastic_effect}{\code{Disease$del_stochastic_effect()}}
-\item \href{#method-get_risks}{\code{Disease$get_risks()}}
-\item \href{#method-get_parf}{\code{Disease$get_parf()}}
-\item \href{#method-get_parf_filename}{\code{Disease$get_parf_filename()}}
-\item \href{#method-harmonise_epi_tables}{\code{Disease$harmonise_epi_tables()}}
-\item \href{#method-to_cpp}{\code{Disease$to_cpp()}}
-\item \href{#method-to_cpp_Peter}{\code{Disease$to_cpp_Peter()}}
-\item \href{#method-print}{\code{Disease$print()}}
-\item \href{#method-clone}{\code{Disease$clone()}}
+\item \href{#method-Disease-new}{\code{Disease$new()}}
+\item \href{#method-Disease-gen_parf_files}{\code{Disease$gen_parf_files()}}
+\item \href{#method-Disease-gen_parf}{\code{Disease$gen_parf()}}
+\item \href{#method-Disease-set_init_prvl}{\code{Disease$set_init_prvl()}}
+\item \href{#method-Disease-set_rr}{\code{Disease$set_rr()}}
+\item \href{#method-Disease-set_incd_prb}{\code{Disease$set_incd_prb()}}
+\item \href{#method-Disease-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
+\item \href{#method-Disease-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
+\item \href{#method-Disease-del_parf_file}{\code{Disease$del_parf_file()}}
+\item \href{#method-Disease-get_incd}{\code{Disease$get_incd()}}
+\item \href{#method-Disease-get_dur}{\code{Disease$get_dur()}}
+\item \href{#method-Disease-get_prvl}{\code{Disease$get_prvl()}}
+\item \href{#method-Disease-get_ftlt}{\code{Disease$get_ftlt()}}
+\item \href{#method-Disease-get_seed}{\code{Disease$get_seed()}}
+\item \href{#method-Disease-get_rr}{\code{Disease$get_rr()}}
+\item \href{#method-Disease-del_stochastic_effect}{\code{Disease$del_stochastic_effect()}}
+\item \href{#method-Disease-get_parf}{\code{Disease$get_parf()}}
+\item \href{#method-Disease-get_parf_filename}{\code{Disease$get_parf_filename()}}
+\item \href{#method-Disease-harmonise_epi_tables}{\code{Disease$harmonise_epi_tables()}}
+\item \href{#method-Disease-to_cpp}{\code{Disease$to_cpp()}}
+\item \href{#method-Disease-to_cpp_Peter}{\code{Disease$to_cpp_Peter()}}
+\item \href{#method-Disease-print}{\code{Disease$print()}}
+\item \href{#method-Disease-clone}{\code{Disease$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-Disease-new"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-new}{}}}
 \subsection{Method \code{new()}}{
 Create a new disease object.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$new(
-  name,
-  friendly_name,
-  meta,
-  notes = NA_character_,
-  design_ = design,
-  RR
-)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$new(name, friendly_name, meta, notes = NA_character_, design_, RR)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -89,10 +82,46 @@ A new `Disease` object.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-gen_parf"></a>}}
-\if{latex}{\out{\hypertarget{method-gen_parf}{}}}
+\if{html}{\out{<a id="method-Disease-gen_parf_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-gen_parf_files}{}}}
+\subsection{Method \code{gen_parf_files()}}{
+Generates PARF and stores it to disk if one doesn not
+  exists already.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$gen_parf_files(
+  design_ = design,
+  diseases_ = diseases,
+  popsize = 100,
+  check = design_$sim_prm$logs,
+  keep_intermediate_file = TRUE
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{design_}}{A design object with the simulation parameters.}
+
+\item{\code{diseases_}}{A list of Disease objects}
+
+\item{\code{popsize}}{The population size for each stratum}
+
+\item{\code{check}}{Check for NAs in parf_dt.}
+
+\item{\code{keep_intermediate_file}}{Whether to keep the intermediate synthpop file}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The PARF data.table if it was created, otherwise `NULL`.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-gen_parf"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-gen_parf}{}}}
 \subsection{Method \code{gen_parf()}}{
-Generates PARF and stores it to disk.
+Read PARF file from disk. If missing, generates PARF and
+  writes it to disk.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$gen_parf(
   sp = sp,
@@ -100,7 +129,7 @@ Generates PARF and stores it to disk.
   diseases_ = diseases,
   popsize = 100,
   check = design_$sim_prm$logs,
-  keep_intermediate_file = FALSE
+  keep_intermediate_file = TRUE
 )}\if{html}{\out{</div>}}
 }
 
@@ -117,7 +146,7 @@ Generates PARF and stores it to disk.
 
 \item{\code{check}}{Check for NAs in parf_dt.}
 
-\item{\code{keep_intermediate_file}}{Whether to keep the intermediade synthpop file}
+\item{\code{keep_intermediate_file}}{Whether to keep the intermediate synthpop file}
 }
 \if{html}{\out{</div>}}
 }
@@ -126,8 +155,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_init_prvl"></a>}}
-\if{latex}{\out{\hypertarget{method-set_init_prvl}{}}}
+\if{html}{\out{<a id="method-Disease-set_init_prvl"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_init_prvl}{}}}
 \subsection{Method \code{set_init_prvl()}}{
 Set disease prevalence & diagnosisin a new col in sp$pop.
 \subsection{Usage}{
@@ -148,8 +177,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_rr"></a>}}
-\if{latex}{\out{\hypertarget{method-set_rr}{}}}
+\if{html}{\out{<a id="method-Disease-set_rr"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_rr}{}}}
 \subsection{Method \code{set_rr()}}{
 Set disease incidence probability in a new col in sp$pop.
 \subsection{Usage}{
@@ -182,8 +211,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_incd_prb"></a>}}
-\if{latex}{\out{\hypertarget{method-set_incd_prb}{}}}
+\if{html}{\out{<a id="method-Disease-set_incd_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_incd_prb}{}}}
 \subsection{Method \code{set_incd_prb()}}{
 Set disease incident probability in a new col in sp$pop.
 \subsection{Usage}{
@@ -204,8 +233,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_dgns_prb"></a>}}
-\if{latex}{\out{\hypertarget{method-set_dgns_prb}{}}}
+\if{html}{\out{<a id="method-Disease-set_dgns_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_dgns_prb}{}}}
 \subsection{Method \code{set_dgns_prb()}}{
 Set diagnosis probability in a new col in sp$pop.
 \subsection{Usage}{
@@ -226,8 +255,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_mrtl_prb"></a>}}
-\if{latex}{\out{\hypertarget{method-set_mrtl_prb}{}}}
+\if{html}{\out{<a id="method-Disease-set_mrtl_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_mrtl_prb}{}}}
 \subsection{Method \code{set_mrtl_prb()}}{
 Set disease case fatality when relevant, in a new col in
   sp$pop.
@@ -249,8 +278,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-del_parf_file"></a>}}
-\if{latex}{\out{\hypertarget{method-del_parf_file}{}}}
+\if{html}{\out{<a id="method-Disease-del_parf_file"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-del_parf_file}{}}}
 \subsection{Method \code{del_parf_file()}}{
 Deletes the PARF file from disk.
 \subsection{Usage}{
@@ -261,7 +290,7 @@ Deletes the PARF file from disk.
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{invert}}{deletes all other disease relevant PARF file except those
-that are associated to the curent settings.}
+that are associated to the current settings.}
 }
 \if{html}{\out{</div>}}
 }
@@ -270,8 +299,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_incd"></a>}}
-\if{latex}{\out{\hypertarget{method-get_incd}{}}}
+\if{html}{\out{<a id="method-Disease-get_incd"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_incd}{}}}
 \subsection{Method \code{get_incd()}}{
 Get disease incident probability.
 \subsection{Usage}{
@@ -291,8 +320,8 @@ A data.table with disease incident probabilities unless
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_dur"></a>}}
-\if{latex}{\out{\hypertarget{method-get_dur}{}}}
+\if{html}{\out{<a id="method-Disease-get_dur"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_dur}{}}}
 \subsection{Method \code{get_dur()}}{
 Get disease duration distribution parameters.
 \subsection{Usage}{
@@ -305,8 +334,8 @@ A data.table with duration distribution parameters. unless
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_prvl"></a>}}
-\if{latex}{\out{\hypertarget{method-get_prvl}{}}}
+\if{html}{\out{<a id="method-Disease-get_prvl"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_prvl}{}}}
 \subsection{Method \code{get_prvl()}}{
 Get disease prevalent probability.
 \subsection{Usage}{
@@ -326,8 +355,8 @@ A data.table with disease prevalent probabilities unless
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_ftlt"></a>}}
-\if{latex}{\out{\hypertarget{method-get_ftlt}{}}}
+\if{html}{\out{<a id="method-Disease-get_ftlt"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_ftlt}{}}}
 \subsection{Method \code{get_ftlt()}}{
 Get disease case fatality probability.
 \subsection{Usage}{
@@ -347,8 +376,8 @@ A data.table with disease case fatality probabilities unless
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_seed"></a>}}
-\if{latex}{\out{\hypertarget{method-get_seed}{}}}
+\if{html}{\out{<a id="method-Disease-get_seed"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_seed}{}}}
 \subsection{Method \code{get_seed()}}{
 Get seed for RNG.
 \subsection{Usage}{
@@ -361,8 +390,8 @@ A seed for the RNG that is produced by the digest of disease
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_rr"></a>}}
-\if{latex}{\out{\hypertarget{method-get_rr}{}}}
+\if{html}{\out{<a id="method-Disease-get_rr"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_rr}{}}}
 \subsection{Method \code{get_rr()}}{
 Get the list of rr for all relevant exposures.
 \subsection{Usage}{
@@ -374,8 +403,8 @@ A list of exposure objects.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-del_stochastic_effect"></a>}}
-\if{latex}{\out{\hypertarget{method-del_stochastic_effect}{}}}
+\if{html}{\out{<a id="method-Disease-del_stochastic_effect"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-del_stochastic_effect}{}}}
 \subsection{Method \code{del_stochastic_effect()}}{
 Deletes the stochastic effect files and indices from disk
   for all relevant RR.
@@ -388,33 +417,18 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_risks"></a>}}
-\if{latex}{\out{\hypertarget{method-get_risks}{}}}
-\subsection{Method \code{get_risks()}}{
-Get the risks for all individuals in a synthetic
-  population.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$get_risks()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-A data.table with columns for pid, year, and all associated
-  risks.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_parf"></a>}}
-\if{latex}{\out{\hypertarget{method-get_parf}{}}}
+\if{html}{\out{<a id="method-Disease-get_parf"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_parf}{}}}
 \subsection{Method \code{get_parf()}}{
 Get the PARF by age/sex/dimd/ethnicity/sha.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$get_parf(what = c("parf", "p0", "m0"))}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$get_parf(what)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{what}}{Columns to return (p0, m0, parf)}
+\item{\code{what}}{Columns to return (p0, m0, or parf)}
 }
 \if{html}{\out{</div>}}
 }
@@ -423,8 +437,8 @@ A data.table with PARF.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-get_parf_filename"></a>}}
-\if{latex}{\out{\hypertarget{method-get_parf_filename}{}}}
+\if{html}{\out{<a id="method-Disease-get_parf_filename"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_parf_filename}{}}}
 \subsection{Method \code{get_parf_filename()}}{
 Get the PARF filename.
 \subsection{Usage}{
@@ -436,8 +450,8 @@ A data.table with PARF.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-harmonise_epi_tables"></a>}}
-\if{latex}{\out{\hypertarget{method-harmonise_epi_tables}{}}}
+\if{html}{\out{<a id="method-Disease-harmonise_epi_tables"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-harmonise_epi_tables}{}}}
 \subsection{Method \code{harmonise_epi_tables()}}{
 Harmonises classes and levels between the synthetic
   population and the incidence/prevalence/fatality tables. It saves the
@@ -458,8 +472,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-to_cpp"></a>}}
-\if{latex}{\out{\hypertarget{method-to_cpp}{}}}
+\if{html}{\out{<a id="method-Disease-to_cpp"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-to_cpp}{}}}
 \subsection{Method \code{to_cpp()}}{
 Returns a list to pass to the C++ side for Chris' parser.
 \subsection{Usage}{
@@ -483,8 +497,8 @@ A list.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-to_cpp_Peter"></a>}}
-\if{latex}{\out{\hypertarget{method-to_cpp_Peter}{}}}
+\if{html}{\out{<a id="method-Disease-to_cpp_Peter"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-to_cpp_Peter}{}}}
 \subsection{Method \code{to_cpp_Peter()}}{
 Returns a list to pass to the C++ side for Peter's parser.
 \subsection{Usage}{
@@ -508,8 +522,8 @@ A list.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-print"></a>}}
-\if{latex}{\out{\hypertarget{method-print}{}}}
+\if{html}{\out{<a id="method-Disease-print"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-print}{}}}
 \subsection{Method \code{print()}}{
 Print the simulation parameters.
 \subsection{Usage}{
@@ -521,8 +535,8 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-Disease-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{

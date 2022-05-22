@@ -27,16 +27,16 @@ design <- Design$new("./validation/design_for_trends_validation.yaml")
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-new}{\code{Design$new()}}
-\item \href{#method-save_to_disk}{\code{Design$save_to_disk()}}
-\item \href{#method-update_fromGUI}{\code{Design$update_fromGUI()}}
-\item \href{#method-print}{\code{Design$print()}}
-\item \href{#method-clone}{\code{Design$clone()}}
+\item \href{#method-Design-new}{\code{Design$new()}}
+\item \href{#method-Design-save_to_disk}{\code{Design$save_to_disk()}}
+\item \href{#method-Design-update_fromGUI}{\code{Design$update_fromGUI()}}
+\item \href{#method-Design-print}{\code{Design$print()}}
+\item \href{#method-Design-clone}{\code{Design$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-Design-new"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-new}{}}}
 \subsection{Method \code{new()}}{
 Create a new design object.
 \subsection{Usage}{
@@ -64,8 +64,8 @@ A new `Design` object.
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-save_to_disk"></a>}}
-\if{latex}{\out{\hypertarget{method-save_to_disk}{}}}
+\if{html}{\out{<a id="method-Design-save_to_disk"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-save_to_disk}{}}}
 \subsection{Method \code{save_to_disk()}}{
 Create a new design object.
 \subsection{Usage}{
@@ -85,8 +85,8 @@ The `Design` object.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-update_fromGUI"></a>}}
-\if{latex}{\out{\hypertarget{method-update_fromGUI}{}}}
+\if{html}{\out{<a id="method-Design-update_fromGUI"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-update_fromGUI}{}}}
 \subsection{Method \code{update_fromGUI()}}{
 Updates the design object from GUI.
 \subsection{Usage}{
@@ -105,8 +105,8 @@ The `Design` object.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-print"></a>}}
-\if{latex}{\out{\hypertarget{method-print}{}}}
+\if{html}{\out{<a id="method-Design-print"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-print}{}}}
 \subsection{Method \code{print()}}{
 Print the simulation parameters.
 \subsection{Usage}{
@@ -118,8 +118,8 @@ The `Design` object.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-Design-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{

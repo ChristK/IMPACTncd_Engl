@@ -112,11 +112,8 @@ Design <-
 
         # Create synthpop_dir_ if it doesn't exists
         sim_prm$output_dir <-
-          base::normalizePath(sim_prm$output_dir, mustWork = FALSE)
-        if (!dir.exists(sim_prm$output_dir)) {
-          dir.create(sim_prm$output_dir, recursive = TRUE)
-          message(paste0("Directory ", sim_prm$output_dir, " was created"))
-        }
+          normalizePath(sim_prm$output_dir, mustWork = FALSE)
+
 
         # Reorder the diseases so dependencies are always calculated first
         # (topological ordering). This is crucial for init_prevalence

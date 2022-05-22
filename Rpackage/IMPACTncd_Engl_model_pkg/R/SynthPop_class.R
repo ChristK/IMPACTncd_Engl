@@ -1,19 +1,19 @@
-## IMPACTncdEngl is an implementation of the IMPACTncd framework, developed by Chris
-## Kypridemos with contributions from Peter Crowther (Melandra Ltd), Maria
+## IMPACTncdEngl is an implementation of the IMPACTncd framework, developed by
+## Chris Kypridemos with contributions from Peter Crowther (Melandra Ltd), Maria
 ## Guzman-Castillo, Amandine Robert, and Piotr Bandosz.
 ##
 ## Copyright (C) 2018-2020 University of Liverpool, Chris Kypridemos
 ##
-## IMPACTncdEngl is free software; you can redistribute it and/or modify it under
-## the terms of the GNU General Public License as published by the Free Software
-## Foundation; either version 3 of the License, or (at your option) any later
-## version. This program is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-## FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-## details. You should have received a copy of the GNU General Public License
-## along with this program; if not, see <http://www.gnu.org/licenses/> or write
-## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-## Boston, MA 02110-1301 USA.
+## IMPACTncdEngl is free software; you can redistribute it and/or modify it
+## under the terms of the GNU General Public License as published by the Free
+## Software Foundation; either version 3 of the License, or (at your option) any
+## later version. This program is distributed in the hope that it will be
+## useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+## Public License for more details. You should have received a copy of the GNU
+## General Public License along with this program; if not, see
+## <http://www.gnu.org/licenses/> or write to the Free Software Foundation,
+## Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
 
@@ -92,9 +92,10 @@ SynthPop <-
 
         mc_ <- as.integer(ceiling(mc_))
         # Create synthpop_dir if it doesn't exists
+        # NOTE code below is duplicated in Simulation class. This is intentional
         if (!dir.exists(design_$sim_prm$synthpop_dir)) {
           dir.create(design_$sim_prm$synthpop_dir, recursive = TRUE)
-          message(paste0("Directory ", design_$sim_prm$synthpop_dir,
+          message(paste0("Folder ", design_$sim_prm$synthpop_dir,
                          " was created"))
         }
 
@@ -104,7 +105,8 @@ SynthPop <-
         private$checksum <- private$gen_checksum(design_)
 
         self$mc <- mc_
-        self$mc_aggr <- as.integer(ceiling(mc_ / design_$sim_prm$n_synthpop_aggregation))
+        self$mc_aggr <-
+          as.integer(ceiling(mc_ / design_$sim_prm$n_synthpop_aggregation))
 
         private$design <- design_
         private$synthpop_dir <- design_$sim_prm$synthpop_dir
@@ -695,6 +697,37 @@ SynthPop <-
         invisible(self)
       },
 
+      #' @description Get the risks for all individuals in a synthetic
+      #'   population for a disease.
+      #' @param disease_nam The disease that the risks will be returned.
+      #' @return A data.table with columns for pid, year, and all associated
+      #'   risks if disease_nam is specified. Else a list of data.tables for all
+      #'   diseases.
+      get_risks = function(disease_nam) {
+        if (missing(disease_nam)) {
+          return(private$risks)
+        } else {
+          stopifnot(is.character(disease_nam))
+          return(private$risks[[disease_nam]])
+        }
+      },
+
+      #' @description Stores the disease risks for all individuals in a synthetic
+      #'   population in a private list.
+      #' @param disease_nam The disease that the risks will be stored.
+      #' @return The invisible self for chaining.
+      store_risks = function(disease_nam) {
+        stopifnot(is.character(disease_nam))
+
+        nam <- grep("_rr$", names(self$pop), value = TRUE)
+
+        private$risks[[disease_nam]] <-
+          self$pop[, .SD, .SDcols = c("pid", "year", nam)]
+
+        self$pop[, (nam) := NULL]
+        invisible(self)
+      },
+
       #' @description
       #' Prints the synthpop object metadata.
       #' @return The invisible `SynthPop` object.
@@ -720,6 +753,7 @@ SynthPop <-
       # The design object with the simulation parameters.
       design = NA,
       synthpop_dir = NA,
+      risks = list(), # holds the risks for all individuals
 
       # Special deep copy for data.table. Use POP$clone(deep = TRUE) to
       # dispatch. Otherwise a reference is created
@@ -1443,7 +1477,8 @@ SynthPop <-
             # calculate how many each smoker pollutes by year, SHA (not qimd) to
             # be used in scenarios. Ideally correct for mortality
             tbl <-
-              read_fst("./inputs/exposure_distributions/ets_table.fst", as.data.table = TRUE)
+              read_fst("./inputs/exposure_distributions/ets_table.fst",
+                       as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
@@ -1456,7 +1491,8 @@ SynthPop <-
             if (design_$sim_prm$logs) message("Generate alcohol")
 
             tbl <-
-              read_fst("./inputs/exposure_distributions/alcohol_table.fst", as.data.table = TRUE)
+              read_fst("./inputs/exposure_distributions/alcohol_table.fst",
+                       as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
@@ -1468,7 +1504,8 @@ SynthPop <-
             if (design_$sim_prm$logs) message("Generate BMI")
 
             tbl <-
-              read_fst("./inputs/exposure_distributions/bmi_table.fst", as.data.table = TRUE)
+              read_fst("./inputs/exposure_distributions/bmi_table.fst",
+                       as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
@@ -1480,7 +1517,8 @@ SynthPop <-
             if (design_$sim_prm$logs) message("Generate SBP")
 
             tbl <-
-              read_fst("./inputs/exposure_distributions/sbp_table.fst", as.data.table = TRUE)
+              read_fst("./inputs/exposure_distributions/sbp_table.fst",
+                       as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
@@ -1494,7 +1532,8 @@ SynthPop <-
             dt[, `:=` (sbp_acc = sbp,
                        sbp = round(clamp(sbp, 110, 200), -1))]
             tbl <-
-              read_fst("./inputs/exposure_distributions/bp_med_table.fst", as.data.table = TRUE)
+              read_fst("./inputs/exposure_distributions/bp_med_table.fst",
+                       as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
@@ -1510,7 +1549,8 @@ SynthPop <-
             if (design_$sim_prm$logs) message("Generate tchol")
 
             tbl <-
-              read_fst("./inputs/exposure_distributions/tchol_table.fst", as.data.table = TRUE)
+              read_fst("./inputs/exposure_distributions/tchol_table.fst",
+                       as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
@@ -1645,7 +1685,6 @@ SynthPop <-
                     private$design$sim_prm$ageH)]
 
           dt[, pid_mrk := mk_new_simulant_markers(pid)] # TODO Do I need this?
-          # Above necessary because of pruning  and potential merging above
 
           # Ensure pid does not overlap for files from different mc
           new_n <- uniqueN(dt$pid)
