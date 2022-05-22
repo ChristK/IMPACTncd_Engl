@@ -55,7 +55,7 @@ Disease <-
       #' @return A new `Disease` object.
 
       initialize = function(name, friendly_name, meta, notes = NA_character_,
-                            design_ = design, RR) {
+                            design_, RR) {
         if (!inherits(design_, "Design")) {
           stop("Argument design needs to be a Design object.")
         }
@@ -74,10 +74,10 @@ Disease <-
         # Generate unique name using the relevant RR and lags
         rr <- RR[sapply(RR, `[[`, "outcome") == self$name]
         # above only contains exposures for this disease object
-        # Reorder risk so smok_status & smok_cig is calculated before endsmok
+        # Reorder risk so smok_status & smok_cig is calculated before quit_yrs
         private$rr <-
           rr[order(match(sapply(rr, `[[`, "name"),
-                         c("smok_status", "smok_cig")))]
+                         c("smok_status", "smok_cig", "smok_packyrs")))]
 
         dqRNGkind("pcg64")
         private$seed <- abs(digest2int(name, seed = 230565490L))
@@ -118,16 +118,6 @@ Disease <-
         # TODO add check for stop('For type 1 incidence aggregation of RF need
         # to be "any" or "all".')
 
-        # nam <- paste0("prb_", self$name, "_incd")
-        #
-        # if (self$meta$incidence$type == 3) {
-        #   nam <- paste0(
-        #     nam, "_no",
-        #     paste(self$meta$incidence$influenced_by_disease_name,
-        #       collapse = ""
-        #     )
-        #   )
-        # }
         private$incd_colnam  <- paste0("prb_", self$name, "_incd")
         private$dgns_colnam  <- paste0("prb_", self$name, "_dgns")
         private$mrtl_colnam2 <- paste0("prb_", self$name, "_mrtl2") # Only for mrtl 2
@@ -196,18 +186,267 @@ Disease <-
         invisible(self)
       },
 
-      #' @description Generates PARF and stores it to disk.
+      #' @description Generates PARF and stores it to disk if one doesn not
+      #'   exists already.
+      #' @param design_ A design object with the simulation parameters.
+      #' @param diseases_ A list of Disease objects
+      #' @param popsize The population size for each stratum
+      #' @param check Check for NAs in parf_dt.
+      #' @param keep_intermediate_file Whether to keep the intermediate synthpop file
+      #' @return The PARF data.table if it was created, otherwise `NULL`.
+
+      gen_parf_files = function(design_ = design, diseases_ = diseases,
+                                popsize = 100, check = design_$sim_prm$logs,
+                                keep_intermediate_file = TRUE) {
+
+        if ((is.numeric(self$meta$incidence$type) &&
+             self$meta$incidence$type == 1L) ||
+            length(private$rr) == 0L) {
+          # Early break for type 1 incidence and diseases with no RF
+          return(NULL)
+        }
+
+        if (!inherits(design_, "Design")) {
+          stop("Argument design_ needs to be a Design object.")
+        }
+        if (!all(sapply(diseases_, inherits, "Disease"))) {
+          stop("Argument diseases_ needs to be a list of disease object.")
+        }
+        if (!file.exists(private$parf_filenam)) {
+        tmpfile <- file.path(private$parf_dir,
+                             paste0("PARF_", self$name, "_", digest(sort(
+                               sapply(private$rr, `[[`, "name")
+                             )), ".qs"))
+
+        if (file.exists(tmpfile)) {
+          if (design_$sim_prm$logs) message("Reading file from cache.")
+          ans <- qread(tmpfile)
+          setDT(ans$pop)
+        } else {
+          if (design_$sim_prm$logs) message("No available cached file.")
+
+          self$del_parf_file(invert = TRUE) # Delete old versions
+
+          # start if file not exist
+          if (sum(dim(private$incd_indx)) > 0) {
+            ttt <- self$get_incd(design_$sim_prm$init_year)
+          } else {
+            ttt <- self$get_ftlt(design_$sim_prm$init_year)
+          }
+
+          ttt <- CJ(
+            age = seq(design_$sim_prm$ageL, design_$sim_prm$ageH),
+            sex = ttt$sex,
+            dimd = ttt$dimd,
+            ethnicity = ttt$ethnicity,
+            sha = ttt$sha,
+            year = design_$sim_prm$init_year,
+            unique = TRUE
+          )
+
+          lv <- c("1 most deprived", as.character(2:4), "5 least deprived")
+
+          ttt[, qimd := fcase(
+            dimd == "1 most deprived", factor(lv[[1]], levels = lv),
+            dimd == "2", factor(lv[[1]], levels = lv),
+            dimd == "3", factor(lv[[2]], levels = lv),
+            dimd == "4", factor(lv[[2]], levels = lv),
+            dimd == "5", factor(lv[[3]], levels = lv),
+            dimd == "6", factor(lv[[3]], levels = lv),
+            dimd == "7", factor(lv[[4]], levels = lv),
+            dimd == "8", factor(lv[[4]], levels = lv),
+            dimd == "9", factor(lv[[5]], levels = lv),
+            dimd == "10 least deprived", factor(lv[[5]], levels = lv)
+          )]
+
+          ttt <- clone_dt(ttt, 10, idcol = NULL)
+
+          # NOTE future and mclapply do not work here for some reason
+          if (Sys.info()["sysname"] == "Windows") {
+            cl <-
+              makeCluster(design_$sim_prm$clusternumber) # used for clustering. Windows compatible
+            registerDoParallel(cl)
+          } else {
+            registerDoParallel(design_$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
+          }
+          xps_dt <- foreach(
+            mc_iter = seq(1, (popsize / 10L)),
+            .inorder = FALSE,
+            .verbose = design_$sim_prm$logs,
+            .packages = c(
+              "R6",
+              "gamlss.dist",
+              "dqrng",
+              "CKutils",
+              "IMPACTncdEngl",
+              "data.table"
+            ),
+            .export = NULL,
+            .noexport = NULL # c("time_mark")
+          ) %dopar% {
+            private$gen_sp_forPARF(mc_iter, ff = ttt, design_ = design_)
+
+          }
+          if (exists("cl")) stopCluster(cl)
+
+          if (design_$sim_prm$logs) message("End of parallelisation for PARF.")
+
+          ans <- list()
+          setattr(ans, "class", "SynthPop") # to dispatch
+          ans$pop <- rbindlist(xps_dt)
+          ans$pop [, `:=` (pid = .I, pid_mrk = TRUE)] # TODO add check to avoid intmax limit
+          ans$mc <- 0L
+          ans$mc_aggr <- 0L
+
+          # NOTE xps_dt does not contain disease init prevalence. I simulate
+          # here as set_init_prvl expects a synthpop and not a data.table as
+          # input. All relevant risk factors for the diseases need to be
+          # available in xps_dt. Currently this requires manual setup of the
+          # logic if RF for relevant diseases altered.
+          # TODO implement automation of the logic above based on topological
+          # ordering.
+          # Generate diseases that act as exposures
+          for (xps in c("t2dm_prvl", "af_prvl")) {
+            if (xps %in% sapply(private$rr, `[[`, "name")) {
+              lag <- private$rr[[paste0(xps, "~", self$name)]]$lag
+              ans$pop[, year := year - lag]
+              design_$sim_prm$init_year <-
+                design_$sim_prm$init_year - lag
+              disnam <- gsub("_prvl$", "", xps)
+              diseases_[[disnam]]$set_init_prvl(ans, design_)
+              design_$sim_prm$init_year <-
+                design_$sim_prm$init_year + lag
+              ans$pop[, year := year + lag]
+            }
+          }
+          if (design_$sim_prm$logs) message("Saving parf cache.")
+          qsave(ans, tmpfile)
+        } # end tmpfile bypass
+        self$set_rr(ans, design_, forPARF = TRUE)
+
+        nam <- grep("_rr$", names(ans$pop), value = TRUE)
+        # risks <- ans$pop[, .SD, .SDcols = c("pid", "year", nam)]
+
+        parf_dt <-
+          ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
+                  .(parf = 1 - 1 / (sum(Reduce(`*`, mget(nam))) / .N)),
+                  keyby = .(age, sex, dimd, ethnicity, sha)
+          ]
+
+        if (sum(dim(private$incd_indx)) > 0) {
+          if (design_$sim_prm$logs) message("Estimating p0.")
+
+          if (design_$sim_prm$model_trends_in_redidual_incd) {
+            # TODO calculate PARF per year. Now it is assumed static as in init year
+            yrs <- seq(
+              design_$sim_prm$init_year,
+              design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max
+            )
+          } else {
+            yrs <- design_$sim_prm$init_year
+          }
+
+          tt <- self$get_incd(yrs)
+          nam <- "p0"
+
+          parf_dt <- clone_dt(parf_dt, length(yrs)) # works even if length(yrs) == 1
+          parf_dt[, `:=` (
+            year = .id - 1L + design_$sim_prm$init_year,
+            .id = NULL
+          )]
+          lookup_dt(parf_dt, tt, check_lookup_tbl_validity = FALSE)
+          setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
+          parf_dt[, (nam) := mu * (1 - parf)]
+          parf_dt[, "mu" := NULL]
+
+        }
+
+        if (sum(dim(private$ftlt_indx)) > 0) {
+          if (design_$sim_prm$logs) message("Estimating m0.")
+
+          # Re-estimate parf without exposures and only for diseases when
+          # apply_rr_to_mrtl2 is FALSE
+          if (!design_$sim_prm$apply_RR_to_mrtl2) {
+            riskcolnam <- grep(
+              paste0(
+                "^((?!",
+                paste(self$meta$mortality$influenced_by_disease_name,
+                      collapse = "|"),
+                ").)*_rr$"
+              ),
+              names(nam),
+              value = TRUE,
+              perl = TRUE
+            )
+
+            if (length(riskcolnam) > 0) {
+              parf_dt_mrtl <-
+                ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
+                        .(parf_mrtl = 1 - 1 / (sum(Reduce(`*`, mget(riskcolnam))) / .N)),
+                        keyby = .(age, sex, dimd, ethnicity, sha)
+                ]
+              absorb_dt(parf_dt, parf_dt_mrtl)
+            }
+          }
+
+
+          yrs <- seq(
+            design_$sim_prm$init_year,
+            design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max
+          )
+          tt <- self$get_ftlt(yrs)
+          if ("mu" %in% names(tt)) stop("mu in ftlt file. Please rename to mu2.")
+
+          setnames(tt, "mu2", "mu")
+          if ("mu1" %in% names(tt)) tt[, mu1 := NULL]
+          # nam <- "m0"
+
+          if (!all(yrs %in% unique(parf_dt$years))) { # TODO safer logic here
+            parf_dt <- clone_dt(parf_dt, length(yrs))
+            parf_dt[, year := .id - 1L + design_$sim_prm$init_year]
+            parf_dt[, .id := NULL]
+          }
+          lookup_dt(parf_dt, tt, check_lookup_tbl_validity = FALSE)
+          setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
+
+          if ("parf_mrtl" %in% names(parf_dt)) {
+            parf_dt[, "m0" := mu * (1 - parf_mrtl)]
+            parf_dt[, parf_mrtl := NULL]
+          } else {
+            parf_dt[, "m0" := mu * (1 - parf)]
+          }
+          parf_dt[, "mu" := NULL]
+        }
+
+        if (uniqueN(parf_dt$year) == 1L) parf_dt[, year := NULL]
+
+        if (check && anyNA(parf_dt)) {
+          warning("NAs in parf.")
+          print(summary(parf_dt))
+
+          # parf_dt[is.na(get(nam)), (nam) := mu]
+        }
+        if (design_$sim_prm$logs) message("Saving parf file ", private$parf_filenam)
+        write_fst(parf_dt, private$parf_filenam, 100L)
+        if (!keep_intermediate_file) file.remove(tmpfile)
+
+        parf_dt
+        } else NULL
+      },
+
+      #' @description Read PARF file from disk. If missing, generates PARF and
+      #'   writes it to disk.
       #' @param sp A synthpop object
       #' @param design_ A design object with the simulation parameters.
       #' @param diseases_ A list of Disease objects
       #' @param popsize The population size for each stratum
       #' @param check Check for NAs in parf_dt.
-      #' @param keep_intermediate_file Whether to keep the intermediade synthpop file
+      #' @param keep_intermediate_file Whether to keep the intermediate synthpop file
       #' @return The invisible self for chaining.
 
       gen_parf = function(sp = sp, design_ = design, diseases_ = diseases,
                           popsize = 100, check = design_$sim_prm$logs,
-                          keep_intermediate_file = FALSE) {
+                          keep_intermediate_file = TRUE) {
 
         # TODO add logic to delete the intermediate synthpop file outside this
         # function
@@ -269,229 +508,14 @@ Disease <-
           if (design_$sim_prm$logs) message("Generating new parf file.")
 
           # shortcut for when parallel part is successful but function crashes
-          # after it. This logic caches the synthpop for parf
-          tmpfile <- gsub(".fst$", ".qs", private$parf_filenam)
+          # after it. This logic caches the synthpop for parf that is
+          # independent of the RR but only depends on the causal structure.
+          # Hence this is using another checksam that only depends on the names
+          # of xps stored in rr
 
-          if (file.exists(tmpfile)) {
-            if (design_$sim_prm$logs) message("Reading file from cache.")
-            ans <- qread(tmpfile)
-            setDT(ans$pop)
-          } else {
-            if (design_$sim_prm$logs) message("No available cached file.")
-
-            self$del_parf_file(invert = TRUE) # Delete old versions
-
-            # start if file not exist
-            if (sum(dim(private$incd_indx)) > 0) {
-              ttt <- self$get_incd(design_$sim_prm$init_year)
-            } else {
-              ttt <- self$get_ftlt(design_$sim_prm$init_year)
-            }
-
-            ttt <- CJ(
-              age = seq(design_$sim_prm$ageL, design_$sim_prm$ageH),
-              sex = ttt$sex,
-              dimd = ttt$dimd,
-              ethnicity = ttt$ethnicity,
-              sha = ttt$sha,
-              year = design_$sim_prm$init_year,
-              unique = TRUE
-            )
-
-            lv <- c("1 most deprived", as.character(2:4), "5 least deprived")
-
-            ttt[, qimd := fcase(
-              dimd == "1 most deprived",
-              factor("1 most deprived", levels = lv),
-              dimd == "2",
-              factor("1 most deprived", levels = lv),
-              dimd == "3",
-              factor("2", levels = lv),
-              dimd == "4",
-              factor("2", levels = lv),
-              dimd == "5",
-              factor("3", levels = lv),
-              dimd == "6",
-              factor("3", levels = lv),
-              dimd == "7",
-              factor("4", levels = lv),
-              dimd == "8",
-              factor("4", levels = lv),
-              dimd == "9",
-              factor("5 least deprived", levels = lv),
-              dimd == "10 least deprived",
-              factor("5 least deprived", levels = lv)
-            )]
-
-            ttt <- clone_dt(ttt, 10, idcol = NULL)
-
-            # NOTE future and mclapply do not work here for some reason
-            if (Sys.info()["sysname"] == "Windows") {
-              cl <-
-                makeCluster(design_$sim_prm$clusternumber) # used for clustering. Windows compatible
-              registerDoParallel(cl)
-            } else {
-              registerDoParallel(design_$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
-            }
-            xps_dt <- foreach(
-              mc_iter = seq(1, (popsize / 10L)),
-              .inorder = FALSE,
-              .verbose = design_$sim_prm$logs,
-              .packages = c(
-                "R6",
-                "gamlss.dist",
-                "dqrng",
-                "CKutils",
-                "IMPACTncdEngl",
-                "data.table"
-              ),
-              .export = NULL,
-              .noexport = NULL # c("time_mark")
-            ) %dopar% {
-              private$gen_sp_forPARF(mc_iter, ff = ttt, design_ = design_)
-
-            }
-            if (exists("cl")) stopCluster(cl)
-
-            if (design_$sim_prm$logs) message("End of parallelisation for PARF.")
-
-            ans <- list()
-            setattr(ans, "class", "SynthPop") # to dispatch
-            ans$pop <- rbindlist(xps_dt)
-            ans$pop [, `:=` (pid = .I, pid_mrk = TRUE)] # TODO add check to avoid intmax limit
-            ans$mc <- 0L
-            ans$mc_aggr <- 0L
-
-            # NOTE xps_dt does not contain disease init prevalence. I simulate
-            # here as set_init_prvl expects a synthpop and not a data.table as
-            # input. All relevant risk factors for the diseases need to be
-            # available in xps_dt. Currently this requires manual setup of the
-            # logic if RF for relevant diseases altered.
-            # TODO implement automation of the logic above based on topological
-            # ordering.
-            # Generate diseases that act as exposures
-            for (xps in c("t2dm_prvl", "af_prvl")) {
-              if (xps %in% sapply(private$rr, `[[`, "name")) {
-                lag <- private$rr[[paste0(xps, "~", self$name)]]$lag
-                ans$pop[, year := year - lag]
-                design_$sim_prm$init_year <-
-                  design_$sim_prm$init_year - lag
-                disnam <- gsub("_prvl$", "", xps)
-                diseases_[[disnam]]$set_init_prvl(ans, design_)
-                design_$sim_prm$init_year <-
-                  design_$sim_prm$init_year + lag
-                ans$pop[, year := year + lag]
-              }
-            }
-            if (design_$sim_prm$logs) message("Saving parf cache.")
-            qsave(ans, tmpfile)
-          } # end tmpfile bypass
-          self$set_rr(ans, design_, forPARF = TRUE)
-
-          nam <- grep("_rr$", names(ans$pop), value = TRUE)
-
-          parf_dt <-
-            ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
-              .(parf = 1 - 1 / (sum(Reduce(`*`, mget(nam))) / .N)),
-              keyby = .(age, sex, dimd, ethnicity, sha)
-            ]
-
-          if (sum(dim(private$incd_indx)) > 0) {
-            if (design_$sim_prm$logs) message("Estimating p0.")
-
-            if (design_$sim_prm$model_trends_in_redidual_incd) {
-              # TODO calculate PARF per year. Now it is assumed static as in init year
-              yrs <- seq(
-                design_$sim_prm$init_year,
-                design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max
-              )
-            } else {
-              yrs <- design_$sim_prm$init_year
-            }
-
-            tt <- self$get_incd(yrs)
-            nam <- "p0"
-
-            parf_dt <- clone_dt(parf_dt, length(yrs)) # works even if length(yrs) == 1
-            parf_dt[, `:=` (
-              year = .id - 1L + design_$sim_prm$init_year,
-              .id = NULL
-              )]
-            lookup_dt(parf_dt, tt, check_lookup_tbl_validity = FALSE)
-            setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
-            parf_dt[, (nam) := mu * (1 - parf)]
-            parf_dt[, "mu" := NULL]
-
-          }
-
-          if (sum(dim(private$ftlt_indx)) > 0) {
-            if (design_$sim_prm$logs) message("Estimating m0.")
-
-            # Re-estimate parf without exposures and only for diseases when
-            # apply_rr_to_mrtl2 is FALSE
-            if (!design_$sim_prm$apply_RR_to_mrtl2) {
-              riskcolnam <- grep(
-                paste0(
-                  "^((?!",
-                  paste(self$meta$mortality$influenced_by_disease_name,
-                        collapse = "|"),
-                  ").)*_rr$"
-                ),
-                names(private$risks),
-                value = TRUE,
-                perl = TRUE
-              )
-
-              if (length(riskcolnam) > 0) {
-                parf_dt_mrtl <-
-                  ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
-                          .(parf_mrtl = 1 - 1 / (sum(Reduce(`*`, mget(nam))) / .N)),
-                          keyby = .(age, sex, dimd, ethnicity, sha)
-                  ]
-                absorb_dt(parf_dt, parf_dt_mrtl)
-              }
-            }
-
-
-            yrs <- seq(
-              design_$sim_prm$init_year,
-              design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max
-            )
-            tt <- self$get_ftlt(yrs)
-            if ("mu" %in% names(tt)) stop("mu in ftlt file. Please rename to mu2.")
-
-            setnames(tt, "mu2", "mu")
-            if ("mu1" %in% names(tt)) tt[, mu1 := NULL]
-            # nam <- "m0"
-
-            if (!all(yrs %in% unique(parf_dt$years))) { # TODO safer logic here
-              parf_dt <- clone_dt(parf_dt, length(yrs))
-              parf_dt[, year := .id - 1L + design_$sim_prm$init_year]
-              parf_dt[, .id := NULL]
-            }
-            lookup_dt(parf_dt, tt, check_lookup_tbl_validity = FALSE)
-            setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
-
-            if ("parf_mrtl" %in% names(parf_dt)) {
-              parf_dt[, "m0" := mu * (1 - parf_mrtl)]
-              parf_dt[, parf_mrtl := NULL]
-            } else {
-              parf_dt[, "m0" := mu * (1 - parf)]
-            }
-            parf_dt[, "mu" := NULL]
-          }
-
-          if (uniqueN(parf_dt$year) == 1L) parf_dt[, year := NULL]
-
-          if (check && anyNA(parf_dt)) {
-            warning("NAs in parf.")
-            print(summary(parf_dt))
-
-            # parf_dt[is.na(get(nam)), (nam) := mu]
-          }
-          if (design_$sim_prm$logs) message("Saving parf file ", private$parf_filenam)
-          write_fst(parf_dt, private$parf_filenam, 100L)
-          file.remove(tmpfile)
+          parf_dt <- self$gen_parf_files(design_, diseases_,
+                                     popsize, check,
+                                     keep_intermediate_file)
           colnam <-
             setdiff(names(parf_dt), intersect(names(sp$pop), names(parf_dt)))
           private$parf <- parf_dt[sp$pop, on = .NATURAL, ..colnam]
@@ -529,17 +553,19 @@ Disease <-
           if (self$meta$incidence$type == 1L) {
             self$set_rr(sp, design_, forPARF = FALSE)
             riskcolnam <- grep("_rr$",
-                               names(private$risks),
+                               names(sp$get_risks(self$name)),
                                value = TRUE,
                                perl = TRUE)
             if (length(riskcolnam) == 1L) {
-              thresh <- as.integer(private$risks[[riskcolnam]])
+              thresh <- as.integer(sp$get_risks(self$name)[[riskcolnam]])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "any") {
-              thresh <- as.integer(private$risks[, do.call(pmax, .SD), .SDcols = riskcolnam])
+              thresh <- as.integer(sp$get_risks(self$name)[, do.call(pmax, .SD),
+                                                 .SDcols = riskcolnam])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "all") {
-              thresh <- as.integer(private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam])
+              thresh <- as.integer(sp$get_risks(self$name)[, Reduce(`*`, .SD),
+                                                 .SDcols = riskcolnam])
             }
 
             set(sp$pop, NULL, namprvl, thresh)
@@ -677,17 +703,10 @@ Disease <-
           stop("Argument design_ needs to be a Design object.")
         }
 
-        if (length(private$rr) > 0L) {
-          lapply(private$rr, function(x)
-            x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF))
+        lapply(private$rr, function(x)
+          x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF))
 
-          if (!forPARF) {
-            nam <- grep("_rr$", names(sp$pop), value = TRUE)
-            private$risks <- sp$pop[, .SD, .SDcols = c("pid", "year", nam)]
-            # TODO remove pid & year from above. Currently there for extra safety.
-            sp$pop[, (nam) := NULL]
-          }
-        }
+        if (!forPARF && length(private$rr) > 0) sp$store_risks(self$name)
 
         return(invisible(self))
       },
@@ -706,10 +725,7 @@ Disease <-
         }
 
         if (is.numeric(self$meta$incidence$type)) {
-          # check that the stored risks are for the sp (i.e. no rows deleted)
-          if (length(private$rr) > 0L && !identical(sp$pop$pid, private$risks$pid)) {
-            stop("Stored risks are for a different synthetic population")
-          }
+
 
 
           if (private$incd_colnam %in% names(sp$pop)) {
@@ -733,13 +749,13 @@ Disease <-
                 ),
                 ").)*_rr$"
               ),
-              names(private$risks),
+              names(sp$get_risks(self$name)),
               value = TRUE,
               perl = TRUE
             )
           } else { # private$rr may be NULL here but I will cover this case below
             riskcolnam <- grep("_rr$",
-                               names(private$risks),
+                               names(sp$get_risks(self$name)),
                                value = TRUE,
                                perl = TRUE
             )
@@ -747,13 +763,13 @@ Disease <-
 
           if (self$meta$incidence$type == 1L) {
             if (length(riskcolnam) == 1L) {
-              thresh <- as.numeric(private$risks[[riskcolnam]])
+              thresh <- as.numeric(sp$get_risks(self$name)[[riskcolnam]])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "any") {
-              thresh <- as.numeric(private$risks[, do.call(pmax, .SD), .SDcols = riskcolnam])
+              thresh <- as.numeric(sp$get_risks(self$name)[, do.call(pmax, .SD), .SDcols = riskcolnam])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "all") {
-              thresh <- as.numeric(private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam])
+              thresh <- as.numeric(sp$get_risks(self$name)[, Reduce(`*`, .SD), .SDcols = riskcolnam])
             }
 
             set(sp$pop, NULL, private$incd_colnam, thresh)
@@ -762,7 +778,7 @@ Disease <-
             # if incidence$type not 1 and at least 1 associated RF
             if (length(riskcolnam) > 0) {
               risk_product <-
-                private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam]
+                sp$get_risks(self$name)[, Reduce(`*`, .SD), .SDcols = riskcolnam]
             } else {
               risk_product <- 1
             }
@@ -780,8 +796,9 @@ Disease <-
               }
 
               parf_dt <-
-                cbind(sp$pop[, .(wt_immrtl, age, sex, dimd, ethnicity, sha)],
-                      "parf" = private$parf$parf)
+                cbind(sp$pop[, .(wt_immrtl, age, sex, dimd, ethnicity, sha, year)],
+                      "parf" = private$parf$parf
+                      )[year == design_$sim_prm$init_year]
               parf_dt <-
                 parf_dt[!is.na(parf), .(parf = unique(parf), pop_size = sum(wt_immrtl)),
                        keyby = .(age, sex, dimd, ethnicity, sha)]
@@ -900,7 +917,7 @@ Disease <-
                   ),
                   ").)*_rr$"
                 ),
-                names(private$risks),
+                names(sp$get_risks(self$name)),
                 value = TRUE,
                 perl = TRUE
               )
@@ -908,14 +925,14 @@ Disease <-
               # private$rr may be NULL here but I will cover this case
               # below
               riskcolnam <- grep("_rr$",
-                                 names(private$risks),
+                                 names(sp$get_risks(self$name)),
                                  value = TRUE,
                                  perl = TRUE)
             }
 
             if (length(riskcolnam) > 0) {
               risk_product <-
-                private$risks[, Reduce(`*`, .SD), .SDcols = riskcolnam]
+                sp$get_risks(self$name)[, Reduce(`*`, .SD), .SDcols = riskcolnam]
             } else {
               risk_product <- 1
             }
@@ -935,7 +952,7 @@ Disease <-
 
       #' @description Deletes the PARF file from disk.
       #' @param invert deletes all other disease relevant PARF file except those
-      #'   that are associated to the curent settings.
+      #'   that are associated to the current settings.
       #' @return The invisible self for chaining.
 
       del_parf_file = function(invert = FALSE) {
@@ -1091,19 +1108,13 @@ Disease <-
         invisible(self)
       },
 
-      #' @description Get the risks for all individuals in a synthetic
-      #'   population.
-      #' @return A data.table with columns for pid, year, and all associated
-      #'   risks.
-      get_risks = function() {
-        private$risks
-      },
+
 
       #' @description Get the PARF by age/sex/dimd/ethnicity/sha.
-      #' @param what Columns to return (p0, m0, parf)
+      #' @param what Columns to return (p0, m0, or parf)
       #' @return A data.table with PARF.
-      get_parf = function(what = c("parf", "p0", "m0")) {
-        if (sum(dim(private$parf)) > 0L) {
+      get_parf = function(what) {
+        if (sum(dim(private$parf)) > 0L && !missing(what)) {
           private$parf[, ..what]
         } else {
           private$parf
@@ -1455,8 +1466,22 @@ Disease <-
       parf_dir = NA,
       parf_filenam = NA,
       parf = data.table(NULL),
-      risks = data.table(NULL), # holds the risks for all individuals
       rr = list(), # holds the list of relevant RR
+
+      # Special deep copy for data.table. Use POP$clone(deep = TRUE) to
+      # dispatch. Otherwise a reference is created
+      deep_clone = function(name, value) {
+        if ("data.table" %in% class(value)) {
+          data.table::copy(value)
+        } else if ("R6" %in% class(value)) {
+          value$clone()
+        } else {
+          # For everything else, just return it. This results in a shallow
+          # copy of s3.
+          value
+        }
+      },
+
       gen_sp_forPARF =
         function(mc_, ff, design_) {
 
@@ -1894,7 +1919,10 @@ Disease <-
             ff[, age := NULL]
             setnames(ff, "age100", "age")
           }
+
           invisible(ff)
         }
+
+
     ) # end of private
   )

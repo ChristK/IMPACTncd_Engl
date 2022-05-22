@@ -1,11 +1,10 @@
-iteration_n: 15
+iteration_n: 1
 iteration_n_final: 100
 clusternumber: 15 # explicit parallelisation
 n_cpus: 1 # implicit parallelisation
 logs: yes
 export_xps: yes
-export_PARF: no
-'n': 20000
+'n': 200000
 n_synthpop_aggregation: 1 # number of synthpops to aggregate together
 # n_primers: 10 # better be some multiple of n_synthpop_aggregation
 init_year_long: 2013 # 2008 to 2020 but be careful with max lags
@@ -15,33 +14,33 @@ ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
 model_trends_in_redidual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
 diseases:
-- name: obesity
-  friendly_name: obesity
-  meta:
-    incidence:
-      type: 1 # deterministically depend on exposure(s)
-      aggregation: 'any' # Other option is "all". If more than one RF is case definition expects any or all to be present?. Irrelevant for 1 RF
-      can_recur: yes # cure depends on the relevant exposure(s)
-    diagnosis:
-      type: 1
-      probability: 1
-    mortality:
-      type: ~ # NULL
-  notes: .na
-- name: htn
-  friendly_name: hypertension
-  meta:
-    incidence:
-      type: 2
-      can_recur: no # assumes no cure after incidence till death
-    diagnosis:
-      type: 1
-      probability: 1
-      duration_distr: ZANBI
-    mortality:
-      type: 1
-      code: 6
-  notes: .na
+# - name: obesity
+#   friendly_name: obesity
+#   meta:
+#     incidence:
+#       type: 1 # deterministically depend on exposure(s)
+#       aggregation: 'any' # Other option is "all". If more than one RF is case definition expects any or all to be present?. Irrelevant for 1 RF
+#       can_recur: yes # cure depends on the relevant exposure(s)
+#     diagnosis:
+#       type: 1
+#       probability: 1
+#     mortality:
+#       type: ~ # NULL
+#   notes: .na
+# - name: htn
+#   friendly_name: hypertension
+#   meta:
+#     incidence:
+#       type: 2
+#       can_recur: no # assumes no cure after incidence till death
+#     diagnosis:
+#       type: 1
+#       probability: 1
+#       duration_distr: ZANBI
+#     mortality:
+#       type: 1
+#       code: 6
+#   notes: .na
 - name: chd
   friendly_name: CHD
   meta:
@@ -230,61 +229,61 @@ diseases:
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
       code: 14
   notes: .na
-- name: andep
-  friendly_name: andep
-  meta:
-    incidence:
-      type: 2
-      can_recur: no
-    diagnosis:
-      type: 1
-      probability: 1
-      duration_distr: ZANBI
-    mortality:
-      type: 1
-      code: 15
-  notes: .na
-- name: other_ca
-  friendly_name: other cancers
-  meta:
-    incidence:
-      type: 2
-      can_recur: yes
-    diagnosis:
-      type: 1
-      probability: 1
-      duration_distr: ZANBI
-    mortality:
-      type: 2
-      cure: 10
-      code: 16
-  notes: .na
-- name: hf
-  friendly_name: heart failure
-  meta:
-    incidence:
-      type: 2
-      can_recur: no
-    diagnosis:
-      type: 1
-      probability: 1
-      duration_distr: ZANBI
-    mortality:
-      type: 1
-      code: 17
-  notes: .na
-- name: nonmodelled
-  friendly_name: nonmodelled
-  meta:
-    incidence:
-      type: Universal
-    diagnosis:
-      type: ~ # NULL
-    mortality:
-      type: 3 # influenced by
-      influenced_by_disease_name: t2dm
-      code: 1
-  notes: .na
+# - name: andep
+#   friendly_name: andep
+#   meta:
+#     incidence:
+#       type: 2
+#       can_recur: no
+#     diagnosis:
+#       type: 1
+#       probability: 1
+#       duration_distr: ZANBI
+#     mortality:
+#       type: 1
+#       code: 15
+#   notes: .na
+# - name: other_ca
+#   friendly_name: other cancers
+#   meta:
+#     incidence:
+#       type: 2
+#       can_recur: yes
+#     diagnosis:
+#       type: 1
+#       probability: 1
+#       duration_distr: ZANBI
+#     mortality:
+#       type: 2
+#       cure: 10
+#       code: 16
+#   notes: .na
+# - name: hf
+#   friendly_name: heart failure
+#   meta:
+#     incidence:
+#       type: 2
+#       can_recur: no
+#     diagnosis:
+#       type: 1
+#       probability: 1
+#       duration_distr: ZANBI
+#     mortality:
+#       type: 1
+#       code: 17
+#   notes: .na
+# - name: nonmodelled
+#   friendly_name: nonmodelled
+#   meta:
+#     incidence:
+#       type: Universal
+#     diagnosis:
+#       type: ~ # NULL
+#     mortality:
+#       type: 3 # influenced by
+#       influenced_by_disease_name: t2dm
+#       code: 1
+#   notes: .na
 maxlag: 10
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
@@ -297,7 +296,8 @@ simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real
+export_PARF: yes
+output_dir: /mnt/storage_fast/output/hf_real_parf
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 # synthpop_dir: c:/synthpop
 scenarios: ''
@@ -332,3 +332,4 @@ exposures:
 - bmi
 - sbp
 - tchol
+# ignore_xps: bmi # only relevant for parf by xps

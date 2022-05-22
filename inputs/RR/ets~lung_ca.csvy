@@ -1,7 +1,7 @@
 ---
 xps_name: ets
 outcome: lung_ca
-lag: 9
+lag: 1
 distribution: lognormal
 source: Int J Cancer 2014;135:1918-30. doi:10.1002/ijc.28835
 notes: RR very similar to Taylor R, et al. Int J Epidemiol. 2007;36(5):1048-59. Table

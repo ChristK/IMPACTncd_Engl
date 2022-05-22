@@ -1,7 +1,7 @@
 ---
 xps_name: ets
 outcome: copd
-lag: 5
+lag: 1
 distribution: lognormal
 source: BMC Public Health. 2015;15(1):1202
 notes: ''

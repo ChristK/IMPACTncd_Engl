@@ -52,15 +52,15 @@ Exposure <-
 
       #' @description Reads exposure parameter from file and creates a new exposure object..
       #' @param xps_prm A path to a csvy file with the exposure parameters.
-      #' @param design_ A design object with the simulation parameters.
+      #' @param design A design object with the simulation parameters.
       #' @return An `Exposure` object.
       #' @examples
       #' af_stroke$read_xps_prm("./inputs/RR/af_stroke.csvy", design)
-      initialize = function(xps_prm, design_ = design) {
+      initialize = function(xps_prm, design) {
 
         xps_prm <- normalizePath(xps_prm, mustWork = TRUE)
 
-        if (!inherits(design_, "Design"))
+        if (!inherits(design, "Design"))
           stop("Argument design needs to be a Design object.")
 
         if (file.exists(xps_prm)) {
@@ -94,18 +94,28 @@ Exposure <-
 
           metadata <- attr(effect, "yaml_metadata")
           setattr(effect, "yaml_metadata", NULL)
-            # private$get_yaml_header(xps_prm, verbose = design_$sim_prm$logs)
+            # private$get_yaml_header(xps_prm, verbose = design$sim_prm$logs)
         } else {
           stop(
             "File does not exist for argument xps_prm path."
           )
         }
 
+        # Used only for parf by xps
+        if (length(design$sim_prm$ignore_xps) > 0L &&
+            (identical(metadata$xps_name, design$sim_prm$ignore_xps) ||
+            (metadata$xps_name == "met" && design$sim_prm$ignore_xps == "active_days") ||
+            (grepl("^smok_", metadata$xps_name) && design$sim_prm$ignore_xps == "smoking")
+            )) {
+          set(effect, NULL, "rr", 1)
+          set(effect, NULL, "ci_rr", 1)
+        }
+
         # Validation
         stopifnot(
           c("xps_name", "outcome", "distribution", "lag") %in% names(metadata),
           metadata$lag >= 1 | (metadata$lag == 0L & metadata$incidence$type == 1L),
-          metadata$lag <= design_$sim_prm$maxlag,
+          metadata$lag <= design$sim_prm$maxlag,
           length(metadata$distribution) == 1L,
           metadata$distribution %in% c("lognormal", "normal")
         )
@@ -168,13 +178,13 @@ Exposure <-
           # NOTE check that string starts with function for an added layer
           # of security. In any case still very insecure.
           foo <- eval(str2lang(metadata$ideal_xps_lvl_fn))
-          private$ideal_xps_lvl_mc <- foo(design_)
+          private$ideal_xps_lvl_mc <- foo(design)
           rm(foo)
         }
 
         if (length(nam) == 2L) {
           tt <-
-            CJ(age = (design_$sim_prm$ageL - design_$sim_prm$maxlag):design_$sim_prm$ageH,
+            CJ(age = (design$sim_prm$ageL - design$sim_prm$maxlag):design$sim_prm$ageH,
               sex = factor(c("men", "women")))
           setkeyv(tt, c("sex", "age"))
         } else if (length(nam) == 3L) {
@@ -186,13 +196,13 @@ Exposure <-
             if (!isTRUE(all.equal(t3, t4))) interpolate <- TRUE
 
             tt <-
-              CJ(age = (design_$sim_prm$ageL - design_$sim_prm$maxlag):design_$sim_prm$ageH,
+              CJ(age = (design$sim_prm$ageL - design$sim_prm$maxlag):design$sim_prm$ageH,
                 sex = factor(c("men", "women")),
                 V3 = t3)
 
           } else { # if not numeric
             tt <-
-              CJ(age = (design_$sim_prm$ageL - design_$sim_prm$maxlag):design_$sim_prm$ageH,
+              CJ(age = (design$sim_prm$ageL - design$sim_prm$maxlag):design$sim_prm$ageH,
                 sex = factor(c("men", "women")),
                 V3 = unique(effect[[nam]]))
           }
@@ -339,7 +349,7 @@ Exposure <-
       get_rr =
         function(mc,
           design_ = design,
-          drop = TRUE,
+          drop = FALSE,
           plot_rr = FALSE) {
           if (!inherits(design_, "Design"))
             stop("Argument design_ needs to be a Design object.")

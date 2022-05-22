@@ -31,8 +31,9 @@
 # those already in the file
 #' @export
 fwrite_safe <- function(x,
-                        file = "",
+                        file,
                         append = TRUE,
+                        threat_safe = append,
                         ...) {
   if (append) {
     if (file.exists(file)) {
@@ -44,7 +45,19 @@ fwrite_safe <- function(x,
       setcolorder(x, col_names_disk)
     }
   }
-  fwrite(x, file, append, ...)
+
+  # create threat-safe mechanism
+  flock <- paste0(file, ".lock")
+
+
+  while (file.exists(flock)) {
+    Sys.sleep(runif(1))
+  }
+
+    file.create(flock)
+    fwrite(x, file, append, ...)
+    on.exit(if (file.exists(flock)) file.remove(flock))
+
 }
 
 
@@ -298,92 +311,6 @@ shift_bypid <-
       stop("type of x not supported")
   }
 
-#' @export
-lung_ca_rr <- function(smok_status = 3,
-                       num_cig = 3,
-                       smok_dur = 3,
-                       quit_yrs = 40,
-                       age = 62,
-                       education = 4L,
-                       ethnicity = 1L,
-                       bmi = 27,
-                       copd = FALSE,
-                       personal_history_of_cancer = FALSE,
-                       family_history_of_lung_cancer = FALSE) {
-  ethn_vec <- c(
-    0,
-    # "white"-0.5241286,
-    # "indian"-0.5241286,
-    # "pakistani"-0.5241286,
-    # "bangladeshi"-0.5241286,
-    # "other asian"
-    0.3211605,
-    # "black caribbean"
-    0.3211605,
-    # "black african"-0.5241286,
-    # "chinese"
-    0          # "other"
-
-  )
-  # Original education in PLCO
-  # 1=less than high school completed; 2=high school graduate;
-  # 3=post high school training; 4=some college; 5=college graduate;
-  # 6=postgraduate or professional degree
-  edu_vec <- c(5L, 5L, 2L, 2L, 1L, 1L, 1L)
-  smok_vec <- c(0, 2.542472, 2.542472, 2.799727)
-
-  # prb_a is the probability of lung cancer if not a smoker (assumes also no
-  # COPD)
-  a_nocopd <- -7.02198 + 0.079597 * (age - 62) -
-    0.0879289 * (edu_vec[education] - 4) -
-    0.028948 * (bmi - 27) + ethn_vec[ethnicity] +
-    0.4845208 * personal_history_of_cancer +
-    0.5856777 * family_history_of_lung_cancer
-
-  # a_copd       <- a_nocopd + 0.3457265
-  # needs special treatment as it depends on another disease
-  # a            <- a_nocopd + 0.3457265 * copd
-  exp_a_nocopd <- exp(a_nocopd)
-  # exp_a_copd   <- exp(a_copd)
-  # exp_a        <- exp(a)
-  # TODO simplification as if not a smoker the likelihood of COPD is decreasing
-  # but there is residual
-
-  prb_a_nocopd <- exp_a_nocopd / (1 + exp_a_nocopd)
-  # prb_a_copd <- exp_a_copd / (1 + exp_a_copd)
-  # prb_a <- exp_a / (1 + exp_a)
-
-  # prb_b is the probability of lung cancer for observed smoking status
-  x <- fifelse(smok_status != 1L, {
-    smok_vec[smok_status] +
-      (-0.1815486 * (((num_cig / 100) ^ -1) - 4.021541613)) +
-      0.0305566 * (smok_dur - 27)
-  }, 0)
-
-  x <-
-    x - fifelse(smok_status %in% (2:3), 0.0321362 * (quit_yrs - 8.593417626), 0)
-
-  b        <- a_nocopd + x + 0.3457265 * copd
-  b_nocopd <- a_nocopd + x
-  b_copd   <- a_nocopd + x + 0.3457265 # COPD coef
-
-  exp_b_nocopd <- exp(b_nocopd)
-  exp_b_copd   <- exp(b_copd)
-  exp_b        <- exp(b)
-  prb_b_nocopd <- exp_b_nocopd / (1 + exp_b_nocopd)
-  prb_b_copd   <- exp_b_copd / (1 + exp_b_copd)
-  prb_b        <- exp_b / (1 + exp_b)
-
-  # Then RR is:
-  rr <- list(
-    "rr_for_parf"  = clamp(prb_b / prb_a_nocopd, 1, 20),
-    # otherwise light ex smokers had RR < 1
-    "rr_no_copd"   = clamp(prb_b_nocopd / prb_a_nocopd, 1, 20),
-    "rr_with_copd" = clamp(prb_b_copd / prb_a_nocopd, 1, 20)
-  )
-
-  return(rr)
-}
 
 # get observed mortality from ONS data
 #' @export
@@ -460,100 +387,6 @@ get_ons_incd <-
     tt
   }
 
-# get disease epi parameters for mc
-#' @export
-get_disease_epi_mc <-
-  function(mc,
-           disease,
-           epi_par = c("incidence", "prevalence", "fatality", "duration"),
-           what = c("value", "median_value", "p"),
-           # p is the percentile of the uncertainty
-           stochastic = TRUE) {
-    # stochastic = F returns median_value even if what == "value"
-    stopifnot(between(mc, 1, 1e3))
-    # TODO make 1e3 derived from disease_epi_indx.fst
-    epi_par2 <- epi_par <- match.arg(epi_par)
-    what <- match.arg(what)
-    if (epi_par == "fatality") {
-      epi_par <- paste0("case_", epi_par)
-    }
-    if (epi_par == "duration") {
-      epi_par <-
-        paste0(epi_par, "_years")
-    } else {
-      epi_par <- paste0(epi_par, "_rates")
-    }
-    if (!stochastic && what == "value") {
-      what <- "median_value"
-    }
-    indx <-
-      read_fst(
-        "./disease_epidemiology/disease_epi_indx.fst",
-        from = mc,
-        to = mc,
-        as.data.table = TRUE
-      )
-
-    if (epi_par2 != "duration") {
-      colnam <-
-        c("age",
-          "sex",
-          "qimd",
-          paste0(what, "_", disease, "_", epi_par))
-      out <-
-        read_fst(
-          "./disease_epidemiology/disease_epi_l.fst",
-          columns = colnam,
-          from = indx$from,
-          to = indx$to,
-          as.data.table = TRUE
-        )
-      setnames(out, tail(colnam, 1), epi_par2)
-
-    } else {
-      # if duration
-
-      dur_colnam <- paste0(what, "_", disease, "_", epi_par)
-      prev_colnam <-
-        paste0(what, "_", disease, "_", "prevalence_rates")
-      colnam <- c("age", "sex", "qimd", dur_colnam, prev_colnam)
-
-      out <-
-        read_fst(
-          "./disease_epidemiology/disease_epi_l.fst",
-          columns = colnam,
-          from = indx$from,
-          to = indx$to,
-          as.data.table = TRUE
-        )
-      age_range <- out[, range(age)]
-      setnames(out, prev_colnam, "prevalence_rates")
-      setnames(out, dur_colnam, "duration")
-
-      out <-
-        out[prevalence_rates > 0] # To exclude men in breast ca. May have
-
-      # get the prevalent cases. Each row is now a case
-      # logic to get at least 10 cases per strata and prevent 0
-      n <-
-        out[, 10 / min(prevalence_rates)]
-      out <- out[rep(seq_len(.N), prevalence_rates * n)]
-      out[, `:=` (pid = .I - 1L, prevalence_rates = NULL)]
-      # Now project the pids that each case will have copd
-      out <- out[rep(seq_len(.N), duration)]
-
-      out[, age := age + seq_len(.N) - 1L, by = pid]
-      out[, disease_years := seq_len(.N), by = pid]
-      out <-
-        out[between(age, age_range[1], age_range[2]),
-            .("duration" = mean(disease_years)), keyby = .(age, sex, qimd)]
-    }
-
-    invisible(out)
-  }
-# get_disease_epi_mc(1, "chd", "i", "v")
-
-# get disease disease epi parameters for mc
 
 # Extract causal pathways from RR list
 #' @export
@@ -2272,72 +2105,59 @@ run_scenario <-
   }
 
 
-# Function for timing log
-#' @export
-time_mark <- function(x, file_nam = output_dir("times.txt")) {
-  sink(
-    file = file_nam,
-    append = TRUE,
-    type = "output",
-    split = FALSE
-  )
-  cat(paste0(x, " at: ", Sys.time(), "\n"))
-  sink()
-}
-
-#' @export
-export_xps <- function(mc_,
-                       dt,
-                       write_to_disk = TRUE,
-                       filenam = "val_xps_output.csv",
-                       reweighted_to_hse = FALSE) {
-  to_agegrp(dt, 20L, 89L, "age", "agegrp20", to_factor = TRUE)
-  setnames(dt, "t2dm_prvl_curr_xps", "t2dm_prvl_original")
-  if ("t2dm_prvl" %in% names(dt)) {
-    dt[, t2dm_prvl_curr_xps := fifelse(t2dm_prvl == 0L, 0L, 1L)]
-  } else {
-    dt[, t2dm_prvl_curr_xps := fifelse(t2dm_prvl_original == 0L, 0L, 1L)]
-  }
-  dt[, smok_never_curr_xps := fifelse(smok_status_curr_xps == "1", 1L, 0L)]
-  dt[, smok_active_curr_xps := fifelse(smok_status_curr_xps == "4", 1L, 0L)]
-  if (reweighted_to_hse) {
-    wt <- read_fst("./synthpop/hse_sociodemographics.fst",
-                   as.data.table = TRUE)
-    absorb_dt(dt, wt)
-  } else {
-    dt[, hse_wt := 1]
-  }
-
-  xps <- grep("_curr_xps$", names(dt), value = TRUE)
-  xps <- xps[-which(xps == "smok_status_curr_xps")]
-  out_xps <- groupingsets(
-    dt,
-    j = lapply(.SD, weighted.mean, hse_wt),
-    by = c("year", "sex", "agegrp20", "qimd"),
-    .SDcols = xps,
-    sets = list(
-      c("year", "sex", "agegrp20", "qimd"),
-      c("year", "sex"),
-      c("year", "agegrp20"),
-      c("year", "qimd")
-    )
-  )[, `:=` (year = year + 2000L, mc = mc_)]
-  for (j in seq_len(ncol(out_xps)))
-    set(out_xps, which(is.na(out_xps[[j]])), j, "All")
-  dt[, c(
-    "agegrp20",
-    "smok_never_curr_xps",
-    "smok_active_curr_xps",
-    "t2dm_prvl_curr_xps",
-    "hse_wt"
-  ) := NULL]
-  setnames(dt, "t2dm_prvl_original", "t2dm_prvl_curr_xps")
-
-  setkey(out_xps, year)
-  if (write_to_disk)
-    fwrite_safe(out_xps, output_dir(filenam))
-  invisible(out_xps)
-}
+#   #' @export
+# export_xps <- function(mc_,
+#                        dt,
+#                        write_to_disk = TRUE,
+#                        filenam = "val_xps_output.csv",
+#                        reweighted_to_hse = FALSE) {
+#   to_agegrp(dt, 20L, 89L, "age", "agegrp20", to_factor = TRUE)
+#   setnames(dt, "t2dm_prvl_curr_xps", "t2dm_prvl_original")
+#   if ("t2dm_prvl" %in% names(dt)) {
+#     dt[, t2dm_prvl_curr_xps := fifelse(t2dm_prvl == 0L, 0L, 1L)]
+#   } else {
+#     dt[, t2dm_prvl_curr_xps := fifelse(t2dm_prvl_original == 0L, 0L, 1L)]
+#   }
+#   dt[, smok_never_curr_xps := fifelse(smok_status_curr_xps == "1", 1L, 0L)]
+#   dt[, smok_active_curr_xps := fifelse(smok_status_curr_xps == "4", 1L, 0L)]
+#   if (reweighted_to_hse) {
+#     wt <- read_fst("./synthpop/hse_sociodemographics.fst",
+#                    as.data.table = TRUE)
+#     absorb_dt(dt, wt)
+#   } else {
+#     dt[, hse_wt := 1]
+#   }
+#
+#   xps <- grep("_curr_xps$", names(dt), value = TRUE)
+#   xps <- xps[-which(xps == "smok_status_curr_xps")]
+#   out_xps <- groupingsets(
+#     dt,
+#     j = lapply(.SD, weighted.mean, hse_wt),
+#     by = c("year", "sex", "agegrp20", "qimd"),
+#     .SDcols = xps,
+#     sets = list(
+#       c("year", "sex", "agegrp20", "qimd"),
+#       c("year", "sex"),
+#       c("year", "agegrp20"),
+#       c("year", "qimd")
+#     )
+#   )[, `:=` (year = year + 2000L, mc = mc_)]
+#   for (j in seq_len(ncol(out_xps)))
+#     set(out_xps, which(is.na(out_xps[[j]])), j, "All")
+#   dt[, c(
+#     "agegrp20",
+#     "smok_never_curr_xps",
+#     "smok_active_curr_xps",
+#     "t2dm_prvl_curr_xps",
+#     "hse_wt"
+#   ) := NULL]
+#   setnames(dt, "t2dm_prvl_original", "t2dm_prvl_curr_xps")
+#
+#   setkey(out_xps, year)
+#   if (write_to_disk)
+#     fwrite_safe(out_xps, output_dir(filenam))
+#   invisible(out_xps)
+# }
 
 #' @export
 export_mrtl <-
@@ -2912,7 +2732,7 @@ mythemeSelector <- function() {
 
 #' Get the Recent System Load
 #'
-#' @return A named numeric vector with five non-negativeelements `1min`,
+#' @return A named numeric vector with five non-negative elements `1min`,
 #'   `5min`, and `15min` average CPU utilisation, used RAM, and available RAM.
 #' The first values represent estimates of the CPU load during the last
 #' minute, the last five minutes, and the last fifteen minutes \[1\]. An idle
