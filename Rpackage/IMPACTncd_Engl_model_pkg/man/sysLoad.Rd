@@ -7,7 +7,7 @@
 sysLoad()
 }
 \value{
-A named numeric vector with five non-negativeelements `1min`,
+A named numeric vector with five non-negative elements `1min`,
   `5min`, and `15min` average CPU utilisation, used RAM, and available RAM.
 The first values represent estimates of the CPU load during the last
 minute, the last five minutes, and the last fifteen minutes \[1\]. An idle

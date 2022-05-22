@@ -6,7 +6,7 @@
 ## authors and not necessarily those of the NHS, the NIHR or the Department of
 ## Health.
 ##
-## Copyright (C) 2018-2020 University of Liverpool, Chris Kypridemos
+## Copyright (C) 2018-2022 University of Liverpool, Chris Kypridemos
 ##
 ## IMPACTncd_Engl is free software; you can redistribute it and/or modify it under
 ## the terms of the GNU General Public License as published by the Free Software
@@ -31,9 +31,14 @@ dependencies(c("fst", "data.table"))
 
 # Load single datasets -----------------------------------------
 HSE_files <- sort(list.files("./secure_data/HSE_data", "\\.tab$", full.names = TRUE))
-names(HSE_files) <- paste0("hse", 2003:2014)
+names(HSE_files) <- paste0("hse", 2003:2018)
 HSE_files <- lapply(HSE_files, data.table::fread)
 invisible(lapply(HSE_files, function(x) setnames(x, tolower(names(x)))))
+
+HSE_files$hse2015 <- NULL # until proper harmonisation
+HSE_files$hse2016 <- NULL # until proper harmonisation
+HSE_files$hse2017 <- NULL # until proper harmonisation
+HSE_files$hse2018 <- NULL # until proper harmonisation
 
 # Statins
 statin_px <- function(dt) {
@@ -72,6 +77,26 @@ statin_tkn <- function(dt) {
 invisible(lapply(HSE_files, statin_tkn))
 HSE_files$hse2014[, table(statin_tkn)] # statin taken over the last 7 days
 
+lapply(HSE_files, function(x) grep("diage", names(x), value = TRUE))
+lapply(HSE_files, function(x) grep("diabtot", names(x), value = TRUE))
+
+# 2015
+# HSE_files$hse2015 <-
+#   HSE_files$hse2015[, .(
+#     age35g, sex, qimd, bmival, cholval13, omsysval, cigst1, startsmk, endsmokg,
+#   numsmok, smokyrsg, cigdyal,  origin2, hdlval13, bpmedd2, diabete2, sha,
+#   vegpor, frtpor15,  potass, creatin, wt_int,wt_nurse, wt_blood,
+#   wt_urine, psu, cluster, glyhbval, diabtotr, alcohol = d7unitwg * 8,
+#   totalwu = totalwu * 8 / 7, expsmok, eqv5, topqual3, bp1, statina,
+#   statin_px, statin_tkn, diage)]
+# setnames(HSE_files$hse2015, c("age90", "origin3", "sodiumval", "cholval13",
+#                               "hdlval12", "bpmedd2"),
+#          c("age", "origin", "sodium", "cholval1", "hdlval1", "bpmedd"))
+# HSE_files$hse2015[, `:=`(year = 15L, a30to06 = NA, sodiumval = NA)] # year 2000 = year 0
+# HSE_files$hse2015[, sha := as.integer(sha)]
+# replace_from_table(HSE_files$hse2015, "origin", c(1:2, 4:18), c(1L, 1L, 1L, 9L, 9L, 9L, 9L, 2L, 3L, 4L, 8L, 5L, 7L, 6L, 9L, 9L, 9L))
+#
+
 # 2014
 # code bp1 (diagnosed htn), validation to be applied in 2013
 # HSE_files$hse2014[, bp2 := docbp]
@@ -80,9 +105,6 @@ HSE_files$hse2014[, table(statin_tkn)] # statin taken over the last 7 days
 # HSE_files$hse2014[docbp == -9L | pregbp == -9L | othbp == -9L, bp2 := -9]
 # HSE_files$hse2014[docbp == -8L | pregbp == -8L | othbp == -8L, bp2 := -8]
 # HSE_files$hse2014[, table(bp1 == bp2)]
-
-lapply(HSE_files, function(x) grep("diage", names(x), value = TRUE))
-lapply(HSE_files, function(x) grep("diabtot", names(x), value = TRUE))
 
 HSE_files$hse2014 <- HSE_files$hse2014[, .(
   age90, sex, qimd, bmival, cholval12, omsysval, cigst1, startsmk, endsmoke,

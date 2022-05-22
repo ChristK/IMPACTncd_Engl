@@ -1,7 +1,7 @@
 ---
 xps_name: ets
 outcome: t2dm
-lag: 5
+lag: 1
 distribution: lognormal
 source: GBP2019
 notes: RR for both morbility and mortality.
