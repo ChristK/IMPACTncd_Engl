@@ -4,11 +4,11 @@ library(gamlss)
 library(qs)
 
 disnm <- "Atrial Fibrillation" # disease name
-overwrite_incd <- TRUE
-overwrite_prvl <- TRUE
-overwrite_ftlt <- TRUE
-overwrite_dur  <- FALSE
-overwrite_pred <- FALSE
+overwrite_incd <- FALSE
+overwrite_prvl <- FALSE
+overwrite_ftlt <- FALSE
+overwrite_dur  <- TRUE
+overwrite_pred <- TRUE
 
 
 
