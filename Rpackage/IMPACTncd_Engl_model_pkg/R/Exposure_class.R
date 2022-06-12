@@ -440,24 +440,24 @@ Exposure <-
           if (private$nam_rr %in% names(sp$pop))
             stop(private$nam_rr, " already present in the data.")
 
-          exps_tolag <- paste0(self$name, "_curr_xps")
+          xps_tolag <- paste0(self$name, "_curr_xps")
 
           if (self$name %in% names(sp$pop)) {
             # To prevent overwriting t2dm_prvl, af_prvl etc.
-            if (!exps_tolag %in% names(sp$pop)) {
-              set(sp$pop, NULL, exps_tolag, 0L) # Assume only missing for diseases
-              sp$pop[get(self$name) > 0, (exps_tolag) := 1L]
+            if (!xps_tolag %in% names(sp$pop)) {
+              set(sp$pop, NULL, xps_tolag, 0L) # Assume only missing for diseases
+              sp$pop[get(self$name) > 0, (xps_tolag) := 1L]
             }
             setnames(sp$pop, self$name, paste0(self$name, "____"))
           }
 
           if (forPARF) {
-            set(sp$pop, NULL, self$name, sp$pop[[exps_tolag]])
+            set(sp$pop, NULL, self$name, sp$pop[[xps_tolag]])
             lookup_dt(sp$pop, self$get_input_rr(), check_lookup_tbl_validity = FALSE)
 
           } else {
             set(sp$pop, NULL, self$name, # column without _curr_xps is lagged
-                shift_bypid(sp$pop[[exps_tolag]], private$lag_mc[sp$mc_aggr], sp$pop$pid))
+                shift_bypid(sp$pop[[xps_tolag]], private$lag_mc[sp$mc_aggr], sp$pop$pid))
             lookup_dt(sp$pop, self$get_rr(sp$mc_aggr, design_, drop = FALSE),
                       check_lookup_tbl_validity = FALSE)
           }
@@ -465,8 +465,8 @@ Exposure <-
           private$apply_rr_extra(sp)
 
           if (checkNAs && private$nam_rr %in% names(sp$pop)) {
-            # Note that in case of smok_quit_yrs the risk column is deleted
-            # from the rr_extra_fn()
+            # NOTE in case of smok_quit_yrs the risk column is deleted from the
+            # rr_extra_fn()
             print(self$name)
             print(sp$pop[!is.na(get(self$name)) & is.na(get(private$nam_rr)) &
                            age >= design_$sim_prm$ageL &
@@ -529,9 +529,9 @@ Exposure <-
       get_input_rr = function() {
         out <- copy(private$input_rr)
         out[, agegroup := NULL]
-        private$cache <- out
         setnames(out, "rr", private$nam_rr)
-        copy(out)
+        private$cache <- copy(out)
+        out
         },
 
 

@@ -8,7 +8,7 @@ disnm <- "Primary Malignancy_Prostate" # disease name
 overwrite_incd <- TRUE
 overwrite_prvl <- TRUE
 overwrite_ftlt <- TRUE
-overwrite_dur  <- FALSE
+overwrite_dur  <- TRUE
 overwrite_pred <- FALSE
 
 
@@ -90,7 +90,7 @@ if (overwrite_dur ||
 if (overwrite_incd ||
     !file.exists(output_path(paste0(disnm, "_incd.qs")))) {
   dt <- harmonise(read_fst(input_path("panel_short_inc.fst"),
-                           as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
+                           as.data.table = TRUE)[gender == "M"])[between(age, 20, 100) &
                                                                    get(disnm) < 2L &
                                                                    year < 2020, .SD, .SDcols = c(disnm, strata)][, .(incd = sum(get(disnm), na.rm = TRUE), n = .N),
                                                                                                                  keyby = strata]
@@ -136,7 +136,7 @@ if (overwrite_incd ||
 if (overwrite_prvl ||
     !file.exists(output_path(paste0(disnm, "_prvl.qs")))) {
   dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
-                           as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
+                           as.data.table = TRUE)[gender == "M"])[between(age, 20, 100) &
                                                                    get(disnm) <= 2L &
                                                                    year < 2020, .SD, .SDcols = c(disnm, strata)][, .(prvl = sum(get(disnm) == 2L, na.rm = TRUE), n = .N),
                                                                                                                  keyby = strata]
@@ -183,7 +183,7 @@ if (overwrite_ftlt ||
     !file.exists(output_path(paste0(disnm, "_ftlt1.qs"))) ||
     !file.exists(output_path(paste0(disnm, "_ftlt2.qs")))) {
   dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
-                           as.data.table = TRUE)[gender != "I"]
+                           as.data.table = TRUE)[gender == "M"]
                   )[between(age, 20, 100) & get(disnm) == 1L &
                      year < 2020, .SD, .SDcols = c(disnm, strata_ftlt, "death_cause")
       ][, .(ftlt1 = sum(death_cause == disnm, na.rm = TRUE),
@@ -218,7 +218,7 @@ if (overwrite_ftlt ||
 
   # 2+ years case fatality
   dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
-                           as.data.table = TRUE)[gender != "I"]
+                           as.data.table = TRUE)[gender == "M"]
   )[between(age, 20, 100) & get(disnm) == 2L &
       year < 2020, .SD, .SDcols = c(disnm, strata_ftlt, "death_cause")
   ][, .(ftlt2 = sum(death_cause == disnm, na.rm = TRUE),
@@ -228,7 +228,7 @@ if (overwrite_ftlt ||
   y <- cbind(dt$ftlt2, dt$no_ftlt2)
   dt[, c("ftlt2", "no_ftlt2", "n") := NULL]
   mod_max <- gamlss(
-    y ~ (log(year) + pb(age) + pcat(dimd)) ^ 2,
+    y ~ ((year) + pb(age) + pcat(dimd))^2,
     family = BI(),
     data = dt,
     method = mixed(20, 100)
@@ -307,7 +307,7 @@ if (overwrite_pred) {
 
     if (i == "_incd") {
       dt <- harmonise(read_fst(input_path("panel_short_inc.fst"),
-                               as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
+                               as.data.table = TRUE)[gender == "M"])[between(age, 20, 100) &
                                                                        get(disnm) < 2L &
                                                                        year < 2020, .SD, .SDcols = c(disnm, strata)][, .(incd = sum(get(disnm), na.rm = TRUE), n = .N),
                                                                                                                      keyby = strata]
@@ -315,7 +315,7 @@ if (overwrite_pred) {
 
     if (i == "_prvl") {
       dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
-                               as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
+                               as.data.table = TRUE)[gender == "M"])[between(age, 20, 100) &
                                                                        get(disnm) <= 2L &
                                                                        year < 2020, .SD, .SDcols = c(disnm, strata)][, .(prvl = sum(get(disnm) == 2L, na.rm = TRUE), n = .N),
                                                                                                                      keyby = strata]

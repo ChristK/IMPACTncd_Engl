@@ -4,11 +4,11 @@ library(gamlss)
 library(qs)
 
 disnm <- "Primary Malignancy_Lung" # disease name
-overwrite_incd <- TRUE
-overwrite_prvl <- TRUE
-overwrite_ftlt <- TRUE
+overwrite_incd <- FALSE
+overwrite_prvl <- FALSE
+overwrite_ftlt <- FALSE
 overwrite_dur  <- FALSE
-overwrite_pred <- FALSE
+overwrite_pred <- TRUE
 
 # disease list
 # "Anxiety_Depression"            "Asthma"

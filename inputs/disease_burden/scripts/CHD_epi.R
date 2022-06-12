@@ -8,7 +8,7 @@ overwrite_incd <- TRUE
 overwrite_prvl <- FALSE
 overwrite_ftlt <- FALSE
 overwrite_dur  <- FALSE
-overwrite_pred <- FALSE
+overwrite_pred <- TRUE
 
 # disease list
 # "Anxiety_Depression"            "Asthma"
@@ -122,11 +122,28 @@ if (overwrite_incd ||
   #   data = dt,
   #   method = mixed(20, 100)
   # )
-  #
-  # GAIC(m1, m2, m3, m4)
+  # m5 <-  gamlss(
+  #   y ~ I(year >= 16) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # m6 <-  gamlss(
+  #   y ~ I(year >= 17) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # m7 <-  gamlss(
+  #   y ~ I(year >= 18) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # GAIC(m1, m2, m3, m4, m5, m6, m7)
 
   mod_max <- gamlss(
-    y ~ I(year >= 13) + (
+    y ~ I(year >= 18) + (
       log(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
     ) ^ 2,
     family = BI(),

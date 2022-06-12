@@ -139,10 +139,10 @@ Disease <-
           paste0("PARF_", self$name, "_", private$chksum, ".fst")
         )
 
-        keys <- lapply(private$filenams[names(private$filenams) %in% it],
+        keys <- sapply(private$filenams[names(private$filenams) %in% it],
                        function(x) metadata_fst(x)$keys[[1]])
 
-        if (nzchar(keys) && !all(sapply(keys, identical, "year")))
+        if (length(keys) > 0 && !all(sapply(keys, identical, "year")))
           stop("1st key need to be year")
 
         # Logic to ensure _indx files are up to date.
@@ -329,8 +329,8 @@ Disease <-
 
         parf_dt <-
           ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
-                  .(parf = 1 - 1 / (sum(Reduce(`*`, mget(nam))) / .N)),
-                  keyby = .(age, sex, dimd, ethnicity, sha)
+                  .(parf = 1 - .N / sum(Reduce(`*`, .SD))),
+                  keyby = .(age, sex, dimd, ethnicity, sha), .SDcols = nam
           ]
 
         if (sum(dim(private$incd_indx)) > 0) {
@@ -382,8 +382,8 @@ Disease <-
             if (length(riskcolnam) > 0) {
               parf_dt_mrtl <-
                 ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
-                        .(parf_mrtl = 1 - 1 / (sum(Reduce(`*`, mget(riskcolnam))) / .N)),
-                        keyby = .(age, sex, dimd, ethnicity, sha)
+                        .(parf_mrtl = 1 - .N / sum(Reduce(`*`, .SD))),
+                        keyby = .(age, sex, dimd, ethnicity, sha), .SDcols = riskcolnam
                 ]
               absorb_dt(parf_dt, parf_dt_mrtl)
             }
@@ -630,14 +630,16 @@ Disease <-
               # Generate unique name using the relevant RR and lags
 
               # TODO below should apply only to strata with ncases > 0 for efficiency
-              self$set_rr(sp, design_, forPARF = TRUE)
+              self$set_rr(sp, design_, forPARF = TRUE, checkNAs = design_$sim_prm$logs)
 
               nam <- grep("_rr$", names(sp$pop), value = TRUE) # necessary because above forPARF = TRUE
 
               sp$pop[, disease_wt := (Reduce(`*`, .SD)), .SDcols = nam]
               sp$pop[, (nam) := NULL]
               # adjust for prevalent risk half of incident risk
+
               sp$pop[, disease_wt := ((disease_wt - 1) * 0.5) + 1]
+
               ss <- sp$pop[ncases > 0,][, .("pid" = pid[sample_int_expj(unique(.N), unique(ncases), disease_wt)]), by = eval(strata)]
               sp$pop[, (namprvl) := 0L]
               sp$pop[ss, on = c("pid", "year"), (namprvl) := 1L]
@@ -726,8 +728,6 @@ Disease <-
 
         if (is.numeric(self$meta$incidence$type)) {
 
-
-
           if (private$incd_colnam %in% names(sp$pop)) {
             stop(
               "A column named ", private$incd_colnam,
@@ -766,10 +766,12 @@ Disease <-
               thresh <- as.numeric(sp$get_risks(self$name)[[riskcolnam]])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "any") {
-              thresh <- as.numeric(sp$get_risks(self$name)[, do.call(pmax, .SD), .SDcols = riskcolnam])
+              thresh <- as.numeric(sp$get_risks(self$name)[, do.call(pmax, .SD),
+                                                           .SDcols = riskcolnam])
             }
             if (length(riskcolnam) > 1L && self$meta$incidence$aggregation == "all") {
-              thresh <- as.numeric(sp$get_risks(self$name)[, Reduce(`*`, .SD), .SDcols = riskcolnam])
+              thresh <- as.numeric(sp$get_risks(self$name)[, Reduce(`*`, .SD),
+                                                           .SDcols = riskcolnam])
             }
 
             set(sp$pop, NULL, private$incd_colnam, thresh)
@@ -782,11 +784,36 @@ Disease <-
             } else {
               risk_product <- 1
             }
+
+            # Calibrate estimated incidence prbl to init year incidence
+            tbl <- self$get_incd(design_$sim_prm$init_year
+            )[between(age, design_$sim_prm$ageL,
+                      design_$sim_prm$ageH)]
+            lookup_dt(sp$pop, tbl)
+            sp$pop[, rp := private$parf$p0 * sp$get_risks(self$name)[, Reduce(`*`, .SD),
+                                                                     .SDcols = patterns("_rr$")]]
+            setnafill(sp$pop, "c", 0, cols = c("rp", "mu"))
+            # Above rp includes rr from diseases that risk_product doesn't have
+            tbl <- sp$pop[year == design_$sim_prm$init_year &
+                            get(paste0(self$name, "_prvl")) == 0L,
+                          .(clbfctr = sum(mu)/sum(rp)),
+                          keyby = .(sex)] # ,ethnicity, sha
+
+            lookup_dt(sp$pop, tbl)
+            setnafill(sp$pop, "c", 1, cols = "clbfctr")
+
+            # End of calibration
+
             set(sp$pop, NULL, private$incd_colnam,
-                clamp(private$parf$p0 * risk_product))
+                clamp(private$parf$p0 * risk_product * sp$pop$clbfctr))
             # NOTE product above not expected to be equal to incidence because
             # p0 estimated using mean lags and RR, while each mc run samples
             # from their distribution.
+
+            # setnames(sp$pop, "clbfctr", paste0(self$name, "_clbfctr"))
+            # sp$pop[, (paste0(self$name, "_risk_product")) := risk_product]
+            # sp$pop[, (paste0(self$name, "_p0")) := private$parf$p0]
+            sp$pop[, c("mu", "rp", "clbfctr") := NULL]
 
             if (design_$sim_prm$export_PARF) {
               path <- file.path(design_$sim_prm$output_dir, "parf")
@@ -805,11 +832,12 @@ Disease <-
               parf_dt[, `:=`(disease = self$name, mc = sp$mc)] # not sp$mc_aggr
               # EXAMPLE parf[, weighted.mean(parf, pop_size), keyby = sex]
               fwrite_safe(parf_dt, filenam)
-            }
+            } # End export PARF
 
           } else { # End of incident$type not 1 and no associated RF
             tbl <- self$get_incd(seq(design_$sim_prm$init_year,
-                                     design_$sim_prm$init_year + design_$sim_prm$sim_horizon_max)
+                                     design_$sim_prm$init_year +
+                                       design_$sim_prm$sim_horizon_max)
             )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
             setnames(tbl, "mu", private$incd_colnam)
             lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = FALSE)
@@ -936,8 +964,44 @@ Disease <-
             } else {
               risk_product <- 1
             }
+
+            # Calibrate estimated fatality prbl to init year incidence
+            tbl <- self$get_ftlt(design_$sim_prm$init_year
+            )[between(age, design_$sim_prm$ageL,
+                      design_$sim_prm$ageH)]
+            if ("mu1" %in% names(tbl)) tbl[, mu1 := NULL]
+            lookup_dt(sp$pop, tbl)
+            sp$pop[, rp := private$parf$m0 * sp$get_risks(self$name)[, Reduce(`*`, .SD),
+                                                                     .SDcols = patterns("_rr$")]]
+            setnafill(sp$pop, "c", 0, cols = c("rp", "mu2"))
+            # Above rp includes rr from diseases that risk_product doesn't have
+
+            if (self$name == "nonmodelled") {
+              tbl <- sp$pop[year == design_$sim_prm$init_year,
+                            .(clbfctr = sum(mu2)/sum(rp)),
+                            keyby = .(sex)]
+
+            } else {
+              tbl <- sp$pop[year == design_$sim_prm$init_year &
+                              get(paste0(self$name, "_prvl")) > 0L,
+                            .(clbfctr = sum(mu2)/sum(rp)),
+                            keyby = .(sex)]
+
+            }
+            # NOTE the above excludes incident cases. Not appropriate when
+            # private$mrtl2flag == FALSE
+            lookup_dt(sp$pop, tbl)
+            setnafill(sp$pop, "c", 1, cols = "clbfctr")
+
+            # End of calibration
+
             set(sp$pop, NULL, private$mrtl_colnam2,
-                clamp(private$parf$m0 * risk_product))
+                clamp(private$parf$m0 * risk_product * sp$pop$clbfctr))
+
+            # setnames(sp$pop, "clbfctr", paste0(self$name, "_clbfctr_mrtl"))
+            # sp$pop[, (paste0(self$name, "_risk_product_mrtl")) := risk_product]
+            # sp$pop[, (paste0(self$name, "_m0")) := private$parf$m0]
+            sp$pop[, c("mu2", "rp", "clbfctr") := NULL]
 
           }
 
@@ -1150,7 +1214,7 @@ Disease <-
           com <- com[order(match(com, "year"))]
 
 
-          # TODO add a rpoperty on yaml to recognise diseases apply to only one sex
+          # TODO add a property on yaml to recognise diseases apply to only one sex
           if (!"sex" %in% names(tbl) || uniqueN(tbl$sex) == 1L) {
             tbl2 <- copy(tbl)
             if (self$name == "breast_ca") {
@@ -1163,8 +1227,9 @@ Disease <-
               tbl2[, sex := factor("women", levels = c("men", "women"))]
             }
 
-            for (j in val) set(tbl2, NULL, j, NA)
+            for (j in val) set(tbl2, NULL, j, 0)
 
+            com <- c(com, "sex")
             tbl <- rbind(tbl, tbl2)
           }
 
@@ -1199,8 +1264,11 @@ Disease <-
             "mu" %in% names(tbl)) {
             setnames(tbl, "mu", "mu2")
           }
+          if (self$name %in% c("breast_ca", "prostate_ca") && anyNA(tbl))
+            setnafill(tbl, "c", fill = 0, cols = val)
 
-          if (!self$name %in% c("breast_ca", "prostate_ca") &&  anyNA(tbl))
+          # if (!self$name %in% c("breast_ca", "prostate_ca") &&  anyNA(tbl))
+          if (anyNA(tbl))
             stop("NAs in ", private$filenams[[i]])
 
           setkeyv(tbl, com)

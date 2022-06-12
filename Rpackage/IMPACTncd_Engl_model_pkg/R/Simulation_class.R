@@ -368,6 +368,9 @@ Simulation <-
 
         l <- private$mk_scenario_init(sp, "") # TODO update with scenarios
         simcpp(sp$pop, l, sp$mc)
+        # it doesn't matter if mc or mc_aggr is used in the above, because it is
+        # only used for the RNG stream and the pid are different in each mc_aggr
+        # pop
 
         sp$update_pop_weights()
 
@@ -382,7 +385,9 @@ Simulation <-
         sp$pop[, mc := sp$mc_aggr]
 
         if (self$design$sim_prm$logs) message("Exporting lifecourse...")
-        fwrite_safe(sp$pop[all_cause_mrtl >= 0L, ..nam],
+        fwrite_safe(sp$pop[all_cause_mrtl >= 0L &
+                             year >= self$design$sim_prm$init_year &
+                             between(age, self$design$sim_prm$ageL, self$design$sim_prm$ageH), ..nam],
                     private$output_dir(paste0("/lifecourse/", sp$mc_aggr, "_lifecourse.csv")))
 
         if (self$design$sim_prm$logs) {

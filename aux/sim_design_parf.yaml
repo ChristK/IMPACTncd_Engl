@@ -297,7 +297,7 @@ validation: no # or yes. Note, no yes/no
 max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
 iteration_n_max: 1000
 export_PARF: yes
-output_dir: /mnt/storage_fast/output/hf_real_parf
+output_dir: /mnt/storage_fast/output/hf_real_parf_24May
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 # synthpop_dir: c:/synthpop
 scenarios: ''

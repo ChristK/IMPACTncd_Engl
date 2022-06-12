@@ -2,16 +2,30 @@ library(data.table) # for fast data manipulation
 library(fst) # Fast way to save and load data.tables
 library(gamlss)
 library(qs)
-library(gamlss)
 
-disnm <- "CHD" # disease name
-overwrite_incd <- FALSE
-overwrite_prvl <- FALSE
-overwrite_ftlt <- FALSE
-overwrite_dur  <- FALSE
+disnm <- "Epilepsy" # disease name
+overwrite_incd <- TRUE
+overwrite_prvl <- TRUE
+overwrite_ftlt <- TRUE
+overwrite_dur  <- TRUE
+overwrite_pred <- TRUE
 
-# disease list
-# "Anxiety_Depression"            "Asthma"
+
+
+# off-model disease list
+# Alcohol problems
+# CLD
+# (Chronic pain) - Don't have a list...
+#Connective tissue disorder
+# (Constipation) - Don't have a list...
+#Diabetes excl Type 2
+#Epilepsy
+#Hearing loss
+#IBS
+#Psychosis
+#Rheumatoid arthritis
+
+# Main disease list # "Anxiety_Depression"            "Asthma"
 # "Atrial Fibrillation"           "CHD"
 # "COPD"                          "Chronic Kidney Disease"
 # "Dementia"                      "Heart failure"
@@ -28,12 +42,12 @@ source(paste0("/mnt/", Sys.info()[["user"]], "/UoL/CPRD2021/epi_models/scripts/a
 # Duration ====
 if (overwrite_dur ||
     !file.exists(output_path(paste0(disnm, "_dur.qs")))) {
-
+  
   dt <- harmonise(read_fst(input_path("panel_short_prev_2018_years.fst"),
-                 as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
-                                         get(paste0(disnm, "_years")) > 2L,
-                                       .SD, .SDcols = c(paste0(disnm, "_years"), strata)]
-
+                           as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
+                                                                   get(paste0(disnm, "_years")) > 2L,
+                                                                 .SD, .SDcols = c(paste0(disnm, "_years"), strata)]
+  
   setnames(dt, paste0(disnm, "_years"), "dur")
   dt[, dur := dur - 2L] # during the sim will add 2
   marg_distr <- fitDist(
@@ -44,31 +58,31 @@ if (overwrite_dur ||
     trace = TRUE
   )
   head(marg_distr$fits)
-
-  # IMPACTncdEnglmisc::distr_validation(marg_distr, dt[between(dur, 0, 50), .(var = dur, wt = 1)],
+  
+  # workHORSEmisc::distr_validation(marg_distr, dt[between(dur, 0, 50), .(var = dur, wt = 1)],
   #                  expression(bold(duration ~ (years))), discrete = TRUE)
-
+  
   distr_nam <- names(marg_distr$fits[1]) # pick appropriately and note here ZANBI
-
+  
   dur_model <- gamlss(
     dur ~ pb(age) + pcat(sex) + pcat(dimd) + pcat(ethnicity),
     ~pb(age) + pcat(sex) + pcat(dimd),
     ~pb(age),
-    family = distr_nam,
+    family = "ZANBI",
     data = dt,
     method = mixed(20, 100)
   )
-
+  
   qsave(dur_model, output_path(paste0(disnm, "_dur.qs")), "archive")
   print(paste0(disnm, "_dur model saved!"))
-
+  
   trms <- all.vars(formula(dur_model))[-1] # -1 excludes dependent var
   newdata <-
     CJ(
       age = 20:100,
       sex = levels(dt$sex),
       dimd = levels(dt$dimd),
-      ethnicity = levels(dt$ethnicity),
+      ethnicity = levels(dt$ethnicity)
     )
   newdata <- split(newdata, by = "dimd")
   newdata <-
@@ -82,6 +96,7 @@ if (overwrite_dur ||
   print(paste0(disnm, "_dur table saved!"))
   rm(dt, dur_model, newdata, trms)
 }
+
 
 # Incidence ====
 if (overwrite_incd ||
@@ -97,7 +112,7 @@ if (overwrite_incd ||
   dt[, c("incd", "no_incd", "n") := NULL]
   mod_max <- gamlss(
     y ~ (
-      pb(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
+      log(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
     ) ^ 2,
     family = BI(),
     data = dt,
@@ -106,12 +121,12 @@ if (overwrite_incd ||
   validate_plots(dt, y, mod_max, "_incd", disnm, strata)
   qsave(mod_max, output_path(paste0(disnm, "_incd.qs")), "archive")
   print(paste0(disnm, "_incd model saved!"))
-
+  
   trms <- all.vars(formula(mod_max))[-1] # -1 excludes dependent var
   newdata <-
     CJ(
       age = 20:100,
-      year = unique(dt$year),
+      year = 3:100,
       sex = levels(dt$sex),
       dimd = levels(dt$dimd),
       ethnicity = levels(dt$ethnicity),
@@ -144,7 +159,7 @@ if (overwrite_prvl ||
   dt[, c("prvl", "no_prvl", "n") := NULL]
   mod_max <- gamlss(
     y ~ (
-      pb(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
+      log(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
     ) ^ 2,
     family = BI(),
     data = dt,
@@ -153,12 +168,12 @@ if (overwrite_prvl ||
   validate_plots(dt, y, mod_max, "_prvl", disnm, strata)
   qsave(mod_max, output_path(paste0(disnm, "_prvl.qs")), "archive")
   print(paste0(disnm, "_prvl model saved!"))
-
+  
   trms <- all.vars(formula(mod_max))[-1] # -1 excludes dependent var
   newdata <-
     CJ(
       age = 20:100,
-      year = unique(dt$year),
+      year = 3:100,
       sex = levels(dt$sex),
       dimd = levels(dt$dimd),
       ethnicity = levels(dt$ethnicity),
@@ -177,35 +192,34 @@ if (overwrite_prvl ||
   rm(dt, mod_max, newdata, trms)
 }
 
-# Case Fatality 1st year ====
+# Case Fatality ALL year ====
 if (overwrite_ftlt ||
-    !file.exists(output_path(paste0(disnm, "_ftlt1.qs"))) ||
-    !file.exists(output_path(paste0(disnm, "_ftlt2.qs")))) {
+    !file.exists(output_path(paste0(disnm, "_ftlt.qs")))) {
   dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
                            as.data.table = TRUE)[gender != "I"]
-                  )[between(age, 20, 100) & get(disnm) == 1L &
-                     year < 2020, .SD, .SDcols = c(disnm, strata_ftlt, "death_cause")
-      ][, .(ftlt1 = sum(death_cause == disnm, na.rm = TRUE),
-                                 n = .N), keyby = strata_ftlt]
-  dt[, no_ftlt1 := n - ftlt1]
+  )[between(age, 20, 100) & get(disnm) > 0L &
+      year < 2020, .SD, .SDcols = c(disnm, strata_ftlt, "death_cause")
+  ][, .(ftlt = sum(death_cause == disnm, na.rm = TRUE),
+        n = .N), keyby = strata_ftlt]
+  dt[, no_ftlt := n - ftlt]
   dt[, year := year - 2000]
-  y <- cbind(dt$ftlt1, dt$no_ftlt1)
-  dt[, c("ftlt1", "no_ftlt1", "n") := NULL]
+  y <- cbind(dt$ftlt, dt$no_ftlt)
+  dt[, c("ftlt", "no_ftlt", "n") := NULL]
   mod_max <- gamlss(
-    y ~ (log(year) + pb(age) + pcat(sex) + dimd) ^ 2,
+    y ~ (log(year) + pb(age) + pcat(sex) + pcat(dimd)) ^ 2,
     family = BI(),
     data = dt,
     method = mixed(20, 100)
   )
-  validate_plots(dt, y, mod_max, "_ftlt1", disnm, strata_ftlt)
-  qsave(mod_max, output_path(paste0(disnm, "_ftlt1.qs")), "archive")
-  print(paste0(disnm, "_ftlt1 model saved!"))
-
+  validate_plots(dt, y, mod_max, "_ftlt", disnm, strata_ftlt)
+  qsave(mod_max, output_path(paste0(disnm, "_ftlt.qs")), "archive")
+  print(paste0(disnm, "_ftlt model saved!"))
+  
   trms <- all.vars(formula(mod_max))[-1] # -1 excludes dependent var
   newdata1 <-
     CJ(
       age = 20:100,
-      year = 8:100,
+      year = 3:100,
       sex = levels(dt$sex),
       dimd = levels(dt$dimd)
     )
@@ -213,53 +227,92 @@ if (overwrite_ftlt ||
   newdata1 <-
     # assignment necessary! Copies of data.tables are happening
     lapply(newdata1, function(x)
-      x[, c("mu1") := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
+      x[, "mu2" := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
   newdata1 <- rbindlist(newdata1)
-
-  # 2+ years case fatality
-  dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
-                           as.data.table = TRUE)[gender != "I"]
-  )[between(age, 20, 100) & get(disnm) == 2L &
-      year < 2020, .SD, .SDcols = c(disnm, strata_ftlt, "death_cause")
-  ][, .(ftlt2 = sum(death_cause == disnm, na.rm = TRUE),
-        n = .N), keyby = strata_ftlt]
-  dt[, no_ftlt2 := n - ftlt2]
-  dt[, year := year - 2000]
-  y <- cbind(dt$ftlt2, dt$no_ftlt2)
-  dt[, c("ftlt2", "no_ftlt2", "n") := NULL]
-  mod_max <- gamlss(
-    y ~ (log(year) + pb(age) + pcat(sex) + dimd) ^ 2,
-    family = BI(),
-    data = dt,
-    method = mixed(20, 100)
-  )
-  validate_plots(dt, y, mod_max, "_ftlt2", disnm, strata_ftlt)
-  qsave(mod_max, output_path(paste0(disnm, "_ftlt2.qs")), "archive")
-  print(paste0(disnm, "_ftlt2 model saved!"))
-
-  trms <- all.vars(formula(mod_max))[-1] # -1 excludes dependent var
-  newdata2 <-
-    CJ(
-      age = 20:100,
-      year = 8:100,
-      sex = levels(dt$sex),
-      dimd = levels(dt$dimd)
-    )
-  newdata2 <- split(newdata2, by = "dimd")
-  newdata2 <-
-    # assignment necessary! Copies of data.tables are happening
-    lapply(newdata2, function(x)
-      x[, c("mu2") := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
-  newdata2 <- rbindlist(newdata2)
-
-  stopifnot(nrow(newdata1) == nrow(newdata2))
-  stopifnot(identical(newdata1[, .SD, .SDcols = -"mu1"],
-                      newdata2[, .SD, .SDcols = -"mu2"]))
-
-  newdata1[newdata2, on = .NATURAL, mu2 := i.mu2]
+  
   newdata1[, dimd := factor(dimd, as.character(1:10))]
   setkeyv(newdata1, strata_ftlt)
   write_fst(newdata1, output_path(paste0(disnm, "_ftlt.fst")), 100L)
   print(paste0(disnm, "_ftlt model saved!"))
-  rm(dt, mod_max, newdata1, newdata2, trms)
+  rm(dt, mod_max, newdata1, trms)
 }
+
+
+# Longer predictions ----
+if (overwrite_pred) {
+  template <-
+    CJ(
+      age = 20:100,
+      year = 3:100,
+      sex = factor(c("men", "women")),
+      dimd = factor(1:10),
+      ethnicity = factor(
+        c(
+          "white",
+          "indian",
+          "pakistani",
+          "bangladeshi",
+          "other asian",
+          "black caribbean",
+          "black african",
+          "chinese",
+          "other"
+        )
+      ),
+      sha = factor(
+        c(
+          "North East",
+          "North West",
+          "Yorkshire and the Humber",
+          "East Midlands",
+          "West Midlands",
+          "East of England",
+          "London",
+          "South East Coast",
+          "South Central",
+          "South West"
+        )
+      )
+    )
+  
+  
+  for (i in c("_incd", "_prvl")) {
+    
+    if (i == "_incd") {
+      dt <- harmonise(read_fst(input_path("panel_short_inc.fst"),
+                               as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
+                                                                       get(disnm) < 2L &
+                                                                       year < 2020, .SD, .SDcols = c(disnm, strata)][, .(incd = sum(get(disnm), na.rm = TRUE), n = .N),
+                                                                                                                     keyby = strata]
+    }
+    
+    if (i == "_prvl") {
+      dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
+                               as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
+                                                                       get(disnm) <= 2L &
+                                                                       year < 2020, .SD, .SDcols = c(disnm, strata)][, .(prvl = sum(get(disnm) == 2L, na.rm = TRUE), n = .N),
+                                                                                                                     keyby = strata]
+    }
+    dt[, year := year - 2000]
+    
+    
+    mod_max <- qread(output_path(paste0(disnm, i, ".qs")))
+    trms <-
+      all.vars(formula(mod_max))[-1] # -1 excludes dependent var
+    newdata <- copy(template)
+    newdata <- split(newdata, by = "sha")
+    newdata <- lapply(newdata, function(x)
+      x[, c("mu") := predictAll(mod_max, .SD, data = dt),
+        .SDcols = trms])
+    newdata <- rbindlist(newdata)
+    newdata[, dimd := factor(dimd, as.character(1:10))]
+    setkeyv(newdata, strata)
+    write_fst(newdata,
+              output_path(paste0(disnm, i, ".fst")), 100L)
+    print(paste0(disnm, " ", i, " table saved!"))
+  }
+}
+
+
+
+

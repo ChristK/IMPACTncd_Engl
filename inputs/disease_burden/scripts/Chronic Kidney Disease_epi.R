@@ -3,10 +3,11 @@ library(fst) # Fast way to save and load data.tables
 library(gamlss)
 library(qs)
 
-disnm <- "Chronic Kidney Disease" # disease name
-overwrite_incd <- TRUE
+disnm <- "Chronic Kidney Disease" # disease name 
+# This is CKD of all stages (includes ckd stage 3, ckd stage 4, ckd stage 5/ESRD)
+overwrite_incd <- FALSE
 overwrite_prvl <- FALSE
-overwrite_ftlt <- FALSE
+overwrite_ftlt <- TRUE
 overwrite_dur  <- FALSE
 overwrite_pred <- FALSE
 
@@ -228,8 +229,41 @@ if (overwrite_ftlt ||
   dt[, year := year - 2000]
   y <- cbind(dt$ftlt, dt$no_ftlt)
   dt[, c("ftlt", "no_ftlt", "n") := NULL]
+  
+  #m1 <- gamlss(
+  #  y ~ log(year) ,
+  #  family = BI(),
+  #  data = dt,
+  #  method = mixed(20, 100)
+  #)
+  #m2 <- gamlss(
+  #  y ~ log(year) + I(year >=14) ,
+  #  family = BI(),
+  #  data = dt,
+  #  method = mixed(20, 100)
+  #)
+  #m3 <- gamlss(
+  #  y ~ log(year) + I(year >=15) ,
+  #  family = BI(),
+  #  data = dt,
+  #  method = mixed(20, 100)
+  #)
+  #m4 <- gamlss(
+  #  y ~ log(year) + I(year >=16) ,
+  #  family = BI(),
+  #  data = dt,
+  #  method = mixed(20, 100)
+  #)
+  #m5 <- gamlss(
+  #  y ~ log(year) + I(year >=17) ,
+  #  family = BI(),
+  #  data = dt,
+  #  method = mixed(20, 100)
+  #)
+  #GAIC(m1, m2, m3, m4, m5)
   mod_max <- gamlss(
-    y ~ (log(year) + pb(age) + pcat(sex) + pcat(dimd)) ^ 2,
+    y ~ (log(year) + I(year >=14) +
+           pb(age) + pcat(sex) + pcat(dimd)) ^ 2,
     family = BI(),
     data = dt,
     method = mixed(20, 100)
@@ -256,7 +290,7 @@ if (overwrite_ftlt ||
   setkeyv(newdata1, strata_ftlt)
   write_fst(newdata1, output_path(paste0(disnm, "_ftlt.fst")), 100L)
   print(paste0(disnm, "_ftlt model saved!"))
-  rm(dt, mod_max, newdata1, strms)
+  rm(dt, mod_max, newdata1, trms)
 }
 
 

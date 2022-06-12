@@ -18,7 +18,7 @@ ideal_xps_lvl_fn: >
     save.seed <- get('.Random.seed', .GlobalEnv)
     set.seed(851747L) # Same for stroke, CHD & T2DM
     res <- rnorm(design_$sim_prm$iteration_n_max, mean = runif(design_$sim_prm$iteration_n_max, 21, 23), sd = runif(design_$sim_prm$iteration_n_max, 1.1, 1.8))
-    assign('.Randon.seed', save.seed, .GlobalEnv)
+    assign('.Random.seed', save.seed, .GlobalEnv)
     res
     }
 ---
