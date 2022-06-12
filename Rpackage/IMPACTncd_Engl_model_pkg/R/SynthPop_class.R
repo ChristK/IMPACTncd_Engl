@@ -196,7 +196,7 @@ SynthPop <-
         if (!"wt" %in% names(self$pop)) { # baseline
           self$pop[, tmp := sum(wt_immrtl), keyby = .(year, age, sex)]
           set(self$pop, NULL, "wt", 0)
-          self$pop[all_cause_mrtl == 0L, wt := wt_immrtl * tmp / sum(wt_immrtl),
+          self$pop[!is.na(all_cause_mrtl), wt := wt_immrtl * tmp / sum(wt_immrtl),
                    by = .(year, age, sex)]
 
           self[, tmp := NULL]
@@ -1614,7 +1614,7 @@ SynthPop <-
             dt[, bpmed_adherence := qBE(rankstat_bpmed_adherence, design_$sim_prm$bpmed_adherence, 0.2)]
             dt[, c("rankstat_bpmed_adherence", "rankstat_statin_adherence") := NULL]
 
-            exps_tolag <- c(
+            xps_tolag <- c(
               "active_days",
               "met",
               "fruit",
@@ -1631,8 +1631,8 @@ SynthPop <-
               "tchol",
               "statin_px"
             )
-            exps_nam <-  paste0(exps_tolag, "_curr_xps")
-            setnames(dt, exps_tolag, exps_nam)
+            xps_nam <-  paste0(xps_tolag, "_curr_xps")
+            setnames(dt, xps_tolag, xps_nam)
 
 
             # Prune & write synthpop to disk ----
@@ -1684,16 +1684,15 @@ SynthPop <-
                     private$design$sim_prm$ageL - private$design$sim_prm$maxlag,
                     private$design$sim_prm$ageH)]
 
-          dt[, pid_mrk := mk_new_simulant_markers(pid)] # TODO Do I need this?
 
           # Ensure pid does not overlap for files from different mc
-          new_n <- uniqueN(dt$pid)
+          new_n <-
           it <- as.integer(ceiling(self$mc %% private$design$sim_prm$n_synthpop_aggregation))
-          it[it == 0L] <- private$design$sim_prm$n_synthpop_aggregation
-          it <- it - 1L
-          if (max(dt$pid + (private$design$sim_prm$n_synthpop_aggregation - 1) * new_n) < .Machine$integer.max) {
-            dt[, pid := as.integer(pid + it * new_n)]
-          } else stop("pid larger than int32 limit.")
+          if ((max(dt$pid) + it * 1e8) >= .Machine$integer.max) stop("pid larger than int32 limit.")
+          dt[, pid := as.integer(pid + it * 1e8)]
+
+          dt[, pid_mrk := mk_new_simulant_markers(pid)] # TODO Do I need this?
+
           # generate population weights
           private$gen_pop_weights(dt, private$design)
           dt[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]

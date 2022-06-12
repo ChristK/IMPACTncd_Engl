@@ -3,14 +3,13 @@ library(fst) # Fast way to save and load data.tables
 library(gamlss)
 library(qs)
 
-disnm <- "Primary Malignancy_Colorectal" # disease name
+disnm <- "Chronic Kidney Disease stage 3" # disease name 
+# This is CKD stage 3 only (does not included ckd stage 4 or ckd stage 5/ESRD)
 overwrite_incd <- FALSE
-overwrite_prvl <- TRUE
+overwrite_prvl <- FALSE
 overwrite_ftlt <- FALSE
 overwrite_dur  <- FALSE
 overwrite_pred <- TRUE
-
-
 
 # disease list
 # "Anxiety_Depression"            "Asthma"
@@ -26,6 +25,7 @@ overwrite_pred <- TRUE
 strata <- c("year", "age", "sex", "dimd", "sha", "ethnicity")
 strata_ftlt <- c("year", "age", "sex", "dimd")
 source(paste0("/mnt/", Sys.info()[["user"]], "/UoL/CPRD2021/epi_models/scripts/aux_fn.R"))
+
 
 # Duration ====
 if (overwrite_dur ||
@@ -84,6 +84,9 @@ if (overwrite_dur ||
   print(paste0(disnm, "_dur table saved!"))
   rm(dt, dur_model, newdata, trms)
 }
+
+
+
 # Incidence ====
 if (overwrite_incd ||
     !file.exists(output_path(paste0(disnm, "_incd.qs")))) {
@@ -96,8 +99,53 @@ if (overwrite_incd ||
   dt[, year := year - 2000]
   y <- cbind(dt$incd, dt$no_incd)
   dt[, c("incd", "no_incd", "n") := NULL]
+
+
+  # m1 <-  gamlss(
+  #   y ~ log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # m2 <-  gamlss(
+  #   y ~ I(year >= 14) + I(year >= 16) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  #
+  # m3 <-  gamlss(
+  #   y ~ I(year >= 14) + I(year >= 15) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  #
+  # m4 <-  gamlss(
+  #   y ~ I(year >= 14) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  #
+  # m5 <-  gamlss(
+  #   y ~ I(year >= 13) + I(year >= 15) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  #
+  # m <-  gamlss(
+  #   y ~ I(year >= 12) + I(year >= 15) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # GAIC(m1, m2, m3, m4, m5, m6)
+
+
+
   mod_max <- gamlss(
-    y ~ (
+    y ~ I(year >= 13) + I(year >= 15) + (
       log(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
     ) ^ 2,
     family = BI(),
@@ -143,64 +191,13 @@ if (overwrite_prvl ||
   dt[, year := year - 2000]
   y <- cbind(dt$prvl, dt$no_prvl)
   dt[, c("prvl", "no_prvl", "n") := NULL]
-
-  # m1 <-  gamlss(
-  #   y ~ log(year) ,
-  #   family = BI(),
-  #   data = dt,
-  #   method = mixed(5, 100)
-  # )
-  # m2 <-  gamlss(
-  #   y ~ I(year >= 12) + log(year) ,
-  #   family = BI(),
-  #   data = dt,
-  #   method = mixed(5, 100)
-  # )
-  #
-  # m3 <-  gamlss(
-  #   y ~ I(year >= 13) + log(year) ,
-  #   family = BI(),
-  #   data = dt,
-  #   method = mixed(5, 100)
-  # )
-  #
-  # m4 <-  gamlss(
-  #   y ~ I(year >= 14) + log(year) ,
-  #   family = BI(),
-  #   data = dt,
-  #   method = mixed(5, 100)
-  # )
-  # m5 <-  gamlss(
-  #   y ~ I(year >= 12) * log(year) ,
-  #   family = BI(),
-  #   data = dt,
-  #   method = mixed(5, 100)
-  # )
-  #
-  # m6 <-  gamlss(
-  #   y ~ I(year >= 13) * log(year) ,
-  #   family = BI(),
-  #   data = dt,
-  #   method = mixed(5, 100)
-  # )
-  #
-  # m7 <-  gamlss(
-  #   y ~ I(year >= 14) * log(year) ,
-  #   family = BI(),
-  #   data = dt,
-  #   method = mixed(5, 100)
-  # )
-  #
-  # GAIC(m1, m2, m3, m4, m5, m6, m7) 
-  # validate_plots(dt, y, m7, "_prvl", disnm, strata)
-  #
   mod_max <- gamlss(
     y ~ (
-      log(year) * I(year >= 14)  + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
+      log(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
     ) ^ 2,
     family = BI(),
     data = dt,
-    method = mixed(2, 100)
+    method = mixed(20, 100)
   )
   validate_plots(dt, y, mod_max, "_prvl", disnm, strata)
   qsave(mod_max, output_path(paste0(disnm, "_prvl.qs")), "archive")
@@ -229,29 +226,30 @@ if (overwrite_prvl ||
   rm(dt, mod_max, newdata, trms)
 }
 
-# Case Fatality 1st year ====
+# Case Fatality all year ====
 if (overwrite_ftlt ||
-    !file.exists(output_path(paste0(disnm, "_ftlt1.qs"))) ||
-    !file.exists(output_path(paste0(disnm, "_ftlt2.qs")))) {
+    !file.exists(output_path(paste0(disnm, "_ftlt.qs"))))
+  {
+
   dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
                            as.data.table = TRUE)[gender != "I"]
-                  )[between(age, 20, 100) & get(disnm) == 1L &
+                  )[between(age, 20, 100) & get(disnm) > 0L &
                      year < 2020, .SD, .SDcols = c(disnm, strata_ftlt, "death_cause")
-      ][, .(ftlt1 = sum(death_cause == disnm, na.rm = TRUE),
+      ][, .(ftlt = sum(death_cause == disnm, na.rm = TRUE),
                                  n = .N), keyby = strata_ftlt]
-  dt[, no_ftlt1 := n - ftlt1]
+  dt[, no_ftlt := n - ftlt]
   dt[, year := year - 2000]
-  y <- cbind(dt$ftlt1, dt$no_ftlt1)
-  dt[, c("ftlt1", "no_ftlt1", "n") := NULL]
+  y <- cbind(dt$ftlt, dt$no_ftlt)
+  dt[, c("ftlt", "no_ftlt", "n") := NULL]
   mod_max <- gamlss(
     y ~ (log(year) + pb(age) + pcat(sex) + pcat(dimd)) ^ 2,
     family = BI(),
     data = dt,
     method = mixed(20, 100)
   )
-  validate_plots(dt, y, mod_max, "_ftlt1", disnm, strata_ftlt)
-  qsave(mod_max, output_path(paste0(disnm, "_ftlt1.qs")), "archive")
-  print(paste0(disnm, "_ftlt1 model saved!"))
+  validate_plots(dt, y, mod_max, "_ftlt", disnm, strata_ftlt)
+  qsave(mod_max, output_path(paste0(disnm, "_ftlt.qs")), "archive")
+  print(paste0(disnm, "_ftlt model saved!"))
 
   trms <- all.vars(formula(mod_max))[-1] # -1 excludes dependent var
   newdata1 <-
@@ -265,55 +263,13 @@ if (overwrite_ftlt ||
   newdata1 <-
     # assignment necessary! Copies of data.tables are happening
     lapply(newdata1, function(x)
-      x[, c("mu1") := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
+      x[, "mu2" := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
   newdata1 <- rbindlist(newdata1)
-
-  # 2+ years case fatality
-  dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
-                           as.data.table = TRUE)[gender != "I"]
-  )[between(age, 20, 100) & get(disnm) == 2L &
-      year < 2020, .SD, .SDcols = c(disnm, strata_ftlt, "death_cause")
-  ][, .(ftlt2 = sum(death_cause == disnm, na.rm = TRUE),
-        n = .N), keyby = strata_ftlt]
-  dt[, no_ftlt2 := n - ftlt2]
-  dt[, year := year - 2000]
-  y <- cbind(dt$ftlt2, dt$no_ftlt2)
-  dt[, c("ftlt2", "no_ftlt2", "n") := NULL]
-  mod_max <- gamlss(
-    y ~ (log(year) + pb(age) + pcat(sex) + pcat(dimd)) ^ 2,
-    family = BI(),
-    data = dt,
-    method = mixed(20, 100)
-  )
-  validate_plots(dt, y, mod_max, "_ftlt2", disnm, strata_ftlt)
-  qsave(mod_max, output_path(paste0(disnm, "_ftlt2.qs")), "archive")
-  print(paste0(disnm, "_ftlt2 model saved!"))
-
-  trms <- all.vars(formula(mod_max))[-1] # -1 excludes dependent var
-  newdata2 <-
-    CJ(
-      age = 20:100,
-      year = 3:100,
-      sex = levels(dt$sex),
-      dimd = levels(dt$dimd)
-    )
-  newdata2 <- split(newdata2, by = "dimd")
-  newdata2 <-
-    # assignment necessary! Copies of data.tables are happening
-    lapply(newdata2, function(x)
-      x[, c("mu2") := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
-  newdata2 <- rbindlist(newdata2)
-
-  stopifnot(nrow(newdata1) == nrow(newdata2))
-  stopifnot(identical(newdata1[, .SD, .SDcols = -"mu1"],
-                      newdata2[, .SD, .SDcols = -"mu2"]))
-
-  newdata1[newdata2, on = .NATURAL, mu2 := i.mu2]
   newdata1[, dimd := factor(dimd, as.character(1:10))]
   setkeyv(newdata1, strata_ftlt)
   write_fst(newdata1, output_path(paste0(disnm, "_ftlt.fst")), 100L)
   print(paste0(disnm, "_ftlt model saved!"))
-  rm(dt, mod_max, newdata1, newdata2, trms)
+  rm(dt, mod_max, newdata1, strms)
 }
 
 
@@ -392,4 +348,7 @@ if (overwrite_pred) {
     print(paste0(disnm, " ", i, " table saved!"))
   }
 }
+
+
+
 

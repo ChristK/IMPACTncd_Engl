@@ -128,7 +128,7 @@ Design <-
           ds_ <- ds[i]
           dep <-
             sim_prm[["diseases"]][[i]][["meta"]][["incidence"]][["influenced_by_disease_name"]]
-          if (length(dep) > 0L && nzchar(dep)) {
+          if (length(dep) > 0L) {
             # dep <- gsub("_prvl", "", dep)
             for (j in seq_along(dep)) {
               out <- c(out, dep[[j]], ds_)

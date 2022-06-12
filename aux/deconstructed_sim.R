@@ -1,17 +1,21 @@
-
 source("./global.R")
 design <- Design$new("./inputs/sim_design.yaml")
 # RR ----
 # Create a named list of Exposure objects for the files in ./inputs/RR
 fl <- list.files(path = "./inputs/RR", pattern = ".csvy$", full.names = TRUE)
+# RR <- lapply(fl, Exposure$new, design)
+# names(RR) <- sapply(RR, function(x) x$get_name())
+# lapply(RR, function(x) {
+#     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
+# })
 RR <- future_lapply(fl, Exposure$new, design,future.seed = 950480304L)
 names(RR) <- sapply(RR, function(x) x$get_name())
 invisible(future_lapply(RR, function(x) {
     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
 },
 future.seed = 627524136L))
-# # NOTE smooth cannot be exported to Design for now, because the first time
-# # this parameter changes we need logic to overwrite unsmoothed files
+# NOTE smooth cannot be exported to Design for now, because the first time
+# this parameter changes we need logic to overwrite unsmoothed files
 rm(fl)
 #
 # # Generate diseases ----
@@ -45,57 +49,47 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
 # sim$write_synthpop(1:500)
 # sim$delete_synthpop(NULL)
 # ll <- sim$gen_synthpop_demog(design)
-sp  <- SynthPop$new(1L, design)
-sp2 <- SynthPop$new(2L, design)
+sp <- SynthPop$new(1L, design)
 
 # lapply(diseases, function(x) x$harmonise_epi_tables(sp))
 # lapply(diseases, function(x) {
 #     print(x)
 #     x$gen_parf_files(design)
 # })
-lapply(diseases, function(x) {
-    print(x)
-    x$gen_parf(sp, design, diseases)
-})
-lapply(diseases, function(x) {
-    print(x)
-    x$gen_parf(sp2, design, diseases)
-})
-lapply(diseases, function(x) {
-    print(x)
-    x$set_init_prvl(sp, design)
-})
-lapply(diseases, function(x) {
-    print(x)
-    x$set_init_prvl(sp2, design)
-})
-lapply(diseases, function(x) {
-    print(x)
-    x$set_rr(sp, design)
-})
-lapply(diseases, function(x) {
-    print(x)
-    x$set_rr(sp2, design)
-})
-lapply(diseases, function(x) {
-    print(x)
-    x$set_incd_prb(sp, design)
-})
-lapply(diseases, function(x) {
-    print(x)
-    x$set_dgns_prb(sp, design)
-})
-lapply(diseases, function(x) {
-    print(x)
-    x$set_mrtl_prb(sp, design)
-})
+# lapply(diseases, function(x) {
+#     print(x)
+#     x$gen_parf(sp, design, diseases)
+# })
+# lapply(diseases, function(x) {
+#     print(x)
+#     x$set_init_prvl(sp, design)
+# })
+# lapply(diseases, function(x) {
+#     print(x)
+#     x$set_rr(sp, design)
+# })
+# lapply(diseases, function(x) {
+#     print(x)
+#     x$set_incd_prb(sp, design)
+# })
+# lapply(diseases, function(x) {
+#     print(x)
+#     x$set_dgns_prb(sp, design)
+# })
+# lapply(diseases, function(x) {
+#     print(x)
+#     x$set_mrtl_prb(sp, design)
+# })
 # diseases$t2dm$harmonise_epi_tables(sp)
-# diseases$t2dm$gen_parf(sp, design)
-# diseases$t2dm$set_init_prvl(sp, design)
-# diseases$t2dm$set_rr(sp, design)
-# diseases$t2dm$set_incd_prb(sp, design)
-# diseases$t2dm$set_dgns_prb(sp, design)
-# diseases$t2dm$set_mrtl_prb(sp, design)
+diseases$t2dm$gen_parf(sp, design)
+diseases$t2dm$set_init_prvl(sp, design)
+diseases$t2dm$set_rr(sp, design)
+diseases$t2dm$set_incd_prb(sp, design)
+diseases$t2dm$set_dgns_prb(sp, design)
+diseases$t2dm$set_mrtl_prb(sp, design)
+
+sp$pop[, .(mean(t2dm_risk_product), mean(t2dm_risk_product_mrtl)), keyby = year]
+sp$pop[, .(mean(t2dm_clbfctr_mrtl)), keyby = year]
 
 # diseases$af$harmonise_epi_tables(sp)
 # diseases$af$gen_parf(sp, design)
@@ -194,12 +188,23 @@ lapply(diseases, function(x) {
 # diseases$prostate_ca$set_mrtl_prb(sp, design)
 
 # diseases$breast_ca$harmonise_epi_tables(sp)
-# diseases$breast_ca$gen_parf(sp, design)
-# diseases$breast_ca$set_init_prvl(sp, design)
-# diseases$breast_ca$set_rr(sp, design)
-# diseases$breast_ca$set_incd_prb(sp, design)
-# diseases$breast_ca$set_dgns_prb(sp, design)
-# diseases$breast_ca$set_mrtl_prb(sp, design)
+diseases$breast_ca$gen_parf(sp, design)
+diseases$breast_ca$set_init_prvl(sp, design)
+diseases$breast_ca$set_rr(sp, design)
+diseases$breast_ca$set_incd_prb(sp, design)
+diseases$breast_ca$set_dgns_prb(sp, design)
+diseases$breast_ca$set_mrtl_prb(sp, design)
+
+sp$pop[age >= 30 & sex == "women", mean(prb_breast_ca_incd), keyby = year][, plot(year, V1)]
+sp$pop[age >= 30 & sex == "women", mean(breast_ca_clbfctr), keyby = year][, plot(year, V1)]
+sp$pop[age >= 30 & sex == "women", mean(breast_ca_risk_product), keyby = year][, plot(year, V1)]
+sp$pop[age >= 30 & sex == "women", mean(breast_ca_p0), keyby = year][, plot(year, V1)]
+sp$pop[age >= 30 & sex == "women",
+       mean(breast_ca_risk_product * breast_ca_p0), keyby = year][, plot(year, V1)]
+sp$pop[age >= 30 & sex == "women", mean(breast_ca_clbfctr, na.rm = TRUE), keyby = .(year, age, sex, dimd)][, summary(V1)]
+
+sp$pop[age >= 30 & sex == "women", 1e5 * sum(prb_breast_ca_incd)/.N, keyby = year]
+sp$pop[age >= 30 & sex == "women", 1e5 * sum(prb_breast_ca_incd)/.N, keyby = age]
 
 # diseases$andep$harmonise_epi_tables(sp)
 # diseases$andep$gen_parf(sp, design)
@@ -250,11 +255,13 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 
 
 # qsave(sp, "./simulation/tmp.qs")
-sp <- qread("./simulation/tmp.qs")
+# sp <- qread("./simulation/tmp.qs")
+# setDT(sp$pop)
 l <- mk_scenario_init2("", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
 
 sp$update_pop_weights()
+all.equal(sp$pop, sp2$pop)
 sp$pop[, mc := sp$mc_aggr]
 
 # export xps

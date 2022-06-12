@@ -90,7 +90,7 @@ HSE_files$hse2015 <- HSE_files$hse2015[, .(
   cluster, 
   #glyhbval,# revised to GLYHBVALA
   diabtotr, alcohol = d7unitwg * 8,
-  totalwu = totalwu * 8 / 7, expsmok, eqv5, topqual3, bp1, 
+  totalwu = totalwu * 8 / 7, xpsmok, eqv5, topqual3, bp1, 
   #statina, # can't find
   #statin_px, # can't find
   #statin_tkn, # can't find
@@ -155,7 +155,7 @@ HSE_files$hse2016 <- HSE_files$hse2016[, .(
   bpmedd2, diabete2, sha, vegpor, 
   # frtpor,# revise porfrt
   # glyhbval, # revise to glyhbvala
-  alcohol = d7unitwg * 8, totalwu = totalwu * 8 / 7, expsmok, eqv5,
+  alcohol = d7unitwg * 8, totalwu = totalwu * 8 / 7, xpsmok, eqv5,
   topqual3, 
   # statina, # can't find
   # statin_px, # can't find
@@ -216,7 +216,7 @@ HSE_files$hse2017 <- HSE_files$hse2017[, .(
   bpmedd2, bp1, diabete2, sha, 
   # glyhbval, # revised to glyhbvala
   alcohol = d7unitwg * 8, totalwu = totalwu * 8 / 7,
-  expsmok, eqv5, topqual3, 
+  xpsmok, eqv5, topqual3, 
   # statina, # can't find
   # statin_px, # can't find
   # statin_tkn, # can't find
@@ -282,7 +282,7 @@ HSE_files$hse2018 <- HSE_files$hse2018[, .(
   sha,
   # glyhbval, # revise to glyhbvala
   alcohol = d7unitwg * 8, totalwu = totalwu * 8 / 7,
-  expsmok, 
+  xpsmok, 
   eqv5,
   topqual3, 
   # statina, # can't find
@@ -367,7 +367,7 @@ HSE_files$hse2014 <- HSE_files$hse2014[, .(
   bpmedd2, diabete2, sha,
   vegpor, frtpor, sodiumval, potass, creatin, wt_int,wt_nurse, wt_blood,
   wt_urine, psu, cluster, glyhbval, diabtotr, alcohol = d7unitwg * 8,
-  totalwu = totalwu * 8 / 7, expsmok, eqv5, topqual3, bp1, statina,
+  totalwu = totalwu * 8 / 7, xpsmok, eqv5, topqual3, bp1, statina,
   statin_px, statin_tkn, diage)]
 
 setnames(HSE_files$hse2014, c("age90", "origin3", "sodiumval", 
@@ -392,7 +392,7 @@ HSE_files$hse2013 <- HSE_files$hse2013[, .(
   pserial, wt_int, wt_nurse, wt_blood, psu, cluster, age, sex, qimd,
   bmival, cholval12, omsysval, diabtotr, cigst1, startsmk, endsmoke, numsmok, bp1,
   smokyrs, cigdyal,  origin, hdlval12, bpmedd2, diabete2, sha, vegpor, frtpor,
-  glyhbval, alcohol = d7unitwg * 8, totalwu = totalwu * 8 / 7, expsmok, eqv5,
+  glyhbval, alcohol = d7unitwg * 8, totalwu = totalwu * 8 / 7, xpsmok, eqv5,
   topqual3, statina, statin_px, statin_tkn, diage)]
 HSE_files$hse2013[, `:=`(year = 13L, a30to06 = NA, sodium = NA, potass = NA,
                          creatin = NA,  wt_urine = NA, famcvd = NA, kiddiag = NA)]
@@ -438,7 +438,7 @@ HSE_ts[kiddiag   < 0, kiddiag   := NA]
 HSE_ts[iregdef   < 0, iregdef   := NA]
 HSE_ts[alcohol   < 0, alcohol   := NA]
 HSE_ts[totalwu   < 0, totalwu   := NA]
-HSE_ts[expsmok   < 0, expsmok   := NA] # 97 = more than 97 hours (for some years)
+HSE_ts[xpsmok   < 0, xpsmok   := NA] # 97 = more than 97 hours (for some years)
 HSE_ts[eqv5      < 0, eqv5      := NA]
 HSE_ts[topqual3  < 0, topqual3  := NA]
 HSE_ts[diage     < 0, diage     := NA]
@@ -518,7 +518,7 @@ HSE_ts[, `:=` (
   kidfailgp = factor(kidfailgp),
   kiddiag = factor(kiddiag, levels = 2:1, labels = 0:1),
   iregdef = factor(iregdef, levels = 2:1, labels = 0:1),
-  expsmok = as.factor(as.integer(expsmok > 0))
+  xpsmok = as.factor(as.integer(xpsmok > 0))
 )]
 
 
@@ -600,7 +600,7 @@ setnames(HSE_ts,
          c("bmival", "cholval1", "omsysval", "cigst1", "startsmk",
            "endsmoke", "numsmok", "smokyrs", "cigdyal", "a30to06",
            "hdlval1", "diabtotr", "diabete2", "iregdef", "kidfailgp", "glyhbval",
-           "bpmedd", "expsmok", "eqv5", "topqual3", "kiddiag", "statina"),
+           "bpmedd", "xpsmok", "eqv5", "topqual3", "kiddiag", "statina"),
          c("bmi", "tchol", "sbp", "smok_status", "smok_init_age",
            "smok_quit_yrs", "smok_cig_ex", "smok_dur_ex", "smok_cig_curr",
            "active_days", "hdl", "dm", "dm_dgn", "af", "ckd", "hba1c", "bp_med", "ets",

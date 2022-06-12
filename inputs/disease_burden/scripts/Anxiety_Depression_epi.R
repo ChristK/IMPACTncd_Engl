@@ -7,8 +7,8 @@ disnm <- "Anxiety_Depression" # disease name
 overwrite_incd <- TRUE
 overwrite_prvl <- TRUE
 overwrite_ftlt <- TRUE
-overwrite_dur  <- FALSE
-overwrite_pred <- FALSE
+overwrite_dur  <- TRUE
+overwrite_pred <- TRUE
 
 
 # disease list

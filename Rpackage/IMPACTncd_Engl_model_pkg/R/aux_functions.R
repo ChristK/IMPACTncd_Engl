@@ -400,7 +400,7 @@ get_causal_paths <- function(RR) {
   out <- list()
   out$dt <- data.table(exposures, outcomes, key = "exposures")
   out$by_outcome <- unstack(out$dt, exposures ~ outcomes)
-  out$by_exps <- unstack(out$dt, outcomes ~ exposures)
+  out$by_xps <- unstack(out$dt, outcomes ~ exposures)
   out$matrix <- as.matrix(table(exposures, outcomes))
   out
 }
@@ -1916,7 +1916,7 @@ set_social <- function(scenario_parms, dt, design) {
             "bmi",
             "tchol"
           ),
-          short_exps = c(
+          short_xps = c(
             "tob",
             "tob",
             "ets",
@@ -1929,7 +1929,7 @@ set_social <- function(scenario_parms, dt, design) {
             "tchol"
           )
         )
-      tt <- tt[short_exps %in% scenario_parms$sc_soc_qimd_rf_change]
+      tt <- tt[short_xps %in% scenario_parms$sc_soc_qimd_rf_change]
 
       causal_paths <- get_causal_paths(RR)
       affected_diseases <-

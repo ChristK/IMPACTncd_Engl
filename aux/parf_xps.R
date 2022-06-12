@@ -74,16 +74,16 @@ for (i in it) {
 
 }
 
-tt  <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_.csv")
-tpa <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_active_days.csv")
-tal <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_alcohol.csv")
-tbm <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_bmi.csv")
-tfr <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_fruit.csv")
-tbp <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_sbp.csv")
-tch <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_tchol.csv")
-tve <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_veg.csv")
-tsm <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_smoking.csv")
-tet <- fread("/mnt/storage_fast/output/hf_real_parf/parf/parf_ets.csv")
+tt  <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_.csv"))
+tpa <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_active_days.csv"))
+tal <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_alcohol.csv"))
+tbm <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_bmi.csv"))
+tfr <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_fruit.csv"))
+tbp <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_sbp.csv"))
+tch <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_tchol.csv"))
+tve <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_veg.csv"))
+tsm <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_smoking.csv"))
+tet <- fread(paste0(design$sim_prm$output_dir, "/parf/parf_ets.csv"))
 
 tt[tpa, on = .(age, sex, dimd, ethnicity, sha, disease), parf_pa  := parf - i.parf]
 tt[tal, on = .(age, sex, dimd, ethnicity, sha, disease), parf_alc := parf - i.parf]
@@ -104,10 +104,10 @@ tt[, (nam) := lapply(.SD, function(x) {
   x
 }), .SDcols = nam]
 
-fwrite(tt,"/mnt/storage_fast/output/hf_real_parf/parf/parf_final.csv")
+fwrite(tt, paste0(design$sim_prm$output_dir, "/parf/parf_final.csv"))
 
 tt[, parf_correction := parf/Reduce(`+`, .SD), .SDcols = nam]
-fwrite(tt,"/mnt/storage_fast/output/hf_real_parf/parf/parf_final_corrected.csv")
+fwrite(tt, paste0(design$sim_prm$output_dir, "/parf/parf_final_corrected.csv"))
 
 # tt[, .(weighted.mean(parf, pop_size), weighted.mean(parf_smo, pop_size), weighted.mean(parf_ets, pop_size)), keyby = .(disease)]
 # tt[, .(weighted.mean(parf, pop_size), weighted.mean(parf_smo * parf_correction, pop_size), weighted.mean(parf_ets * parf_correction, pop_size)), keyby = .(disease)]

@@ -8,7 +8,7 @@ overwrite_incd <- TRUE
 overwrite_prvl <- FALSE
 overwrite_ftlt <- FALSE
 overwrite_dur  <- FALSE
-overwrite_pred <- FALSE
+overwrite_pred <- TRUE
 
 # disease list
 # "Anxiety_Depression"            "Asthma"
@@ -113,7 +113,7 @@ if (overwrite_incd ||
   # )
   #
   # m3 <-  gamlss(
-  #   y ~ I(year >= 15) + I(year >= 17) + log(year) ,
+  #   y ~ I(year >= 14) * log(year)  ,
   #   family = BI(),
   #   data = dt,
   #   method = mixed(20, 100)
@@ -126,12 +126,18 @@ if (overwrite_incd ||
   #   method = mixed(20, 100)
   # )
   #
-  # GAIC(m1, m2, m3, m4)
-  # validate_plots(dt, y, m3, "_incd", disnm, strata)
+  # m5 <-  gamlss(
+  #   y ~ I(year >= 15) * log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # GAIC(m1, m2, m3, m4, m5)
+  # validate_plots(dt, y, m5, "_incd", disnm, strata)
 
   mod_max <- gamlss(
-    y ~ I(year >= 15) + I(year >= 17) + (
-      log(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
+    y ~  ( I(year >= 15) * log(year) + 
+             pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
     ) ^ 2,
     family = BI(),
     data = dt,
@@ -176,9 +182,60 @@ if (overwrite_prvl ||
   dt[, year := year - 2000]
   y <- cbind(dt$prvl, dt$no_prvl)
   dt[, c("prvl", "no_prvl", "n") := NULL]
+  
+  #m1 <-  gamlss(
+  #   y ~ log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # m2 <-  gamlss(
+  #   family = BI(),
+  #   y ~ I(year >= 14) + log(year) ,
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  #
+  # m3 <-  gamlss(
+  #   y ~ I(year >= 15) + log(year) ,
+   #  family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  #
+  # m4 <-  gamlss(
+  #   family = BI(),
+  #   y ~ I(year >= 16) + log(year) ,
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # m5 <-  gamlss(
+  #   y ~ I(year >= 17) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # m6 <-  gamlss(
+  #   y ~ I(year >= 18) + log(year) ,
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+  # m7 <-  gamlss(
+  #   y ~ I(year >= 15) * log(year),
+  #   family = BI(),
+  #   data = dt,
+  #   method = mixed(20, 100)
+  # )
+   
+  # GAIC(m1, m2, m3, m4, m5, m6, m7)
+  
+  
+  
   mod_max <- gamlss(
     y ~ (
-      log(year) + pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
+      I(year >= 15) * log(year) +
+        pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
     ) ^ 2,
     family = BI(),
     data = dt,
