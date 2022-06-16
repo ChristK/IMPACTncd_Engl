@@ -72,11 +72,28 @@ Simulation <-
                            " was created"))
         }
 
-        pth <- private$output_dir("lifecourse/")
+        pth <- private$output_dir("summaries/")
         if (!dir.exists(pth)) {
           dir.create(pth)
           if (self$design$sim_prm$logs)
             message(paste0("Folder ", pth, " was created"))
+        }
+
+        pth <- private$output_dir("tables/")
+        if (!dir.exists(pth)) {
+          dir.create(pth)
+          if (self$design$sim_prm$logs)
+            message(paste0("Folder ", pth, " was created"))
+        }
+
+
+        if (self$design$sim_prm$export_lifecourse) {
+          pth <- private$output_dir("lifecourse/")
+          if (!dir.exists(pth)) {
+            dir.create(pth)
+            if (self$design$sim_prm$logs)
+              message(paste0("Folder ", pth, " was created"))
+          }
         }
 
         if (self$design$sim_prm$export_PARF) {
@@ -150,37 +167,72 @@ Simulation <-
         private$causality_structure <- make_graph(unlist(transpose(ds)),
                                                   directed = TRUE)
 
+        # European standardised population 2013 (esp) weights
+        tt <- data.table(agegrp = agegrp_name(0, 99),
+                         wt_esp  = c(1000, 4000, 5500, 5500, 5500, 6000, 6000, 6500,
+                                     7000, 7000, 7000, 7000, 6500, 6000, 5500, 5000,
+                                     4000, 2500, 1500, 800, 200))
+        esp <- CJ(agegrp = agegrp_name(0, 99),
+                  sex = c("men", "women"),
+                  dimd = c("1 most deprived", as.character(2:9), "10 least deprived")
+        )
+
+        private$esp_weights <- copy(absorb_dt(esp, tt))
+
+        disnam <- paste0(names(self$diseases), "_prvl")
+        disnam <- disnam[disnam != "nonmodelled_prvl"]
+        disnam <- c(grep("_ca_prvl$|^ctd_prvl$|^ra_prvl$|^t1dm_prvl$|^t2dm_prvl$",
+                         disnam, value = TRUE, invert = TRUE),
+                    "cancer_prvl", "ctdra_prvl", "dm_prvl")
+        private$diseasenam_hlp <- disnam
+
+        # Fill cms_weights with 0 for conditions that are not in CMS
+        for (i in setdiff(private$diseasenam_hlp, names(private$cms_weights)))
+          private$cms_weights[[i]] <- 0
+
+        private$death_codes <- unlist(lapply(self$diseases, function(x)
+          x$meta$mortality$code))
+        private$death_codes[["alive"]] <- 0L
+
         invisible(self)
       },
 
       #' @description
       #' Runs a simulation
-      #' @param mc_ An integer vector with the Monte Carlo iterations of
-      #'   synthetic population to simulate.
+      #' @param mc A positive sequential integer vector with the Monte Carlo
+      #'   iterations of synthetic population to simulate.
       #' @param multicore If TRUE run the simulation in parallel.
       #' @return The invisible self for chaining.
-      run = function(mc_, multicore = TRUE) {
+      run = function(mc, multicore = TRUE) {
+
+        if (!is.integer(mc)) stop("mc need to be an integer vector")
+        if (any(mc <= 0)) stop("mc need to be positive")
+
+        # check if sequential vector. Necessary if design$sim_prm$n_synthpop_aggregation > 1
+        if (anyNA(mc) || any(is.infinite(mc)) || length(mc) <= 1 ||
+            diff(mc[1:2]) == 0 || diff(range(diff(mc))) > sqrt(.Machine$double.eps))
+              stop("mc need to be a sequential integer vector")
+        # NOTE mc is in fact mc_aggr. mc_ is the mc of the synthpop
+        mc_sp <-
+          (
+            min(mc) * self$design$sim_prm$n_synthpop_aggregation -
+              self$design$sim_prm$n_synthpop_aggregation + 1L
+          ):(max(mc) * self$design$sim_prm$n_synthpop_aggregation)
 
 
-        # Check if results for these mc_ exist from previous simulation
 
-        mc_aggr <-
-          unique(as.integer(ceiling(
-            mc_ / self$design$sim_prm$n_synthpop_aggregation
-          )))
-
-        if (any(file.exists(
+        if (any(file.exists( # TODO fix when lifecourse is not saved
           file.path(
             self$design$sim_prm$output_dir,
             "lifecourse",
-            paste0(mc_aggr, "_lifecourse.csv")
+            paste0(mc, "_lifecourse.csv")
           )
         ))) {
           stop("Results from a previous simulation exists in the output folder.
                Please remove them before run a new one.")
         }
 
-        # self$del_logs()
+
 
         # Generate PARF files if they don't exist. Note that generation is multicore
         lapply(self$diseases, function(x) {
@@ -201,7 +253,7 @@ Simulation <-
             private$time_mark("Start of parallelisation")
 
           xps_dt <- foreach(
-            mc_iter = mc_,
+            mc_iter = mc_sp,
             .inorder = FALSE,
             .verbose = self$design$sim_prm$logs,
             .packages = c(
@@ -230,11 +282,22 @@ Simulation <-
           if (self$design$sim_prm$logs)
             private$time_mark("Start of single-core run")
 
-          lapply(mc_, private$run_sim)
+          lapply(mc_sp, private$run_sim)
 
           if (self$design$sim_prm$logs)
             private$time_mark("End of single-core run")
 
+        }
+
+        # process summarised outputs
+        strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
+        strata <- c("agegrp", strata)
+        for (i in c("prvl_", "incd_", "mrtl_", "dis_mrtl_")) {
+          for (j in c("out.csv", "scale_up.csv", "scale_up_esp.csv")) {
+            path <- private$output_dir(paste0("summaries/", i, j))
+            tt <- fread(path)
+            fwrite(tt[, lapply(.SD, sum), keyby = strata], path)
+          }
         }
 
         while (sink.number() > 0L) sink()
@@ -322,6 +385,19 @@ Simulation <-
         invisible(self)
       },
 
+      #' @description
+      #' Get the European Standardised Population 2013 by sex and dimd.
+      #' @return A data.table with the European Standardised Population 2013.
+      get_esp = function() {
+        private$esp_weights
+      },
+
+      #' @description
+      #' Get the Cambridge Morbidity Score weights.
+      #' @return A named vector with the Cambridge Morbidity Score weights.
+      get_cms = function() {
+        private$cms_weights
+      },
 
       #' @description
       #' Prints the simulation object metadata.
@@ -340,8 +416,44 @@ Simulation <-
     private = list(
       synthpop_dir = NA,
       causality_structure = NA,
+      death_codes = NA,
+      diseasenam_hlp = NA,
+      esp_weights = data.table(),
+      cms_weights = c(
+        "htn_prvl"      = 0.08,
+        "andep_prvl"    = 0.5,
+        "pain_prvl"     = 0.92,
+        "helo_prvl"     = 0.09, # hearing loss
+        "ibs_prvl"      = 0.21,
+        "asthma_prvl"   = 0.19,
+        "dm_prvl"       = 0.75, # t2dm + t1dm
+        "chd_prvl"      = 0.49,
+        "ckd_prvl"      = 0.53,
+        "ckd4_prvl"     = 0.53,
+        "ckd45_prvl"    = 0.53,
+        "af_prvl"       = 1.34,
+        "constip_prvl"  = 1.12,
+        "stroke_prvl"   = 0.8,
+        "copd_prvl"     = 1.46,
+        "ctdra_prvl"    = 0.43, # connective tissue disorders + rheumatoid arthritis
+        "cancer_prvl"   = 1.53,
+        "alcpr_prvl"    = 0.65,
+        "hf_prvl"       = 1.18,
+        "dementia_prvl" = 2.50,
+        "psychos_prvl"  = 0.64,
+        "epilepsy_prvl" = 0.92
+      ),
 
-      # Runs the simulation in one core
+      # helper function to calculate cms score for each row
+      # disprvl the vector with the disease colnames private$diseasenam_hlp.
+      # dt the sp$pop
+      # cmswt the private$cms_weights
+      cms_hlpfn = function(disprvl, dt, cmswt = cmswt)
+        clamp(dt[[disprvl]]) * cmswt[[disprvl]],
+
+
+
+      # Runs the simulation in one core. mc is scalar
       run_sim = function(mc_) {
 
         if (self$design$sim_prm$logs) {
@@ -380,23 +492,181 @@ Simulation <-
         }
 
         nam <- c(self$design$sim_prm$cols_for_output,
-                 grep("_prvl$|_mrtl$", names(sp$pop), value = TRUE))
-
+                 grep("_prvl$|_mrtl$", names(sp$pop), value = TRUE)) #TODO add dgns
         sp$pop[, mc := sp$mc_aggr]
 
-        if (self$design$sim_prm$logs) message("Exporting lifecourse...")
-        fwrite_safe(sp$pop[all_cause_mrtl >= 0L &
-                             year >= self$design$sim_prm$init_year &
-                             between(age, self$design$sim_prm$ageL, self$design$sim_prm$ageH), ..nam],
-                    private$output_dir(paste0("/lifecourse/", sp$mc_aggr, "_lifecourse.csv")))
+        # Prune pop (NOTE that assignment in the function env makes this data.table local)
+        sp$pop <- sp$pop[all_cause_mrtl >= 0L &
+                 year >= self$design$sim_prm$init_year &
+                 between(age, self$design$sim_prm$ageL, self$design$sim_prm$ageH), ..nam]
+        setkey(sp$pop, pid, year)
+        sp$pop[, pid_mrk := mk_new_simulant_markers(pid)]
+
+        # apply ESP weights
+        to_agegrp(sp$pop, 5, 99)
+        absorb_dt(sp$pop, private$esp_weights)
+        sp$pop[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
+           keyby = .(year, agegrp, sex, dimd)]
+
+
+        # combine all cancers
+        sp$pop[, cancer_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("_ca_prvl$")]
+        sp$pop[, cancer_prvl := carry_forward_incr(cancer_prvl, pid_mrk, TRUE, 1L)]
+
+        # combine ctd & ra
+        sp$pop[, ctdra_prvl := clamp(Reduce(`+`, .SD)),
+               .SDcols = patterns("^ctd_prvl$|^ra_prvl$")]
+        sp$pop[, ctdra_prvl := carry_forward_incr(ctdra_prvl, pid_mrk, TRUE, 1L)]
+
+        # combine t1dm & t2dm
+        sp$pop[, dm_prvl := clamp(Reduce(`+`, .SD)),
+           .SDcols = patterns("^t1dm_prvl$|^t2dm_prvl$")]
+        sp$pop[, dm_prvl := carry_forward_incr(dm_prvl, pid_mrk, TRUE, 1L)]
+
+        sp$pop[, cms_score := Reduce(`+`, lapply(private$diseasenam_hlp,
+                                           private$cms_hlpfn, sp$pop,
+                                           private$cms_weights))]
+        sp$pop[, `:=` (
+          cmsmm1_prvl   = carry_forward_incr(as.integer(cms_score >= 1),
+                                             pid_mrk, TRUE, 1L),
+          cmsmm1.5_prvl = carry_forward_incr(as.integer(cms_score >= 1.5),
+                                             pid_mrk, TRUE, 1L),
+          cmsmm2_prvl   = carry_forward_incr(as.integer(cms_score >= 2),
+                                             pid_mrk, TRUE, 1L)
+        )]
+
+
+        # Write lifecourse
+        if (self$design$sim_prm$export_lifecourse) {
+          if (self$design$sim_prm$logs) message("Exporting lifecourse...")
+          fwrite_safe(sp$pop,
+                      private$output_dir(paste0(
+                        "lifecourse/", sp$mc_aggr, "_lifecourse.csv"
+                      )))
+        }
+
+        # Export summaries
+        strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
+        strata <- c("agegrp", strata)
+        if (self$design$sim_prm$logs) message("Exporting summaries...")
+
+        fwrite_safe(sp$pop[, c("popsize" = (.N),
+                               lapply(.SD, function(x) sum(x > 0))),
+                           .SDcols = patterns("_prvl$"), keyby = strata],
+                    private$output_dir(paste0("summaries/", "prvl_out.csv"
+                    )))
+        fwrite_safe(sp$pop[, c("popsize" = sum(wt),
+                               lapply(.SD, function(x, wt) sum((x > 0) * wt), wt)),
+                           .SDcols = patterns("_prvl$"), keyby = strata],
+                    private$output_dir(paste0("summaries/", "prvl_scale_up.csv"
+                    )))
+        fwrite_safe(sp$pop[, c("popsize" = sum(wt_esp),
+                               lapply(.SD, function(x, wt) sum((x > 0) * wt), wt_esp)),
+                           .SDcols = patterns("_prvl$"), keyby = strata],
+                    private$output_dir(paste0("summaries/", "prvl_scale_up_esp.csv"
+                    )))
+        fwrite_safe(sp$pop[, c("popsize" = (.N),
+                               lapply(.SD, function(x) sum(x == 1))),
+                           .SDcols = patterns("_prvl$"), keyby = strata],
+                    private$output_dir(paste0("summaries/", "incd_out.csv"
+                    )))
+        fwrite_safe(sp$pop[, c("popsize" = sum(wt),
+                               lapply(.SD, function(x, wt) sum((x == 1) * wt), wt)),
+                           .SDcols = patterns("_prvl$"), keyby = strata],
+                    private$output_dir(paste0("summaries/", "incd_scale_up.csv"
+                    )))
+        fwrite_safe(sp$pop[, c("popsize" = sum(wt_esp),
+                               lapply(.SD, function(x, wt) sum((x == 1) * wt), wt_esp)),
+                           .SDcols = patterns("_prvl$"), keyby = strata],
+                    private$output_dir(paste0("summaries/", "incd_scale_up_esp.csv"
+                    )))
+        fwrite_safe(sp$pop[, c("popsize" = (.N),
+                               "all_cause_mrtl" = sum(all_cause_mrtl > 0)),
+                           keyby = strata],
+                    private$output_dir(paste0("summaries/", "mrtl_out.csv"
+                    )))
+        fwrite_safe(sp$pop[, c("popsize" = sum(wt),
+                               "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt)),
+                           keyby = strata],
+                    private$output_dir(paste0("summaries/", "mrtl_scale_up.csv"
+                    )))
+        fwrite_safe(sp$pop[, c("popsize" = sum(wt_esp),
+                               "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt_esp)),
+                           keyby = strata],
+                    private$output_dir(paste0("summaries/", "mrtl_scale_up_esp.csv"
+                    )))
+
+
+
+        # disease specific mortality
+        dis_mrtl_out <-
+          dcast(
+            sp$pop[, .("deaths" = (.N)),
+                   keyby = c(strata, "all_cause_mrtl")],
+            formula = as.formula(paste0(
+              paste(strata, collapse = "+"), "~all_cause_mrtl"
+            )),
+            fill = 0L,
+            value.var = "deaths"
+          )
+
+        setnames(dis_mrtl_out, as.character(private$death_codes),
+                 names(private$death_codes), skip_absent = TRUE)
+        dis_mrtl_out[, `:=` (
+          popsize = Reduce(`+`, .SD),
+          alive = NULL
+        ), .SDcols = !strata]
+        fwrite_safe(dis_mrtl_out,
+                    private$output_dir(paste0("summaries/", "dis_mrtl_out.csv"
+                    )))
+
+        dis_mrtl_out <- # scale up
+          dcast(
+            sp$pop[, .("deaths" = sum(wt)),
+                   keyby = c(strata, "all_cause_mrtl")],
+            formula = as.formula(paste0(
+              paste(strata, collapse = "+"), "~all_cause_mrtl"
+            )),
+            fill = 0L,
+            value.var = "deaths"
+          )
+
+        setnames(dis_mrtl_out, as.character(private$death_codes),
+                 names(private$death_codes), skip_absent = TRUE)
+        dis_mrtl_out[, `:=` (
+          popsize = Reduce(`+`, .SD),
+          alive = NULL
+        ), .SDcols = !strata]
+        fwrite_safe(dis_mrtl_out,
+                    private$output_dir(paste0("summaries/", "dis_mrtl_scale_up.csv"
+                    )))
+
+        dis_mrtl_out <- # scale up esp
+          dcast(
+            sp$pop[, .("deaths" = sum(wt_esp)),
+                   keyby = c(strata, "all_cause_mrtl")],
+            formula = as.formula(paste0(
+              paste(strata, collapse = "+"), "~all_cause_mrtl"
+            )),
+            fill = 0L,
+            value.var = "deaths"
+          )
+
+        setnames(dis_mrtl_out, as.character(private$death_codes),
+                 names(private$death_codes), skip_absent = TRUE)
+        dis_mrtl_out[, `:=` (
+          popsize = Reduce(`+`, .SD),
+          alive = NULL
+        ), .SDcols = !strata]
+        fwrite_safe(dis_mrtl_out,
+                    private$output_dir(paste0("summaries/", "dis_mrtl_scale_up_esp.csv"
+                    )))
+
 
         if (self$design$sim_prm$logs) {
-
           private$time_mark(paste0("End mc iteration ", mc_))
-
           sink()
-
-          }
+        }
 
         NULL
       },

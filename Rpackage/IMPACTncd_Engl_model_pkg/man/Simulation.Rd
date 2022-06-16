@@ -29,6 +29,8 @@ To be completed...
 \item \href{#method-Simulation-update_design}{\code{Simulation$update_design()}}
 \item \href{#method-Simulation-del_outputs}{\code{Simulation$del_outputs()}}
 \item \href{#method-Simulation-del_logs}{\code{Simulation$del_logs()}}
+\item \href{#method-Simulation-get_esp}{\code{Simulation$get_esp()}}
+\item \href{#method-Simulation-get_cms}{\code{Simulation$get_cms()}}
 \item \href{#method-Simulation-print}{\code{Simulation$print()}}
 \item \href{#method-Simulation-clone}{\code{Simulation$clone()}}
 }
@@ -59,14 +61,14 @@ A new `Simulation` object.
 \subsection{Method \code{run()}}{
 Runs a simulation
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$run(mc_, multicore = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$run(mc, multicore = TRUE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{mc_}}{An integer vector with the Monte Carlo iterations of
-synthetic population to simulate.}
+\item{\code{mc}}{A positive sequential integer vector with the Monte Carlo
+iterations of synthetic population to simulate.}
 
 \item{\code{multicore}}{If TRUE run the simulation in parallel.}
 }
@@ -144,6 +146,32 @@ Delete log files.
 
 \subsection{Returns}{
 The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_esp"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_esp}{}}}
+\subsection{Method \code{get_esp()}}{
+Get the European Standardised Population 2013 by sex and dimd.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_esp()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A data.table with the European Standardised Population 2013.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_cms"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_cms}{}}}
+\subsection{Method \code{get_cms()}}{
+Get the Cambridge Morbidity Score weights.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_cms()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A named vector with the Cambridge Morbidity Score weights.
 }
 }
 \if{html}{\out{<hr>}}

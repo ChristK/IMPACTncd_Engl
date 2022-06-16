@@ -9,4 +9,4 @@ IMPACTncd$
   del_outputs()$
   run(1:10, multicore = TRUE)
 
-source("./validation_internal/internal_validation_plots.R")
+# source("./validation_internal/internal_validation_plots.R")

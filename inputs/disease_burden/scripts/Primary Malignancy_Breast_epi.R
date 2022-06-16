@@ -5,11 +5,12 @@ library(qs)
 
 
 disnm <- "Primary Malignancy_Breast" # disease name
+disnm <- "breast_ca"
 overwrite_incd <- TRUE
 overwrite_prvl <- TRUE
 overwrite_ftlt <- TRUE
 overwrite_dur  <- TRUE
-overwrite_pred <- TRUE
+overwrite_pred <- FALSE
 
 # disease list
 # "Anxiety_Depression"            "Asthma"
@@ -80,7 +81,7 @@ if (overwrite_dur ||
   setkeyv(newdata, c("age", "dimd", "ethnicity"))
   newdata[, sex := factor("women", levels = c("men", "women"))]
   setcolorder(newdata, c("age", "sex"))
-  write_fst(newdata, output_path(paste0(disnm, "_dur.fst")), 100L)
+  write_fst(newdata, output_path(paste0(disnm2, "_dur.fst")), 100L)
   print(paste0(disnm, "_dur table saved!"))
   rm(dt, dur_model, newdata, trms)
 }
@@ -125,8 +126,9 @@ if (overwrite_incd ||
       x[, c("mu") := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
   newdata <- rbindlist(newdata)
   newdata[, dimd := factor(dimd, as.character(1:10))]
+  newdata[, sex := factor("women", levels = c("men", "women"))]
   setkeyv(newdata, strata)
-  write_fst(newdata, output_path(paste0(disnm, "_incd.fst")), 100L)
+  write_fst(newdata, output_path(paste0(disnm2, "_incd.fst")), 100L)
   print(paste0(disnm, "_incd table saved!"))
   rm(dt, mod_max, newdata, trms)
 }
@@ -171,8 +173,9 @@ if (overwrite_prvl ||
       x[, c("mu") := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
   newdata <- rbindlist(newdata)
   newdata[, dimd := factor(dimd, as.character(1:10))]
+  newdata[, sex := factor("women", levels = c("men", "women"))]
   setkeyv(newdata, strata)
-  write_fst(newdata, output_path(paste0(disnm, "_prvl.fst")), 100L)
+  write_fst(newdata, output_path(paste0(disnm2, "_prvl.fst")), 100L)
   print(paste0(disnm, "_prvl table saved!"))
   rm(dt, mod_max, newdata, trms)
 }
@@ -259,7 +262,7 @@ if (overwrite_ftlt ||
   setkeyv(newdata1, strata_ftlt)
   newdata1[, sex := factor("women", levels = c("men", "women"))]
   setcolorder(newdata1, c("age", "sex"))
-  write_fst(newdata1, output_path(paste0(disnm, "_ftlt.fst")), 100L)
+  write_fst(newdata1, output_path(paste0(disnm2, "_ftlt.fst")), 100L)
   print(paste0(disnm, "_ftlt model saved!"))
   rm(dt, mod_max, newdata1, newdata2, trms)
 }
@@ -336,7 +339,7 @@ if (overwrite_pred) {
     newdata[, sex := factor("women", levels = c("men", "women"))]
     setcolorder(newdata, c("age", "sex"))
     write_fst(newdata,
-              output_path(paste0(disnm, i, ".fst")), 100L)
+              output_path(paste0(disnm2, i, ".fst")), 100L)
     print(paste0(disnm, " ", i, " table saved!"))
   }
 }
