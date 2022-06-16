@@ -4,11 +4,13 @@ library(gamlss)
 library(qs)
 
 disnm <- "Type 2 Diabetes Mellitus" # disease name
+disnm2 <- "t2dm" # disease name
+
 overwrite_incd <- TRUE
 overwrite_prvl <- TRUE
 overwrite_ftlt <- TRUE
 overwrite_dur  <- TRUE
-overwrite_pred <- TRUE
+overwrite_pred <- FALSE
 
 # disease list
 # "Anxiety_Depression"            "Asthma"
@@ -36,27 +38,28 @@ if (overwrite_dur ||
 
   setnames(dt, paste0(disnm, "_years"), "dur")
   dt[, dur := dur - 2L] # during the sim will add 2
-  marg_distr <- fitDist(
-    dt$dur,
-    log(nrow(dt)),
-    type = "count", # "realplus",
-    try.gamlss = TRUE,
-    trace = TRUE
-  )
-  head(marg_distr$fits)
+  # marg_distr <- fitDist(
+  #   dt$dur,
+  #   log(nrow(dt)),
+  #   type = "count", # "realplus",
+  #   try.gamlss = TRUE,
+  #   trace = TRUE
+  # )
+  # head(marg_distr$fits)
 
   # workHORSEmisc::distr_validation(marg_distr, dt[between(dur, 0, 50), .(var = dur, wt = 1)],
   #                  expression(bold(duration ~ (years))), discrete = TRUE)
 
-  distr_nam <- names(marg_distr$fits[1]) # pick appropriately and note here: ZANBI
+  # distr_nam <- names(marg_distr$fits[1]) # pick appropriately and note here: ZANBI
+  distr_nam <- "ZANBI"
 
   dur_model <- gamlss(
     dur ~ pb(age) + pcat(sex) + pcat(dimd) + pcat(ethnicity),
-    ~pb(age) + pcat(sex) + pcat(dimd),
-    ~pb(age),
-    family = "ZANBI",
+    ~pcat(sex) + pcat(dimd),
+    # ~pb(age),
+    family = distr_nam,
     data = dt,
-    method = mixed(20, 100)
+    method = RS(20)
   )
 
   qsave(dur_model, output_path(paste0(disnm, "_dur.qs")), "archive")
@@ -66,7 +69,7 @@ if (overwrite_dur ||
   newdata <-
     CJ(
       age = 20:100,
-      sex = 3:100,
+      sex = levels(dt$sex),
       dimd = levels(dt$dimd),
       ethnicity = levels(dt$ethnicity)
     )
@@ -78,7 +81,7 @@ if (overwrite_dur ||
   newdata <- rbindlist(newdata)
   newdata[, dimd := factor(dimd, as.character(1:10))]
   setkeyv(newdata, c("age", "sex", "dimd", "ethnicity"))
-  write_fst(newdata, output_path(paste0(disnm, "_dur.fst")), 100L)
+  write_fst(newdata, output_path(paste0(disnm2, "_dur.fst")), 100L)
   print(paste0(disnm, "_dur table saved!"))
   rm(dt, dur_model, newdata, trms)
 }
@@ -130,7 +133,7 @@ if (overwrite_incd ||
   newdata <- rbindlist(newdata)
   newdata[, dimd := factor(dimd, as.character(1:10))]
   setkeyv(newdata, strata)
-  write_fst(newdata, output_path(paste0(disnm, "_incd.fst")), 100L)
+  write_fst(newdata, output_path(paste0(disnm2, "_incd.fst")), 100L)
   print(paste0(disnm, "_incd table saved!"))
   rm(dt, mod_max, newdata, trms)
 }
@@ -183,7 +186,7 @@ if (overwrite_prvl ||
   newdata <- rbindlist(newdata)
   newdata[, dimd := factor(dimd, as.character(1:10))]
   setkeyv(newdata, strata)
-  write_fst(newdata, output_path(paste0(disnm, "_prvl.fst")), 100L)
+  write_fst(newdata, output_path(paste0(disnm2, "_prvl.fst")), 100L)
   print(paste0(disnm, "_prvl table saved!"))
   rm(dt, mod_max, newdata, trms)
 }
@@ -238,7 +241,7 @@ if (overwrite_ftlt ||
 
   newdata1[, dimd := factor(dimd, as.character(1:10))]
   setkeyv(newdata1, strata_ftlt)
-  write_fst(newdata1, output_path(paste0(disnm, "_ftlt.fst")), 100L)
+  write_fst(newdata1, output_path(paste0(disnm2, "_ftlt.fst")), 100L)
   print(paste0(disnm, "_ftlt model saved!"))
   rm(dt, mod_max, newdata1, trms)
 }
@@ -313,7 +316,7 @@ if (overwrite_pred) {
     newdata[, dimd := factor(dimd, as.character(1:10))]
     setkeyv(newdata, strata)
     write_fst(newdata,
-              output_path(paste0(disnm, i, ".fst")), 100L)
+              output_path(paste0(disnm2, i, ".fst")), 100L)
     print(paste0(disnm, " ", i, " table saved!"))
   }
 }

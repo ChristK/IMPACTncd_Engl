@@ -30,20 +30,119 @@ output_dir_ftlt <-
 theme_set(new = theme_few())
 theme_update(axis.text.x = element_text(size = 9), plot.title = element_text(hjust = 0.5))
 
-tt <- data.table(agegrp = agegrp_name(0, 95),
+# European standardised population 2013 (esp) weights
+tt <- data.table(agegrp = agegrp_name(0, 99),
                   wt_esp  = c(1000, 4000, 5500, 5500, 5500, 6000, 6000, 6500,
                               7000, 7000, 7000, 7000, 6500, 6000, 5500, 5000,
                               4000, 2500, 1500, 800, 200))
-esp <- CJ(agegrp = agegrp_name(0, 95),
+esp <- CJ(agegrp = agegrp_name(0, 99),
           sex = c("men", "women"),
           dimd = c("1 most deprived", as.character(2:9), "10 least deprived")
           )
 absorb_dt(esp, tt)
 
+
+
 fl <- list.files("/mnt/storage_fast/output/hf_real/lifecourse",
                  "_lifecourse.csv$", full.names = TRUE)
 
-cf <- fread(fl[1], stringsAsFactors = TRUE)
+cf <- fread(fl[1], stringsAsFactors = TRUE, key = c("pid", "year"))
+to_agegrp(cf, 5, 99)
+absorb_dt(cf, esp)
+cf[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
+    keyby = .(year, agegrp, sex, dimd)]
+
+disnam <- paste0(names(IMPACTncd$diseases), "_prvl")
+disnam <- disnam[disnam != "nonmodelled_prvl"]
+
+# combine all cancers
+cf[, pid_mrk := mk_new_simulant_markers(pid)]
+cf[, cancer_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("_ca_prvl$")]
+cf[, cancer_prvl := carry_forward_incr(cancer_prvl, pid_mrk, TRUE, 1L)]
+
+# combine ctd & ra
+cf[, ctdra_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("^ctd_prvl$|^ra_prvl$")]
+cf[, ctdra_prvl := carry_forward_incr(ctdra_prvl, pid_mrk, TRUE, 1L)]
+
+# combine t1dm & t2dm
+cf[, dm_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("^t1dm_prvl$|^t2dm_prvl$")]
+cf[, dm_prvl := carry_forward_incr(dm_prvl, pid_mrk, TRUE, 1L)]
+
+# CMS diseases weights
+cmswt <- c(
+  "htn_prvl"      = 0.08,
+  "andep_prvl"    = 0.5,
+  "pain_prvl"     = 0.92,
+  "helo_prvl"     = 0.09, # hearing loss
+  "ibs_prvl"      = 0.21,
+  "asthma_prvl"   = 0.19,
+  "dm_prvl"       = 0.75, # t2dm + t1dm
+  "chd_prvl"      = 0.49,
+  "ckd4_prvl"     = 0.53, # TODO change to ckd45
+  "af_prvl"       = 1.34,
+  "constip_prvl"  = 1.12,
+  "stroke_prvl"   = 0.8,
+  "copd_prvl"     = 1.46,
+  "ctdra_prvl"    = 0.43, # connective tissue disorders + rheumatoid arthritis
+  "cancer_prvl"   = 1.53,
+  "alcpr_prvl"    = 0.65,
+  "hf_prvl"       = 1.18,
+  "dementia_prvl" = 2.50,
+  "psychos_prvl"  = 0.64,
+  "epilepsy_prvl" = 0.92
+)
+
+disnam <- c(grep("_ca_prvl$|^ctd_prvl$|^ra_prvl$|^t1dm_prvl$|^t2dm_prvl$",
+                 disnam, value = TRUE, invert = TRUE), "cancer_prvl", "ctdra_prvl", "dm_prvl")
+setdiff(names(cmswt), disnam) # ideally should be empty. If not there are diseases in CMS that we do not model
+for (i in setdiff(disnam, names(cmswt))) cmswt[[i]] <- 0 # Fill cmswt with 0 for conditions that are not in CMS
+
+hlpfn <- function(disprvl, dt, cmswt = cmswt) clamp(dt[[disprvl]]) * cmswt[[disprvl]]
+cf[, cms := Reduce(`+`, lapply(disnam, hlpfn, cf, cmswt))]
+cf[, `:=` (
+  cmsmm1_prvl   = carry_forward_incr(as.integer(cms >= 1), pid_mrk, TRUE, 1L),
+  cmsmm1.5_prvl = carry_forward_incr(as.integer(cms >= 1.5), pid_mrk, TRUE, 1L),
+  cmsmm2_prvl   = carry_forward_incr(as.integer(cms >= 2), pid_mrk, TRUE, 1L)
+)]
+
+strata <- setdiff(IMPACTncd$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
+strata <- c("agegrp", strata)
+
+prvl_out <- cf[, c("popsize" = (.N), lapply(.SD, function(x) sum(x > 0))), .SDcols = patterns("_prvl$"),
+   keyby = strata] # brackets are necessary around .N to avoid autonaming to N
+prvl_out_scale_up <- cf[, c("popsize" = sum(wt), lapply(.SD, function(x, wt) sum((x > 0) * wt), wt)),
+                        .SDcols = patterns("_prvl$"), keyby = strata]
+prvl_out_scale_up_esp <- cf[, c("popsize" = sum(wt_esp), lapply(.SD, function(x, wt) sum((x > 0) * wt), wt_esp)),
+                        .SDcols = patterns("_prvl$"), keyby = strata]
+incd_out <- cf[, c("popsize" = (.N), lapply(.SD, function(x) sum(x == 1))), .SDcols = patterns("_prvl$"),
+               keyby = strata] # brackets are necessary around .N to avoid autonaming to N
+incd_out_scale_up <- cf[, c("popsize" = sum(wt), lapply(.SD, function(x, wt) sum((x == 1) * wt), wt)),
+                        .SDcols = patterns("_prvl$"), keyby = strata]
+incd_out_scale_up_esp <- cf[, c("popsize" = sum(wt_esp), lapply(.SD, function(x, wt) sum((x == 1) * wt), wt_esp)),
+                            .SDcols = patterns("_prvl$"), keyby = strata]
+mrtl_out <- cf[, .("popsize" = (.N), "all_cause_mrtl" = sum(all_cause_mrtl > 0)),
+               keyby = strata] # brackets are necessary around .N to avoid autonaming to N
+mrtl_out_scale_up <- cf[, .("popsize" = sum(wt), "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt)),
+               keyby = strata]
+mrtl_out_scale_up_esp <- cf[, .("popsize" = sum(wt_esp), "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt_esp)),
+                        keyby = strata]
+
+# disease specific mortality
+dis_mrtl_out <- dcast(cf[, .("deaths" = sum(wt)), keyby = c(strata, "all_cause_mrtl")],
+                      formula = as.formula(paste0(paste(strata, collapse = "+"), "~all_cause_mrtl")),
+                      fill = 0L, value.var = "deaths")
+tt <- unlist(lapply(IMPACTncd$diseases, function(x) x$meta$mortality$code))
+tt[["alive"]] <- 0L
+setnames(dis_mrtl_out, as.character(tt), names(tt), skip_absent = TRUE)
+dis_mrtl_out[, `:=` (
+  popsize = Reduce(`+`, .SD),
+  alive = NULL
+  ), .SDcols = !strata]
+
+
+
+
+
 
 
 out <- rbindlist(lapply(fl, fread))

@@ -5,7 +5,7 @@ repo <- "ChristK/IMPACTncd_Engl"
 fl <- list.files(getwd(), pattern = ".fst$|.xls$|.xlsx$.qs$", full.names = TRUE, recursive = TRUE)
 fl <- grep("secure_data", fl, value = TRUE, invert = TRUE)
 
-# pb_delete(file = fl,
+# pb_delete(file = NULL,
 #           repo = repo,
 #           tag = tag)
 

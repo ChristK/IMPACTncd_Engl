@@ -3,7 +3,8 @@ iteration_n_final: 100
 clusternumber: 15 # explicit parallelisation
 n_cpus: 1 # implicit parallelisation
 logs: yes
-export_xps: yes
+export_xps: no
+export_lifecourse: yes
 export_PARF: no
 'n': 20000
 n_synthpop_aggregation: 5 # number of synthpops to aggregate together (avoid values above 20)
@@ -14,6 +15,21 @@ ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
 model_trends_in_redidual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
+maxlag: 10
+jumpiness: 1.0 # increase for more erratic jumps in trajectories
+smoking_relapse_limit: 3
+statin_adherence: 0.9
+bpmed_adherence: 0.9
+decision_aid: 0.8
+stochastic: yes
+kismet: yes
+simsmok_calibration: yes
+validation: no # or yes. Note, no yes/no
+max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
+iteration_n_max: 1000
+output_dir: /mnt/storage_fast/output/hf_real
+synthpop_dir: /mnt/storage_fast/synthpop/hf_real
+# synthpop_dir: c:/synthpop
 diseases:
 - name: obesity
   friendly_name: obesity
@@ -78,6 +94,22 @@ diseases:
         - af
       code: 3
   notes: .na
+# - name: cvd
+#   friendly_name: CVD
+#   meta:
+#     incidence:
+#       type: 4
+#       influenced_by_disease_name:
+#         - chd
+#         - stroke
+#       can_recur: no
+#     diagnosis:
+#       type: 4
+#       probability: 1
+#       duration_distr: ZANBI
+#     mortality:
+#       type: ~
+#   notes: .na
 - name: t2dm
   friendly_name: T2DM
   meta:
@@ -150,8 +182,8 @@ diseases:
       type: 1
       code: 9
   notes: .na
-- name: ckd
-  friendly_name: ckd
+- name: ckd4
+  friendly_name: ckd stage 4
   meta:
     incidence:
       type: 2
@@ -231,7 +263,7 @@ diseases:
       code: 14
   notes: .na
 - name: andep
-  friendly_name: andep
+  friendly_name: anxiety & depression
   meta:
     incidence:
       type: 2
@@ -243,6 +275,32 @@ diseases:
     mortality:
       type: 1
       code: 15
+  notes: .na
+- name: helo
+  friendly_name: hearing loss
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: ~
+  notes: .na
+- name: ibs
+  friendly_name: irritable bowel syndrome
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: ~
   notes: .na
 - name: other_ca
   friendly_name: other cancers
@@ -273,6 +331,104 @@ diseases:
       type: 1
       code: 17
   notes: .na
+- name: cld
+  friendly_name: chronic liver disease
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 18
+  notes: .na
+- name: ctd
+  friendly_name: connective tissue disorders
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 19
+  notes: .na
+- name: epilepsy
+  friendly_name: epilepsy
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 20
+  notes: .na
+- name: alcpr
+  friendly_name: alcohol problems
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 21
+  notes: .na
+- name: psychos
+  friendly_name: psychosis
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 22
+  notes: .na
+- name: ra
+  friendly_name: rheumatoid arthritis
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 23
+  notes: .na
+- name: t1dm
+  friendly_name: non-type-2 diabetes mellitus
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr: ZANBI
+    mortality:
+      type: 1
+      code: 24
+  notes: .na
 - name: nonmodelled
   friendly_name: nonmodelled
   meta:
@@ -285,21 +441,6 @@ diseases:
       influenced_by_disease_name: t2dm
       code: 1
   notes: .na
-maxlag: 10
-jumpiness: 1.0 # increase for more erratic jumps in trajectories
-smoking_relapse_limit: 3
-statin_adherence: 0.9
-bpmed_adherence: 0.9
-decision_aid: 0.8
-stochastic: yes
-kismet: yes
-simsmok_calibration: yes
-validation: no # or yes. Note, no yes/no
-max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
-iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real
-synthpop_dir: /mnt/storage_fast/synthpop/hf_real
-# synthpop_dir: c:/synthpop
 scenarios: ''
 cols_for_output:
 - pid # NEED TO be 1st (perhaps not anymore)
