@@ -5,6 +5,7 @@ library(qs)
 
 
 disnm <- "Primary Malignancy_Prostate" # disease name
+disnm2 <- "prostate_ca"
 overwrite_incd <- TRUE
 overwrite_prvl <- TRUE
 overwrite_ftlt <- TRUE
@@ -38,19 +39,19 @@ if (overwrite_dur ||
 
   setnames(dt, paste0(disnm, "_years"), "dur")
   dt[, dur := dur - 2L] # during the sim will add 2
-  marg_distr <- fitDist(
-    dt$dur,
-    log(nrow(dt)),
-    type = "count", # "realplus",
-    try.gamlss = TRUE,
-    trace = TRUE
-  )
-  head(marg_distr$fits)
+  # marg_distr <- fitDist(
+  #   dt$dur,
+  #   log(nrow(dt)),
+  #   type = "count", # "realplus",
+  #   try.gamlss = TRUE,
+  #   trace = TRUE
+  # )
+  # head(marg_distr$fits)
 
   # workHORSEmisc::distr_validation(marg_distr, dt[between(dur, 0, 50), .(var = dur, wt = 1)],
   #                  expression(bold(duration ~ (years))), discrete = TRUE)
 
-  distr_nam <- names(marg_distr$fits[1]) # pick appropriately and note here ZANBI
+  # distr_nam <- names(marg_distr$fits[1]) # pick appropriately and note here ZANBI
 
   dur_model <- gamlss(
     dur ~ pb(age) + pcat(dimd) + pcat(ethnicity),
@@ -78,10 +79,10 @@ if (overwrite_dur ||
       x[, c("mu", "sigma", "nu") := predictAll(dur_model, .SD, data = dt), .SDcols = trms])
   newdata <- rbindlist(newdata)
   newdata[, dimd := factor(dimd, as.character(1:10))]
-  setkeyv(newdata, c("age", "dimd", "ethnicity"))
   newdata[, sex := factor("men", levels = c("men", "women"))]
+  setkeyv(newdata, c("age", "sex", "dimd", "ethnicity"))
   setcolorder(newdata, c("age", "sex"))
-  write_fst(newdata, output_path(paste0(disnm, "_dur.fst")), 100L)
+  write_fst(newdata, output_path(paste0(disnm2, "_dur.fst")), 100L)
   print(paste0(disnm, "_dur table saved!"))
   rm(dt, dur_model, newdata, trms)
 }
@@ -126,8 +127,10 @@ if (overwrite_incd ||
       x[, c("mu") := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
   newdata <- rbindlist(newdata)
   newdata[, dimd := factor(dimd, as.character(1:10))]
-  setkeyv(newdata, strata)
-  write_fst(newdata, output_path(paste0(disnm, "_incd.fst")), 100L)
+  newdata[, sex := factor("men", levels = c("men", "women"))]
+  setcolorder(newdata, c("age", "sex"))
+  setkeyv(newdata, c(strata, sex))
+  write_fst(newdata, output_path(paste0(disnm2, "_incd.fst")), 100L)
   print(paste0(disnm, "_incd table saved!"))
   rm(dt, mod_max, newdata, trms)
 }
@@ -172,8 +175,10 @@ if (overwrite_prvl ||
       x[, c("mu") := predictAll(mod_max, .SD, data = dt), .SDcols = trms])
   newdata <- rbindlist(newdata)
   newdata[, dimd := factor(dimd, as.character(1:10))]
-  setkeyv(newdata, strata)
-  write_fst(newdata, output_path(paste0(disnm, "_prvl.fst")), 100L)
+  newdata[, sex := factor("men", levels = c("men", "women"))]
+  setcolorder(newdata, c("age", "sex"))
+  setkeyv(newdata, c(strata, sex))
+  write_fst(newdata, output_path(paste0(disnm2, "_prvl.fst")), 100L)
   print(paste0(disnm, "_prvl table saved!"))
   rm(dt, mod_max, newdata, trms)
 }
@@ -260,7 +265,7 @@ if (overwrite_ftlt ||
   setkeyv(newdata1, strata_ftlt)
   newdata1[, sex := factor("men", levels = c("men", "women"))]
   setcolorder(newdata1, c("age", "sex"))
-  write_fst(newdata1, output_path(paste0(disnm, "_ftlt.fst")), 100L)
+  write_fst(newdata1, output_path(paste0(disnm2, "_ftlt.fst")), 100L)
   print(paste0(disnm, "_ftlt model saved!"))
   rm(dt, mod_max, newdata1, newdata2, trms)
 }
@@ -337,7 +342,7 @@ if (overwrite_pred) {
     newdata[, sex := factor("men", levels = c("men", "women"))]
     setcolorder(newdata, c("age", "sex"))
     write_fst(newdata,
-              output_path(paste0(disnm, i, ".fst")), 100L)
+              output_path(paste0(disnm2, i, ".fst")), 100L)
     print(paste0(disnm, " ", i, " table saved!"))
   }
 }
