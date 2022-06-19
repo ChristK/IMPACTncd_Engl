@@ -113,13 +113,27 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
       CharacterVector tmps= ib.names();
       int n = ib.length();
       List ibb;
-      for (int i = 0; i < n; ++i)
+      if (out.incd.type == "Type0")
       {
-        ibb = ib[i];
-        out.incd.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
-        out.incd.influenced_by.mltp.push_back(dt[as<string>(ibb["multiplier"])]);
-        out.incd.influenced_by.lag.push_back(as<int>(ibb["lag"]));
+        for (int i = 0; i < n; ++i)
+        {
+          ibb = ib[i];
+          out.incd.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
+          out.incd.influenced_by.lag.push_back(as<int>(ibb["lag"])); // set to 0 from R side
+        }
       }
+      else
+      {
+        for (int i = 0; i < n; ++i)
+        {
+          ibb = ib[i];
+          out.incd.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
+          out.incd.influenced_by.mltp.push_back(dt[as<string>(ibb["multiplier"])]);
+          out.incd.influenced_by.lag.push_back(as<int>(ibb["lag"]));
+        }
+      }
+
+
     }
 
     if (incd.containsElementNamed("can_recur")) out.incd.can_recur = as<bool>(incd["can_recur"]);
@@ -132,8 +146,21 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
     dgns = l["diagnosis"];
 
     out.dgns.type  = as<string>(dgns["type"]);
-    out.dgns.prvl  = dt[as<string>(dgns["diagnosed"])];
-    out.dgns.prbl1 = dt[as<string>(dgns["probability"])];
+    if (dgns.containsElementNamed("diagnosed")) out.dgns.prvl  = dt[as<string>(dgns["diagnosed"])];
+    if (dgns.containsElementNamed("probability")) out.dgns.prbl1 = dt[as<string>(dgns["probability"])];
+
+    if (out.dgns.type == "Type0")
+    {
+      List ib = dgns["influenced_by"];
+      CharacterVector tmps= ib.names();
+      int n = ib.length();
+      List ibb;
+      for (int i = 0; i < n; ++i)
+      {
+        ibb = ib[i];
+        out.dgns.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
+      }
+    }
   }
 
   // mortality
@@ -250,6 +277,17 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         {
           dsmeta[j].incd.prvl[i] = 0;
           dsmeta[j].mrtl.flag = false;
+        }
+
+        if (dsmeta[j].incd.type == "Type0")
+        {
+          for (int k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+          {
+            if (dsmeta[j].incd.influenced_by.disease_prvl[k][i] > dsmeta[j].incd.prvl[i])
+            {
+              dsmeta[j].incd.prvl[i] = dsmeta[j].incd.influenced_by.disease_prvl[k][i];
+            }
+          }
         }
 
         if (dsmeta[j].incd.type == "Type1")
@@ -388,6 +426,17 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         // diagnosis ----------------------------------------------
         rn1 = runif_impl();
+
+        if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].dgns.type == "Type0")
+        {
+          for (int k = 0; k < dsmeta[j].dgns.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+          {
+            if (dsmeta[j].dgns.influenced_by.disease_prvl[k][i] > dsmeta[j].dgns.prvl[i])
+            {
+              dsmeta[j].dgns.prvl[i] = dsmeta[j].dgns.influenced_by.disease_prvl[k][i];
+            }
+          }
+        }
 
         if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].dgns.type == "Type1") // enter branch only for prevalent cases
         {

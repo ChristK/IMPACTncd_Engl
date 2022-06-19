@@ -181,9 +181,16 @@ Simulation <-
 
         disnam <- paste0(names(self$diseases), "_prvl")
         disnam <- disnam[disnam != "nonmodelled_prvl"]
-        disnam <- c(grep("_ca_prvl$|^ctd_prvl$|^ra_prvl$|^t1dm_prvl$|^t2dm_prvl$",
-                         disnam, value = TRUE, invert = TRUE),
-                    "cancer_prvl", "ctdra_prvl", "dm_prvl")
+        disnam <-
+          c(
+            grep(
+              "_ca_prvl$|^ctd_prvl$|^ra_prvl$|^t1dm_prvl$|^t2dm_prvl$|^obesity_prvl$",
+              disnam,
+              value = TRUE,
+              invert = TRUE
+            ),
+            "cancer_prvl", "ctdra_prvl", "dm_prvl"
+          )
         private$diseasenam_hlp <- disnam
 
         # Fill cms_weights with 0 for conditions that are not in CMS
@@ -291,12 +298,15 @@ Simulation <-
 
         # process summarised outputs
         strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
-        strata <- c("agegrp", strata)
-        for (i in c("prvl_", "incd_", "mrtl_", "dis_mrtl_")) {
+        for (i in c("prvl_", "incd_", "mrtl_", "dis_mrtl_, le_, le60_")) {
           for (j in c("out.csv", "scale_up.csv", "scale_up_esp.csv")) {
             path <- private$output_dir(paste0("summaries/", i, j))
             tt <- fread(path)
-            fwrite(tt[, lapply(.SD, sum), keyby = strata], path)
+            if (i %in% c("prvl_", "incd_", "mrtl_", "dis_mrtl_")) {
+              fwrite(tt[, lapply(.SD, sum), keyby = c("agegrp", strata)], path)
+            } else { # for LE family
+              fwrite(tt[, lapply(.SD, weighted.mean, popsize), keyby = strata], path)
+            }
           }
         }
 
@@ -509,19 +519,19 @@ Simulation <-
            keyby = .(year, agegrp, sex, dimd)]
 
 
-        # combine all cancers
-        sp$pop[, cancer_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("_ca_prvl$")]
-        sp$pop[, cancer_prvl := carry_forward_incr(cancer_prvl, pid_mrk, TRUE, 1L)]
+        # combine all cancers (moved to C++)
+        # sp$pop[, cancer_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("_ca_prvl$")]
+        # sp$pop[, cancer_prvl := carry_forward_incr(cancer_prvl, pid_mrk, TRUE, 1L)]
 
-        # combine ctd & ra
-        sp$pop[, ctdra_prvl := clamp(Reduce(`+`, .SD)),
-               .SDcols = patterns("^ctd_prvl$|^ra_prvl$")]
-        sp$pop[, ctdra_prvl := carry_forward_incr(ctdra_prvl, pid_mrk, TRUE, 1L)]
+        # combine ctd & ra (moved to C++)
+        # sp$pop[, ctdra_prvl := clamp(Reduce(`+`, .SD)),
+        #        .SDcols = patterns("^ctd_prvl$|^ra_prvl$")]
+        # sp$pop[, ctdra_prvl := carry_forward_incr(ctdra_prvl, pid_mrk, TRUE, 1L)]
 
-        # combine t1dm & t2dm
-        sp$pop[, dm_prvl := clamp(Reduce(`+`, .SD)),
-           .SDcols = patterns("^t1dm_prvl$|^t2dm_prvl$")]
-        sp$pop[, dm_prvl := carry_forward_incr(dm_prvl, pid_mrk, TRUE, 1L)]
+        # combine t1dm & t2dm (moved to C++)
+        # sp$pop[, dm_prvl := clamp(Reduce(`+`, .SD)),
+        #    .SDcols = patterns("^t1dm_prvl$|^t2dm_prvl$")]
+        # sp$pop[, dm_prvl := carry_forward_incr(dm_prvl, pid_mrk, TRUE, 1L)]
 
         sp$pop[, cms_score := Reduce(`+`, lapply(private$diseasenam_hlp,
                                            private$cms_hlpfn, sp$pop,
@@ -546,9 +556,35 @@ Simulation <-
         }
 
         # Export summaries
-        strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
-        strata <- c("agegrp", strata)
         if (self$design$sim_prm$logs) message("Exporting summaries...")
+        strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
+
+        # Life expectancy NOTE for scale_up LE weights need to apply from the very beginning
+        fwrite_safe(sp$pop[all_cause_mrtl > 0, .("popsize" = (.N), LE = mean(age)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "le_out.csv"
+                    )))
+        fwrite_safe(sp$pop[all_cause_mrtl > 0, .("popsize" = sum(wt), LE = weighted.mean(age, wt)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "le_scale_up.csv"
+                    )))
+        fwrite_safe(sp$pop[all_cause_mrtl > 0, .("popsize" = sum(wt_esp), LE = weighted.mean(age, wt_esp)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "le_scale_up_esp.csv"
+                    )))
+        # Life expectancy at 60
+
+        fwrite_safe(sp$pop[all_cause_mrtl > 0 & age > 60, .("popsize" = (.N), LE60 = mean(age)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "le60_out.csv"
+                    )))
+        fwrite_safe(sp$pop[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt), LE60 = weighted.mean(age, wt)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "le60_scale_up.csv"
+                    )))
+        fwrite_safe(sp$pop[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt_esp), LE60 = weighted.mean(age, wt_esp)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "le60_scale_up_esp.csv"
+                    )))
+        # Note: for less aggregation use wtd.mean with popsize i.e le_out[, weighted.mean(LE, popsize), keyby = year]
+
+        # TODO Healthy life expectancy
+
+        strata <- c("agegrp", strata) # Need to be after LE
 
         fwrite_safe(sp$pop[, c("popsize" = (.N),
                                lapply(.SD, function(x) sum(x > 0))),
