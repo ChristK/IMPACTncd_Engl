@@ -550,7 +550,9 @@ Disease <-
             )
           }
 
-          if (self$meta$incidence$type == 1L) {
+          if (self$meta$incidence$type == 0L) {
+            set(sp$pop, NULL, namprvl, 0L)
+          } else if (self$meta$incidence$type == 1L) {
             self$set_rr(sp, design_, forPARF = FALSE)
             riskcolnam <- grep("_rr$",
                                names(sp$get_risks(self$name)),
@@ -578,7 +580,7 @@ Disease <-
                                         y = 1L, byref = TRUE)]
             invisible(self)
 
-          } else { # if incidence type not 1
+          } else if (self$meta$incidence$type > 1L){ # if incidence type not 0 or 1
 
             dqRNGkind("pcg64")
             dqset.seed(private$seed, stream = sp$mc * 10 + 1L) # not mc_aggr
@@ -665,16 +667,17 @@ Disease <-
 
             sp$pop[, (namprvl) := carry_backward_decr(get(namprvl), pid_mrk)] # necessary for c++
 
-          } # End if incidence type not 1
+          } # End if incidence type not 0 or 1
 
 
           # TODO this only makes sense when probability of diagnosis is 1
           namdgns <- paste0(self$name, "_dgns")
           set(sp$pop, NULL, namdgns, 0L)
           sp$pop[
-            get(namprvl) > 0 & year == design_$sim_prm$init_year & dqrunif(.N) < self$meta$diagnosis$probability,
+            get(namprvl) > 0 & year >= design_$sim_prm$init_year & dqrunif(.N) < self$meta$diagnosis$probability,
             (namdgns) := get(namprvl)
           ]
+
           sp$pop[, (namdgns) := carry_backward_decr(get(namdgns), pid_mrk)]
         }
 
@@ -726,7 +729,7 @@ Disease <-
           stop("Argument sp needs to be a SynthPop object.")
         }
 
-        if (is.numeric(self$meta$incidence$type)) {
+        if (is.numeric(self$meta$incidence$type) && self$meta$incidence$type > 0L) {
 
           if (private$incd_colnam %in% names(sp$pop)) {
             stop(
@@ -855,7 +858,7 @@ Disease <-
       #' @return The invisible self for chaining.
 
       set_dgns_prb = function(sp, design_ = design) {
-        if (is.numeric(self$meta$diagnosis$type)) {
+        if (is.numeric(self$meta$diagnosis$type) && self$meta$diagnosis$type > 0L) {
           if (!inherits(sp, "SynthPop")) {
             stop("Argument sp needs to be a SynthPop object.")
           }
@@ -1327,13 +1330,22 @@ Disease <-
           out$incidence <- within(out$incidence, rm("can_recur"))
         if (out$incidence$type == "Universal")
           out$incidence <- within(out$incidence, rm("prevalence", "probability"))
+        if (out$incidence$type == "Type0")
+          out$incidence <- within(out$incidence, rm("probability"))
 
         # TODO resolve influenced by disease automatically from
         # paste0(names(design_$sim_prm$diseases), "_prvl") %in% private$rr
 
+        if (self$meta$incidence$type == 0L) {
+          influenced_by_incd <- list()
 
+          for (i in self$meta$incidence$influenced_by_disease_name) {
+            influenced_by_incd[[paste0(i, "_prvl")]] <- list("lag" = 0L)
+          } # end for loop over influenced_by_disease_name
+          out[["incidence"]][["influenced_by"]] <- influenced_by_incd
+        } # end if incidence type 0
 
-        if (self$meta$incidence$type == 3) {
+        if (self$meta$incidence$type == 3L) {
           influenced_by_incd <- list()
 
           for (i in self$meta$incidence$influenced_by_disease_name) {
@@ -1360,6 +1372,19 @@ Disease <-
               scenario_suffix
             )
           )
+
+          if (self$meta$diagnosis$type == 0L) {
+            influenced_by_dgns <- list()
+
+            for (i in self$meta$incidence$influenced_by_disease_name) {
+              influenced_by_dgns[[paste0(i, "_dgns")]] <- list("lag" = 0L)
+            } # end for loop over influenced_by_disease_name
+
+            out[["diagnosis"]][["influenced_by"]] <- influenced_by_dgns
+
+            out$diagnosis <- within(out$diagnosis, rm("probability"))
+          }
+
         } else {
           out <- within(out, rm("diagnosis"))
         }

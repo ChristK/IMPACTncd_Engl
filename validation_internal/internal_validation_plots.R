@@ -106,7 +106,20 @@ cf[, `:=` (
 )]
 
 strata <- setdiff(IMPACTncd$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
-strata <- c("agegrp", strata)
+le_out          <- cf[all_cause_mrtl > 0, .("popsize" = (.N), LE = mean(age)),  keyby = strata]
+le_scale_up     <- cf[all_cause_mrtl > 0, .("popsize" = sum(wt), LE = weighted.mean(age, wt)),  keyby = strata]
+le_scale_up_esp <- cf[all_cause_mrtl > 0, .("popsize" = sum(wt_esp), LE = weighted.mean(age, wt_esp)),  keyby = strata]
+
+le60_out          <- cf[all_cause_mrtl > 0 & age > 60, .("popsize" = (.N), LE60 = mean(age)),  keyby = strata]
+le60_scale_up     <- cf[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt), LE60 = weighted.mean(age, wt)),  keyby = strata]
+le60_scale_up_esp <- cf[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt_esp), LE = weighted.mean(age, wt_esp)),  keyby = strata]
+# Note: for less aggregation use wtd.mean with popsize i.e le_out[, weighted.mean(LE, popsize), keyby = year]
+
+hle_out          <- cf[cms >= 1, .("popsize" = (.N), LE = mean(age)),  keyby = strata]
+
+
+
+strata <- c("agegrp", strata) # Need to be after LE
 
 prvl_out <- cf[, c("popsize" = (.N), lapply(.SD, function(x) sum(x > 0))), .SDcols = patterns("_prvl$"),
    keyby = strata] # brackets are necessary around .N to avoid autonaming to N
