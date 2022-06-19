@@ -98,15 +98,12 @@ diseases:
 #   friendly_name: CVD
 #   meta:
 #     incidence:
-#       type: 4
+#       type: 0
 #       influenced_by_disease_name:
 #         - chd
 #         - stroke
-#       can_recur: no
 #     diagnosis:
-#       type: 4
-#       probability: 1
-#       duration_distr: ZANBI
+#       type: 0
 #     mortality:
 #       type: ~
 #   notes: .na
@@ -182,8 +179,8 @@ diseases:
       type: 1
       code: 9
   notes: .na
-- name: ckd4
-  friendly_name: ckd stage 4
+- name: ckd45
+  friendly_name: ckd stage 4-5
   meta:
     incidence:
       type: 2
@@ -428,6 +425,48 @@ diseases:
     mortality:
       type: 1
       code: 24
+  notes: .na
+- name: dm
+  friendly_name: Diabetes mellitus
+  meta:
+    incidence:
+      type: 0
+      influenced_by_disease_name:
+        - t1dm
+        - t2dm
+    diagnosis:
+      type: 0
+    mortality:
+      type: ~
+  notes: .na
+- name: ctdra
+  friendly_name: Connective tissue disorders & rheumatoid arthritis
+  meta:
+    incidence:
+      type: 0
+      influenced_by_disease_name:
+        - ctd
+        - ra
+    diagnosis:
+      type: 0
+    mortality:
+      type: ~
+  notes: .na
+- name: cancer
+  friendly_name: All cancers
+  meta:
+    incidence:
+      type: 0
+      influenced_by_disease_name:
+        - lung_ca
+        - breast_ca
+        - colorect_ca
+        - prostate_ca
+        - other_ca
+    diagnosis:
+      type: 0
+    mortality:
+      type: ~
   notes: .na
 - name: nonmodelled
   friendly_name: nonmodelled

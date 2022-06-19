@@ -18,7 +18,7 @@ future.seed = 627524136L))
 # this parameter changes we need logic to overwrite unsmoothed files
 rm(fl)
 #
-# # Generate diseases ----
+# Generate diseases ----
 diseases <- lapply(design$sim_prm$diseases, function(x) {
     x[["design_"]] <- design
     x[["RR"]] <- RR
@@ -50,7 +50,6 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
 # sim$delete_synthpop(NULL)
 # ll <- sim$gen_synthpop_demog(design)
 sp <- SynthPop$new(1L, design)
-
 
 
 # lapply(diseases, function(x) x$harmonise_epi_tables(sp))
@@ -229,15 +228,15 @@ lapply(diseases, function(x) {
 
 
 
-lapply(diseases, function(x) {
-    print(x$name)
-    x$gen_parf(sp, design)$
-    set_init_prvl(sp, design)$
-    set_rr(sp, design)$
-    set_incd_prb(sp, design)$
-    set_dgns_prb(sp, design)$
-    set_mrtl_prb(sp, design)
-})
+# lapply(diseases, function(x) {
+#     print(x$name)
+#     x$gen_parf(sp, design)$
+#     set_init_prvl(sp, design)$
+#     set_rr(sp, design)$
+#     set_incd_prb(sp, design)$
+#     set_dgns_prb(sp, design)$
+#     set_mrtl_prb(sp, design)
+# })
 
 transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 
@@ -248,6 +247,7 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 # setDT(sp$pop)
 l <- mk_scenario_init2("", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
+
 
 sp$update_pop_weights()
 sp$pop[, mc := sp$mc_aggr]
