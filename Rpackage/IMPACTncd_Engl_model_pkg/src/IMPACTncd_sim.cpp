@@ -51,6 +51,7 @@ struct disease_epi
   NumericVector prbl2; // for prevalent cases case fatality
   infl influenced_by;
   CharacterVector aggregate;
+  double mm_wt;
   bool can_recur;
   bool flag; // set true the first time incidence occurs & set true to cure in the next year
   int cure;
@@ -74,24 +75,28 @@ struct simul_meta
   IntegerVector year;
   IntegerVector age;
   IntegerVector dead;
+  IntegerVector mm_count;
+  NumericVector mm_score;
 };
 
 simul_meta get_simul_meta(const List l, DataFrame dt)
 {
-  simul_meta out;
+  simul_meta out = {};
   out.init_year  = as<int>(l["init_year"]);
   out.age_low  = as<int>(l["ageL"]);
   out.pid = dt[as<string>(l["pids"])];
   out.year = dt[as<string>(l["years"])];
   out.age = dt[as<string>(l["ages"])];
   out.dead = dt[as<string>(l["all_cause_mrtl"])];
+  out.mm_count = dt[as<string>(l["cms_count"])];
+  out.mm_score = dt[as<string>(l["cms_score"])];
   return out;
 }
 
 disease_meta get_disease_meta(const List l, DataFrame dt)
 {
   // l is the disease list. I.e.l$disease$chd
-  disease_meta out;
+  disease_meta out = {};
 
   List incd, dgns, mrtl;
 
@@ -135,7 +140,7 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
 
 
     }
-
+    out.incd.flag = false;
     if (incd.containsElementNamed("can_recur")) out.incd.can_recur = as<bool>(incd["can_recur"]);
     else out.incd.can_recur = false;
   }
@@ -146,6 +151,7 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
     dgns = l["diagnosis"];
 
     out.dgns.type  = as<string>(dgns["type"]);
+    out.dgns.mm_wt = as<double>(dgns["mm_wt"]);
     if (dgns.containsElementNamed("diagnosed")) out.dgns.prvl  = dt[as<string>(dgns["diagnosed"])];
     if (dgns.containsElementNamed("probability")) out.dgns.prbl1 = dt[as<string>(dgns["probability"])];
 
@@ -161,6 +167,8 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
         out.dgns.influenced_by.disease_prvl.push_back(dt[as<string>(tmps[i])]);
       }
     }
+
+    out.dgns.flag = false;
   }
 
   // mortality
@@ -196,6 +204,9 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
         out.mrtl.influenced_by.lag.push_back(as<int>(ibb["lag"]));
       }
     }
+
+    out.mrtl.flag = false;
+
   }
 
 
@@ -229,7 +240,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
   vector<int> tempdead; // temporary dead possibly from multiple causes
   double rn1, rn2;
   int pid_buffer = meta.pid[0]; // flag for when new pid to reset other flags. Holds the last pid
-  bool pid_mrk;
+  bool pid_mrk = true;
 
   for (int i = 0; i < n; ++i) // loop over dt rows (and resolve all diseases for each row before you move on)
   {
@@ -243,7 +254,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
       // individual as long as x <= max_lag
       // NA_INTEGER == 0 is false
 
-      if (meta.pid[i] == pid_buffer)  // TODO move out of j loop
+      if (meta.pid[i] == pid_buffer)
       {
         pid_mrk = false;
       }
@@ -276,6 +287,10 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         if (dsmeta[j].mrtl.flag)
         {
           dsmeta[j].incd.prvl[i] = 0;
+          // dsmeta[j].dgns.prvl[i] = 0;
+          if ((dsmeta[j].dgns.type == "Type0" || dsmeta[j].dgns.type == "Type1") && dsmeta[j].dgns.mm_wt > 0.0 && dsmeta[j].dgns.prvl[i - 1] > 0) meta.mm_score[i] -= dsmeta[j].dgns.mm_wt;
+          if ((dsmeta[j].dgns.type == "Type0" || dsmeta[j].dgns.type == "Type1") && dsmeta[j].dgns.mm_wt > 0.0 && dsmeta[j].dgns.prvl[i - 1] > 0) meta.mm_count[i]--;
+
           dsmeta[j].mrtl.flag = false;
         }
 
@@ -291,7 +306,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         }
 
         if (dsmeta[j].incd.type == "Type1")
-        { // NOTE Type 1 dosn't need to use flags for recurrence
+        { // NOTE Type 1 doesn't need to use flags for recurrence
           if (dsmeta[j].incd.can_recur)
           {
             if (dsmeta[j].incd.prbl1[i] == 1.0) // logic overwrites prvl for init year
@@ -321,7 +336,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
                   dsmeta[j].incd.prvl[i - 1] < dsmeta[j].mrtl.cure)
                 dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
             }
-            if (dsmeta[j].mrtl.type == "Type1" || dsmeta[j].mrtl.type == "Type3")
+            else
             {
               if (dsmeta[j].incd.prvl[i - 1] > 0)
                 dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
@@ -345,7 +360,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
                   dsmeta[j].incd.prvl[i - 1] < dsmeta[j].mrtl.cure)
                 dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
             }
-            if (dsmeta[j].mrtl.type == "Type1" || dsmeta[j].mrtl.type == "Type3")
+            else
             {
               if (dsmeta[j].incd.prvl[i - 1] > 0)
                 dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
@@ -378,7 +393,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
                   dsmeta[j].incd.prvl[i - 1] < dsmeta[j].mrtl.cure)
                 dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
             }
-            if (dsmeta[j].mrtl.type == "Type1" || dsmeta[j].mrtl.type == "Type3")
+            else
             {
               if (dsmeta[j].incd.prvl[i - 1] > 0)
                 dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
@@ -402,7 +417,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
                   dsmeta[j].incd.prvl[i - 1] < dsmeta[j].mrtl.cure)
                 dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
             }
-            if (dsmeta[j].mrtl.type == "Type1" || dsmeta[j].mrtl.type == "Type3")
+            else
             {
               if (dsmeta[j].incd.prvl[i - 1] > 0)
                 dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
@@ -424,7 +439,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           // TODO
         }
 
-        // diagnosis ----------------------------------------------
+        // diagnosis & multimorbidity --------------------------------
         rn1 = runif_impl();
 
         if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].dgns.type == "Type0")
@@ -440,10 +455,18 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].dgns.type == "Type1") // enter branch only for prevalent cases
         {
-          if (dsmeta[j].dgns.prvl[i - 1] == 0 && rn1 <= dsmeta[j].dgns.prbl1[i]) dsmeta[j].dgns.prvl[i] = 1;
-          if (dsmeta[j].dgns.prvl[i - 1] > 0) dsmeta[j].dgns.prvl[i] = dsmeta[j].dgns.prvl[i - 1] + 1;
+          if (dsmeta[j].dgns.prvl[i - 1] == 0 && rn1 <= dsmeta[j].dgns.prbl1[i])
+          {
+            dsmeta[j].dgns.prvl[i] = 1;
+          }
+          if (dsmeta[j].dgns.prvl[i - 1] > 0)
+          {
+            dsmeta[j].dgns.prvl[i] = dsmeta[j].dgns.prvl[i - 1] + 1;
+          }
         }
 
+        if ((dsmeta[j].dgns.type == "Type0" || dsmeta[j].dgns.type == "Type1") && dsmeta[j].dgns.prvl[i] > 0 && dsmeta[j].dgns.mm_wt > 0.0) meta.mm_score[i] += dsmeta[j].dgns.mm_wt;
+        if ((dsmeta[j].dgns.type == "Type0" || dsmeta[j].dgns.type == "Type1") && dsmeta[j].dgns.prvl[i] > 0 && dsmeta[j].dgns.mm_wt > 0.0) meta.mm_count[i]++;
 
         // mortality ----------------------------------------------
         rn1 = runif_impl();

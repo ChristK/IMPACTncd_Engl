@@ -7,6 +7,6 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(1:10, multicore = TRUE)
+  run(1:2, multicore = TRUE)
 
 # source("./validation_internal/internal_validation_plots.R")
