@@ -44,151 +44,36 @@ absorb_dt(esp, tt)
 
 
 fl <- list.files("/mnt/storage_fast/output/hf_real/lifecourse",
-                 "_lifecourse.csv$", full.names = TRUE)
-
-cf <- fread(fl[1], stringsAsFactors = TRUE, key = c("pid", "year"))
-to_agegrp(cf, 5, 99)
-absorb_dt(cf, esp)
-cf[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
-    keyby = .(year, agegrp, sex, dimd)]
-
-disnam <- paste0(names(IMPACTncd$diseases), "_prvl")
-disnam <- disnam[disnam != "nonmodelled_prvl"]
-
-# combine all cancers
-cf[, pid_mrk := mk_new_simulant_markers(pid)]
-cf[, cancer_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("_ca_prvl$")]
-cf[, cancer_prvl := carry_forward_incr(cancer_prvl, pid_mrk, TRUE, 1L)]
-
-# combine ctd & ra
-cf[, ctdra_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("^ctd_prvl$|^ra_prvl$")]
-cf[, ctdra_prvl := carry_forward_incr(ctdra_prvl, pid_mrk, TRUE, 1L)]
-
-# combine t1dm & t2dm
-cf[, dm_prvl := clamp(Reduce(`+`, .SD)), .SDcols = patterns("^t1dm_prvl$|^t2dm_prvl$")]
-cf[, dm_prvl := carry_forward_incr(dm_prvl, pid_mrk, TRUE, 1L)]
-
-# CMS diseases weights
-cmswt <- c(
-  "htn_prvl"      = 0.08,
-  "andep_prvl"    = 0.5,
-  "pain_prvl"     = 0.92,
-  "helo_prvl"     = 0.09, # hearing loss
-  "ibs_prvl"      = 0.21,
-  "asthma_prvl"   = 0.19,
-  "dm_prvl"       = 0.75, # t2dm + t1dm
-  "chd_prvl"      = 0.49,
-  "ckd4_prvl"     = 0.53, # TODO change to ckd45
-  "af_prvl"       = 1.34,
-  "constip_prvl"  = 1.12,
-  "stroke_prvl"   = 0.8,
-  "copd_prvl"     = 1.46,
-  "ctdra_prvl"    = 0.43, # connective tissue disorders + rheumatoid arthritis
-  "cancer_prvl"   = 1.53,
-  "alcpr_prvl"    = 0.65,
-  "hf_prvl"       = 1.18,
-  "dementia_prvl" = 2.50,
-  "psychos_prvl"  = 0.64,
-  "epilepsy_prvl" = 0.92
-)
-
-disnam <- c(grep("_ca_prvl$|^ctd_prvl$|^ra_prvl$|^t1dm_prvl$|^t2dm_prvl$",
-                 disnam, value = TRUE, invert = TRUE), "cancer_prvl", "ctdra_prvl", "dm_prvl")
-setdiff(names(cmswt), disnam) # ideally should be empty. If not there are diseases in CMS that we do not model
-for (i in setdiff(disnam, names(cmswt))) cmswt[[i]] <- 0 # Fill cmswt with 0 for conditions that are not in CMS
-
-hlpfn <- function(disprvl, dt, cmswt = cmswt) clamp(dt[[disprvl]]) * cmswt[[disprvl]]
-cf[, cms := Reduce(`+`, lapply(disnam, hlpfn, cf, cmswt))]
-cf[, `:=` (
-  cmsmm1_prvl   = carry_forward_incr(as.integer(cms >= 1), pid_mrk, TRUE, 1L),
-  cmsmm1.5_prvl = carry_forward_incr(as.integer(cms >= 1.5), pid_mrk, TRUE, 1L),
-  cmsmm2_prvl   = carry_forward_incr(as.integer(cms >= 2), pid_mrk, TRUE, 1L)
-)]
-
-strata <- setdiff(IMPACTncd$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
-le_out          <- cf[all_cause_mrtl > 0, .("popsize" = (.N), LE = mean(age)),  keyby = strata]
-le_scale_up     <- cf[all_cause_mrtl > 0, .("popsize" = sum(wt), LE = weighted.mean(age, wt)),  keyby = strata]
-le_scale_up_esp <- cf[all_cause_mrtl > 0, .("popsize" = sum(wt_esp), LE = weighted.mean(age, wt_esp)),  keyby = strata]
-
-le60_out          <- cf[all_cause_mrtl > 0 & age > 60, .("popsize" = (.N), LE60 = mean(age)),  keyby = strata]
-le60_scale_up     <- cf[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt), LE60 = weighted.mean(age, wt)),  keyby = strata]
-le60_scale_up_esp <- cf[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt_esp), LE = weighted.mean(age, wt_esp)),  keyby = strata]
-# Note: for less aggregation use wtd.mean with popsize i.e le_out[, weighted.mean(LE, popsize), keyby = year]
-
-hle_out          <- cf[cms >= 1, .("popsize" = (.N), LE = mean(age)),  keyby = strata]
-
-
-
-strata <- c("agegrp", strata) # Need to be after LE
-
-prvl_out <- cf[, c("popsize" = (.N), lapply(.SD, function(x) sum(x > 0))), .SDcols = patterns("_prvl$"),
-   keyby = strata] # brackets are necessary around .N to avoid autonaming to N
-prvl_out_scale_up <- cf[, c("popsize" = sum(wt), lapply(.SD, function(x, wt) sum((x > 0) * wt), wt)),
-                        .SDcols = patterns("_prvl$"), keyby = strata]
-prvl_out_scale_up_esp <- cf[, c("popsize" = sum(wt_esp), lapply(.SD, function(x, wt) sum((x > 0) * wt), wt_esp)),
-                        .SDcols = patterns("_prvl$"), keyby = strata]
-incd_out <- cf[, c("popsize" = (.N), lapply(.SD, function(x) sum(x == 1))), .SDcols = patterns("_prvl$"),
-               keyby = strata] # brackets are necessary around .N to avoid autonaming to N
-incd_out_scale_up <- cf[, c("popsize" = sum(wt), lapply(.SD, function(x, wt) sum((x == 1) * wt), wt)),
-                        .SDcols = patterns("_prvl$"), keyby = strata]
-incd_out_scale_up_esp <- cf[, c("popsize" = sum(wt_esp), lapply(.SD, function(x, wt) sum((x == 1) * wt), wt_esp)),
-                            .SDcols = patterns("_prvl$"), keyby = strata]
-mrtl_out <- cf[, .("popsize" = (.N), "all_cause_mrtl" = sum(all_cause_mrtl > 0)),
-               keyby = strata] # brackets are necessary around .N to avoid autonaming to N
-mrtl_out_scale_up <- cf[, .("popsize" = sum(wt), "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt)),
-               keyby = strata]
-mrtl_out_scale_up_esp <- cf[, .("popsize" = sum(wt_esp), "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt_esp)),
-                        keyby = strata]
-
-# disease specific mortality
-dis_mrtl_out <- dcast(cf[, .("deaths" = sum(wt)), keyby = c(strata, "all_cause_mrtl")],
-                      formula = as.formula(paste0(paste(strata, collapse = "+"), "~all_cause_mrtl")),
-                      fill = 0L, value.var = "deaths")
-tt <- unlist(lapply(IMPACTncd$diseases, function(x) x$meta$mortality$code))
-tt[["alive"]] <- 0L
-setnames(dis_mrtl_out, as.character(tt), names(tt), skip_absent = TRUE)
-dis_mrtl_out[, `:=` (
-  popsize = Reduce(`+`, .SD),
-  alive = NULL
-  ), .SDcols = !strata]
-
-
-
+                 "_lifecourse.csv.gz$", full.names = TRUE)
 
 
 
 
 out <- rbindlist(lapply(fl, fread))
-out[, dimd := factor(dimd)]
-to_agegrp(out, 5, 95)
-out[age > 95, agegrp := "95+"]
-absorb_dt(out, esp)
-out[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
-    keyby = .(year, agegrp, sex, dimd)]
-# out[, sum(wt_esp), keyby = .(year, agegrp, sex, dimd)]
+out[, dimd := factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived"))]
+
+# out[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
+#     keyby = .(year, agegrp, sex, dimd)]
 setkey(out, mc, pid, year)
 
 strata <- c("year", "age", "sex", "dimd", "sha", "ethnicity")
 
-# out[, 1e5 * weighted.mean(t2dm_prvl == 1, wt_esp), keyby = .(mc)]
-out[mc == 1 & year == 14][(duplicated(pid)), .(pid, year)]
-out[, sum(duplicated(pid)), keyby = .(year, mc)]
 
 dl_model <- c("t2dm_prvl", "af_prvl", "chd_prvl", "dementia_prvl",
               "lung_ca_prvl", "colorect_ca_prvl", "breast_ca_prvl", "stroke_prvl",
               "obesity_prvl", "htn_prvl", "copd_prvl", "asthma_prvl",
-              "ckd_prvl", "prostate_ca_prvl", "andep_prvl", "other_ca_prvl", "hf_prvl")
+              "ckd45_prvl", "prostate_ca_prvl", "andep_prvl", "other_ca_prvl", "hf_prvl")
 dl_model_new <- str_replace(dl_model, "_prvl", "")
 
 setnames(out, dl_model, dl_model_new)
 
 dl_cprd <- c("Anxiety_Depression", "Asthma", "Atrial Fibrillation", "CHD",
-             "COPD" , "Chronic Kidney Disease", "Dementia", "Heart failure",
+             "COPD" , "ckd45", "Dementia", "Heart failure",
              "Hypertension" ,  "Obesity", "Other cancers",
              "Primary Malignancy_Breast", "Primary Malignancy_Colorectal",
              "Primary Malignancy_Lung", "Primary Malignancy_Prostate",
              "Stroke", "Type 2 Diabetes Mellitus")
-dl_cprd_new <- c("andep", "asthma", "af", "chd", "copd", "ckd", "dementia", "hf",
+dl_cprd_new <- c("andep", "asthma", "af", "chd", "copd", "ckd45", "dementia", "hf",
              "htn", "obesity", "other_ca", "breast_ca", "colorect_ca",
              "lung_ca", "prostate_ca", "stroke", "t2dm")
 
@@ -210,8 +95,7 @@ incd_dt <- harmonise(read_fst(input_path("panel_short_inc.fst"),
                          as.data.table = TRUE)[gender != "I"])[between(age, 30, 99) &
                                                                  year < 2020 , .SD, .SDcols = c(strata, dl_cprd)]
 incd_dt[, dimd := factor(dimd, 10:1, levels(out$dimd))]
-to_agegrp(incd_dt, 5, 95)
-incd_dt[age > 95, agegrp := "95+"]
+to_agegrp(incd_dt, 5, 99)
 absorb_dt(incd_dt, esp)
 incd_dt[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp), keyby = .(year, agegrp, sex, dimd)]
 
@@ -289,8 +173,7 @@ prvl_dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
                              as.data.table = TRUE)[gender != "I"])[between(age, 30, 99) &
                                                                      year < 2020 , .SD, .SDcols = c(strata, dl_cprd)]
 prvl_dt[, dimd := factor(dimd, 10:1, levels(out$dimd))]
-to_agegrp(prvl_dt, 5, 95)
-prvl_dt[age > 95, agegrp := "95+"]
+to_agegrp(prvl_dt, 5, 99)
 absorb_dt(prvl_dt, esp)
 prvl_dt[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp), keyby = .(year, agegrp, sex, dimd)]
 
@@ -365,8 +248,7 @@ mort_dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
                               as.data.table = TRUE)[gender != "I"])[between(age, 30, 99) &
                                                                       year < 2020 , .SD, .SDcols = c(strata, dl_cprd, strata_mort)]
 mort_dt[, dimd := factor(dimd, 10:1, levels(out$dimd))]
-to_agegrp(mort_dt, 5, 95)
-mort_dt[age > 95, agegrp := "95+"]
+to_agegrp(mort_dt, 5, 99)
 absorb_dt(mort_dt, esp)
 mort_dt[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp), keyby = .(year, agegrp, sex, dimd)]
 setnafill(mort_dt, "c", 0L, cols = c("diedinCPRD", "diedinyr"))
@@ -447,8 +329,3 @@ for (i in dl_cprd_new[dl_cprd_new != "obesity"]){
 
 rm(mort_dt)
 
-tt <- fread("/mnt/storage_fast/output/hf_real/xps/xps.csv")
-tt <- tt[agegrp20 == "All" & qimd == "All" &
-           ethnicity == "All" & sha == "All",]
-tt[year == 2014, lapply(.SD, mean), .SDcols = is.numeric, keyby = mc]
-tt[, median(ets_curr_xps), keyby = year]

@@ -40,6 +40,8 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
         "ages"               = "age",
         "ageL"               = design_$sim_prm$ageL,
         "all_cause_mrtl"     = paste0("all_cause_mrtl", scenario_suffix_for_pop),
+        "cms_score"          = paste0("cms_score", scenario_suffix_for_pop),
+        "cms_count"          = paste0("cms_count", scenario_suffix_for_pop),
         "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
         "diseases"           = lapply(diseases_, function(x) x$to_cpp(sp, design_))
     )
@@ -243,10 +245,60 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 
 
 # qsave(sp, "./simulation/tmp.qs")
-# sp <- qread("./simulation/tmp.qs")
-# setDT(sp$pop)
+# sp <- qread("./simulation/tmp.qs"); setDT(sp$pop)
 l <- mk_scenario_init2("", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
+
+
+disnam <- paste0(names(diseases), "_prvl")
+disnam <- disnam[disnam != "nonmodelled_prvl"]
+cmswt <- c(
+    "htn_prvl"      = 0.08,
+    "andep_prvl"    = 0.5,
+    "pain_prvl"     = 0.92,
+    "helo_prvl"     = 0.09, # hearing loss
+    "ibs_prvl"      = 0.21,
+    "asthma_prvl"   = 0.19,
+    "dm_prvl"       = 0.75, # t2dm + t1dm
+    "chd_prvl"      = 0.49,
+    "ckd45_prvl"    = 0.53, # TODO change to ckd45
+    "af_prvl"       = 1.34,
+    "constip_prvl"  = 1.12,
+    "stroke_prvl"   = 0.80,
+    "copd_prvl"     = 1.46,
+    "ctdra_prvl"    = 0.43, # connective tissue disorders + rheumatoid arthritis
+    "cancer_prvl"   = 1.53,
+    "alcpr_prvl"    = 0.65,
+    "hf_prvl"       = 1.18,
+    "dementia_prvl" = 2.50,
+    "psychos_prvl"  = 0.64,
+    "epilepsy_prvl" = 0.92
+)
+
+disnam <- c(grep("_ca_prvl$|^ctd_prvl$|^ra_prvl$|^t1dm_prvl$|^t2dm_prvl$",
+                 disnam, value = TRUE, invert = TRUE))
+setdiff(names(cmswt), disnam) # ideally should be empty. If not there are diseases in CMS that we do not model
+for (i in setdiff(disnam, names(cmswt))) cmswt[[i]] <- 0 # Fill cmswt with 0 for conditions that are not in CMS
+
+hlpfn <- function(disprvl, dt, cmswt = cmswt) clamp(dt[[disprvl]]) * cmswt[[disprvl]]
+sp$pop[, cms_scoreR := Reduce(`+`, lapply(disnam, hlpfn, sp$pop, cmswt))]
+sp$pop[year >= 13 & age >= 30, table(cms_score == cms_scoreR)]
+tt <- sp$pop[year >= 13 & cms_score != cms_scoreR, unique(pid)]
+View(sp$pop[pid %in% tt, .(as.character(pid), year, age, all_cause_mrtl,
+                           cms_scoreR, cms_score, cms_count,
+                       asthma_prvl, asthma_dgns,
+                       ibs_prvl, ibs_dgns,
+                       helo_prvl, helo_dgns)])
+View(sp$pop[pid %in% tt, .SD, .SDcols = patterns("^pid$|^cms_|_mrtl$|_prvl$|_dgns$")])
+
+
+
+
+
+
+
+
+
 
 
 sp$update_pop_weights()
@@ -357,3 +409,5 @@ sp$pop[between(age, 60, 64), sum(af_prvl > 0)/.N, keyby = year][, plot(year, V1)
 sp$pop[, sum(sbp_curr_xps > 140) / .N, keyby = year]
 
 
+fwrite_safe(sp$pop[1:10], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
+fwrite_safe(sp$pop[11:20], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
