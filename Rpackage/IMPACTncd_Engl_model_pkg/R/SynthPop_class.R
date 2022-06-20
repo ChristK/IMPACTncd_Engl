@@ -1697,6 +1697,8 @@ SynthPop <-
           private$gen_pop_weights(dt, private$design)
           dt[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]
           set(dt, NULL, "all_cause_mrtl", 0L)
+          set(dt, NULL, "cms_score", 0) # CMS score of diagnosed conditions
+          set(dt, NULL, "cms_count", 0L) # Count of diagnosed CMS conditions
 
           setkey(dt, pid, year)
           # dt[, dead := identify_longdead(all_cause_mrtl, pid_mrk)]

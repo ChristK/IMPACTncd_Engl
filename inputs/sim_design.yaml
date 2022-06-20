@@ -4,7 +4,7 @@ clusternumber: 15 # explicit parallelisation
 n_cpus: 1 # implicit parallelisation
 logs: yes
 export_xps: no
-export_lifecourse: yes
+keep_lifecourse: yes
 export_PARF: no
 'n': 20000
 n_synthpop_aggregation: 5 # number of synthpops to aggregate together (avoid values above 20)
@@ -41,6 +41,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
+      mm_wt: 0.0
     mortality:
       type: ~ # NULL
   notes: .na
@@ -54,6 +55,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.08
     mortality:
       type: 1
       code: 6
@@ -69,6 +71,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.49
     mortality:
       type: 3
       influenced_by_disease_name: t2dm
@@ -87,6 +90,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.8
     mortality:
       type: 3
       influenced_by_disease_name:
@@ -117,6 +121,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 1
       code: 4
@@ -131,6 +136,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 1.34
     mortality:
       type: 1
       code: 5
@@ -145,6 +151,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 1.46
     mortality:
       type: 1
       code: 7
@@ -160,6 +167,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 2.5
     mortality:
       type: 3
       influenced_by_disease_name: t2dm
@@ -175,6 +183,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.19
     mortality:
       type: 1
       code: 9
@@ -189,6 +198,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.53
     mortality:
       type: 1
       code: 10
@@ -204,6 +214,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 4 # Both cure and depend on disease(s)
       influenced_by_disease_name: t2dm
@@ -221,6 +232,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 4
       influenced_by_disease_name: t2dm
@@ -237,6 +249,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 2 # cure, not disease dependent
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
@@ -253,6 +266,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 4
       influenced_by_disease_name: t2dm
@@ -269,6 +283,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.5
     mortality:
       type: 1
       code: 15
@@ -283,6 +298,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.09
     mortality:
       type: ~
   notes: .na
@@ -296,6 +312,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.21
     mortality:
       type: ~
   notes: .na
@@ -309,6 +326,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 2
       cure: 10
@@ -324,24 +342,26 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 1.18
     mortality:
       type: 1
       code: 17
   notes: .na
-- name: cld
-  friendly_name: chronic liver disease
-  meta:
-    incidence:
-      type: 2
-      can_recur: no
-    diagnosis:
-      type: 1
-      probability: 1
-      duration_distr: ZANBI
-    mortality:
-      type: 1
-      code: 18
-  notes: .na
+# - name: cld
+#   friendly_name: chronic liver disease
+#   meta:
+#     incidence:
+#       type: 2
+#       can_recur: no
+#     diagnosis:
+#       type: 1
+#       probability: 1
+#       duration_distr: ZANBI
+#       mm_wt: 0.0
+#     mortality:
+#       type: 1
+#       code: 18
+#   notes: .na
 - name: ctd
   friendly_name: connective tissue disorders
   meta:
@@ -352,6 +372,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 1
       code: 19
@@ -366,6 +387,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.92
     mortality:
       type: 1
       code: 20
@@ -380,6 +402,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.65
     mortality:
       type: 1
       code: 21
@@ -394,6 +417,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.64
     mortality:
       type: 1
       code: 22
@@ -408,6 +432,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 1
       code: 23
@@ -422,6 +447,7 @@ diseases:
       type: 1
       probability: 1
       duration_distr: ZANBI
+      mm_wt: 0.0
     mortality:
       type: 1
       code: 24
@@ -436,6 +462,7 @@ diseases:
         - t2dm
     diagnosis:
       type: 0
+      mm_wt: 0.75
     mortality:
       type: ~
   notes: .na
@@ -449,6 +476,7 @@ diseases:
         - ra
     diagnosis:
       type: 0
+      mm_wt: 0.43
     mortality:
       type: ~
   notes: .na
@@ -465,6 +493,7 @@ diseases:
         - other_ca
     diagnosis:
       type: 0
+      mm_wt: 1.53
     mortality:
       type: ~
   notes: .na

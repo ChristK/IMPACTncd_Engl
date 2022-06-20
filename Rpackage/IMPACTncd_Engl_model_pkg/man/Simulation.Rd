@@ -30,7 +30,7 @@ To be completed...
 \item \href{#method-Simulation-del_outputs}{\code{Simulation$del_outputs()}}
 \item \href{#method-Simulation-del_logs}{\code{Simulation$del_logs()}}
 \item \href{#method-Simulation-get_esp}{\code{Simulation$get_esp()}}
-\item \href{#method-Simulation-get_cms}{\code{Simulation$get_cms()}}
+\item \href{#method-Simulation-get_mm_weights}{\code{Simulation$get_mm_weights()}}
 \item \href{#method-Simulation-print}{\code{Simulation$print()}}
 \item \href{#method-Simulation-clone}{\code{Simulation$clone()}}
 }
@@ -162,16 +162,16 @@ A data.table with the European Standardised Population 2013.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Simulation-get_cms"></a>}}
-\if{latex}{\out{\hypertarget{method-Simulation-get_cms}{}}}
-\subsection{Method \code{get_cms()}}{
-Get the Cambridge Morbidity Score weights.
+\if{html}{\out{<a id="method-Simulation-get_mm_weights"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_mm_weights}{}}}
+\subsection{Method \code{get_mm_weights()}}{
+Get the disease multimorbidity weifgts (i.e. Cambridge Morbidity Score weights).
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_cms()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_mm_weights()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-A named vector with the Cambridge Morbidity Score weights.
+A named vector with disease weights.
 }
 }
 \if{html}{\out{<hr>}}

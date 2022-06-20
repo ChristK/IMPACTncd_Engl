@@ -1370,7 +1370,8 @@ Disease <-
             "probability" = paste0(
               private$dgns_colnam,
               scenario_suffix
-            )
+            ),
+            "mm_wt" = self$meta$diagnosis$mm_wt
           )
 
           if (self$meta$diagnosis$type == 0L) {
