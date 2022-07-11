@@ -214,8 +214,9 @@ Simulation <-
       #' @param mc A positive sequential integer vector with the Monte Carlo
       #'   iterations of synthetic population to simulate.
       #' @param multicore If TRUE run the simulation in parallel.
+      #' @param scenario_nam A string for the scenario name (i.e. sc1)
       #' @return The invisible self for chaining.
-      run = function(mc, multicore = TRUE) {
+      run = function(mc, multicore = TRUE, scenario_nam) {
 
         if (!is.integer(mc)) stop("mc need to be an integer vector")
         if (any(mc <= 0)) stop("mc need to be positive")
@@ -240,8 +241,12 @@ Simulation <-
             paste0(mc, "_lifecourse.csv")
           )
         ))) {
-          stop("Results from a previous simulation exists in the output folder.
-               Please remove them before run a new one.")
+          # stop("Results from a previous simulation exists in the output folder.
+          #      Please remove them before run a new one.")
+          message(
+            "Results from a previous simulation exists in the output folder. Please remove them if this was unintentional."
+          )
+
         }
 
 
@@ -281,7 +286,7 @@ Simulation <-
             .noexport = NULL # c("time_mark")
           ) %dopar% {
 
-            private$run_sim(mc_ = mc_iter)
+            private$run_sim(mc_ = mc_iter, scenario_nam)
 
           }
 
@@ -294,14 +299,26 @@ Simulation <-
           if (self$design$sim_prm$logs)
             private$time_mark("Start of single-core run")
 
-          lapply(mc_sp, private$run_sim)
+          lapply(mc_sp, private$run_sim, scenario_nam)
 
           if (self$design$sim_prm$logs)
             private$time_mark("End of single-core run")
 
         }
 
-        # process summarised outputs
+        while (sink.number() > 0L) sink()
+
+
+        invisible(self)
+        },
+
+      #' @description
+      #' Process the lifecourse files
+      #' @param multicore If TRUE run the simulation in parallel.
+      #' @return The invisible self for chaining.
+      export_summaries = function(multicore = TRUE) {
+
+        fl <- list.files(private$output_dir("lifecourse"), full.names = TRUE)
 
         if (multicore) {
 
@@ -317,7 +334,7 @@ Simulation <-
             private$time_mark("Start exporting summaries")
 
           xps_dt <- foreach(
-             i = mc,
+            i = seq_along(fl),
             .inorder = TRUE,
             .verbose = self$design$sim_prm$logs,
             .packages = c(
@@ -330,25 +347,24 @@ Simulation <-
             .noexport = NULL # c("time_mark")
           ) %dopar% {
 
-            pth <- private$output_dir(paste0("lifecourse/", i, "_lifecourse.csv.gz"))
-            lc <-   fread(pth, stringsAsFactors = TRUE, key = c("pid", "year"))
-            private$export_summaries(lc)
+            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("scenario", "pid", "year"))
+            private$export_summaries_hlpr(lc)
             NULL
           }
 
           if (exists("cl")) stopCluster(cl)
 
-          if (self$design$sim_prm$logs) private$time_mark("End of exporting summuries")
+          if (self$design$sim_prm$logs)
+            private$time_mark("End of exporting summuries")
 
 
         } else {
           if (self$design$sim_prm$logs)
             private$time_mark("Start of single-core run")
 
-          lapply(mc, function(i) {
-            pth <- private$output_dir(paste0("lifecourse/", i, "_lifecourse.csv.gz"))
-            lc <-   fread(pth, stringsAsFactors = TRUE, key = c("pid", "year"))
-            private$export_summaries(lc)
+          lapply(seq_along(fl), function(i) {
+            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("pid", "year"))
+            private$export_summaries_hlpr(lc)
             NULL
           })
 
@@ -357,21 +373,11 @@ Simulation <-
 
         }
 
-
-
-        for (i in mc) {
-
-
-
-        }
-
         while (sink.number() > 0L) sink()
 
 
         invisible(self)
-        },
-
-
+      },
       #' @description Returns the causality matrix and optionally plots the
       #' causality structure.
       #' @param processed If `TRUE` generates the causality matrix from the graph.
@@ -519,7 +525,7 @@ Simulation <-
 
 
       # Runs the simulation in one core. mc is scalar
-      run_sim = function(mc_) {
+      run_sim = function(mc_, scenario_nam = "") {
 
         if (self$design$sim_prm$logs) {
           private$time_mark(paste0("Start mc iteration ", mc_))
@@ -532,6 +538,9 @@ Simulation <-
         }
 
         sp <- SynthPop$new(mc_, self$design)
+
+        scenario_fn(sp) # apply simple scenario
+
         # ds <- copy(self$diseases) # Necessary for parallelisation
         lapply(self$diseases, function(x) {
           print(x$name)
@@ -543,7 +552,7 @@ Simulation <-
             set_mrtl_prb(sp, self$design)
         })
 
-        l <- private$mk_scenario_init(sp, "") # TODO update with scenarios
+        l <- private$mk_scenario_init(sp, scenario_nam) # TODO update with scenarios
         simcpp(sp$pop, l, sp$mc)
         # it doesn't matter if mc or mc_aggr is used in the above, because it is
         # only used for the RNG stream and the pid are different in each mc_aggr
@@ -608,6 +617,8 @@ Simulation <-
                                              pid_mrk, TRUE, 1L)
         )]
 
+        if (!nzchar(scenario_nam)) scenario_nam <- "sc0"
+          sp$pop[, scenario := scenario_nam]
 
         # Write lifecourse
           if (self$design$sim_prm$logs) message("Exporting lifecourse...")
@@ -803,8 +814,15 @@ Simulation <-
       # creates the list that is used in c++ side
       # sp is needed for sp$mc_aggr in to_cpp()
       mk_scenario_init = function(sp, scenario_name) {
-        # scenario_suffix_for_pop <- paste0("_", scenario_name) # TODO get suffix from design
-        scenario_suffix_for_pop <- scenario_name
+        if (nzchar(scenario_name)) { # TODO get suffix from design
+          scenario_suffix_for_pop <- paste0("_", scenario_name)
+        } else {
+          scenario_suffix_for_pop <- scenario_name
+        }
+
+        # TODO the next line counteracts the logic above. Resolve
+        scenario_suffix_for_pop <- ""
+
         list(
           "exposures"          = self$design$sim_prm$exposures,
           "scenarios"          = self$design$sim_prm$scenarios, # to be generated programmatically
@@ -818,8 +836,9 @@ Simulation <-
           "all_cause_mrtl"     = paste0("all_cause_mrtl", scenario_suffix_for_pop),
           "cms_score"          = paste0("cms_score", scenario_suffix_for_pop),
           "cms_count"          = paste0("cms_count", scenario_suffix_for_pop),
-          "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
-          "diseases"           = lapply(self$diseases, function(x) x$to_cpp(sp, self$design))
+          # "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
+          "diseases"           = lapply(self$diseases, function(x)
+            x$to_cpp(sp, self$design, scenario_suffix_for_pop))
         )
       },
 
@@ -899,9 +918,11 @@ Simulation <-
 
       # function to export summaries from lifecourse files
       # lc is a lifecourse file
-      export_summaries = function(lc) {
+      export_summaries_hlpr = function(lc) {
         if (self$design$sim_prm$logs) message("Exporting summaries...")
-        strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
+        # strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
+        strata <- c("mc",
+                    setdiff(self$design$sim_prm$strata_for_output, c("agegrp")))
 
         # Life expectancy NOTE for scaled_up LE weights need to apply from the very beginning
         fwrite_safe(lc[all_cause_mrtl > 0, .("popsize" = (.N), LE = mean(age)),  keyby = strata],
@@ -915,6 +936,7 @@ Simulation <-
                     )))
         # Life expectancy at 60
 
+        if (self$design$sim_prm$ageL < 60L && self$design$sim_prm$ageH > 60L) {
         fwrite_safe(lc[all_cause_mrtl > 0 & age > 60, .("popsize" = (.N), LE60 = mean(age)),  keyby = strata],
                     private$output_dir(paste0("summaries/", "le60_out.csv.gz"
                     )))
@@ -924,6 +946,7 @@ Simulation <-
         fwrite_safe(lc[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt_esp), LE60 = weighted.mean(age, wt_esp)),  keyby = strata],
                     private$output_dir(paste0("summaries/", "le60_esp.csv.gz"
                     )))
+        }
         # Note: for less aggregation use wtd.mean with popsize i.e le_out[, weighted.mean(LE, popsize), keyby = year]
 
         # Healthy life expectancy

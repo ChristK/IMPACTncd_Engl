@@ -27,8 +27,11 @@ diseases <- lapply(design$sim_prm$diseases, function(x) {
 names(diseases) <- sapply(design$sim_prm$diseases, `[[`, "name")
 
 mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
-    # scenario_suffix_for_pop <- paste0("_", scenario_name) # TODO get suffix from design
-    scenario_suffix_for_pop <- scenario_name
+    if (nzchar(scenario_name)) { # TODO get suffix from design
+        scenario_suffix_for_pop <- paste0("_", scenario_name)
+    } else {
+        scenario_suffix_for_pop <- scenario_name
+    }
     list(
         "exposures"          = design_$sim_prm$exposures,
         "scenarios"          = design_$sim_prm$scenarios, # to be generated programmatically
@@ -43,7 +46,8 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
         "cms_score"          = paste0("cms_score", scenario_suffix_for_pop),
         "cms_count"          = paste0("cms_count", scenario_suffix_for_pop),
         "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
-        "diseases"           = lapply(diseases_, function(x) x$to_cpp(sp, design_))
+        "diseases"           = lapply(diseases_, function(x)
+            x$to_cpp(sp, design_, scenario_suffix_for_pop))
     )
 }
 
