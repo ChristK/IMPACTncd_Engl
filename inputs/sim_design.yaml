@@ -527,6 +527,7 @@ strata_for_output:
 - sex
 - dimd
 - ethnicity
+- sha
 exposures:
 - age
 - sex
