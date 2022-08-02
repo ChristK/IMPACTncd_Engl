@@ -17,6 +17,13 @@ IMPACTncd$
   run(1:2, multicore = TRUE, "sc1")$
   export_summaries(multicore = TRUE)
 
+
+scenario_fn <- function(sp) sp$pop[year >= 19, bmi_curr_xps := bmi_curr_xps * (1 - 0.2)]
+
+IMPACTncd$
+  run(1:2, multicore = TRUE, "sc2")$
+  export_summaries(multicore = TRUE)
+
 # IMPACTncd$export_summaries(multicore = TRUE)
 
 source("./validation_internal/internal_validation_plots.R")

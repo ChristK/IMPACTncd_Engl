@@ -296,6 +296,7 @@ if (all(file.exists(output_dir(filenames)))) {
         design$sim_prm$n_synthpop_aggregation),
     # .combine = rbind,
     .inorder = FALSE,
+    .options.multicore = list(preschedule = FALSE),
     .verbose = TRUE,
     .packages = c("data.table", "IMPACTncdEnglmisc")
     # .export = ls(),
