@@ -457,7 +457,7 @@ Exposure <-
 
           } else {
             set(sp$pop, NULL, self$name, # column without _curr_xps is lagged
-                shift_bypid(sp$pop[[xps_tolag]], private$lag_mc[sp$mc_aggr], sp$pop$pid))
+                shift_bypid(sp$pop[[xps_tolag]], self$get_lag(sp$mc_aggr), sp$pop$pid))
             lookup_dt(sp$pop, self$get_rr(sp$mc_aggr, design_, drop = FALSE),
                       check_lookup_tbl_validity = FALSE)
           }
@@ -482,6 +482,7 @@ Exposure <-
 
           if (paste0(self$name, "____") %in% names(sp$pop)) {
             # To prevent overwriting t2dm_prvl
+            # TODO consider deleting xps_tolag for diseases, i.e t2dm_prvl_curr_xps
             setnames(sp$pop, paste0(self$name, "____"), self$name)
           }
 
@@ -531,6 +532,7 @@ Exposure <-
         out[, agegroup := NULL]
         setnames(out, "rr", private$nam_rr)
         private$cache <- copy(out)
+        private$cache_mc <- "forPARF"
         out
         },
 
