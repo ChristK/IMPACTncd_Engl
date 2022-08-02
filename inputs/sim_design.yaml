@@ -177,15 +177,17 @@ diseases:
   friendly_name: asthma
   meta:
     incidence:
-      type: 2
-      can_recur: no
+      type: 3
+      influenced_by_disease_name: asthma
+      can_recur: yes
     diagnosis:
       type: 1
       probability: 1
       duration_distr: ZANBI
       mm_wt: 0.19
     mortality:
-      type: 1
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma)
+      cure: 4 # TODO fix me based on distribution
       code: 9
   notes: .na
 - name: ckd45

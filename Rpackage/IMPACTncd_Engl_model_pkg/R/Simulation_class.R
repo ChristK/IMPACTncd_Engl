@@ -272,6 +272,7 @@ Simulation <-
           xps_dt <- foreach(
             mc_iter = mc_sp,
             .inorder = FALSE,
+            .options.multicore = list(preschedule = FALSE),
             .verbose = self$design$sim_prm$logs,
             .packages = c(
               "R6",
@@ -336,6 +337,7 @@ Simulation <-
           xps_dt <- foreach(
             i = seq_along(fl),
             .inorder = TRUE,
+            .options.multicore = list(preschedule = FALSE),
             .verbose = self$design$sim_prm$logs,
             .packages = c(
               "R6",
@@ -404,7 +406,8 @@ Simulation <-
         if (processed) {
           g <- as.matrix(as_adjacency_matrix(private$causality_structure))
           n <- sapply(self$diseases, `[[`, "name")
-          g <- g[!rownames(g) %in% n, colnames(g) %in% n]
+          g <- g[rowSums(g) > 0, colnames(g) %in% n]
+
         } else {
           g <- private$causality_structure
         }
@@ -1016,17 +1019,17 @@ Simulation <-
                        .SDcols = patterns("_prvl$"), keyby = strata],
                     private$output_dir(paste0("summaries/", "incd_esp.csv.gz"
                     )))
-        fwrite_safe(lc[, c("popsize" = (.N),
+        fwrite_safe(lc[, .("popsize" = (.N),
                            "all_cause_mrtl" = sum(all_cause_mrtl > 0)),
                        keyby = strata],
                     private$output_dir(paste0("summaries/", "mrtl_out.csv.gz"
                     )))
-        fwrite_safe(lc[, c("popsize" = sum(wt),
+        fwrite_safe(lc[, .("popsize" = sum(wt),
                            "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt)),
                        keyby = strata],
                     private$output_dir(paste0("summaries/", "mrtl_scaled_up.csv.gz"
                     )))
-        fwrite_safe(lc[, c("popsize" = sum(wt_esp),
+        fwrite_safe(lc[, .("popsize" = sum(wt_esp),
                            "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt_esp)),
                        keyby = strata],
                     private$output_dir(paste0("summaries/", "mrtl_esp.csv.gz"
