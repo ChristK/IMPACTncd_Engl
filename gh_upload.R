@@ -1,5 +1,11 @@
-library(piggyback)
-library(data.table)
+if (!require(piggyback)) {
+  install.packages("piggyback")
+  library(piggyback)
+}
+if (!require(data.table)) {
+  install.packages("data.table")
+  library(data.table)
+}
 
 # Note consider making this a method for Simulation class
 
