@@ -36,7 +36,7 @@ diseases:
 #     diagnosis:
 #       type: 1
 #       probability: 1
-#       duration_distr: ZANBI
+#       duration_distr_backwards: ZANBI
 #     mortality:
 #       type: 1
 #       code: 6
@@ -51,7 +51,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 3
       influenced_by_disease_name: t2dm
@@ -69,7 +69,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 3
       influenced_by_disease_name:
@@ -86,7 +86,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 1
       code: 4
@@ -100,7 +100,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 1
       code: 5
@@ -114,7 +114,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 1
       code: 7
@@ -129,7 +129,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 3
       influenced_by_disease_name: t2dm
@@ -144,7 +144,8 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
+      duration_distr_forwards: ./inputs/disease_burden/astma_dur_forward.yaml #coef from a gamlss model
     mortality:
       type: 1
       code: 9
@@ -158,7 +159,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 1
       code: 10
@@ -173,7 +174,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 4 # Both cure and depend on disease(s)
       influenced_by_disease_name: t2dm
@@ -190,7 +191,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 4
       influenced_by_disease_name: t2dm
@@ -206,7 +207,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 2 # cure, not disease dependent
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
@@ -222,7 +223,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
     mortality:
       type: 4
       influenced_by_disease_name: t2dm
@@ -238,7 +239,7 @@ diseases:
 #     diagnosis:
 #       type: 1
 #       probability: 1
-#       duration_distr: ZANBI
+#       duration_distr_backwards: ZANBI
 #     mortality:
 #       type: 1
 #       code: 15
@@ -252,7 +253,7 @@ diseases:
 #     diagnosis:
 #       type: 1
 #       probability: 1
-#       duration_distr: ZANBI
+#       duration_distr_backwards: ZANBI
 #     mortality:
 #       type: 2
 #       cure: 10
@@ -267,7 +268,7 @@ diseases:
 #     diagnosis:
 #       type: 1
 #       probability: 1
-#       duration_distr: ZANBI
+#       duration_distr_backwards: ZANBI
 #     mortality:
 #       type: 1
 #       code: 17

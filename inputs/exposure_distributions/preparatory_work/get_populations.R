@@ -20,7 +20,7 @@
 ## Boston, MA 02110-1301 USA.
 
 library(CKutils)
-dt <- fread("/home/ckyprid/pCloudDrive/My Models/IMPACTncd_Engl data/ward pops by age gender ethnicity from census2011.csv")
+dt <- fread("/home/ckyprid/pCloudDriveMy_ModelsIMPACTncd_Engl data/ward pops by age gender ethnicity from census2011.csv")
 dt <- melt(dt, 1:3, value.name = "population_size")
 dt[, ward_code := substr(as.character(variable), 1, 6)]
 dt[, ward_name := substr(as.character(variable), 10, nchar(as.character(variable)))]
@@ -29,7 +29,7 @@ agegrp_name(0, 90, 5, FALSE)
 replace_from_table(dt, "Age", dt[, sort(unique(Age))], agegrp_name(0, 90, 5, FALSE))
 
 # From NOMIS ONS Census 2011 population by ward age sex ethnicity
-dt <- fread("~/My Models/IMPACTncd_Engl data/Data_AGE_ETHGEW_SEX_UNIT.csv")
+dt <- fread("~My_ModelsIMPACTncd_Engl data/Data_AGE_ETHGEW_SEX_UNIT.csv")
 dt <- melt(dt, 1:2, value.name = "population_size")
 dt[variable %like% "Male", sex := "men"]
 dt[variable %like% "Female", sex := "women"]
