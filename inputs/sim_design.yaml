@@ -54,7 +54,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.08
     mortality:
       type: 1
@@ -70,7 +70,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.49
     mortality:
       type: 3
@@ -89,7 +89,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.8
     mortality:
       type: 3
@@ -120,7 +120,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 1
@@ -135,7 +135,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 1.34
     mortality:
       type: 1
@@ -150,7 +150,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 1.46
     mortality:
       type: 1
@@ -166,7 +166,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 2.5
     mortality:
       type: 3
@@ -183,11 +183,12 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/asthma_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.19
     mortality:
-      type: 2 # cure, not disease dependent (ignore self-dependence on asthma)
-      cure: 4 # TODO fix me based on distribution
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
       code: 9
   notes: .na
 - name: ckd45
@@ -199,7 +200,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.53
     mortality:
       type: 1
@@ -215,7 +216,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 4 # Both cure and depend on disease(s)
@@ -233,7 +234,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 4
@@ -250,7 +251,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 2 # cure, not disease dependent
@@ -267,7 +268,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 4
@@ -284,7 +285,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.5
     mortality:
       type: 1
@@ -299,7 +300,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.09
     mortality:
       type: ~
@@ -313,7 +314,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.21
     mortality:
       type: ~
@@ -327,7 +328,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 2
@@ -343,7 +344,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 1.18
     mortality:
       type: 1
@@ -358,7 +359,7 @@ diseases:
 #     diagnosis:
 #       type: 1
 #       probability: 1
-#       duration_distr: ZANBI
+#       duration_distr_backwards: ZANBI
 #       mm_wt: 0.0
 #     mortality:
 #       type: 1
@@ -373,7 +374,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 1
@@ -388,7 +389,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.92
     mortality:
       type: 1
@@ -403,7 +404,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.65
     mortality:
       type: 1
@@ -418,7 +419,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.64
     mortality:
       type: 1
@@ -433,7 +434,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 1
@@ -448,7 +449,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr: ZANBI
+      duration_distr_backwards: ZANBI
       mm_wt: 0.0
     mortality:
       type: 1
