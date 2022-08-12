@@ -17,10 +17,13 @@ repo <- "ChristK/IMPACTncd_Engl"
 
 fl <- list.files(getwd(), pattern = ".fst$|.xls$|.xlsx$|.qs$", full.names = TRUE, recursive = TRUE)
 fl <- grep("secure_data", fl, value = TRUE, invert = TRUE)
+# NOTE currently no necessary files ar .qs. For future proof I add them above
+# and exclude the below
 fl <- grep("tmp.qs$", fl, value = TRUE, invert = TRUE)
+fl <- grep("\\/simulation\\/parf\\/PARF_.*\\.qs$", fl, value = TRUE, invert = TRUE)
 
 filindx <- data.table(orig_file = basename(fl),
-                        sanit_file = gsub("[^[:alnum:]&&^\\.]", ".", basename(fl)), # replace all non alphanumerics by ... except .
+                        sanit_file = gsub("[^[:alnum:]&&^\\.]", ".", basename(fl)), # replace all non alphanumerics with .
                         abs_dir = dirname(fl),
                         rel_dir = gsub(getwd(), "", dirname(fl)), key = "orig_file")
 
