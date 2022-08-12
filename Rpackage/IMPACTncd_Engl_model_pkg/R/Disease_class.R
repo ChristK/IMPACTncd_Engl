@@ -200,7 +200,7 @@ Disease <-
                                 keep_intermediate_file = TRUE) {
 
         if ((is.numeric(self$meta$incidence$type) &&
-             self$meta$incidence$type == 1L) ||
+             self$meta$incidence$type < 2L) ||
             length(private$rr) == 0L) {
           # Early break for type 1 incidence and diseases with no RF
           return(NULL)
@@ -285,7 +285,8 @@ Disease <-
             .export = NULL,
             .noexport = NULL # c("time_mark")
           ) %dopar% {
-            private$gen_sp_forPARF(mc_iter, ff = ttt, design_ = design_)
+            private$gen_sp_forPARF(mc_iter, ff = ttt, design_ = design_,
+                                   diseases_ = diseases_)
 
           }
           if (exists("cl")) stopCluster(cl)
@@ -302,14 +303,16 @@ Disease <-
           # NOTE xps_dt does not contain disease init prevalence. I simulate
           # here as set_init_prvl expects a synthpop and not a data.table as
           # input. All relevant risk factors for the diseases need to be
-          # available in xps_dt. Currently this requires manual setup of the
-          # logic if RF for relevant diseases altered.
-          # TODO implement automation of the logic above based on topological
-          # ordering.
+          # available in xps_dt.
+
           # Generate diseases that act as exposures
-          for (xps in c("t2dm_prvl", "af_prvl")) {
-            if (xps %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps, "~", self$name)]]$lag
+          xps_dep <- private$get_xps_dependency_tree(x = self$name, dssl = diseases_)
+          xps_dep <- xps_dep[grepl("_prvl$", xpscol)]
+          setkey(xps_dep, xpscol)
+
+          for (xps in paste0(names(diseases_), "_prvl")) {
+            if (xps %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps, max(lag)] # See note below in line ~ 1681 about max
               ans$pop[, year := year - lag]
               design_$sim_prm$init_year <-
                 design_$sim_prm$init_year - lag
@@ -1203,7 +1206,7 @@ Disease <-
 
         for (i in seq_along(private$filenams)) {
           if (grepl("_indx.fst$", private$filenams[[i]])) next
-          print( private$filenams[[i]])
+          print(private$filenams[[i]])
           tbl <- read_fst(private$filenams[[i]], as.data.table = TRUE)
           val <- setdiff(names(tbl), names(sp$pop))
           com <- sort(intersect(names(tbl), names(sp$pop)))
@@ -1226,7 +1229,7 @@ Disease <-
 
             for (j in val) set(tbl2, NULL, j, 0)
 
-            com <- c(com, "sex")
+            if (!"sex" %in% com) com <- c(com, "sex")
             tbl <- rbind(tbl, tbl2)
           }
 
@@ -1270,8 +1273,7 @@ Disease <-
 
           setkeyv(tbl, com)
 
-          if (!is_valid_lookup_tbl(tbl, com))
-            stop("Not a valid lookup table.")
+          is_valid_lookup_tbl(tbl, com) # stops if not
 
           if (!identical(read_fst(private$filenams[[i]], as.data.table = TRUE), tbl))
             write_fst(tbl, private$filenams[[i]])
@@ -1574,8 +1576,43 @@ Disease <-
         }
       },
 
+      # helper function to get the tree of dependencies to exposures
+      # x is a disease name string i.e. x = "other_ca"
+      # diseases_ is a list of disease objects
+      # TODO test that if (!i %in% out$ds)) allows interdependency (i.e. chd
+      # causes t2dm and t2dm causes chd). Current approach will lead to an
+      # infinite loop
+      get_xps_dependency_tree = function(x = self$name, dssl = diseases_) {
+        tr <- sapply(dssl[[x]]$get_rr(), `[[`, "name")
+        if (length(tr) == 0L) {
+          out <- data.table(
+            xpscol = character(),
+            lag = numeric(),
+            ds = character())
+          return(out)
+        }
+        out <- data.table(
+          xpscol = tr,
+          lag = sapply(dssl[[x]]$get_rr(), `[[`, "lag"),
+          ds = x)
+        allds <-
+          unique(
+            c(
+              dssl[[x]]$meta$incidence$influenced_by_disease_name,
+              dssl[[x]]$meta$mortality$influenced_by_disease_name
+            )
+          )
+        if (!is.null(allds)) {
+          for (i in allds) {
+            if (!i %in% out$ds)
+              out <- unique(rbind(out, private$get_xps_dependency_tree(i, dssl)))
+          }
+        }
+        return(out)
+      },
+
       gen_sp_forPARF =
-        function(mc_, ff, design_) {
+        function(mc_, ff, design_, diseases_) {
 
           dqRNGkind("pcg64")
           set.seed(private$seed + mc_)
@@ -1652,11 +1689,24 @@ Disease <-
             ff[age > 90L, age := 90L]
           }
 
+
+          xps_dep <- private$get_xps_dependency_tree(x = self$name, dssl = diseases_)
+          xps_dep <- xps_dep[!grepl("_prvl$", xpscol)]
+          setkey(xps_dep, xpscol)
+
+          # NOTE an exposure may appear multiple times because it is a risk for
+          # multiple conditions, with potentially different lags. However the
+          # current approach allows only one lag time per exposure for
+          # efficiency. This is a limitation of this approach which. To resolve
+          # this for now, I will pick the highest based on the fact that this
+          # is a disease chain. I.e BMI ->5y-> t2dm ->9y-> breast_ca ->1y-> other_ca
+          # TODO implement a better solution for the above
+
           # Generate active days ----
-          xps <- c("active_days", "met", "t2dm_prvl") # t2dm require MET
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- c("active_days", "met") # t2dm require MET
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1675,10 +1725,10 @@ Disease <-
           }
 
           # Generate MET ----
-          xps <- c("met", "t2dm_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- "met"
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1690,10 +1740,10 @@ Disease <-
           }
 
           # Generate fruit consumption (ZISICHEL) ----
-          xps <- c("fruit", "t2dm_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- "fruit"
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1715,8 +1765,8 @@ Disease <-
           }
           # Generate veg consumption (DEL) ----
           xps <- "veg"
-          if (xps %in% sapply(private$rr, `[[`, "name")) {
-            lag <- private$rr[[paste0(xps, "~", self$name)]]$lag
+          if (xps %in% xps_dep$xpscol) {
+            lag <- xps_dep[xps, max(lag)]
             ff[, year := year - lag]
 
             tbl <-
@@ -1732,23 +1782,22 @@ Disease <-
           }
 
           # Smoking ----
-          xps <- c("smok_status", "smok_cig", "smok_packyrs",
-                   "ets", "t2dm_prvl", "af_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (all(xps %in% sapply(private$rr, `[[`, "name"))) {
-              stop("smok_status & smok_cig cannot be both risk factors for a disease.")
+          xps <- c("smok_status", "smok_cig", "smok_packyrs", "ets")
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps_dep[xps[1:3], any(duplicated(ds))]) {
+              stop("smok_status, smok_cig, & smok_packyrs cannot coexist as risk factors for a disease.")
             }
 
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             }
 
-            if (xps[[2]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[2]], "~", self$name)]]$lag
+            if (xps[[2]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[2]], max(lag)]
             }
 
-            if (xps[[3]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[3]], "~", self$name)]]$lag
+            if (xps[[3]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[3]], max(lag)]
             }
 
             ff[, year := year - lag]
@@ -1807,11 +1856,10 @@ Disease <-
           }
 
           # Assign smok_cig_curr when pid_mrk == true (the first year an individual enters the simulation)
-          xps <- c("smok_cig", "smok_packyrs",
-                   "t2dm_prvl", "af_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- c("smok_cig", "smok_packyrs")
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1858,7 +1906,7 @@ Disease <-
             ff[, year := year + lag]
           }
 
-          if ("smok_packyrs" %in% sapply(private$rr, `[[`, "name"))
+          if ("smok_packyrs" %in% xps_dep$xpscol)
             ff[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps *
                                           smok_dur_curr_xps / 20))]
 
@@ -1867,10 +1915,10 @@ Disease <-
           # Note at the moment this is independent of smoking prevalence TODO
           # calculate how many each smoker pollutes by year, SHA (not qimd) to
           # be used in scenarios. Ideally correct for mortality
-          xps <- c("ets", "t2dm_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- "ets"
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1886,10 +1934,10 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate alcohol (ZINBI) ----
-          xps <- c("alcohol", "t2dm_prvl", "af_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- "alcohol"
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1908,10 +1956,10 @@ Disease <-
           }
 
           # Generate BMI (BCPEo) ----
-          xps <- c("bmi", "t2dm_prvl", "af_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- "bmi"
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1927,10 +1975,10 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate SBP (BCPEo) ----
-          xps <- c("sbp", "af_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- "sbp"
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1946,10 +1994,10 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate tchol (BCT) ----
-          xps <- c("tchol", "statin_px", "t2dm_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- c("tchol", "statin_px")
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }
@@ -1980,10 +2028,10 @@ Disease <-
             ff[, year := year + lag]
           }
           # Generate statins medication (BI) -----
-          xps <- c("statin_px", "t2dm_prvl")
-          if (any(xps %in% sapply(private$rr, `[[`, "name"))) {
-            if (xps[[1]] %in% sapply(private$rr, `[[`, "name")) {
-              lag <- private$rr[[paste0(xps[[1]], "~", self$name)]]$lag
+          xps <- "statin_px"
+          if (any(xps %in% xps_dep$xpscol)) {
+            if (xps[[1]] %in% xps_dep$xpscol) {
+              lag <- xps_dep[xps[[1]], max(lag)]
             } else {
               lag <- 0L
             }

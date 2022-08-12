@@ -29,11 +29,11 @@ source(paste0("/mnt/", Sys.info()[["user"]], "/UoL/CPRD2021/epi_models/scripts/a
 
 # Duration ====
 if (overwrite_dur ||
-    !file.exists(output_path(paste0(disnm, "_dur.qs")))) {
+    !file.exists(output_path(paste0(disnm2, "_dur.qs")))) {
 
   dt <- harmonise(read_fst(input_path("panel_short_prev_2018_years.fst"),
                            as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
-                                                                   get(paste0(disnm, "_years")) > 2L,
+                                                                   get(paste0(disnm, "_years")) >= 2L,
                                                                  .SD, .SDcols = c(paste0(disnm, "_years"), strata)]
 
   setnames(dt, paste0(disnm, "_years"), "dur")
@@ -51,18 +51,18 @@ if (overwrite_dur ||
   #                  expression(bold(duration ~ (years))), discrete = TRUE)
 
   # distr_nam <- names(marg_distr$fits[1]) # pick appropriately and note here: ZANBI
-  distr_nam <- "ZANBI"
+#  distr_nam <- "ZINBI"
 
   dur_model <- gamlss(
     dur ~ pb(age) + pcat(sex) + pcat(dimd) + pcat(ethnicity),
     ~pcat(sex) + pcat(dimd),
     # ~pb(age),
-    family = distr_nam,
+    family = "ZINBI",
     data = dt,
     method = RS(20)
   )
 
-  qsave(dur_model, output_path(paste0(disnm, "_dur.qs")), "archive")
+  qsave(dur_model, output_path(paste0(disnm2, "_dur.qs")), "archive")
   print(paste0(disnm, "_dur model saved!"))
 
   trms <- all.vars(formula(dur_model))[-1] # -1 excludes dependent var
@@ -89,7 +89,7 @@ if (overwrite_dur ||
 
 # Incidence ====
 if (overwrite_incd ||
-    !file.exists(output_path(paste0(disnm, "_incd.qs")))) {
+    !file.exists(output_path(paste0(disnm2, "_incd.qs")))) {
   dt <- harmonise(read_fst(input_path("panel_short_inc.fst"),
                            as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
                                                                    get(disnm) < 2L &
@@ -110,7 +110,7 @@ if (overwrite_incd ||
 
   validate_plots(dt, y, mod_max, "_incd", disnm, strata)
 
-  qsave(mod_max, output_path(paste0(disnm, "_incd.qs")), "archive")
+  qsave(mod_max, output_path(paste0(disnm2, "_incd.qs")), "archive")
   print(paste0(disnm, "_incd model saved!"))
 
 
@@ -144,7 +144,7 @@ if (overwrite_incd ||
 
 # Prevalence ====
 if (overwrite_prvl ||
-    !file.exists(output_path(paste0(disnm, "_prvl.qs")))) {
+    !file.exists(output_path(paste0(disnm2, "_prvl.qs")))) {
   dt <- harmonise(read_fst(input_path("panel_short_prev.fst"),
                            as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
                                                                    get(disnm) <= 2L &
@@ -165,7 +165,7 @@ if (overwrite_prvl ||
   )
 
   validate_plots(dt, y, mod_max, "_prvl", disnm, strata)
-  qsave(mod_max, output_path(paste0(disnm, "_prvl.qs")), "archive")
+  qsave(mod_max, output_path(paste0(disnm2, "_prvl.qs")), "archive")
   print(paste0(disnm, "_prvl model saved!"))
 
   trms <- all.vars(formula(mod_max))[-1] # -1 excludes dependent var
@@ -194,7 +194,7 @@ if (overwrite_prvl ||
 # Case Fatality all years ====
 
 if (overwrite_ftlt ||
-    !file.exists(output_path(paste0(disnm, "_ftlt.qs"))))
+    !file.exists(output_path(paste0(disnm2, "_ftlt.qs"))))
 
   {
 
@@ -219,7 +219,7 @@ if (overwrite_ftlt ||
   )
 
   validate_plots(dt, y, mod_max, "_ftlt", disnm, strata_ftlt)
-  qsave(mod_max, output_path(paste0(disnm, "_ftlt.qs")), "archive")
+  qsave(mod_max, output_path(paste0(disnm2, "_ftlt.qs")), "archive")
   print(paste0(disnm, "_ftlt model saved!"))
 
   trms <- all.vars(formula(mod_max))[-1] # -1 excludes dependent var
@@ -304,7 +304,7 @@ if (overwrite_pred) {
     dt[, year := year - 2000]
 
 
-    mod_max <- qread(output_path(paste0(disnm, i, ".qs")))
+    mod_max <- qread(output_path(paste0(disnm2, i, ".qs")))
     trms <-
       all.vars(formula(mod_max))[-1] # -1 excludes dependent var
     newdata <- copy(template)

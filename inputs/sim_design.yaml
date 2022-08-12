@@ -54,7 +54,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.08
     mortality:
       type: 1
@@ -65,16 +65,22 @@ diseases:
   meta:
     incidence:
       type: 3 # incidence depends on disease
-      influenced_by_disease_name: t2dm
+      influenced_by_disease_name:
+        - t2dm
+        - ra
+        - ckd
       can_recur: no
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.49
     mortality:
       type: 3
-      influenced_by_disease_name: t2dm
+      influenced_by_disease_name:
+        - t2dm
+        - ra
+        - ckd
       code: 2
   notes: .na
 - name: stroke
@@ -89,7 +95,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.8
     mortality:
       type: 3
@@ -120,7 +126,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
       type: 1
@@ -130,15 +136,17 @@ diseases:
   friendly_name: AF
   meta:
     incidence:
-      type: 2
+      type: 3
+      influenced_by_disease_name: chd
       can_recur: no
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 1.34
     mortality:
-      type: 1
+      type: 3
+      influenced_by_disease_name: chd
       code: 5
   notes: .na
 - name: copd
@@ -150,7 +158,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 1.46
     mortality:
       type: 1
@@ -166,7 +174,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 2.5
     mortality:
       type: 3
@@ -183,7 +191,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI # used in init_prvl
+      duration_distr_backwards: ZINBI # used in init_prvl
       duration_distr_forwards: ./inputs/disease_burden/asthma_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.19
     mortality:
@@ -191,8 +199,73 @@ diseases:
       cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
       code: 9
   notes: .na
-- name: ckd45
-  friendly_name: ckd stage 4-5
+- name: constipation
+  friendly_name: constipation
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - constipation
+        - helo
+        - alcpr
+        - prostate_ca
+        - ibs
+        - other_ca
+        - epilepsy
+        - dementia
+        - t2dm
+        - colorectal_ca
+        - stroke
+        - htn
+        - pain
+        - psychosis
+        - hf
+        - chd
+        - copd
+        - t1dm
+        - breast_ca
+        - lung_ca
+        - af
+        - andep
+        - asthma
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/constipation_dur_forward.yaml # used in c++ for future duration
+      mm_wt: 1.12
+    mortality:
+      type: ~ # NULL
+  notes: .na
+- name: pain
+  friendly_name: chronic pain
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - pain
+        - ctd
+        - lung_ca
+        - ra
+        - prostate_ca
+        - breast_ca
+        - colorectal_ca
+        - ckd
+        - other_ca
+        - htn
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/pain_dur_forward.yaml # used in c++ for future duration
+      mm_wt: 0.92
+    mortality:
+      type: ~ # NULL
+  notes: .na
+- name: ckd
+  friendly_name: ckd stage 3-5
   meta:
     incidence:
       type: 2
@@ -200,7 +273,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.53
     mortality:
       type: 1
@@ -216,7 +289,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
       type: 4 # Both cure and depend on disease(s)
@@ -224,7 +297,7 @@ diseases:
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
       code: 11
   notes: .na
-- name: colorect_ca
+- name:  colorectal_ca
   friendly_name: colorectal cancer
   meta:
     incidence:
@@ -234,7 +307,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
       type: 4
@@ -251,7 +324,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
       type: 2 # cure, not disease dependent
@@ -268,7 +341,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
       type: 4
@@ -280,15 +353,24 @@ diseases:
   friendly_name: anxiety & depression
   meta:
     incidence:
-      type: 2
-      can_recur: no
+      type: 3
+      influenced_by_disease_name:
+        - andep
+        - prostate_ca
+        - pain
+        - other_ca
+        - lung_ca
+        - stroke
+      can_recur: yes
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/andep_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.5
     mortality:
-      type: 1
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
       code: 15
   notes: .na
 - name: helo
@@ -300,7 +382,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.09
     mortality:
       type: ~
@@ -314,7 +396,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.21
     mortality:
       type: ~
@@ -323,15 +405,25 @@ diseases:
   friendly_name: other cancers
   meta:
     incidence:
-      type: 2
+      type: 3
+      influenced_by_disease_name:
+        - prostate_ca
+        - lung_ca
+        - breast_ca
+        - colorectal_ca
       can_recur: yes
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
-      type: 2
+      type: 4
+      influenced_by_disease_name:
+        - prostate_ca
+        - lung_ca
+        - breast_ca
+        - colorectal_ca
       cure: 10
       code: 16
   notes: .na
@@ -339,15 +431,25 @@ diseases:
   friendly_name: heart failure
   meta:
     incidence:
-      type: 2
+      type: 3
+      influenced_by_disease_name:
+        - chd
+        - copd
+        - htn
+        - t2dm
       can_recur: no
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 1.18
     mortality:
-      type: 1
+      type: 3
+      influenced_by_disease_name:
+        - chd
+        - copd
+        - htn
+        - t2dm
       code: 17
   notes: .na
 # - name: cld
@@ -359,7 +461,7 @@ diseases:
 #     diagnosis:
 #       type: 1
 #       probability: 1
-#       duration_distr_backwards: ZANBI
+#       duration_distr_backwards: ZINBI
 #       mm_wt: 0.0
 #     mortality:
 #       type: 1
@@ -374,7 +476,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
       type: 1
@@ -384,15 +486,17 @@ diseases:
   friendly_name: epilepsy
   meta:
     incidence:
-      type: 2
+      type: 3
+      influenced_by_disease_name: stroke
       can_recur: no
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.92
     mortality:
-      type: 1
+      type: 3
+      influenced_by_disease_name: stroke
       code: 20
   notes: .na
 - name: alcpr
@@ -404,25 +508,31 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.65
     mortality:
       type: 1
       code: 21
   notes: .na
-- name: psychos
+- name: psychosis
   friendly_name: psychosis
   meta:
     incidence:
-      type: 2
+      type: 3
+      influenced_by_disease_name:
+        - andep
+        - alcpr
       can_recur: no
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.64
     mortality:
-      type: 1
+      type: 3
+      influenced_by_disease_name:
+        - andep
+        - alcpr
       code: 22
   notes: .na
 - name: ra
@@ -434,7 +544,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
       type: 1
@@ -449,7 +559,7 @@ diseases:
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZANBI
+      duration_distr_backwards: ZINBI
       mm_wt: 0.0
     mortality:
       type: 1
@@ -491,7 +601,7 @@ diseases:
       influenced_by_disease_name:
         - lung_ca
         - breast_ca
-        - colorect_ca
+        - colorectal_ca
         - prostate_ca
         - other_ca
     diagnosis:
@@ -509,7 +619,25 @@ diseases:
       type: ~ # NULL
     mortality:
       type: 3 # influenced by
-      influenced_by_disease_name: t2dm
+      influenced_by_disease_name:
+        - t2dm
+        - other_ca
+        - af
+        - epilepsy
+        - dementia
+        - constipation
+        - helo
+        - andep
+        - ibs
+        - pain
+        - hf
+        - t1dm
+        - ctd
+        - psychosis
+        - copd
+        - ckd
+        - lung_ca
+        - stroke
       code: 1
   notes: .na
 scenarios: ''
