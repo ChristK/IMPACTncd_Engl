@@ -60,7 +60,7 @@ strata <- c("year", "age", "sex", "dimd", "sha", "ethnicity")
 
 
 dl_model <- c("t2dm_prvl", "af_prvl", "chd_prvl", "dementia_prvl",
-              "lung_ca_prvl", "colorect_ca_prvl", "breast_ca_prvl", "stroke_prvl",
+              "lung_ca_prvl", "colorectal_ca_prvl", "breast_ca_prvl", "stroke_prvl",
               "obesity_prvl", "htn_prvl", "copd_prvl", "asthma_prvl",
               "ckd45_prvl", "prostate_ca_prvl", "andep_prvl", "other_ca_prvl", "hf_prvl")
 dl_model_new <- str_replace(dl_model, "_prvl", "")
@@ -74,7 +74,7 @@ dl_cprd <- c("Anxiety_Depression", "Asthma", "Atrial Fibrillation", "CHD",
              "Primary Malignancy_Lung", "Primary Malignancy_Prostate",
              "Stroke", "Type 2 Diabetes Mellitus")
 dl_cprd_new <- c("andep", "asthma", "af", "chd", "copd", "ckd45", "dementia", "hf",
-             "htn", "obesity", "other_ca", "breast_ca", "colorect_ca",
+             "htn", "obesity", "other_ca", "breast_ca", "colorectal_ca",
              "lung_ca", "prostate_ca", "stroke", "t2dm")
 
 dl_mort <- c(15, 9, 5, 2, 7, 10, 8, 17, 6, NA, 16, 14, 12, 11, 13, 3, 4)

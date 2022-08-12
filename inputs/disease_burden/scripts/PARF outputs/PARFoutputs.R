@@ -61,7 +61,7 @@ setnames(parf,
 
 
 #Names for graphs 
-disnm <- c("af", "asthma", "breast_ca", "chd", "ckd", "colorect_ca", "copd",
+disnm <- c("af", "asthma", "breast_ca", "chd", "ckd", "colorectal_ca", "copd",
            "dementia", "lung_ca", "prostate_ca" , "stroke" , "t2dm" )
 
 disnm_long <- c("Atrial\nFibrillation", "Asthma", "Breast\nCancer", "CHD", "CKD", 

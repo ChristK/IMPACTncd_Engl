@@ -20,6 +20,7 @@ rm(fl)
 #
 # Generate diseases ----
 diseases <- lapply(design$sim_prm$diseases, function(x) {
+    print(x$name)
     x[["design_"]] <- design
     x[["RR"]] <- RR
     do.call(Disease$new, x)
@@ -67,8 +68,14 @@ sp <- SynthPop$new(1L, design)
 # self <- diseases$asthma$.__enclos_env__$self
 # private <- diseases$asthma$.__enclos_env__$private
 #
-# self <- RR$`asthma_prvl~asthma`$.__enclos_env__$self
-# private <- RR$`asthma_prvl~asthma`$.__enclos_env__$private
+# self <- diseases$nonmodelled$.__enclos_env__$self
+# private <- diseases$nonmodelled$.__enclos_env__$private
+# design_ <- design
+# diseases_ <- diseases
+# popsize = 100
+# check = design_$sim_prm$logs
+# keep_intermediate_file = TRUE
+# mc_iter = mc_ = 1
 
 # lapply(diseases, function(x) x$harmonise_epi_tables(sp))
 lapply(diseases, function(x) {
@@ -117,15 +124,15 @@ lapply(diseases, function(x) {
 # diseases$af$set_mrtl_prb(sp, design)
 
 # diseases$asthma$harmonise_epi_tables(sp)
-diseases$asthma$gen_parf(sp, design)
-diseases$asthma$set_init_prvl(sp, design)
-diseases$asthma$set_rr(sp, design)
-diseases$asthma$set_incd_prb(sp, design)
-diseases$asthma$set_dgns_prb(sp, design)
-diseases$asthma$set_mrtl_prb(sp, design)
+# diseases$asthma$gen_parf(sp, design)
+# diseases$asthma$set_init_prvl(sp, design)
+# diseases$asthma$set_rr(sp, design)
+# diseases$asthma$set_incd_prb(sp, design)
+# diseases$asthma$set_dgns_prb(sp, design)
+# diseases$asthma$set_mrtl_prb(sp, design)
 
-self <- diseases$asthma$.__enclos_env__$self
-private <- diseases$asthma$.__enclos_env__$private
+# self <- diseases$asthma$.__enclos_env__$self
+# private <- diseases$asthma$.__enclos_env__$private
 
 # diseases$copd$harmonise_epi_tables(sp)
 # diseases$copd$gen_parf(sp, design)
