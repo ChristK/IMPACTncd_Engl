@@ -1,6 +1,6 @@
 ---
 xps_name: alcohol
-outcome: colorect_ca
+outcome: colorectal_ca
 lag: 9
 distribution: lognormal
 source: GBD2019.

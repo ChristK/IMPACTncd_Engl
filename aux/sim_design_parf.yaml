@@ -181,7 +181,7 @@ diseases:
       cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
       code: 11
   notes: .na
-- name: colorect_ca
+- name: colorectal_ca
   friendly_name: colorectal cancer
   meta:
     incidence:

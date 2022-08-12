@@ -34,7 +34,7 @@ strata <- c("year", "age", "sex", "dimd", "sha", "ethnicity")
 source(paste0("/mnt/", Sys.info()[["user"]], "/UoL/CPRD2021/epi_models/scripts/aux_fn.R"))
 
 #Names for graphs 
-disnm <- c("af", "asthma", "breast_ca", "chd", "ckd", "colorect_ca", "copd",
+disnm <- c("af", "asthma", "breast_ca", "chd", "ckd", "colorectal_ca", "copd",
            "dementia", "lung_ca", "prostate_ca" , "stroke" , "t2dm" )
 
 disnm2 <- c("Atrial Fibrillation", "Asthma", "Primary Malignancy_Breast", "CHD",
@@ -119,9 +119,9 @@ prev_tab_sum[, type:= factor(type,
                              labels = c("Not preventable", "Preventable"))]
 
 prev_tab_sum[, disease := factor(disease,
-                                 levels = c("prostate_ca", "lung_ca", "colorect_ca",  "dementia", "breast_ca",  "af" , "copd",   
+                                 levels = c("prostate_ca", "lung_ca", "colorectal_ca",  "dementia", "breast_ca",  "af" , "copd",   
                                             "stroke"  ,    "asthma"   ,"chd"      ,    "t2dm"      ,   "ckd" ),
-                                 labels = c("prostate_ca", "lung_ca", "colorect_ca",  "dementia", "breast_ca",  "af" , "copd",   
+                                 labels = c("prostate_ca", "lung_ca", "colorectal_ca",  "dementia", "breast_ca",  "af" , "copd",   
                                             "stroke"  ,    "asthma"   ,"chd"      ,    "t2dm"      ,   "ckd" ))]
 
 
@@ -136,7 +136,7 @@ ggcust(prev_tab_sum[, .(cases = sum(casenum)), keyby = .(disease, type)],
     ggtitle(paste0("Preventable cases")) + 
   theme(legend.title = element_blank())
 
-ggsave2(filename = output_dir(paste0("PARFcases_prev_all.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_prev_all.png")), scale = 0.8)
 
 
 #Can't get the labeller function to work so being lazy
@@ -145,7 +145,7 @@ labnames2 <- c("Prostate Cancer", "Lung Cancer", "Colorectal Cancer",  "Dementia
 
 prev_tab_sum[, disease2 := disease]
 prev_tab_sum[, disease2 := factor(disease2,
-                                 levels = c("prostate_ca", "lung_ca", "colorect_ca",  "dementia", "breast_ca",  "af" , "copd",   
+                                 levels = c("prostate_ca", "lung_ca", "colorectal_ca",  "dementia", "breast_ca",  "af" , "copd",   
                                             "stroke"  ,    "asthma"   ,"chd"      ,    "t2dm"      ,   "ckd" ),
                                  labels = labnames2)]
 
@@ -158,7 +158,7 @@ ggcust(prev_tab_sum[, .(cases = sum(casenum)), keyby = .(disease2, type, dimd)],
   scale_fill_brewer(type = "qual", palette =  "Paired") +
   ggtitle(paste0("Preventable cases by condition and IMD")) + 
   theme(legend.title = element_blank())
-ggsave2(filename = output_dir(paste0("PARFcases_prev_imd_all.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_prev_imd_all.png")), scale = 0.8)
 
 
 
@@ -198,7 +198,7 @@ parfbyrisksum[, riskfactor:= factor(riskfactor,
                                         "SBP", "Smoking" , "Total cholesterol",  "Veg"  ))]
 
 parfbyrisksum[, disease := factor(disease,
-                                 levels = c("prostate_ca", "lung_ca", "colorect_ca",  "dementia", "breast_ca",  "af" , "copd",   
+                                 levels = c("prostate_ca", "lung_ca", "colorectal_ca",  "dementia", "breast_ca",  "af" , "copd",   
                                             "stroke"  ,    "asthma"   ,"chd"      ,    "t2dm"      ,   "ckd" ),
                                  labels = labnames2)]
 
@@ -210,7 +210,7 @@ ggcust(parfbyrisksum[, .(cases = sum(attrib)), keyby = .(disease, riskfactor)],
   scale_fill_brewer(type = "qual", palette = "Paired") + 
   labs(fill = "Preventable\nrisk factor") +
   ggtitle(paste0("Preventable cases by risk factor")) 
-ggsave2(filename = output_dir(paste0("PARFcases_prev_riskfactor.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_prev_riskfactor.png")), scale = 0.8)
 
 
 ggcust(parfbyrisksum[, .(cases = sum(attrib)), keyby = .(disease, riskfactor, dimd)], 
@@ -221,7 +221,7 @@ ggcust(parfbyrisksum[, .(cases = sum(attrib)), keyby = .(disease, riskfactor, di
   scale_fill_brewer(type = "qual", palette = "Paired") + 
   labs(fill = "Preventable\nrisk factor") +
   ggtitle(paste0("Preventable cases by risk factor and IMD")) 
-ggsave2(filename = output_dir(paste0("PARFcases_prev_riskfactor_imd.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_prev_riskfactor_imd.png")), scale = 0.8)
 
 
 
@@ -279,9 +279,9 @@ inc_tab_sum[, type:= factor(type,
                              labels = c("Not preventable", "Preventable"))]
 
 inc_tab_sum[, disease := factor(disease,
-                                 levels = c("prostate_ca", "colorect_ca", "lung_ca",  "breast_ca", "dementia", "copd", "af" ,    
+                                 levels = c("prostate_ca", "colorectal_ca", "lung_ca",  "breast_ca", "dementia", "copd", "af" ,    
                                             "asthma"   , "stroke"  ,    "chd"      ,    "t2dm"      ,   "ckd" ),
-                                 labels = c("prostate_ca", "colorect_ca", "lung_ca",  "breast_ca", "dementia",  "copd", "af" ,  
+                                 labels = c("prostate_ca", "colorectal_ca", "lung_ca",  "breast_ca", "dementia",  "copd", "af" ,  
                                             "asthma" , "stroke"      ,"chd"      ,    "t2dm"      ,   "ckd" ))]
 
 
@@ -296,7 +296,7 @@ ggcust(inc_tab_sum[, .(cases = sum(casenum)), keyby = .(disease, type)],
   ggtitle(paste0("Preventable cases (incident cases)")) + 
   theme(legend.title = element_blank())
 
-ggsave2(filename = output_dir(paste0("PARFcases_inc_all.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_inc_all.png")), scale = 0.8)
 
 
 #Can't get the labeller function to work so being lazy
@@ -305,7 +305,7 @@ labnames2 <- c("Prostate Cancer",  "Colorectal Cancer", "Lung Cancer","Breast Ca
 
 inc_tab_sum[, disease2 := disease]
 inc_tab_sum[, disease2 := factor(disease2,
-                                  levels = c("prostate_ca", "colorect_ca", "lung_ca",  "breast_ca", "dementia", "copd", "af" ,    
+                                  levels = c("prostate_ca", "colorectal_ca", "lung_ca",  "breast_ca", "dementia", "copd", "af" ,    
                                              "asthma"   , "stroke"  ,    "chd"      ,    "t2dm"      ,   "ckd" ),
                                   labels = labnames2)]
 
@@ -318,7 +318,7 @@ ggcust(inc_tab_sum[, .(cases = sum(casenum)), keyby = .(disease2, type, dimd)],
   scale_fill_brewer(type = "qual", palette =  "Paired") +
   ggtitle(paste0("Preventable cases by condition and IMD\n(incident cases)")) + 
   theme(legend.title = element_blank())
-ggsave2(filename = output_dir(paste0("PARFcases_inc_imd_all.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_inc_imd_all.png")), scale = 0.8)
 
 
 
@@ -358,7 +358,7 @@ parfbyrisksum_inc[, riskfactor:= factor(riskfactor,
                                                "SBP", "Smoking" , "Total cholesterol",  "Veg"  ))]
 
 parfbyrisksum_inc[, disease := factor(disease,
-                                  levels =  c("prostate_ca", "colorect_ca", "lung_ca",  "breast_ca", "dementia", "copd", "af" ,    
+                                  levels =  c("prostate_ca", "colorectal_ca", "lung_ca",  "breast_ca", "dementia", "copd", "af" ,    
                                               "asthma"   , "stroke"  ,    "chd"      ,    "t2dm"      ,   "ckd" ),
                                   labels = labnames2)]
 
@@ -370,7 +370,7 @@ ggcust(parfbyrisksum_inc[, .(cases = sum(attrib)), keyby = .(disease, riskfactor
   scale_fill_brewer(type = "qual", palette = "Paired") + 
   labs(fill = "Preventable\nrisk factor") +
   ggtitle(paste0("Preventable cases by risk factor\n(incident cases)")) 
-ggsave2(filename = output_dir(paste0("PARFcases_inc_riskfactor.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_inc_riskfactor.png")), scale = 0.8)
 
 ggcust(parfbyrisksum_inc[, .(cases = sum(attrib)), keyby = .(disease, riskfactor, dimd)], 
        aes(x = dimd, y = cases, fill =riskfactor)) +
@@ -380,7 +380,7 @@ ggcust(parfbyrisksum_inc[, .(cases = sum(attrib)), keyby = .(disease, riskfactor
   scale_fill_brewer(type = "qual", palette = "Paired") + 
   labs(fill = "Preventable\nrisk factor") +
   ggtitle(paste0("Preventable cases by risk factor and IMD\n(incident cases)")) 
-ggsave2(filename = output_dir(paste0("PARFcases_inc_riskfactor_imd.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_inc_riskfactor_imd.png")), scale = 0.8)
 
 
 
@@ -502,9 +502,9 @@ inc_tab_sum[, type:= factor(type,
                             labels = c("Not preventable", "Preventable"))]
 
 inc_tab_sum[, disease := factor(disease,
-                                levels = c("prostate_ca", "colorect_ca", "lung_ca",  "asthma"   ,  
+                                levels = c("prostate_ca", "colorectal_ca", "lung_ca",  "asthma"   ,  
                                 "copd", "dementia",  "breast_ca", "af" ,    "stroke"  ,       "t2dm"      ,"chd"      ,    "ckd" ),
-                                labels = c("prostate_ca", "colorect_ca", "lung_ca",  "asthma"   ,  
+                                labels = c("prostate_ca", "colorectal_ca", "lung_ca",  "asthma"   ,  
                                            "copd", "dementia",  "breast_ca", "af" ,    "stroke"  ,       "t2dm"      ,"chd"      ,    "ckd" ))]
 
 
@@ -521,7 +521,7 @@ ggcust(inc_tab_sum[, .(rate = sum(cases)/sum(atrisk)*100000), keyby = .(disease,
   ggtitle(paste0("Preventable cases (incidence proportion, standardised)")) + 
   theme(legend.title = element_blank())
 
-ggsave2(filename = output_dir(paste0("PARFcases_inc_stand_all.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_inc_stand_all.png")), scale = 0.8)
 
 
 #Can't get the labeller function to work so being lazy
@@ -530,7 +530,7 @@ labnames2 <- c("Prostate Cancer",  "Colorectal Cancer", "Lung Cancer", "Asthma" 
 
 inc_tab_sum[, disease2 := disease]
 inc_tab_sum[, disease2 := factor(disease2,
-                                 levels = c("prostate_ca", "colorect_ca", "lung_ca",  "asthma"   ,  
+                                 levels = c("prostate_ca", "colorectal_ca", "lung_ca",  "asthma"   ,  
                                             "copd", "dementia",   "breast_ca", "af" ,    "stroke"  ,       "t2dm"      ,"chd"      ,    "ckd"),
                                  labels = labnames2)]
 
@@ -544,7 +544,7 @@ ggcust(inc_tab_sum[, .(rate =sum(cases)/sum(atrisk)*100000), keyby = .(disease2,
   scale_fill_brewer(type = "qual", palette =  "Paired") +
   ggtitle(paste0("Preventable cases by condition and IMD\n(incidence proportion, standardised)")) + 
   theme(legend.title = element_blank())
-ggsave2(filename = output_dir(paste0("PARFcases_inc_stand_imd_all.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_inc_stand_imd_all.png")), scale = 0.8)
 
 
 
@@ -594,7 +594,7 @@ parfbyrisksum_inc[, riskfactor:= factor(riskfactor,
                                                    "SBP", "Smoking" , "Total cholesterol",  "Veg"  ))]
 
 parfbyrisksum_inc[, disease2 := factor(disease,
-                                      levels =  c("prostate_ca", "colorect_ca", "lung_ca",   "asthma"   ,  
+                                      levels =  c("prostate_ca", "colorectal_ca", "lung_ca",   "asthma"   ,  
                                                   "copd", "dementia","breast_ca",  "af" ,    "stroke"  ,       "t2dm"      ,"chd"      ,    "ckd" ),
                                       labels = labnames2)]
 
@@ -607,7 +607,7 @@ ggcust(parfbyrisksum_inc[, .(rate = sum(attrib)/sum(atrisk)*100000), keyby = .(d
   scale_fill_brewer(type = "qual", palette = "Paired") + 
   labs(fill = "Preventable\nrisk factor") +
   ggtitle(paste0("Preventable cases by risk factor\n(incidence proportion, standardised)")) 
-ggsave2(filename = output_dir(paste0("PARFcases_inc_stand_riskfactor.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_inc_stand_riskfactor.png")), scale = 0.8)
 
 ggcust(parfbyrisksum_inc[, .(rate = sum(attrib)/sum(atrisk)*100000), keyby = .(disease2, riskfactor, dimd)], 
        aes(x = dimd, y = rate, fill =riskfactor)) +
@@ -618,7 +618,7 @@ ggcust(parfbyrisksum_inc[, .(rate = sum(attrib)/sum(atrisk)*100000), keyby = .(d
   scale_fill_brewer(type = "qual", palette = "Paired") + 
   labs(fill = "Preventable\nrisk factor") +
   ggtitle(paste0("Preventable cases by risk factor and IMD\n(incidence proportion, standardised)")) 
-ggsave2(filename = output_dir(paste0("PARFcases_inc_stand_riskfactor_imd.png")), scale = 0.8)
+#ggsave2(filename = output_dir(paste0("PARFcases_inc_stand_riskfactor_imd.png")), scale = 0.8)
 
 
 
