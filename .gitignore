@@ -41,3 +41,6 @@ vignettes/*.pdf
 DELETEme*
 *.png
 .history
+Thumbs.db
+Rplots.pdf
+.DS_Store
