@@ -535,13 +535,6 @@ Simulation <-
         # only used for the RNG stream and the pid are different in each mc_aggr
         # pop
 
-        # lapply(self$diseases, function(x) {
-        #   print(x)
-        #   x$calibrate_incd_prb(sp, self$design)
-        # })
-        #
-        # simcpp(sp$pop, l, sp$mc)
-
         sp$update_pop_weights()
 
         if (self$design$sim_prm$export_xps) {
