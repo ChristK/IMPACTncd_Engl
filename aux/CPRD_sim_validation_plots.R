@@ -223,6 +223,42 @@ if (mtlt_plot) {
     subtab1 <-
       rbind(subtab1[, Type := "Simulated"], subtab2[, Type := "CPRD"])
 
+    # NOTE do not delete the commented lines below. We may need them again
+    # onsmrtl <- fread("./inputs/mortality/mortality.csv")[year > 2007] # 1 most deprived
+    # onsmrtl <- melt(onsmrtl, c("year", "dimd", "sex", "cod"),
+    #      variable.name = "agegroup", value.name = "deaths")
+    # onsmrtl <- onsmrtl[agegroup %in% levels(agegroup)[8:20]]
+    # onsmrtl[, deaths := as.numeric(gsub(",", "", deaths))]
+    # onsmrtl <- onsmrtl[, .(deaths = sum(deaths)), keyby = .(year, agegroup, sex, dimd)]
+    #
+    # onspop  <- fread("./inputs/mortality/population.csv")[year > 2007]
+    # onspop <- melt(onspop, c("year", "dimd", "sex"),
+    #                 variable.name = "agegroup", value.name = "popsize")
+    # onspop <- onspop[agegroup %in% levels(agegroup)[8:20]]
+    # onspop[, popsize := as.numeric(gsub(",", "", popsize))]
+    # absorb_dt(onsmrtl, onspop)
+    #
+    # onsmrtl[, .(deaths = sum(deaths)), keyby = year]
+    # onsmrtl[, dimd := factor(dimd, 1:10,c("1 most deprived", 2:9, "10 least deprived"))]
+    # onsmrtl[, sex := factor(sex, c("Male", "Female"), c("men", "women"))]
+    # esp2 <- copy(esp)
+    # esp2[agegroup %in% c("90-94", "95-99"), agegroup := "90+"]
+    # esp2 <- esp2[, .(wt_esp = sum(wt_esp)), keyby = .(agegroup, sex, dimd)]
+    # absorb_dt(onsmrtl, esp2)
+    # # cprdtab[, wt_esp := wt_esp * unique(wt_esp) / (wt_esp * popsize),
+    # #         keyby = .(year, agegroup, sex, dimd)]
+    # # cprdtab[, popsize_wtd := popsize * wt_esp]
+    # onsmrtl[, popsize_wtd := wt_esp]
+    # onsmrtl[, wt_esp := wt_esp / popsize]
+    # write_fst(onsmrtl, "./inputs/mortality/mrtl_by_dimd.fst")
+    onsmrtl <- read_fst("./inputs/mortality/mrtl_by_dimd.fst", as.data.table = TRUE)
+    subtab3 <-
+      onsmrtl[, .(all_ftlt = sum(deaths * wt_esp) / sum(popsize_wtd)), keyby = year]
+
+    subtab1 <-
+      rbind(subtab1, subtab3[, Type := "ONS"])
+
+
     ggplot(subtab1, aes(
       x = year,
       y = all_ftlt * 100000,

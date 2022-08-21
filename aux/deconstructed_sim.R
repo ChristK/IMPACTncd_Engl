@@ -62,7 +62,7 @@ sp <- SynthPop$new(1L, design)
 
 # diseases$ckd$gen_parf(sp, design)
 
-nn <- "t2dm"
+nn <- "prostate_ca"
 self <- diseases[[nn]]$.__enclos_env__$self
 private <- diseases[[nn]]$.__enclos_env__$private
 design_ <- design
@@ -489,13 +489,14 @@ fwrite_safe(sp$pop[1:10], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv"
 fwrite_safe(sp$pop[11:20], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
 
 tt <- list.files("/mnt/storage_fast/output/hf_real/lifecourse/", full.names = T)
-lapply(tt, function(x) {
-    print(x)
-    fread(x)
-})
+# lapply(tt, function(x) {
+#     print(x)
+#     fread(x)
+# })
 f <- fread(tt[[3]])
-p <- read_fst("./inputs/disease_burden/af_prvl.fst", as.data.table = T)
+p <- read_fst("./inputs/disease_burden/ckd_ftlt.fst", as.data.table = T)
+p[, sum(mu2), keyby = year][year<50, plot(year, V1)]
 
 absorb_dt(f, p)
 f[year == 13, sum(mu)]
-f[year == 13, sum(af_prvl > 0)]
+f[, sum(pain_prvl == 1L), keyby = year]

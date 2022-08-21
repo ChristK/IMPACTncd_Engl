@@ -280,8 +280,8 @@ diseases:
       duration_distr_backwards: ZINBI
       mm_wt: 0.53
     mortality:
-      type: 1
-      code: 10
+      type: ~ # 1 NOTE GAMLSS model increases mrtl by time. This is an artefact. Disabling mrtl for now
+      # code: 10
   notes: .na
 - name: lung_ca
   friendly_name: lung cancer
