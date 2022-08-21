@@ -4,7 +4,7 @@ outcome: obesity
 lag: 0
 distribution: lognormal
 source: ???
-notes: The usual 30 cm/kg2 cut-off
+notes: The usual 30 kg/m2 cut-off
 apply_rr_extra_fn: >
   function(sp) {
     if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')

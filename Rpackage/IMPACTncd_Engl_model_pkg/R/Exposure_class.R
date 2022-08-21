@@ -70,6 +70,10 @@ Exposure <-
             stringsAsFactors = TRUE, yaml = TRUE
             )
 
+          # NOTE This needs manual update every time a new factor (other than
+          # smok_status, ethnicity, dimd) appears as a new stratum in a RR file.
+          # TODO add some checks and perhaps automate to some extent. Add
+          # documentation to avoid silent errors
           if ("smok_status" %in% names(effect))
             effect[, smok_status :=
                                factor(smok_status, levels = 1:4)]
@@ -84,6 +88,27 @@ Exposure <-
                          )
                       )
                    ]
+
+          if ("dimd" %in% names(effect))
+            effect[, dimd :=
+                     factor(
+                       dimd,
+                       levels = c(
+                         "1 most deprived", 2:9, "10 least deprived"
+                       )
+                     )
+            ]
+
+          if ("qimd" %in% names(effect))
+            effect[, qimd :=
+                     factor(
+                       qimd,
+                       levels = c(
+                         "1 most deprived", 2:4, "5 least deprived"
+                       )
+                     )
+            ]
+
 
           effect[, agegroup := relevel(agegroup, "<1")]
 
@@ -453,13 +478,24 @@ Exposure <-
 
           if (forPARF) {
             set(sp$pop, NULL, self$name, sp$pop[[xps_tolag]])
-            lookup_dt(sp$pop, self$get_input_rr(), check_lookup_tbl_validity = FALSE)
+            lookup_dt(sp$pop, self$get_input_rr(),
+                      check_lookup_tbl_validity = design_$sim_prm$logs)
 
           } else {
+            if (inherits(sp$pop[[xps_tolag]], "numeric")) {
+              rw <- 0
+            } else if (inherits(sp$pop[[xps_tolag]], "integer")) {
+              rw <- 0L
+            } else if (inherits(sp$pop[[xps_tolag]], "factor")) {
+              rw <- 1L # The first level
+            } else {
+              stop("Only numerics, integers, and factors are supported")
+            }
             set(sp$pop, NULL, self$name, # column without _curr_xps is lagged
-                shift_bypid(sp$pop[[xps_tolag]], self$get_lag(sp$mc_aggr), sp$pop$pid))
+                shift_bypid(sp$pop[[xps_tolag]], self$get_lag(sp$mc_aggr), sp$pop$pid, rw))
+            # setnafill(sp$pop, "nocb", cols = self$name)
             lookup_dt(sp$pop, self$get_rr(sp$mc_aggr, design_, drop = FALSE),
-                      check_lookup_tbl_validity = FALSE)
+                      check_lookup_tbl_validity = design_$sim_prm$logs)
           }
 
           private$apply_rr_extra(sp)
@@ -482,7 +518,7 @@ Exposure <-
 
           if (paste0(self$name, "____") %in% names(sp$pop)) {
             # To prevent overwriting t2dm_prvl
-            # TODO consider deleting xps_tolag for diseases, i.e t2dm_prvl_curr_xps
+            sp$pop[, (xps_tolag) := NULL]
             setnames(sp$pop, paste0(self$name, "____"), self$name)
           }
 

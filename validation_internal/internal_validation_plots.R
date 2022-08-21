@@ -46,7 +46,7 @@ absorb_dt(esp, tt)
 
 
 fl <- list.files("/mnt/storage_fast/output/hf_real/lifecourse",
-                 "_lifecourse.csv.gz$", full.names = TRUE)
+                 "_lifecourse.csv$", full.names = TRUE)
 
 
 out <- rbindlist(lapply(fl, fread))

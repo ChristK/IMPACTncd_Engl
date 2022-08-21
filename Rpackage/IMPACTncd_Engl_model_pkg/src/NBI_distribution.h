@@ -59,5 +59,13 @@ Rcpp::IntegerVector my_qZANBI(const Rcpp::NumericVector& p,
                         const bool& log_p = false,
                         const int& n_cpu = 1);
 
+double my_pZANBI_scalar(const int& q,
+                     const double& mu = 1.0,
+                     const double& sigma = 1.0,
+                     const double& nu = 0.3,
+                     const bool& lower_tail = true,
+                     const bool& log_p = false,
+                     const bool& check = true);
+
 
 #endif

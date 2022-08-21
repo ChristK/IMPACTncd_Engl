@@ -60,22 +60,20 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
 # ll <- sim$gen_synthpop_demog(design)
 sp <- SynthPop$new(1L, design)
 
-# design_ <- design
-# diseases_ = diseases
-# popsize = 100
-# check = design_$sim_prm$logs
-# keep_intermediate_file = TRUE
-# self <- diseases$asthma$.__enclos_env__$self
-# private <- diseases$asthma$.__enclos_env__$private
-#
-# self <- diseases$nonmodelled$.__enclos_env__$self
-# private <- diseases$nonmodelled$.__enclos_env__$private
-# design_ <- design
-# diseases_ <- diseases
-# popsize = 100
-# check = design_$sim_prm$logs
-# keep_intermediate_file = TRUE
-# mc_iter = mc_ = 1
+# diseases$ckd$gen_parf(sp, design)
+
+nn <- "t2dm"
+self <- diseases[[nn]]$.__enclos_env__$self
+private <- diseases[[nn]]$.__enclos_env__$private
+design_ <- design
+diseases_ <- diseases
+check = design_$sim_prm$logs
+keep_intermediate_file = TRUE
+mc_iter = mc_ = 1
+
+# self    <- diseases[[nn]]$get_rr()[[1]]$.__enclos_env__$self
+# private <-  diseases[[nn]]$get_rr()[[1]]$.__enclos_env__$private
+
 
 # lapply(diseases, function(x) x$harmonise_epi_tables(sp))
 lapply(diseases, function(x) {
@@ -106,6 +104,7 @@ lapply(diseases, function(x) {
     print(x)
     x$set_mrtl_prb(sp, design)
 })
+
 # diseases$t2dm$harmonise_epi_tables(sp)
 # diseases$t2dm$gen_parf(sp, design)
 # diseases$t2dm$set_init_prvl(sp, design)
@@ -275,12 +274,44 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 l <- mk_scenario_init2("", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
 
+lapply(diseases, function(x) {
+    print(x)
+    x$calibrate_incd_prb(sp, design)
+})
+
+simcpp(sp$pop, l, sp$mc)
+
+
+sp$pop[year >= 13, sum(asthma_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13, sum(asthma_prvl == 1), keyby = year][, plot(year, V1)]
+
+sp$pop[year >= 13, sum(andep_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13, sum(andep_prvl == 1), keyby = year][, plot(year, V1)]
+
+
+sp$pop[year >= 13, sum(pain_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13, sum(pain_prvl == 1), keyby = year][, plot(year, V1)]
+
+sp$pop[year >= 13, sum(constipation_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13, sum(constipation_prvl == 1), keyby = year][, plot(year, V1)]
+
+
+sp$pop[year >= 13, sum(chd_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13, sum(lung_ca_prvl > 0), keyby = year][, plot(year, V1)]
+
+sp$pop[asthma_prvl > 0 & year == 13, mean(asthma_prvl)] # 4
+sp$pop[andep_prvl > 0 & year == 13, mean(andep_prvl)] # 3
+sp$pop[pain_prvl > 0 & year == 13, mean(pain_prvl)] # 7
+sp$pop[constipation_prvl > 0 & year == 13, mean(constipation_prvl)]  #5
+
+
 sp$pop[asthma_dgns != asthma_prvl, .N]
 sp$pop[asthma_prvl > 0, mean(asthma_prvl)]
-sp$pop[, sum(asthma_prvl > 0), keyby = age][, plot(age, V1)]
-sp$pop[, sum(asthma_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13, sum(asthma_prvl > 0), keyby = age][, plot(age, V1)]
+sp$pop[year >= 13, sum(asthma_prvl > 0), keyby = year][, plot(year, V1)]
 sp$pop[asthma_prvl > 0, hist(asthma_prvl)]
 sp$pop[asthma_prvl > 0 & year == 13, table(asthma_prvl)]
+
 
 
 sp$pop[asthma_prvl > 0, mean(asthma_prvl), keyby = year][, plot(year, V1)]
@@ -290,9 +321,9 @@ id <- sp$pop[asthma_prvl > 0, unique(pid)]
 sp$pop[pid %in% id, sum(asthma_prvl > 0), by = pid][, table(V1)]
 View(sp$pop[pid %in% id, .(as.character(pid), year, asthma_prvl)])
 
-id <- sp$pop[asthma_prvl > 0 & year == 13L, unique(pid)]
-sp$pop[pid %in% id, sum(asthma_prvl > 0), by = pid][, table(V1)]
-View(sp$pop[pid %in% id, .(as.character(pid), year, asthma_prvl)])
+id <- sp$pop[constipation_prvl == 1 & year == 14L, unique(pid)]
+sp$pop[pid %in% id, sum(constipation_prvl > 0), by = pid][, table(V1)]
+View(sp$pop[pid %in% id, .(as.character(pid), year, constipation_prvl)])
 
 
 disnam <- paste0(names(diseases), "_prvl")
@@ -456,3 +487,15 @@ sp$pop[, sum(sbp_curr_xps > 140) / .N, keyby = year]
 
 fwrite_safe(sp$pop[1:10], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
 fwrite_safe(sp$pop[11:20], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
+
+tt <- list.files("/mnt/storage_fast/output/hf_real/lifecourse/", full.names = T)
+lapply(tt, function(x) {
+    print(x)
+    fread(x)
+})
+f <- fread(tt[[3]])
+p <- read_fst("./inputs/disease_burden/af_prvl.fst", as.data.table = T)
+
+absorb_dt(f, p)
+f[year == 13, sum(mu)]
+f[year == 13, sum(af_prvl > 0)]

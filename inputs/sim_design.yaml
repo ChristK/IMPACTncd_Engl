@@ -236,7 +236,9 @@ diseases:
       duration_distr_forwards: ./inputs/disease_burden/constipation_dur_forward.yaml # used in c++ for future duration
       mm_wt: 1.12
     mortality:
-      type: ~ # NULL
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
+      code: 25
   notes: .na
 - name: pain
   friendly_name: chronic pain
@@ -262,7 +264,9 @@ diseases:
       duration_distr_forwards: ./inputs/disease_burden/pain_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.92
     mortality:
-      type: ~ # NULL
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
+      code: 26
   notes: .na
 - name: ckd
   friendly_name: ckd stage 3-5
@@ -657,8 +661,8 @@ strata_for_output:
 - agegrp
 - sex
 - dimd
-- ethnicity
-- sha
+# - ethnicity
+# - sha
 exposures:
 - age
 - sex

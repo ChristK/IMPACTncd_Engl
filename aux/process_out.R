@@ -10,7 +10,7 @@ theme_update(axis.text.x = element_text(size = 9), plot.title = element_text(hju
 
 
 
-tt <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_scaled_up.csv.gz"
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_scaled_up.csv"
 )[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
 
@@ -102,7 +102,7 @@ ggplot(d, aes(x = year, y = `prvl_rate_50.0%`, fill = disease)) +
 
 ggsave("~/pCloudDrive/pCloud Sync/CMS distr.png", scale = 1.5, width = 16/2, height = 9/2)
 
-tt_esp <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_esp.csv.gz"
+tt_esp <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_esp.csv"
 )[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
 
@@ -152,7 +152,7 @@ e[year %in% c(2020, 2040) & dimd %in% c("1 most deprived", "10 least deprived") 
 
 
 fl <- list.files("/mnt/storage_fast/output/hf_real/lifecourse",
-                 "_lifecourse.csv.gz$", full.names = TRUE)
+                 "_lifecourse.csv$", full.names = TRUE)
 
 
 out <- rbindlist(lapply(fl, fread))[scenario == "sc0", ]
@@ -170,7 +170,7 @@ t1 <- t1[t2]
 View(t1)
 
 
-tt_esp <- fread("/mnt/storage_fast/output/hf_real/summaries/incd_esp.csv.gz"
+tt_esp <- fread("/mnt/storage_fast/output/hf_real/summaries/incd_esp.csv"
 )[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
 outstrata <- c("mc", "year", "dimd", "scenario")
@@ -205,7 +205,7 @@ ggsave("~/pCloudDrive/pCloud Sync/MM prevalence by dimd.png", scale = 1.5, width
 
 
 # for Tobys HLE
-tt <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_scaled_up.csv.gz"
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_scaled_up.csv"
 )[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))][scenario == "sc0"]
 
@@ -220,7 +220,7 @@ d[year == 2020 & disease == "cmsmm1.5_prvl"]
 fwrite(d[year %in% c(2020, 2040) & disease == "cmsmm1.5_prvl", .(year, sex, agegrp, 1-`prvl_rate_50.0%`)], "~/pCloudDrive/pCloud Sync/mm.csv")
 fwrite(d[year %in% c(2020, 2040) & disease == "cmsmm0_prvl", .(year, sex, agegrp, 1-`prvl_rate_50.0%`)], "~/pCloudDrive/pCloud Sync/mm0.csv")
 
-tt <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_scaled_up.csv.gz"
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_scaled_up.csv"
 )[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))][scenario == "sc0"]
 
@@ -235,7 +235,7 @@ d[year == 2020 & disease == "cmsmm1.5_prvl"]
 fwrite(d[year %in% c(2020, 2040) & dimd %in% c("1 most deprived", as.character(5), "10 least deprived") & disease == "cmsmm1.5_prvl", .(year, dimd, sex, agegrp, 1-`prvl_rate_50.0%`)], "~/pCloudDrive/pCloud Sync/mm_dimd.csv")
 fwrite(d[year %in% c(2020, 2040) & dimd %in% c("1 most deprived", as.character(5), "10 least deprived")& disease == "cmsmm0_prvl", .(year, dimd, sex, agegrp, 1-`prvl_rate_50.0%`)], "~/pCloudDrive/pCloud Sync/mm0_dimd.csv")
 
-tt <- fread("/mnt/storage_fast/output/hf_real/summaries/mrtl_out.csv.gz"
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/mrtl_out.csv"
 )[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))][scenario == "sc0"]
 outstrata <- c("mc", "year", "agegrp", "sex")

@@ -171,6 +171,12 @@ newdata <- # assignment necessary! Copies of data.tables are happening
 newdata <- rbindlist(newdata)
 newdata[, age := age_int]
 newdata[, c("age_int", "ed7") := NULL]
+
+kc <- sort(setdiff(names(newdata), c("mu", "sigma", "nu", "tau")))
+kc <- kc[order(match(kc, "year"))]
+setcolorder(newdata, kc)
+setkeyv(newdata, kc)
+
 write_fst(newdata, "./inputs/exposure_distributions/education_table.fst", 100L)
 
 print("Table saved")
