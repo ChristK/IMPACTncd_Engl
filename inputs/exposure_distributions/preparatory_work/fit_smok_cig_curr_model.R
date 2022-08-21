@@ -169,6 +169,12 @@ newdata <- rbindlist(newdata)
 setattr(newdata, "distribution", distr_nam)
 newdata[, age := age_int]
 newdata[, age_int := NULL]
+
+kc <- sort(setdiff(names(newdata), c("mu", "sigma", "nu", "tau")))
+kc <- kc[order(match(kc, "year"))]
+setcolorder(newdata, kc)
+setkeyv(newdata, kc)
+
 write_fst(newdata, "./inputs/exposure_distributions/smok_cig_curr_table.fst", 100)
 
 print("Table saved")

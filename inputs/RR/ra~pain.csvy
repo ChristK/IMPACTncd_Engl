@@ -8,9 +8,9 @@ notes: 'other covariate conditions: pastpain,ctd,other_ca,breast_ca,colorectal_c
 apply_rr_extra_fn: >
   function(sp) {
     if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
-    # multiplier for the risk of af for ra
-    if (!'af_incd_ra_prvl_mltp' %in% names(sp$pop)) sp$pop[, af_incd_ra_prvl_mltp := ra_prvl_rr]
-    if (!'af_mrtl_ra_prvl_mltp' %in% names(sp$pop)) sp$pop[, af_mrtl_ra_prvl_mltp := ra_prvl_rr]
+    # multiplier for the risk of pain for ra
+    if (!'pain_incd_ra_prvl_mltp' %in% names(sp$pop)) sp$pop[, pain_incd_ra_prvl_mltp := ra_prvl_rr]
+    if (!'pain_mrtl_ra_prvl_mltp' %in% names(sp$pop)) sp$pop[, pain_mrtl_ra_prvl_mltp := ra_prvl_rr]
     sp$pop[ra_prvl == 0L, ra_prvl_rr := 1]
   }
 ---

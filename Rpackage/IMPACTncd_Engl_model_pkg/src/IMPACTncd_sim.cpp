@@ -307,6 +307,37 @@ int get_dur_forward (const int i, // represents the row
   return my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
 }
 
+int get_dur_forward_prvl (const int& i, // represents the row
+                     const double& rn, // random number
+                     const int& prvl_dur, // used only for prevalent cases that enter the simulation
+                     const disease_meta& ds,
+                     const simul_meta& sm)
+{
+  double mu = exp(ds.dgns.dur_forward.mu.intercept +
+                  ds.dgns.dur_forward.mu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.mu.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.mu.dimd_coef[sm.dimd[i] - 1]);
+  double sigma = exp(ds.dgns.dur_forward.sigma.intercept +
+                     ds.dgns.dur_forward.sigma.log_age_coef * log(sm.age[i]) +
+                     ds.dgns.dur_forward.sigma.sex_coef[sm.sex[i] - 1] +
+                     ds.dgns.dur_forward.sigma.dimd_coef[sm.dimd[i] - 1]);
+  double nu = antilogit(ds.dgns.dur_forward.nu.intercept +
+                        ds.dgns.dur_forward.nu.log_age_coef * log(sm.age[i]) +
+                        ds.dgns.dur_forward.nu.sex_coef[sm.sex[i] - 1] +
+                        ds.dgns.dur_forward.nu.dimd_coef[sm.dimd[i] - 1]
+  );
+
+  double thresh = my_pZANBI_scalar(prvl_dur,mu, sigma, nu, true, false, true);
+  if (rn <  thresh)
+  {
+    return prvl_dur + my_qZANBI_scalar(1 - rn, mu, sigma, nu, true, false, true);
+  }
+  else
+  {
+    return prvl_dur + my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
+  }
+}
+
 //' @export
 // [[Rcpp::export]]
 void simcpp(DataFrame dt, const List l, const int mc) {
@@ -488,10 +519,10 @@ void simcpp(DataFrame dt, const List l, const int mc) {
             // cases in initial year. NOTE I don't add 1 to duration
             // intentionally, to allow 0s.
             if (dsmeta[j].dgns.flag &&
-                meta.year[i] == meta.init_year &&
+                (meta.year[i] == meta.init_year || meta.age[i] == meta.age_low) &&
                 dsmeta[j].incd.prvl[i] > 1 ) // >1 to exclude incident cases from above.
             {
-              dsmeta[j].dgns.cure = get_dur_forward(i, runif_impl(), dsmeta[j], meta); // NOTE no 1 + ZANBI
+              dsmeta[j].dgns.cure = 1 + get_dur_forward_prvl(i, runif_impl(), dsmeta[j].incd.prvl[i], dsmeta[j], meta); // NOTE no 1 + ZANBI
             }
 
             // Logic to advance duration of prevalent cases by 1

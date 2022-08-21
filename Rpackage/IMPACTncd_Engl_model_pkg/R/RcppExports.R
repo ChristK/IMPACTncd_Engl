@@ -122,6 +122,11 @@ my_qZANBI <- function(p, mu, sigma, nu, lower_tail, log_p, n_cpu) {
 }
 
 #' @export
+my_pZANBI_scalar <- function(q, mu, sigma, nu, lower_tail, log_p, check) {
+    .Call('_IMPACTncdEngl_my_pZANBI_scalar', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, nu, lower_tail, log_p, check)
+}
+
+#' @export
 my_dSICHEL <- function(x, mu, sigma, nu, log_ = FALSE, n_cpu = 1L) {
     .Call('_IMPACTncdEngl_my_dSICHEL', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, nu, log_, n_cpu)
 }

@@ -282,6 +282,36 @@ IntegerVector my_qZANBI(const NumericVector& p,
 }
 
 
+// pZANBI ----
+//' @export
+// [[Rcpp::export]]
+double my_pZANBI_scalar(const int& q,
+                     const double& mu,
+                     const double& sigma,
+                     const double& nu,
+                     const bool& lower_tail,
+                     const bool& log_p,
+                     const bool& check)
+{
+  if (check)
+  {
+    if (q < 0) stop("q must be >=0 and <=1");
+    if (mu    <= 0.0) stop("mu must be greater than 0");
+    if (sigma <= 0.0) stop("sigma must be greater than 0");
+    if (nu    <= 0.0 || nu > 1.0) stop("nu must be >=0 and <=1");
+  }
+
+  double cdf0 = my_pNBI_scalar(0, mu, sigma);
+  double cdf1 = my_pNBI_scalar(q, mu, sigma);
+  double cdf3 = nu + ((1.0 - nu) * (cdf1 - cdf0)/(1 - cdf0));
+  double cdf  = q == 0 ? nu : cdf3;
+  if (!lower_tail) cdf = 1.0 - cdf;
+  if (log_p) cdf = log(cdf);
+
+  return cdf;
+}
+
+
 /*** R
 # set.seed(42L)
 # N <- 1e5
