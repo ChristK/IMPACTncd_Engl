@@ -989,7 +989,7 @@ SynthPop <-
             # add non-correlated RNs
             rank_cols <-
               c(
-                "rankstat_ncc",
+                # "rankstat_ncc",
                 "rankstat_pa_dur",
                 "rankstat_pa_met",
                 "rankstat_bpmed_adherence",
@@ -1153,7 +1153,7 @@ SynthPop <-
               read_fst("./inputs/exposure_distributions/frtpor_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, fruit :=
                  my_qZISICHEL(rank_fruit,
                               mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu) * 80L]  # g/d
@@ -1167,7 +1167,7 @@ SynthPop <-
               read_fst("./inputs/exposure_distributions/vegpor_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, veg :=
                  my_qDEL(rank_veg, mu, sigma, nu, n_cpu = design_$sim_prm$n_cpu) * 80L]  # g/d
             dt[, (col_nam) := NULL]
@@ -1182,7 +1182,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, smok_status_ref := my_qMN4(rankstat_smok, mu, sigma, nu)] # for calibration
             dt[(pid_mrk), smok_status := smok_status_ref]
             dt[, (col_nam) := NULL]
@@ -1196,7 +1196,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             set(dt, NULL, "smok_quit_yrs", 0L)
             dt[(pid_mrk) &
                  smok_status %in% 2:3,
@@ -1208,9 +1208,10 @@ SynthPop <-
             tbl <-
               read_fst("./inputs/exposure_distributions/smok_dur_ex_table.fst",
                        as.data.table = TRUE)
+            tbl[, smok_status := as.integer(as.character(smok_status))]
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            absorb_dt(dt, tbl) # not lookup_dt because some smok levels are not present
             set(dt, NULL, "smok_dur", 0L)
             dt[(pid_mrk) &
                  smok_status %in% 2:3, smok_dur := my_qDPO(rankstat_smok_dur_ex, mu, sigma)]
@@ -1223,7 +1224,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[(pid_mrk) &
                  smok_status == 4, smok_dur := as.integer(round(qNBI(rankstat_smok_dur_curr, mu, sigma)))]
             dt[, rankstat_smok_dur_curr := NULL]
@@ -1246,7 +1247,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             setnames(dt, "mu", "prb_smok_incid")
 
             # Assign smok_cessation probabilities
@@ -1255,7 +1256,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             setnames(dt, "mu", "prb_smok_cess")
 
             # Handle smok_relapse probabilities
@@ -1429,7 +1430,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[smok_status == 4L,
                smok_cig := qZINBI(rankstat_smok_cig_curr, mu, sigma, nu)]
             dt[, (col_nam) := NULL]
@@ -1443,7 +1444,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[(pid_mrk) &
                  smok_status == 3L,
                smok_cig := my_qZABNB(rankstat_smok_cig_ex,
@@ -1482,7 +1483,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, ets := as.integer(rank_ets < mu)]
             dt[, rank_ets := NULL]
             dt[, (col_nam) := NULL]
@@ -1496,7 +1497,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, alcohol := as.integer(qZINBI(rank_alcohol, mu, sigma, nu))]
             dt[, rank_alcohol := NULL]
             dt[, (col_nam) := NULL]
@@ -1509,7 +1510,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, bmi := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             dt[, rank_bmi := NULL]
             dt[, (col_nam) := NULL]
@@ -1522,7 +1523,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, sbp := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             dt[, rank_sbp := NULL]
             dt[, (col_nam) := NULL]
@@ -1531,13 +1532,14 @@ SynthPop <-
             if (design_$sim_prm$logs) message("Generate BP medication")
 
             dt[, `:=` (sbp_acc = sbp,
-                       sbp = round(clamp(sbp, 110, 200), -1))]
+                       sbp = as.integer(round(clamp(sbp, 110, 200), -1)))]
             tbl <-
               read_fst("./inputs/exposure_distributions/bp_med_table.fst",
                        as.data.table = TRUE)
+            tbl[, sbp := as.integer(sbp)] # TODO Update the tbl with int sbp
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            absorb_dt(dt, tbl) # not lookup_tbl because not all sbp from 0
             dt[, bpmed := as.integer(rank_bpmed < mu)]
             dt[, rank_bpmed := NULL]
             dt[, (col_nam) := NULL]
@@ -1554,7 +1556,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, tchol := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             dt[, rank_tchol := NULL]
             dt[, (col_nam) := NULL]
@@ -1569,7 +1571,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, tchol_hdl_ratio := 1 / qGB1(rank_hdl, mu, sigma, nu, tau)]
             dt[, rank_hdl := NULL]
             dt[, (col_nam) := NULL]
@@ -1584,7 +1586,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            absorb_dt(dt, tbl) # not lookup_dt. Not tchol from 0
             dt[, statin_px := as.integer(rank_statin_px < mu)]
             dt[, rank_statin_px := NULL]
             dt[, (col_nam) := NULL]
@@ -1594,21 +1596,21 @@ SynthPop <-
 
             # Estimate number of comorbidities (ncc) calculation ----
             # to be used in QALY
-            if (design_$sim_prm$logs) message("Generate ncc")
-
-            dt[, ncc := as.integer(clamp(qbinom(rankstat_ncc, ceiling(age / 8L),
-                                                fifelse(age < 55, 0.25, 0.40)),
-                                         0, 10))]
+            # if (design_$sim_prm$logs) message("Generate ncc")
+            #
+            # dt[, ncc := as.integer(clamp(qbinom(rankstat_ncc, ceiling(age / 8L),
+            #                                     fifelse(age < 55, 0.25, 0.40)),
+            #                              0, 10))]
             # calibrated to Sullivan et all 2011 (web table 1)
             # to_agegrp(output, 10L, 89L, "age", "agegrp10", to_factor = TRUE)
             # output[, round(mean(ncc), 1), keyby = agegrp10]
             # target by agegrp 1.1  1.6  2.4  3.1  4.0  4.4 from
 
-            dt[, `:=` (
-              pid_mrk = NULL,
-              # to be recreated when loading synthpop
-              rankstat_ncc = NULL
-            )]
+            # dt[, `:=` (
+            #   pid_mrk = NULL,
+            #   # to be recreated when loading synthpop
+            #   rankstat_ncc = NULL
+            # )]
 
 
             dt[, statin_adherence := qBE(rankstat_statin_adherence, design_$sim_prm$statin_adherence, 0.2)]

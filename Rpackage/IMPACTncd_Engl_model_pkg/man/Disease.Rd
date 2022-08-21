@@ -33,6 +33,7 @@ To be completed...
 \item \href{#method-Disease-set_incd_prb}{\code{Disease$set_incd_prb()}}
 \item \href{#method-Disease-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
 \item \href{#method-Disease-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
+\item \href{#method-Disease-calibrate_incd_prb}{\code{Disease$calibrate_incd_prb()}}
 \item \href{#method-Disease-del_parf_file}{\code{Disease$del_parf_file()}}
 \item \href{#method-Disease-get_incd}{\code{Disease$get_incd()}}
 \item \href{#method-Disease-get_dur}{\code{Disease$get_dur()}}
@@ -262,6 +263,28 @@ Set disease case fatality when relevant, in a new col in
   sp$pop.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$set_mrtl_prb(sp, design_ = design)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{sp}}{A synthetic population.}
+
+\item{\code{design_}}{A design object with the simulation parameters.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-calibrate_incd_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-calibrate_incd_prb}{}}}
+\subsection{Method \code{calibrate_incd_prb()}}{
+Calibrates p0 to account for additional trends in incidence.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Disease$calibrate_incd_prb(sp, design_ = design)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{

@@ -8,7 +8,7 @@ notes: 'other covariate conditions: af,chd,copd,ckd,ctd,dementia,t1dm,epilepsy,h
 apply_rr_extra_fn: >
   function(sp) {
     if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
-    # multiplier for the risk of non-modelled mortality for diabetic
+
     if (!'nonmodelled_mrtl_alcpr_prvl_mltp' %in% names(sp$pop)) sp$pop[, nonmodelled_mrtl_alcpr_prvl_mltp := alcpr_prvl_rr]
     sp$pop[alcpr_prvl == 0L, alcpr_prvl_rr := 1]
   }

@@ -220,7 +220,7 @@ Disease <-
 
         if (file.exists(tmpfile)) {
           if (design_$sim_prm$logs) message("Reading file from cache.")
-          ans <- qread(tmpfile)
+          ans <- qread(tmpfile, nthreads = design_$sim_prm$clusternumber)
           setDT(ans$pop)
         } else {
           if (design_$sim_prm$logs) message("No available cached file.")
@@ -229,24 +229,24 @@ Disease <-
 
           # start if file not exist
           if (sum(dim(private$incd_indx)) > 0) {
-            ttt <- self$get_incd(design_$sim_prm$init_year)
+            ff <- self$get_incd(design_$sim_prm$init_year)
           } else {
-            ttt <- self$get_ftlt(design_$sim_prm$init_year)
+            ff <- self$get_ftlt(design_$sim_prm$init_year)
           }
 
-          ttt <- CJ(
+          ff <- CJ(
             age = seq(design_$sim_prm$ageL, design_$sim_prm$ageH),
-            sex = ttt$sex,
-            dimd = ttt$dimd,
-            ethnicity = ttt$ethnicity,
-            sha = ttt$sha,
+            sex = ff$sex,
+            dimd = ff$dimd,
+            ethnicity = ff$ethnicity,
+            sha = ff$sha,
             year = design_$sim_prm$init_year,
             unique = TRUE
           )
 
           lv <- c("1 most deprived", as.character(2:4), "5 least deprived")
 
-          ttt[, qimd := fcase(
+          ff[, qimd := fcase(
             dimd == "1 most deprived", factor(lv[[1]], levels = lv),
             dimd == "2", factor(lv[[1]], levels = lv),
             dimd == "3", factor(lv[[2]], levels = lv),
@@ -259,7 +259,7 @@ Disease <-
             dimd == "10 least deprived", factor(lv[[5]], levels = lv)
           )]
 
-          ttt <- clone_dt(ttt, 10, idcol = NULL)
+          ff <- clone_dt(ff, 10, idcol = NULL)
 
           # NOTE future and mclapply do not work here for some reason
           if (Sys.info()["sysname"] == "Windows") {
@@ -285,7 +285,7 @@ Disease <-
             .export = NULL,
             .noexport = NULL # c("time_mark")
           ) %dopar% {
-            private$gen_sp_forPARF(mc_iter, ff = ttt, design_ = design_,
+            private$gen_sp_forPARF(mc_iter, ff, design_ = design_,
                                    diseases_ = diseases_)
 
           }
@@ -324,8 +324,9 @@ Disease <-
             }
           }
           if (design_$sim_prm$logs) message("Saving parf cache.")
-          qsave(ans, tmpfile)
+          qsave(ans, tmpfile, nthreads = design_$sim_prm$clusternumber)
         } # end tmpfile bypass
+
         self$set_rr(ans, design_, forPARF = TRUE)
 
         nam <- grep("_rr$", names(ans$pop), value = TRUE)
@@ -358,7 +359,7 @@ Disease <-
             year = .id - 1L + design_$sim_prm$init_year,
             .id = NULL
           )]
-          lookup_dt(parf_dt, tt, check_lookup_tbl_validity = FALSE)
+          lookup_dt(parf_dt, tt, check_lookup_tbl_validity = design_$sim_prm$logs)
           setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
           parf_dt[, (nam) := mu * (1 - parf)]
           parf_dt[, "mu" := NULL]
@@ -410,7 +411,7 @@ Disease <-
             parf_dt[, year := .id - 1L + design_$sim_prm$init_year]
             parf_dt[, .id := NULL]
           }
-          lookup_dt(parf_dt, tt, check_lookup_tbl_validity = FALSE)
+          lookup_dt(parf_dt, tt, check_lookup_tbl_validity = design_$sim_prm$logs)
           setnafill(parf_dt, "c", fill = 0, cols = "mu") # fix for prostate and breast cancer
 
           if ("parf_mrtl" %in% names(parf_dt)) {
@@ -651,7 +652,7 @@ Disease <-
             tbl <- read_fst(private$filenams$dur, as.data.table = TRUE)
             col_nam <- setdiff(names(tbl), intersect(names(sp$pop), names(tbl)))
             tbl[, (namprvl) := 1L]
-            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             fn <- paste0("q", self$meta$diagnosis$duration_distr_backwards)
             sp$pop[get(namprvl) == 1L,
                    (namprvl) := 2L + do.call(fn, c(p = list(dqrunif(.N)), .SD)),
@@ -705,8 +706,11 @@ Disease <-
           stop("Argument design_ needs to be a Design object.")
         }
 
-        lapply(private$rr, function(x)
-          x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF))
+        lapply(private$rr, function(x) {
+            # print(x)
+            x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF)
+            })
+
 
         if (!forPARF && length(private$rr) > 0) sp$store_risks(self$name)
 
@@ -726,7 +730,8 @@ Disease <-
           stop("Argument sp needs to be a SynthPop object.")
         }
 
-        if (is.numeric(self$meta$incidence$type) && self$meta$incidence$type > 0L) {
+        if (is.numeric(self$meta$incidence$type) &&
+            self$meta$incidence$type > 0L) {
 
           if (private$incd_colnam %in% names(sp$pop)) {
             stop(
@@ -776,34 +781,33 @@ Disease <-
 
             set(sp$pop, NULL, private$incd_colnam, thresh)
 
-          } else if (length(private$rr) > 0L) {
-            # if incidence$type not 1 and at least 1 associated RF
-            if (length(riskcolnam) > 0) {
+          } else if (length(private$rr) > 0L && length(riskcolnam) > 0L) {
+            # if incidence$type not 1 and at least 1 associated RF (excludes disease like pain)
               risk_product <-
                 sp$get_risks(self$name)[, Reduce(`*`, .SD), .SDcols = riskcolnam]
-            } else {
-              risk_product <- 1
-            }
 
             # Calibrate estimated incidence prbl to init year incidence
             tbl <- self$get_incd(design_$sim_prm$init_year
             )[between(age, design_$sim_prm$ageL,
                       design_$sim_prm$ageH)]
-            lookup_dt(sp$pop, tbl)
-            sp$pop[, rp := private$parf$p0 * sp$get_risks(self$name)[, Reduce(`*`, .SD),
-                                                                     .SDcols = patterns("_rr$")]]
+            lookup_dt(sp$pop, tbl,
+                      check_lookup_tbl_validity = design_$sim_prm$logs)
+            sp$pop[, rp := private$parf$p0 *
+                     sp$get_risks(self$name)[, Reduce(`*`, .SD),
+                                             .SDcols =  patterns("_rr$")]]
             setnafill(sp$pop, "c", 0, cols = c("rp", "mu"))
             # Above rp includes rr from diseases that risk_product doesn't have
             tbl <- sp$pop[year == design_$sim_prm$init_year &
                             get(paste0(self$name, "_prvl")) == 0L,
                           .(clbfctr = sum(mu)/sum(rp)),
-                          keyby = .(sex)] # ,ethnicity, sha
+                          keyby = .(dimd, sex)] # ,ethnicity, sha
 
-            lookup_dt(sp$pop, tbl)
+            lookup_dt(sp$pop, tbl,
+                      check_lookup_tbl_validity = design_$sim_prm$logs)
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
 
             # End of calibration
-
+            # sp$pop[, clbfctr := 1] # cancels calibration
             set(sp$pop, NULL, private$incd_colnam,
                 clamp(private$parf$p0 * risk_product * sp$pop$clbfctr))
             # NOTE product above not expected to be equal to incidence because
@@ -834,13 +838,78 @@ Disease <-
               fwrite_safe(parf_dt, filenam)
             } # End export PARF
 
+
+          } else if (length(private$rr) > 0L && length(riskcolnam) == 0L) {
+            # if incidence$type not 1 and no associated RF (for disease like pain)
+            risk_product <- 1
+
+            # Calibrate estimated incidence prbl to init year incidence
+            tbl <- self$get_incd(seq(design_$sim_prm$init_year,
+                                     design_$sim_prm$init_year +
+                                       design_$sim_prm$sim_horizon_max)
+            )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
+            lookup_dt(sp$pop, tbl,
+                      check_lookup_tbl_validity = design_$sim_prm$logs)
+            # We can only get disease incd for initial year. Other years don't
+            # have prevalence of the disease that are influencing this one
+            sp$pop[, rp := private$parf$p0 * sp$get_risks(self$name)[, Reduce(`*`, .SD),
+                                                                     .SDcols = patterns("_rr$")]]
+            setnafill(sp$pop, "c", 0, cols = c("rp", "mu"))
+
+
+            ein <- sp$pop[year == design_$sim_prm$init_year & get(paste0(self$name, "_prvl")) == 0L & age >= design_$sim_prm$ageL, .(rp, mu, sex, dimd)]
+            ein <- ein[, .(clbfctr = sum(mu, na.rm = TRUE)/sum(rp, na.rm = TRUE)),
+                          keyby = .(sex, dimd)] # correction for init year, applies to other ages as well.
+            lookup_dt(sp$pop, ein, check_lookup_tbl_validity = design_$sim_prm$logs)
+            # absorb_dt(sp$pop, ein)
+
+            # Now assuming that disease prvl remains constant apply incd trends to clbfctr
+            sp$pop[, mu := shift_bypid(mu, 1L, pid) / mu]
+            sp$pop[is.infinite(mu) | is.na(mu) | mu == 0, mu := 1]
+            sp$pop[, clbfctr := clbfctr * mu]
+            setnafill(sp$pop, "c", 1, cols = "clbfctr")
+
+            # End of calibration
+
+            set(sp$pop, NULL, private$incd_colnam,
+                clamp(private$parf$p0 * risk_product * sp$pop$clbfctr))
+            # NOTE product above not expected to be equal to incidence because
+            # p0 estimated using mean lags and RR, while each mc run samples
+            # from their distribution.
+
+            # setnames(sp$pop, "clbfctr", paste0(self$name, "_clbfctr"))
+            # sp$pop[, (paste0(self$name, "_risk_product")) := risk_product]
+            # sp$pop[, (paste0(self$name, "_p0")) := private$parf$p0]
+            sp$pop[, c("mu", "rp", "clbfctr") := NULL]
+
+            if (design_$sim_prm$export_PARF) {
+              path <- file.path(design_$sim_prm$output_dir, "parf")
+              filenam <- file.path(path, "parf.csv")
+              if (!dir.exists(path)) {
+                dir.create(path, showWarnings = FALSE, recursive = TRUE)
+              }
+
+              parf_dt <-
+                cbind(sp$pop[, .(wt_immrtl, age, sex, dimd, ethnicity, sha, year)],
+                      "parf" = private$parf$parf
+                )[year == design_$sim_prm$init_year]
+              parf_dt <-
+                parf_dt[!is.na(parf), .(parf = unique(parf), pop_size = sum(wt_immrtl)),
+                        keyby = .(age, sex, dimd, ethnicity, sha)]
+              parf_dt[, `:=`(disease = self$name, mc = sp$mc)] # not sp$mc_aggr
+              # EXAMPLE parf[, weighted.mean(parf, pop_size), keyby = sex]
+              fwrite_safe(parf_dt, filenam)
+            } # End export PARF
+
+
           } else { # End of incident$type not 1 and no associated RF
+            # For diseases with no related RF
             tbl <- self$get_incd(seq(design_$sim_prm$init_year,
                                      design_$sim_prm$init_year +
                                        design_$sim_prm$sim_horizon_max)
             )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
             setnames(tbl, "mu", private$incd_colnam)
-            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
           } # End if no associated RF
 
           setnafill(sp$pop, "c", 0, cols = private$incd_colnam)
@@ -915,7 +984,7 @@ Disease <-
               stop("Column ", nam, " exists already in sp$pop.")
             setnames(ftlt, "mu1", nam)
             lookup_dt(sp$pop, ftlt[, .SD, .SDcols = !"mu2"],
-                      check_lookup_tbl_validity = FALSE)
+                      check_lookup_tbl_validity = design_$sim_prm$logs)
             setnafill(sp$pop,
                       type = "const",
                       fill = 0,
@@ -925,13 +994,13 @@ Disease <-
             private$mrtl2flag <- FALSE
           }
 
-          # if (not apply_RR_to_mrtl2 and not depend on other diseases) or ----
+          # if (not apply_RR_to_mrtl2 and not depend on other diseases) or
           # length(private$rr) == 0L
           if ((!design_$sim_prm$apply_RR_to_mrtl2 &&
                !self$meta$mortality$type %in% 3:4) ||
               length(private$rr) == 0L) {
             setnames(ftlt, "mu2", private$mrtl_colnam2)
-            lookup_dt(sp$pop, ftlt, check_lookup_tbl_validity = FALSE)
+            lookup_dt(sp$pop, ftlt, check_lookup_tbl_validity = design_$sim_prm$logs)
           } else {
             if (self$meta$mortality$type %in% 3:4) {
               # private$rr never NULL here but riskcolnam can be empty if disease
@@ -1012,6 +1081,60 @@ Disease <-
 
         invisible(self)
       },
+
+
+
+
+      #' @description Calibrates p0 to account for additional trends in incidence.
+      #' @param sp A synthetic population.
+      #' @param design_ A design object with the simulation parameters.
+      #' @return The invisible self for chaining.
+      calibrate_incd_prb = function(sp, design_ = design) {
+
+        if (!inherits(design_, "Design")) {
+          stop("Argument design_ needs to be a Design object.")
+        }
+        if (!inherits(sp, "SynthPop")) {
+          stop("Argument sp needs to be a SynthPop object.")
+        }
+
+        if (is.numeric(self$meta$incidence$type) &&
+            self$meta$incidence$type > 1L &&
+            !is.null(sp$get_risks(self$name))) {
+
+          # reassign RR after 1st simulation to account for disease prevalence
+          self$set_rr(sp, design_, checkNAs = FALSE, forPARF = FALSE)
+
+          risk_product <-
+            sp$get_risks(self$name)[, Reduce(`*`, .SD), .SDcols = patterns("_rr$")]
+
+          # Calibrate estimated incidence prbl to init year incidence
+          tbl <- self$get_incd(seq(design_$sim_prm$init_year,
+                                   design_$sim_prm$init_year +
+                                     design_$sim_prm$sim_horizon_max)
+          )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
+          lookup_dt(sp$pop, tbl,
+                    check_lookup_tbl_validity = design_$sim_prm$logs)
+          sp$pop[, `:=` (p0 = private$parf$p0, rr = risk_product)]
+          sp$pop[, mu_trend := mu / shift_bypid(mu, 1L, pid)]
+          sp$pop[, rr_trend := rr / shift_bypid(rr, 1L, pid)]
+          setnafill(sp$pop, "c", 1, cols = c("mu_trend", "rr_trend"))
+          sp$pop[, clbfctr := mu_trend/rr_trend]
+          sp$pop[, clbfctr := cumprod(clbfctr), by = pid]
+          private$parf[, p0 := p0 * sp$pop$clbfctr]
+
+         sp$pop[, c("mu", "rr", "p0", "mu_trend", "rr_trend", "clbfctr",
+                    private$incd_colnam) := NULL]
+
+
+         self$set_incd_prb(sp, design_)
+        } # End if incident$type numeric
+        invisible(self)
+      },
+
+
+
+
 
 
       #' @description Deletes the PARF file from disk.
@@ -1751,9 +1874,11 @@ Disease <-
 
             tbl <-
               read_fst("./inputs/exposure_distributions/frtpor_table.fst", as.data.table = TRUE)
+
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, fruit_curr_xps :=
               my_qZISICHEL(rank_fruit,
                 mu, sigma, nu, tau,
@@ -1773,7 +1898,7 @@ Disease <-
               read_fst("./inputs/exposure_distributions/vegpor_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, veg_curr_xps :=
               my_qDEL(rank_veg, mu, sigma, nu, n_cpu = design_$sim_prm$n_cpu) * 80L] # g/d
             ff[, (col_nam) := NULL]
@@ -1782,44 +1907,39 @@ Disease <-
           }
 
           # Smoking ----
-          xps <- c("smok_status", "smok_cig", "smok_packyrs", "ets")
+          xps <- c("smok_status", "smok_cig", "smok_packyrs", "ets", "bmi", "sbp")
           if (any(xps %in% xps_dep$xpscol)) {
-            if (xps_dep[xps[1:3], any(duplicated(ds))]) {
+            if (xps_dep[xps[1:3], ][!is.na(ds), any(duplicated(ds))]) {
               stop("smok_status, smok_cig, & smok_packyrs cannot coexist as risk factors for a disease.")
             }
 
             if (xps[[1]] %in% xps_dep$xpscol) {
               lag <- xps_dep[xps[[1]], max(lag)]
-            }
-
-            if (xps[[2]] %in% xps_dep$xpscol) {
-              lag <- xps_dep[xps[[2]], max(lag)]
-            }
-
-            if (xps[[3]] %in% xps_dep$xpscol) {
-              lag <- xps_dep[xps[[3]], max(lag)]
-            }
+            } else lag <- 0L
 
             ff[, year := year - lag]
             tbl <-
               read_fst("./inputs/exposure_distributions/smok_status_table.fst",
                 as.data.table = TRUE
               )
+
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, smok_status_curr_xps := my_qMN4(rankstat_smok, mu, sigma, nu)] # for calibration
-            ff[, (col_nam) := NULL]
+            ff[, smok_status_curr_xps := factor(smok_status_curr_xps)]
 
+            ff[, (col_nam) := NULL]
             # Assign smok_quit_yrs when pid_mrk == true (the first year an individual enters the simulation)
             # I could use these estimates for calibration but I need to calculate mortality first
+
             tbl <-
               read_fst("./inputs/exposure_distributions/smok_quit_yrs_table.fst",
                 as.data.table = TRUE
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             set(ff, NULL, "smok_quit_yrs_curr_xps", 0L)
             ff[
               smok_status_curr_xps %in% 2:3,
@@ -1833,9 +1953,10 @@ Disease <-
               read_fst("./inputs/exposure_distributions/smok_dur_ex_table.fst",
                 as.data.table = TRUE
               )
+            setnames(tbl, "smok_status", "smok_status_curr_xps")
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            absorb_dt(ff, tbl) # not lookup_dt because tbl doesn't have all smok statuses
             set(ff, NULL, "smok_dur_curr_xps", 0L)
             ff[smok_status_curr_xps %in% 2:3, smok_dur_curr_xps := my_qDPO(rankstat_smok_dur_ex, mu, sigma)]
             ff[, rankstat_smok_dur_ex := NULL]
@@ -1848,7 +1969,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[smok_status_curr_xps == 4, smok_dur_curr_xps := as.integer(round(qNBI(rankstat_smok_dur_curr, mu, sigma)))]
             ff[, rankstat_smok_dur_curr := NULL]
             ff[, (col_nam) := NULL]
@@ -1872,7 +1993,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[
               smok_status_curr_xps == 4L,
               smok_cig_curr_xps :=
@@ -1890,7 +2011,7 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[
               smok_status_curr_xps == 3L,
               smok_cig_curr_xps := my_qZABNB(rankstat_smok_cig_ex,
@@ -1925,9 +2046,11 @@ Disease <-
             ff[, year := year - lag]
             tbl <-
               read_fst("./inputs/exposure_distributions/ets_table.fst", as.data.table = TRUE)
+            setnames(tbl, "smok_status", "smok_status_curr_xps")
+
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, ets_curr_xps := as.integer(rank_ets < mu)]
             ff[, rank_ets := NULL]
             ff[, (col_nam) := NULL]
@@ -1945,9 +2068,11 @@ Disease <-
             tbl <-
               read_fst("./inputs/exposure_distributions/alcohol_table.fst",
                        as.data.table = TRUE)
+            setnames(tbl, "smok_status", "smok_status_curr_xps")
+
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, alcohol_curr_xps := as.integer(
               qZINBI(rank_alcohol, mu, sigma, nu))]
             ff[, rank_alcohol := NULL]
@@ -1966,9 +2091,10 @@ Disease <-
             ff[, year := year - lag]
             tbl <-
               read_fst("./inputs/exposure_distributions/bmi_table.fst", as.data.table = TRUE)
+            setnames(tbl, "smok_status", "smok_status_curr_xps")
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, bmi_curr_xps := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             ff[, rank_bmi := NULL]
             ff[, (col_nam) := NULL]
@@ -1985,9 +2111,11 @@ Disease <-
             ff[, year := year - lag]
             tbl <-
               read_fst("./inputs/exposure_distributions/sbp_table.fst", as.data.table = TRUE)
+            setnames(tbl, "smok_status", "smok_status_curr_xps")
+
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, sbp_curr_xps := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             ff[, rank_sbp := NULL]
             ff[, (col_nam) := NULL]
@@ -2006,7 +2134,7 @@ Disease <-
               read_fst("./inputs/exposure_distributions/tchol_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, tchol_curr_xps := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             ff[, rank_tchol := NULL]
             ff[, (col_nam) := NULL]
@@ -2021,13 +2149,13 @@ Disease <-
               )
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, tchol_hdl_ratio := 1 / qGB1(rank_hdl, mu, sigma, nu, tau)]
             ff[, rank_hdl := NULL]
             ff[, (col_nam) := NULL]
             ff[, year := year + lag]
           }
-          # Generate statins medication (BI) -----
+            # Generate statins medication (BI) -----
           xps <- "statin_px"
           if (any(xps %in% xps_dep$xpscol)) {
             if (xps[[1]] %in% xps_dep$xpscol) {
@@ -2037,14 +2165,14 @@ Disease <-
             }
             ff[, year := year - lag]
 
-            ff[, `:=`(tchol = round(clamp(tchol_curr_xps, 2, 12), 0))]
+            ff[, `:=`(tchol = as.integer(round(clamp(tchol_curr_xps, 2, 12), 0)))]
             tbl <-
               read_fst("./inputs/exposure_distributions/statin_px_table.fst",
-                as.data.table = TRUE
-              )
+                       as.data.table = TRUE)
+
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
-            lookup_dt(ff, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, statin_px_curr_xps := as.integer(rank_statin_px < mu)]
             ff[, rank_statin_px := NULL]
             ff[, (col_nam) := NULL]
