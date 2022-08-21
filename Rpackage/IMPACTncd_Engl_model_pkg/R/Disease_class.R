@@ -878,7 +878,7 @@ Disease <-
               clbintrc <- 0.95
             }
             if (self$name == "ctd") {
-              clbintrc <- 0.95
+              clbintrc <- 0.9
             }
             if (self$name == "other_ca") {
               clbintrc <- 0.97
@@ -886,6 +886,9 @@ Disease <-
             if (self$name == "pain") {
               clbtrend <- 0.96
               clbintrc <- 0.92
+            }
+            if (self$name == "t1dm") {
+              clbtrend <- 0.98
             }
             if (self$name == "af") {
               clbtrend <- 1.01
@@ -1101,19 +1104,28 @@ Disease <-
             # private$mrtl2flag == FALSE
             absorb_dt(sp$pop, tbl) # No lookup_dt as tbl for prostate and breast ca not proper lu_tbls
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
-
+            clbons <- 1.2 # ONS calibration
             clbtrend <- 1
             clbintrc <- 1
-            if (self$name == "nonmodelled") {
+            if (self$name == "lung_ca") {
               clbtrend <- 1
-              clbintrc <- 1
+              clbintrc <- 0.8
+            }
+            if (self$name == "prostate_ca") {
+              clbtrend <- 1
+              clbintrc <- 1.1
+            }
+            if (self$name == "nonmodelled") {
+              clbtrend <- 0.98
+              clbintrc <- 1.10
             }
 
             sp$pop[year >= design_$sim_prm$init_year,
-                   clbfctr := clbintrc * clbfctr *
+                   clbfctr := clbintrc * clbfctr * clbons *
                      (clbtrend^(year - design_$sim_prm$init_year))]
             # End of calibration
 
+            # sp$pop$clbfctr <- 1 # cancels calibration
             set(sp$pop, NULL, private$mrtl_colnam2,
                 clamp(private$parf$m0 * risk_product * sp$pop$clbfctr))
 
