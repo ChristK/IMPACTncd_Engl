@@ -851,9 +851,9 @@ Disease <-
             lookup_dt(sp$pop, tbl,
                       check_lookup_tbl_validity = design_$sim_prm$logs)
             # We can only get disease incd for initial year. Other years don't
-            # have prevalence of the disease that are influencing this one
-            sp$pop[, rp := private$parf$p0 * sp$get_risks(self$name)[, Reduce(`*`, .SD),
-                                                                     .SDcols = patterns("_rr$")]]
+            # have prevalence of the disease that are influencing the incd
+            sp$pop[, rp := private$parf$p0 *
+                     sp$get_risks(self$name)[, Reduce(`*`, .SD),                                                             .SDcols = patterns("_rr$")]]
             setnafill(sp$pop, "c", 0, cols = c("rp", "mu"))
 
 
@@ -863,10 +863,48 @@ Disease <-
             lookup_dt(sp$pop, ein, check_lookup_tbl_validity = design_$sim_prm$logs)
             # absorb_dt(sp$pop, ein)
 
-            # Now assuming that disease prvl remains constant apply incd trends to clbfctr
-            sp$pop[, mu := shift_bypid(mu, 1L, pid) / mu]
-            sp$pop[is.infinite(mu) | is.na(mu) | mu == 0, mu := 1]
-            sp$pop[, clbfctr := clbfctr * mu]
+            # TODO better calibration process. Now I do it manually
+            # TODO export to yaml
+            clbtrend <- 1
+            clbintrc <- 1
+            if (self$name == "constipation") {
+              clbtrend <- 0.96
+              clbintrc <- 0.95
+            }
+            if (self$name == "dementia") {
+              clbintrc <- 0.9
+            }
+            if (self$name == "psychosis") {
+              clbintrc <- 0.95
+            }
+            if (self$name == "ctd") {
+              clbintrc <- 0.95
+            }
+            if (self$name == "other_ca") {
+              clbintrc <- 0.97
+            }
+            if (self$name == "pain") {
+              clbtrend <- 0.96
+              clbintrc <- 0.92
+            }
+            if (self$name == "af") {
+              clbtrend <- 1.01
+              clbintrc <- 0.95
+            }
+            if (self$name == "hf") clbtrend <- 1.015
+            if (self$name == "andep") clbtrend <- 1.02
+            if (self$name == "asthma") {
+              clbtrend <- 1.01
+              clbintrc <- 0.95
+            }
+
+            # sp$pop[year >= design_$sim_prm$init_year,
+            #       summary(clbfctr * (clbtrend^(year - design_$sim_prm$init_year)))]
+
+            sp$pop[year >= design_$sim_prm$init_year,
+                   clbfctr := clbintrc * clbfctr *
+                     (clbtrend^(year - design_$sim_prm$init_year))]
+
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
 
             # End of calibration
@@ -1039,29 +1077,41 @@ Disease <-
             )[between(age, design_$sim_prm$ageL,
                       design_$sim_prm$ageH)]
             if ("mu1" %in% names(tbl)) tbl[, mu1 := NULL]
-            lookup_dt(sp$pop, tbl)
-            sp$pop[, rp := private$parf$m0 * sp$get_risks(self$name)[, Reduce(`*`, .SD),
-                                                                     .SDcols = patterns("_rr$")]]
+            lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
+            sp$pop[, rp := private$parf$m0 *
+                     sp$get_risks(self$name)[, Reduce(`*`, .SD),                                                                     .SDcols = patterns("_rr$")]]
             setnafill(sp$pop, "c", 0, cols = c("rp", "mu2"))
             # Above rp includes rr from diseases that risk_product doesn't have
 
             if (self$name == "nonmodelled") {
-              tbl <- sp$pop[year == design_$sim_prm$init_year,
+              tbl <- sp$pop[year == design_$sim_prm$init_year &
+                              age >= design_$sim_prm$ageL,
                             .(clbfctr = sum(mu2)/sum(rp)),
-                            keyby = .(sex)]
+                            keyby = .(sex, dimd)]
 
             } else {
               tbl <- sp$pop[year == design_$sim_prm$init_year &
-                              get(paste0(self$name, "_prvl")) > 0L,
+                              get(paste0(self$name, "_prvl")) > 0L &
+                              age >= design_$sim_prm$ageL,
                             .(clbfctr = sum(mu2)/sum(rp)),
-                            keyby = .(sex)]
+                            keyby = .(sex, dimd)]
 
             }
             # NOTE the above excludes incident cases. Not appropriate when
             # private$mrtl2flag == FALSE
-            lookup_dt(sp$pop, tbl)
+            absorb_dt(sp$pop, tbl) # No lookup_dt as tbl for prostate and breast ca not proper lu_tbls
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
 
+            clbtrend <- 1
+            clbintrc <- 1
+            if (self$name == "nonmodelled") {
+              clbtrend <- 1
+              clbintrc <- 1
+            }
+
+            sp$pop[year >= design_$sim_prm$init_year,
+                   clbfctr := clbintrc * clbfctr *
+                     (clbtrend^(year - design_$sim_prm$init_year))]
             # End of calibration
 
             set(sp$pop, NULL, private$mrtl_colnam2,
@@ -1090,6 +1140,7 @@ Disease <-
       #' @param design_ A design object with the simulation parameters.
       #' @return The invisible self for chaining.
       calibrate_incd_prb = function(sp, design_ = design) {
+        # NOTE still problematic
 
         if (!inherits(design_, "Design")) {
           stop("Argument design_ needs to be a Design object.")
@@ -1120,7 +1171,7 @@ Disease <-
           sp$pop[, rr_trend := rr / shift_bypid(rr, 1L, pid)]
           setnafill(sp$pop, "c", 1, cols = c("mu_trend", "rr_trend"))
           sp$pop[, clbfctr := mu_trend/rr_trend]
-          sp$pop[, clbfctr := cumprod(clbfctr), by = pid]
+          # sp$pop[, clbfctr := cumprod(clbfctr), by = pid]
           private$parf[, p0 := p0 * sp$pop$clbfctr]
 
          sp$pop[, c("mu", "rr", "p0", "mu_trend", "rr_trend", "clbfctr",
