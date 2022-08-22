@@ -62,14 +62,14 @@ sp <- SynthPop$new(1L, design)
 
 # diseases$ckd$gen_parf(sp, design)
 
-nn <- "prostate_ca"
-self <- diseases[[nn]]$.__enclos_env__$self
-private <- diseases[[nn]]$.__enclos_env__$private
-design_ <- design
-diseases_ <- diseases
-check = design_$sim_prm$logs
-keep_intermediate_file = TRUE
-mc_iter = mc_ = 1
+# nn <- "prostate_ca"
+# self <- diseases[[nn]]$.__enclos_env__$self
+# private <- diseases[[nn]]$.__enclos_env__$private
+# design_ <- design
+# diseases_ <- diseases
+# check = design_$sim_prm$logs
+# keep_intermediate_file = TRUE
+# mc_iter = mc_ = 1
 
 # self    <- diseases[[nn]]$get_rr()[[1]]$.__enclos_env__$self
 # private <-  diseases[[nn]]$get_rr()[[1]]$.__enclos_env__$private
@@ -274,15 +274,9 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 l <- mk_scenario_init2("", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
 
-lapply(diseases, function(x) {
-    print(x)
-    x$calibrate_incd_prb(sp, design)
-})
-
-simcpp(sp$pop, l, sp$mc)
 
 
-sp$pop[year >= 13, sum(asthma_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13 & age >= 30, sum(asthma_prvl > 0), keyby = year][, plot(year, V1)]
 sp$pop[year >= 13, sum(asthma_prvl == 1), keyby = year][, plot(year, V1)]
 
 sp$pop[year >= 13, sum(andep_prvl > 0), keyby = year][, plot(year, V1)]
