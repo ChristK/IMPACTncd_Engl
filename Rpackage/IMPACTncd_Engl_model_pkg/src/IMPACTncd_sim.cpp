@@ -52,6 +52,7 @@ struct distr_prm_vr
 {
   double intercept;
   double log_age_coef;
+  double log_year_coef;
   NumericVector sex_coef;
   NumericVector dimd_coef;
 };
@@ -187,18 +188,21 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
       List pr = ib["mu"];
       out.dgns.dur_forward.mu.intercept = as<double>(pr["intercept"]);
       out.dgns.dur_forward.mu.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.mu.log_year_coef = as<double>(pr["log(year)"]);
       out.dgns.dur_forward.mu.sex_coef = as<NumericVector>(pr["sex"]);
       out.dgns.dur_forward.mu.dimd_coef = as<NumericVector>(pr["dimd"]);
 
       pr = ib["sigma"];
       out.dgns.dur_forward.sigma.intercept = as<double>(pr["intercept"]);
       out.dgns.dur_forward.sigma.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.sigma.log_year_coef = as<double>(pr["log(year)"]);
       out.dgns.dur_forward.sigma.sex_coef = as<NumericVector>(pr["sex"]);
       out.dgns.dur_forward.sigma.dimd_coef = as<NumericVector>(pr["dimd"]);
 
       pr = ib["nu"];
       out.dgns.dur_forward.nu.intercept = as<double>(pr["intercept"]);
       out.dgns.dur_forward.nu.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.nu.log_year_coef = as<double>(pr["log(year)"]);
       out.dgns.dur_forward.nu.sex_coef = as<NumericVector>(pr["sex"]);
       out.dgns.dur_forward.nu.dimd_coef = as<NumericVector>(pr["dimd"]);
 
@@ -208,16 +212,19 @@ disease_meta get_disease_meta(const List l, DataFrame dt)
     { // if duration forward doesn't exist
       out.dgns.dur_forward.mu.intercept = 0.0;
       out.dgns.dur_forward.mu.log_age_coef = 0.0;
+      out.dgns.dur_forward.mu.log_year_coef = 0.0;
       out.dgns.dur_forward.mu.sex_coef = {0.0, 0.0};
       out.dgns.dur_forward.mu.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
       out.dgns.dur_forward.sigma.intercept = 0.0;
       out.dgns.dur_forward.sigma.log_age_coef = 0.0;
+      out.dgns.dur_forward.sigma.log_year_coef = 0.0;
       out.dgns.dur_forward.sigma.sex_coef ={0.0, 0.0};
       out.dgns.dur_forward.sigma.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
       out.dgns.dur_forward.nu.intercept = 0.0;
       out.dgns.dur_forward.nu.log_age_coef = 0.0;
+      out.dgns.dur_forward.nu.log_year_coef = 0.0;
       out.dgns.dur_forward.nu.sex_coef = {0.0, 0.0};
       out.dgns.dur_forward.nu.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -292,19 +299,22 @@ int get_dur_forward (const int i, // represents the row
 {
   double mu = exp(ds.dgns.dur_forward.mu.intercept +
                   ds.dgns.dur_forward.mu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.mu.log_year_coef * log(sm.year[i]) +
                   ds.dgns.dur_forward.mu.sex_coef[sm.sex[i] - 1] +
                   ds.dgns.dur_forward.mu.dimd_coef[sm.dimd[i] - 1]);
   double sigma = exp(ds.dgns.dur_forward.sigma.intercept +
                   ds.dgns.dur_forward.sigma.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.sigma.log_year_coef * log(sm.year[i]) +
                   ds.dgns.dur_forward.sigma.sex_coef[sm.sex[i] - 1] +
                   ds.dgns.dur_forward.sigma.dimd_coef[sm.dimd[i] - 1]);
   double nu = antilogit(ds.dgns.dur_forward.nu.intercept +
                   ds.dgns.dur_forward.nu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.nu.log_year_coef * log(sm.year[i]) +
                   ds.dgns.dur_forward.nu.sex_coef[sm.sex[i] - 1] +
                   ds.dgns.dur_forward.nu.dimd_coef[sm.dimd[i] - 1]
   );
 
-  return my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
+  return 1 + my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
 }
 
 int get_dur_forward_prvl (const int& i, // represents the row
@@ -315,23 +325,25 @@ int get_dur_forward_prvl (const int& i, // represents the row
 {
   double mu = exp(ds.dgns.dur_forward.mu.intercept +
                   ds.dgns.dur_forward.mu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.mu.log_year_coef * log(sm.year[i]) +
                   ds.dgns.dur_forward.mu.sex_coef[sm.sex[i] - 1] +
                   ds.dgns.dur_forward.mu.dimd_coef[sm.dimd[i] - 1]);
   double sigma = exp(ds.dgns.dur_forward.sigma.intercept +
                      ds.dgns.dur_forward.sigma.log_age_coef * log(sm.age[i]) +
+                     ds.dgns.dur_forward.sigma.log_year_coef * log(sm.year[i]) +
                      ds.dgns.dur_forward.sigma.sex_coef[sm.sex[i] - 1] +
                      ds.dgns.dur_forward.sigma.dimd_coef[sm.dimd[i] - 1]);
   double nu = antilogit(ds.dgns.dur_forward.nu.intercept +
                         ds.dgns.dur_forward.nu.log_age_coef * log(sm.age[i]) +
+                        ds.dgns.dur_forward.nu.log_year_coef * log(sm.year[i]) +
                         ds.dgns.dur_forward.nu.sex_coef[sm.sex[i] - 1] +
                         ds.dgns.dur_forward.nu.dimd_coef[sm.dimd[i] - 1]
   );
 
   double thresh = my_pZANBI_scalar(prvl_dur,mu, sigma, nu, true, false, true);
-  if (rn <  thresh)
+  if (rn < thresh)
   {
-    return prvl_dur + my_qZANBI_scalar(1 - rn, mu, sigma, nu, true, false, true);
-  }
+    return prvl_dur + my_qZANBI_scalar(1 - rn, mu, sigma, nu, true, false, true);  }
   else
   {
     return prvl_dur + my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
@@ -512,7 +524,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
               dsmeta[j].incd.prvl[i] = 1;
               // dsmeta[j].dgns.cure holds the duration_prm for this spell
               // NOTE dsmeta[j].incd.influenced_by.lag[k] == 0 identifies diseases like asthma
-              if (dsmeta[j].dgns.flag)  dsmeta[j].dgns.cure = 1 + get_dur_forward(i, runif_impl(), dsmeta[j], meta);
+              if (dsmeta[j].dgns.flag)  dsmeta[j].dgns.cure = get_dur_forward(i, runif_impl(), dsmeta[j], meta);
             }
 
             // Below is the logic for diseases like asthma to cure prevalent
@@ -522,7 +534,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
                 (meta.year[i] == meta.init_year || meta.age[i] == meta.age_low) &&
                 dsmeta[j].incd.prvl[i] > 1 ) // >1 to exclude incident cases from above.
             {
-              dsmeta[j].dgns.cure = 1 + get_dur_forward_prvl(i, runif_impl(), dsmeta[j].incd.prvl[i], dsmeta[j], meta); // NOTE no 1 + ZANBI
+              dsmeta[j].dgns.cure = get_dur_forward_prvl(i, runif_impl(), dsmeta[j].incd.prvl[i], dsmeta[j], meta);
             }
 
             // Logic to advance duration of prevalent cases by 1

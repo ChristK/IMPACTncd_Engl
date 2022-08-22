@@ -3,6 +3,7 @@ note: remember to add 1 to the final result
 mu:
   intercept: -0.81163
   log(age): 0.0687568
+  log(year): 0.0
   sex:
   - 0.0
   - 0.6952627
@@ -20,6 +21,7 @@ mu:
 sigma:
   intercept: -2.524285
   log(age): 1.1406349
+  log(year): 0.0
   sex:
   - 0.0
   - -0.7015443
@@ -37,6 +39,7 @@ sigma:
 nu:
   intercept: 0.0893466
   log(age): -0.0773238
+  log(year): 0.0
   sex:
   - 0.0
   - -0.1151093

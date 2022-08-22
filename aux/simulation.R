@@ -11,9 +11,7 @@ IMPACTncd$
   del_outputs()$
   run(1:100, multicore = TRUE, "")
 
-# IMPACTncd$export_summaries(multicore = TRUE)
-# source("./aux/CPRD_sim_validation_plots.R")
-
+IMPACTncd$export_summaries(multicore = TRUE)
 
 scenario_fn <- function(sp) {
   sc_year <- 22L # The year the change starts
@@ -106,8 +104,8 @@ IMPACTncd$
   run(1:100, multicore = TRUE, "sc1")$
   export_summaries(multicore = TRUE)
 
-# IMPACTncd$export_summaries(multicore = TRUE)
-
 source("./aux/CPRD_sim_validation_plots.R")
-
+source("./aux/process_out_for_HF.R")
 # IMPACTncd$export_summaries(multicore = TRUE)
+
+
