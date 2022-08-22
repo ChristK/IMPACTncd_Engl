@@ -274,19 +274,20 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 l <- mk_scenario_init2("", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
 
-
-
 sp$pop[year >= 13 & age >= 30, sum(asthma_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13 & age >= 30, sum(andep_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13 & age >= 30, sum(pain_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[year >= 13 & age >= 30, sum(constipation_prvl > 0), keyby = year][, plot(year, V1)]
+
+
 sp$pop[year >= 13, sum(asthma_prvl == 1), keyby = year][, plot(year, V1)]
 
 sp$pop[year >= 13, sum(andep_prvl > 0), keyby = year][, plot(year, V1)]
 sp$pop[year >= 13, sum(andep_prvl == 1), keyby = year][, plot(year, V1)]
 
 
-sp$pop[year >= 13, sum(pain_prvl > 0), keyby = year][, plot(year, V1)]
 sp$pop[year >= 13, sum(pain_prvl == 1), keyby = year][, plot(year, V1)]
 
-sp$pop[year >= 13, sum(constipation_prvl > 0), keyby = year][, plot(year, V1)]
 sp$pop[year >= 13, sum(constipation_prvl == 1), keyby = year][, plot(year, V1)]
 
 
@@ -482,7 +483,7 @@ sp$pop[, sum(sbp_curr_xps > 140) / .N, keyby = year]
 fwrite_safe(sp$pop[1:10], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
 fwrite_safe(sp$pop[11:20], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
 
-tt <- list.files("/mnt/storage_fast/output/hf_real/lifecourse/", full.names = T)
+tt <- list.files("/mnt/storage_fast/output/hf_real_report//lifecourse/", full.names = T)
 # lapply(tt, function(x) {
 #     print(x)
 #     fread(x)

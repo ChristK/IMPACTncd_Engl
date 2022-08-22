@@ -868,11 +868,11 @@ Disease <-
             clbtrend <- 1
             clbintrc <- 1
             if (self$name == "constipation") {
-              clbtrend <- 0.96
-              clbintrc <- 0.95
+              clbtrend <- 1
+              clbintrc <- 0.9
             }
             if (self$name == "dementia") {
-              clbintrc <- 0.9
+              clbintrc <- 1
             }
             if (self$name == "psychosis") {
               clbintrc <- 0.95
@@ -884,8 +884,8 @@ Disease <-
               clbintrc <- 0.97
             }
             if (self$name == "pain") {
-              clbtrend <- 0.96
-              clbintrc <- 0.92
+              clbtrend <- 1
+              clbintrc <- 0.9
             }
             if (self$name == "t1dm") {
               clbtrend <- 0.98
@@ -895,10 +895,13 @@ Disease <-
               clbintrc <- 0.95
             }
             if (self$name == "hf") clbtrend <- 1.015
-            if (self$name == "andep") clbtrend <- 1.02
+            if (self$name == "andep") clbintrc <- 1.2
+            if (self$name == "ibs") clbintrc <- 0.95
+            if (self$name == "ra") clbintrc <- 0.95
+
             if (self$name == "asthma") {
               clbtrend <- 1.01
-              clbintrc <- 0.95
+              clbintrc <- 1
             }
 
             # sp$pop[year >= design_$sim_prm$init_year,
@@ -1104,7 +1107,7 @@ Disease <-
             # private$mrtl2flag == FALSE
             absorb_dt(sp$pop, tbl) # No lookup_dt as tbl for prostate and breast ca not proper lu_tbls
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
-            clbons <- 1.2 # ONS calibration
+            clbons <- 1.15 # ONS calibration
             clbtrend <- 1
             clbintrc <- 1
             if (self$name == "lung_ca") {
