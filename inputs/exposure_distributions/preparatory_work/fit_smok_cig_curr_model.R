@@ -20,7 +20,7 @@
 ## Boston, MA 02110-1301 USA.
 
 
-setwd("/home/ckypridMy_ModelsIMPACTncd_Engl/")
+setwd("/home/ckyprid/My_Models/IMPACTncd_Engl/")
 univariate_analysis <- FALSE
 diagnostics         <- FALSE
 plots               <- TRUE
