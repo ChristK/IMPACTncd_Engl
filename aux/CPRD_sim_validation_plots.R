@@ -238,7 +238,6 @@ if (mtlt_plot) {
     # onspop[, popsize := as.numeric(gsub(",", "", popsize))]
     # absorb_dt(onsmrtl, onspop)
     #
-    # onsmrtl[, .(deaths = sum(deaths)), keyby = year]
     # onsmrtl[, dimd := factor(dimd, 1:10,c("1 most deprived", 2:9, "10 least deprived"))]
     # onsmrtl[, sex := factor(sex, c("Male", "Female"), c("men", "women"))]
     # esp2 <- copy(esp)

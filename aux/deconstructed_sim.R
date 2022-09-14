@@ -59,6 +59,10 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
 # sim$delete_synthpop(NULL)
 # ll <- sim$gen_synthpop_demog(design)
 sp <- SynthPop$new(1L, design)
+e <- read_fst("./inputs/mortality/mrtl_clb.fst", as.data.table = TRUE) # mortality calibration
+lookup_dt(sp$pop, e, check_lookup_tbl_validity = design$sim_prm$logs)
+setnafill(sp$pop, "const", 1, cols = "mrtl_clbr")
+rm(e)
 
 # diseases$ckd$gen_parf(sp, design)
 

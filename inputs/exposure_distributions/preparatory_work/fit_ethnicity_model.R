@@ -21,7 +21,7 @@
 
 
 
-setwd("/home/ckypridMy_ModelsIMPACTncd_Engl")
+setwd("/home/ckyprid/My_Models/IMPACTncd_Engl")
 
 # For ages 20 to 90
 # Only used to impute HSE_ts during HSE_ts correlation structure extraction
