@@ -514,7 +514,13 @@ Simulation <-
           )
         }
 
+        if (!nzchar(scenario_nam)) scenario_nam <- "sc0"
+
         sp <- SynthPop$new(mc_, self$design)
+        e <- read_fst("./inputs/mortality/mrtl_clb.fst", as.data.table = TRUE) # mortality calibration
+        lookup_dt(sp$pop, e, check_lookup_tbl_validity = self$design$sim_prm$logs)
+        setnafill(sp$pop, "const", 1, cols = "mrtl_clbr")
+        rm(e)
 
         scenario_fn(sp) # apply simple scenario
 
@@ -578,7 +584,6 @@ Simulation <-
                                              pid_mrk, TRUE, 1L, byref = TRUE)
         )]
 
-        if (!nzchar(scenario_nam)) scenario_nam <- "sc0"
           sp$pop[, scenario := scenario_nam]
 
         # Write lifecourse
@@ -684,7 +689,7 @@ Simulation <-
           smok_dur_curr_xps = 0,
           smok_cig_curr_xps = 0
         )]
-        out_xps[, sc := scenario_nam]
+        out_xps[, scenario := scenario_nam]
         setkey(out_xps, year)
 
         fwrite_safe(out_xps, private$output_dir("xps/xps.csv.gz"))
@@ -782,6 +787,11 @@ Simulation <-
         strata <- c("agegrp", strata) # Need to be after LE
 
         # prvl ----
+        # Note for mortality this exports qx directly. mx is defined as the
+        # number of deaths during the year divided by the average number alive
+        # during the year, i.e. This differs slightly from qx , which is the
+        # number of deaths during the year divided by the number alive at the
+        # beginning of the year.
         fwrite_safe(lc[, c("popsize" = (.N),
                            lapply(.SD, function(x) sum(x > 0))),
                        .SDcols = patterns("_prvl$"), keyby = strata],

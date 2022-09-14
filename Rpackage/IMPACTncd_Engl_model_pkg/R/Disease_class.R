@@ -1033,6 +1033,7 @@ Disease <-
                       type = "const",
                       fill = 0,
                       cols = nam)
+            sp$pop[, (nam) := get(nam) * mrtl_clbr]
             ftlt[, (nam) := NULL]
           } else {
             private$mrtl2flag <- FALSE
@@ -1107,7 +1108,8 @@ Disease <-
             # private$mrtl2flag == FALSE
             absorb_dt(sp$pop, tbl) # No lookup_dt as tbl for prostate and breast ca not proper lu_tbls
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
-            clbons <- 1.15 # ONS calibration
+            # ONS calibration was calculated with this inplace. Do not remove or change unless you plan to redo the calibration
+            clbons <- 1.15
             clbtrend <- 1
             clbintrc <- 1
             if (self$name == "lung_ca") {
@@ -1124,7 +1126,7 @@ Disease <-
             }
 
             sp$pop[year >= design_$sim_prm$init_year,
-                   clbfctr := clbintrc * clbfctr * clbons *
+                   clbfctr := clbintrc * clbfctr * clbons * mrtl_clbr *
                      (clbtrend^(year - design_$sim_prm$init_year))]
             # End of calibration
 
