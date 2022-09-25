@@ -3,15 +3,15 @@ library(fst) # Fast way to save and load data.tables
 library(gamlss)
 library(qs)
 threads_fst(5)
-data.table::setDTthreads(5) #this is so that don't use all the processors 
+data.table::setDTthreads(5) #this is so that don't use all the processors
 
 disnm <- "Alcohol problems" # disease name
-disnm2 <- "alcohol" # disease name for saving
+disnm2 <- "alcpr" # disease name for saving
 
 
 overwrite_incd <- FALSE
-overwrite_prvl <- TRUE
-overwrite_ftlt <- FALSE
+overwrite_prvl <- FALSE
+overwrite_ftlt <- TRUE
 overwrite_dur  <- FALSE
 overwrite_pred <- FALSE
 
@@ -68,11 +68,11 @@ if (overwrite_dur ||
 
   #distr_nam <- names(marg_distr$fits[1]) # pick appropriately and note here ZANBI
   #NB: ZAPIG was no1, but slower? 3 parameters + q has a max value. BICs:
-    # ZAPIG    ZANBI      
-    # 227073.1 227896.2 
-  
+    # ZAPIG    ZANBI
+    # 227073.1 227896.2
+
   distr_nam <- "ZINBI"
-  
+
   dur_model <- gamlss(
     dur ~ pb(age) + pcat(sex) + pcat(dimd) + pcat(ethnicity),
     ~pb(age) + pcat(sex) + pcat(dimd),
@@ -119,7 +119,7 @@ if (overwrite_incd ||
   dt[, year := year - 2000]
   y <- cbind(dt$incd, dt$no_incd)
   dt[, c("incd", "no_incd", "n") := NULL]
-  
+
   # m1 <-  gamlss(
   #   y ~ log(year) ,
   #   family = BI(),
@@ -152,14 +152,14 @@ if (overwrite_incd ||
   #   data = dt,
   #   method = mixed(20, 100)
   # )
-  # 
+  #
   # GAIC(m1, m2, m3, m4, m5)
-  
+
   mod_max <- gamlss(
     y ~ (
-      log(year) +  I(year >= 13) + 
+      log(year) *  I(year >= 13)  +
         pb(age) + pcat(sex) + pcat(dimd) + pcat(sha) + pcat(ethnicity)
-    ) ^ 2 + I(year > 15) * log(year),
+    ) ^ 2 ,
     family = BI(),
     data = dt,
     method = mixed(20, 100)
@@ -252,10 +252,10 @@ if (overwrite_ftlt ||
   y <- cbind(dt$ftlt, dt$no_ftlt)
   dt[, c("ftlt", "no_ftlt", "n") := NULL]
   mod_max <- gamlss(
-    y ~ (log(year) + pb(age) + pcat(sex) + pcat(dimd)) ^ 2,
+    y ~ (log(year) + pb(age) + sex + pcat(dimd)) ^ 2,
     family = BI(),
     data = dt,
-    method = mixed(20, 100)
+    method = mixed(20, 500)
   )
   validate_plots(dt, y, mod_max, "_ftlt", disnm, strata_ftlt)
   qsave(mod_max, output_path(paste0(disnm2, "_ftlt.qs")), "archive")

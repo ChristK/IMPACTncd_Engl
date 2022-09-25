@@ -376,6 +376,7 @@ Simulation <-
 
         invisible(self)
       },
+
       #' @description Returns the causality matrix and optionally plots the
       #'   causality structure.
       #' @param processed If `TRUE` generates the causality matrix from the
@@ -411,6 +412,28 @@ Simulation <-
           g <- private$causality_structure
         }
         return(g)
+      },
+
+      #' @description Returns the names of all exposures and diseases.
+      #' @return A string vector.
+
+      # get_node_names ----
+      get_node_names = function() {
+        return(V(private$causality_structure)$name)
+      },
+
+
+      #' @description Returns the causal paths between an exposure and an outcome (disease).
+      #' @param from the beginning of the path (an exposure) as a string. Use `get_node_names` for available nodes.
+      #' @param to the end of the path (a disease) as a string. Use `get_node_names` for available nodes.
+      #' @return A list with all the possible paths between exposure and disease.
+
+      # get_causal_path ----
+      get_causal_path = function(from, to) {
+        nm <- V(private$causality_structure)$name
+        from <- which(nm == "bmi")
+        to <- which(nm == "hf")
+        return(get.all.shortest.paths(private$causality_structure, from, to, mode = "out"))
       },
 
       #' @description Updates the Design object that is stored in the Simulation
@@ -449,7 +472,7 @@ Simulation <-
       #' @description Delete log files.
       #' @return The invisible self for chaining.
 
-      # del-logs ----
+      # del_logs ----
       del_logs = function() {
 
         fl <- list.files(private$output_dir("logs/"), full.names = TRUE)
@@ -503,6 +526,7 @@ Simulation <-
       # run_sim ----
       # Runs the simulation in one core. mc is scalar
       run_sim = function(mc_, scenario_nam = "") {
+        if (!nzchar(scenario_nam)) scenario_nam <- "sc0"
 
         if (self$design$sim_prm$logs) {
           private$time_mark(paste0("Start mc iteration ", mc_))
@@ -513,8 +537,6 @@ Simulation <-
             split = FALSE
           )
         }
-
-        if (!nzchar(scenario_nam)) scenario_nam <- "sc0"
 
         sp <- SynthPop$new(mc_, self$design)
         e <- read_fst("./inputs/mortality/mrtl_clb.fst", as.data.table = TRUE) # mortality calibration
@@ -535,13 +557,13 @@ Simulation <-
             set_mrtl_prb(sp, self$design)
         })
 
-        l <- private$mk_scenario_init(sp, scenario_nam) # TODO update with scenarios
+        l <- private$mk_scenario_init(sp, scenario_nam)
         simcpp(sp$pop, l, sp$mc)
         # it doesn't matter if mc or mc_aggr is used in the above, because it is
         # only used for the RNG stream and the pid are different in each mc_aggr
         # pop
 
-        sp$update_pop_weights()
+        sp$update_pop_weights(scenario_nam)
 
         if (self$design$sim_prm$export_xps) {
           if (self$design$sim_prm$logs) message("Exporting exposures...")
@@ -585,6 +607,8 @@ Simulation <-
         )]
 
           sp$pop[, scenario := scenario_nam]
+
+          setkeyv(sp$pop, c("pid", "year"))
 
         # Write lifecourse
           if (self$design$sim_prm$logs) message("Exporting lifecourse...")
@@ -722,8 +746,9 @@ Simulation <-
                     setdiff(self$design$sim_prm$strata_for_output, c("agegrp")))
 
         # Life expectancy ----
-        # NOTE for scaled_up LE weights need to apply from the
-        # very beginning
+        # NOTE for scaled_up LE weights need to apply from the very beginning.
+        # Also note that currently this ignores the deaths for people younger
+        # than min_age so not a true LE at birth
         fwrite_safe(lc[all_cause_mrtl > 0, .("popsize" = (.N), LE = mean(age)),
                        keyby = strata],
                     private$output_dir(paste0("summaries/", "le_out.csv.gz"
@@ -905,6 +930,107 @@ Simulation <-
         ), .SDcols = !strata]
         fwrite_safe(dis_mrtl_out,
                     private$output_dir(paste0("summaries/", "dis_mrtl_esp.csv.gz"
+                    )))
+
+        # All-cause mrtl by disease ----
+        nm <- grep("_prvl$", names(lc), value = TRUE)
+
+        tt <- lapply(nm, function(x) {
+          lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x), "cases" = (.N), "deaths" = sum(all_cause_mrtl > 0)), keyby = strata]
+        })
+        tt <-
+        dcast(rbindlist(tt), as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
+              fill = 0L, value.var = c("deaths", "cases"))
+        fwrite_safe(tt,
+                    private$output_dir(paste0("summaries/", "all_cause_mrtl_by_dis_out.csv.gz"
+                    )))
+
+        tt <- lapply(nm, function(x) {
+          lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x), "cases" = sum(wt), "deaths" = sum(wt * (all_cause_mrtl > 0))), keyby = strata]
+        })
+        tt <-
+          dcast(rbindlist(tt), as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
+                fill = 0L, value.var = c("deaths", "cases"))
+        fwrite_safe(tt,
+                    private$output_dir(paste0("summaries/", "all_cause_mrtl_by_dis_scaled_up.csv.gz"
+                    )))
+
+        tt <- lapply(nm, function(x) {
+          lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x), "cases" = sum(wt_esp), "deaths" = sum(wt_esp * (all_cause_mrtl > 0))), keyby = strata]
+        })
+        tt <-
+          dcast(rbindlist(tt), as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
+                fill = 0L, value.var = c("deaths", "cases"))
+        fwrite_safe(tt,
+                    private$output_dir(paste0("summaries/", "all_cause_mrtl_by_dis_esp.csv.gz"
+                    )))
+
+        # Disease characteristics----
+        nm <- grep("_prvl$", names(lc), value = TRUE)
+
+        tt <- rbindlist(lapply(nm, function(x) {
+          lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x), "cases" = (.N),
+                            "mean_age" = mean(age), "mean_cms_score" = mean(cms_score),
+                            "mean_duration" = mean(get(x)), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
+                            "mean_cms_count" = mean(cms_count)), keyby = strata]
+        }))
+        # tt <- rbindlist(lapply(nm, function(x) {
+        #   lc[get(x) > 0L, lapply(.SD, mean), .SDcols = c(x, "age", "cms_score", "cms_count"), keyby = strata]
+        # })) # Fast but without cases
+        tt <-
+          dcast(tt, as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
+                fill = 0L, value.var = c("cases", "mean_duration", "mean_age", "mean_cms_score", "mean_cms_count"))
+        fwrite_safe(tt,
+                    private$output_dir(paste0("summaries/", "dis_characteristics_out.csv.gz"
+                    )))
+
+        tt <- rbindlist(lapply(nm, function(x) {
+          lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x), "cases" = sum(wt),
+                            "mean_age" = weighted.mean(age, wt), "mean_cms_score" = weighted.mean(cms_score, wt),
+                            "mean_duration" = weighted.mean(get(x), wt), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
+                            "mean_cms_count" = weighted.mean(cms_count, wt)), keyby = strata]
+        }))
+        tt <-
+          dcast(tt, as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
+                fill = 0L, value.var = c("cases", "mean_duration", "mean_age", "mean_cms_score", "mean_cms_count"))
+        fwrite_safe(tt,
+                    private$output_dir(paste0("summaries/", "dis_characteristics_scaled_up.csv.gz"
+                    )))
+
+        tt <- rbindlist(lapply(nm, function(x) {
+          lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x), "cases" = sum(wt_esp),
+                            "mean_age" = weighted.mean(age, wt_esp), "mean_cms_score" = weighted.mean(cms_score, wt_esp),
+                            "mean_duration" = weighted.mean(get(x), wt_esp), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
+                            "mean_cms_count" = weighted.mean(cms_count, wt_esp)), keyby = strata]
+        }))
+        tt <-
+          dcast(tt, as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
+                fill = 0L, value.var = c("cases", "mean_duration", "mean_age", "mean_cms_score", "mean_cms_count"))
+        fwrite_safe(tt,
+                    private$output_dir(paste0("summaries/", "dis_characteristics_esp.csv.gz"
+                    )))
+
+
+        # CMS mean ----
+        fwrite_safe(lc[, .("popsize" = (.N), cms_score = mean(cms_score)), keyby = strata],
+                    private$output_dir(paste0("summaries/", "cms_score_out.csv.gz"
+                    )))
+        fwrite_safe(lc[, .("popsize" = sum(wt), cms_score = weighted.mean(cms_score, wt)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "cms_score_scaled_up.csv.gz"
+                    )))
+        fwrite_safe(lc[, .("popsize" = sum(wt_esp), cms_score = weighted.mean(cms_score, wt_esp)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "cms_score_esp.csv.gz"
+                    )))
+
+        # CMS count ----
+        fwrite_safe(lc[, .("popsize" = (.N), cms_count = mean(cms_count)), keyby = strata],
+                    private$output_dir(paste0("summaries/", "cms_count_out.csv.gz"
+                    )))
+        fwrite_safe(lc[, .("popsize" = sum(wt), cms_count = weighted.mean(cms_count, wt)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "cms_count_scaled_up.csv.gz"
+                    )))
+        fwrite_safe(lc[, .("popsize" = sum(wt_esp), cms_count = weighted.mean(cms_count, wt_esp)),  keyby = strata],
+                    private$output_dir(paste0("summaries/", "cms_count_esp.csv.gz"
                     )))
 
 

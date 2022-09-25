@@ -191,19 +191,32 @@ SynthPop <-
 
       #' @description
       #' Updates the wt_immrtl to account for mortality in baseline scenario.
+      #' @param scenario_nam If "sc0" (the baseline scenario) update weights to
+      #'   scale to ONS projections. Else copy weights from the baseline
+      #'   scenario to the current scenario for the common person-years.
       #' @return The invisible self for chaining.
-      update_pop_weights = function() {
-        if (!"wt" %in% names(self$pop)) { # baseline
+      update_pop_weights = function(scenario_nam = "sc0") {
+
+
+        if (scenario_nam == "sc0" && !"wt" %in% names(self$pop)) { # baseline
           self$pop[, tmp := sum(wt_immrtl), keyby = .(year, age, sex)]
           set(self$pop, NULL, "wt", 0)
           self$pop[!is.na(all_cause_mrtl), wt := wt_immrtl * tmp / sum(wt_immrtl),
                    by = .(year, age, sex)]
 
-          self[, tmp := NULL]
-        } else { # For policy scenarios
-          self$pop[wt == 0 & sc_all_cause_mrtl == 0L, wt := wt_immrtl]
-        }
+          self$pop[, tmp := NULL]
+        } else if (scenario_nam != "sc0" && !"wt" %in% names(self$pop)) {
+          # For policy scenarios.
+          x <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
 
+          t0 <- fread(x, select = list(integer = c("pid", "year"), character = "scenario", numeric = "wt"),
+                      key = c("scenario", "pid", "year"))[scenario == "sc0", ] # wt for sc0
+          self$pop[t0, on = c("pid", "year"), wt := i.wt]
+          self$pop[is.na(all_cause_mrtl), wt := 0]
+          self$pop[is.na(wt), wt := wt_immrtl]
+        } else {
+          stop("The baseline scenario need to be named 'sc0' and simulated first, before any policy scenarios.") # TODO more informative message
+        }
 
         invisible(self)
       },

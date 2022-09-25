@@ -145,9 +145,18 @@ The invisible self for chaining.
 \subsection{Method \code{update_pop_weights()}}{
 Updates the wt_immrtl to account for mortality in baseline scenario.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SynthPop$update_pop_weights()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SynthPop$update_pop_weights(scenario_nam = "sc0")}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{scenario_nam}}{If "sc0" (the baseline scenario) update weights to
+scale to ONS projections. Else copy weights from the baseline
+scenario to the current scenario for the common person-years.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
 The invisible self for chaining.
 }

@@ -345,34 +345,34 @@ if (overwrite_dpnd ||
     set(dt, NULL, j, fifelse(dt[[j]] == 2L, 1L, 0L))
   }
   rm(j)
-  
- 
+
+
   adjusted <- CJ(sex = dt$sex,
                  agegroup = dt$agegroup,
                  dimd = dt$dimd,
                  unique = TRUE)
-  
+
   disnm2 <- "epilepsy"
-  setnames(dt, c(disnm, dpnd), c(disnm2,dpnd2)) #renaming for the model 
-  
+  setnames(dt, c(disnm, dpnd), c(disnm2,dpnd2)) #renaming for the model
+
   frm <- as.formula(paste0(disnm2, "~", paste(dpnd2, collapse = "+"), "+",
                            paste(strata_dpnd, collapse = "+")))
-  
-  #Fit the logistic model 
+
+  #Fit the logistic model
   tmp1 <- glm(frm, data = dt, family = binomial())
   summary(tmp1)
-  
-  #Output the RR for all covariate options 
+
+  #Output the RR for all covariate options
   for(i in 1:nrow(adjusted)){
     output <- RRfn(tmp1, data = dt, fixcov = adjusted[i])
     adjusted[i, `:=` (rr = output$RR, lci_rr = output$LCI_RR, uci_rr = output$UCI_RR, var = output$delta.var)]
     }
   adjusted[, dpnd_on := dpnd2]
-  
 
-  
 
-  
+
+
+
   #Swapping the dimds round for results purposes
   dimdlabs <- c("1 most deprived" ,  "2" ,   "3","4","5" ,  "6"  , "7" ,  "8" , "9" , "10 least deprived")
   adjusted[, dimd := factor(dimd,
@@ -381,24 +381,25 @@ if (overwrite_dpnd ||
 
   qsave(adjusted, output_path(paste0("dependencies/",disnm2, "_dpndRR.qs")), nthreads = 10)
   print(paste0(disnm, "_dpndRR table saved!"))
-  
-  #Only want to save the .csvy files if some RRs are statistically sig 
+
+  #Only want to save the .csvy files if some RRs are statistically sig
   adjusted[, statsig := ifelse( #add a flag
-    (lci_rr < 1 & uci_rr <1) | (lci_rr > 1 & uci_rr >1), 
+    (lci_rr < 1 & uci_rr <1) | (lci_rr > 1 & uci_rr >1),
     1, 0)]
   keep <- adjusted[, max(statsig), by = dpnd_on][V1 == 1, dpnd_on]
-  
-  results <- adjusted[dpnd_on %in% keep , .(sex, agegroup, dimd, rr = round(rr, digits = 2), ci_rr = round(uci_rr, digits = 2), dpnd_on )]
-  
-  type <- "_prev"
-  
 
-  
+  results <- adjusted[dpnd_on %in% keep , .(sex, agegroup, dimd, rr = round(rr, digits = 2), ci_rr = round(uci_rr, digits = 2), dpnd_on )]
+  dpnd2 <- dpnd2[dpnd2 %in% keep]
+
+  type <- "_prvl"
+
+
+
   for(j in 1:length(dpnd2)){
     write_xps_tmplte_file(results, dpnd2, disnm2, type, output_path(paste0("dependencies/",dpnd2[j],"~",disnm2,".csvy")))
   }
   rm(j)
-  
+
   #m1 <- glm(get(disnm) ~ agegrp + sex + dimd +
   #            Stroke  ,
   #          data = dt,
