@@ -9,10 +9,10 @@ registerDoParallel(10L)
 disnm <- "Other cancers" # disease name
 disnm2 <- "other_ca" # disease name
 
-overwrite_incd <- TRUE
-overwrite_prvl <- TRUE
-overwrite_ftlt <- TRUE
-overwrite_dur  <- TRUE
+overwrite_incd <- FALSE
+overwrite_prvl <- FALSE
+overwrite_ftlt <- FALSE
+overwrite_dur  <- FALSE
 overwrite_pred <- FALSE
 overwrite_dpnd <- TRUE
 
@@ -355,98 +355,103 @@ if (overwrite_pred) {
 # Dependencies ====
 if (overwrite_dpnd ||
     !file.exists(output_path(paste0(disnm2, "_dpnd.qs")))) {
-  
-  
+
+
   dpnd <- c("Primary Malignancy_Breast",
             "Primary Malignancy_Colorectal",
-            "Primary Malignancy_Lung", 
+            "Primary Malignancy_Lung",
             "Primary Malignancy_Prostate")
   dpnd2 <- c("breast_ca",
             "colorectal_ca",
-            "lung_ca", 
-            "prostate_ca")  
+            "lung_ca",
+            "prostate_ca")
   dt <- harmonise(read_fst(input_path("panel_short_inc.fst"),
                            as.data.table = TRUE)[gender != "I"])[
                              between(age, 20, 99) &
                                get(disnm) < 2L &
-                               year < 2020, .SD, 
+                               year < 2020, .SD,
                              .SDcols = c(disnm, dpnd , strata_dpnd)]
   CKutils::to_agegrp(dt, 5, 99, agegrp_colname = "agegroup")
-  
-  
+
+
   strata_dpnd <- gsub("^age$", "agegroup", strata_dpnd)
   for (j in dpnd) { #Need to make the exposures binary
     set(dt, NULL, j, fifelse(dt[[j]] == 2L, 1L, 0L))
   }
   rm(j)
-  
-  
+
+
   disnm2 <- "other_ca"
 
-  
-  setnames(dt, c(disnm, dpnd), c( disnm2, dpnd2)) #renaming for the model 
-  
-  
+
+  setnames(dt, c(disnm, dpnd), c( disnm2, dpnd2)) #renaming for the model
+
+
   adjusted <- CJ(sex = dt$sex,
                  agegroup = dt$agegroup,
                  dimd = dt$dimd,
                  unique = TRUE)
-  
+
   results <- data.table()
-  #for (j in 1:length(dpnd2)){ #Alternating through exposure condtiions 
+  #for (j in 1:length(dpnd2)){ #Alternating through exposure condtiions
   results <- foreach(j = 1:length(dpnd2), .combine = rbind) %dopar% {
     tmptab <- copy(adjusted) #otherwise it just reoverwrites everything
     exps <- c(dpnd2[j], dpnd2[-j])
     frm <- as.formula(paste0(disnm2, "~", paste(exps, collapse = "+"), "+",
                              paste(strata_dpnd, collapse = "+")))
-    
+
     tmp1 <- glm(frm, data = dt, family = binomial())
     summary(tmp1)
-    
-    #Output the RR for all covariate options 
+
+    #Output the RR for all covariate options
     for(i in 1:nrow(adjusted)){
       output <- RRfn(tmp1, data = dt, fixcov = adjusted[i])
-      tmptab[i, `:=` (rr = output$RR, 
-                      lci_rr = output$LCI_RR, 
-                      uci_rr = output$UCI_RR, 
+      tmptab[i, `:=` (rr = output$RR,
+                      lci_rr = output$LCI_RR,
+                      uci_rr = output$UCI_RR,
                       var = output$delta.var,
                       dpnd_on = dpnd2[j])]
     }
     tmptab
   }
-  
+
   rm(i, j)
-  
-  
-  
-  
-  
+
+
+
+
+
   #Swapping the dimds round for results purposes
   dimdlabs <- c("1 most deprived" ,  "2" ,   "3","4","5" ,  "6"  , "7" ,  "8" , "9" , "10 least deprived")
   results[, dimd := factor(dimd,
                            levels = 10:1,
                            labels = dimdlabs)]
-  
+
+  results[dpnd_on == "breast_ca" & sex == "men", c("rr", "lci_rr" , "uci_rr") := 1][, var := 0]
+  results[dpnd_on == "prostate_ca" & sex == "women", c("rr", "lci_rr" , "uci_rr") := 1][, var := 0]
+
+
   qsave(results, output_path(paste0("dependencies/",disnm2, "_dpndRR.qs")), nthreads = 10)
   print(paste0(disnm, "_dpndRR table saved!"))
-  
-  #Only want to save the .csvy files if some RRs are statistically sig 
+
+  #Only want to save the .csvy files if some RRs are statistically sig
   results[, statsig := ifelse( #add a flag
-    (lci_rr < 1 & uci_rr <1) | (lci_rr > 1 & uci_rr >1), 
+    (lci_rr < 1 & uci_rr <1) | (lci_rr > 1 & uci_rr >1),
     1, 0)]
   keep <- results[, max(statsig), by = dpnd_on][V1 == 1, dpnd_on]
-  
+
   results <- results[dpnd_on %in% keep , .(sex, agegroup, dimd, rr = round(rr, digits = 2), ci_rr = round(uci_rr, digits = 2), dpnd_on )]
-  
-  type <- "_prev"
-  
+  dpnd2 <- dpnd2[dpnd2 %in% keep]
+
+  type <- "_prvl"
+
   for(j in 1:length(dpnd2)){
     write_xps_tmplte_file(results, j, dpnd2, disnm2, type, output_path(paste0("dependencies/",dpnd2[j],"~",disnm2,".csvy")))
   }
   rm(j)
-  
-  
-  
-  
+
+
+
+
 }
 

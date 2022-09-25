@@ -2,14 +2,14 @@ source("./global.R")
 
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
-# g <- IMPACTncd$get_causal_structure(print_plot = T)
+# g <- IMPACTncd$get_causal_structure(print_plot = TRUE)
 
 scenario_fn <- function(sp) NULL
 
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(1:100, multicore = TRUE, "")
+  run(1:200, multicore = TRUE, "")
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 # source("./aux/CPRD_sim_validation_plots.R")
@@ -102,7 +102,7 @@ scenario_fn <- function(sp) {
 }
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "sc1")$
+  run(1:200, multicore = TRUE, "sc1")$
   export_summaries(multicore = TRUE)
 
 source("./aux/CPRD_sim_validation_plots.R")

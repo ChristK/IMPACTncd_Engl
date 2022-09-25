@@ -4,7 +4,7 @@ library(gamlss)
 library(qs)
 
 disnm <- "Primary Malignancy_Colorectal" # disease name
-disnm2 <- "colorectal_ca" # disease name
+disnm2 <- "colorect_ca" # disease name
 
 overwrite_incd <- TRUE
 overwrite_prvl <- TRUE
@@ -193,7 +193,7 @@ if (overwrite_prvl ||
   #   method = mixed(5, 100)
   # )
   #
-  # GAIC(m1, m2, m3, m4, m5, m6, m7) 
+  # GAIC(m1, m2, m3, m4, m5, m6, m7)
   # validate_plots(dt, y, m7, "_prvl", disnm, strata)
   #
   mod_max <- gamlss(

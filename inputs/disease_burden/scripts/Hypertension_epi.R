@@ -4,7 +4,7 @@ library(gamlss)
 library(qs)
 
 disnm <- "Hypertension_camb" # disease name (this is with one hypertension code ever recorded)
-disnm2 <- "hypertension" # disease name (for output)
+disnm2 <- "htn" # disease name (for output)
 overwrite_incd <- TRUE
 overwrite_prvl <- TRUE
 overwrite_ftlt <- TRUE
