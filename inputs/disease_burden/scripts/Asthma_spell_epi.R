@@ -137,7 +137,7 @@ if (overwrite_dur ||
 
   # dt[, all.equal(n1, n2)]
   # dt[, .(mean(dur), mean(dur2), mean(dur3))]
-  # 
+  #
   # hist(dt$dur, 90, col = c1)
   # hist(dt$dur2, 90, col = c2, add = TRUE)
 
@@ -493,8 +493,9 @@ if (overwrite_dpnd ||
   keep <- results[, max(statsig), by = dpnd_on][V1 == 1, dpnd_on]
 
   results <- results[dpnd_on %in% keep, .(sex, agegroup, dimd, rr = round(rr, digits = 2), ci_rr = round(uci_rr, digits = 2), dpnd_on)]
+  dpnd2 <- dpnd2[dpnd2 %in% keep]
 
-  type <- "_prev"
+  type <- "_prvl"
 
   for (j in 1:length(dpnd2)) {
     write_xps_tmplte_file(results, j, dpnd2, disnm2, type, output_path(paste0("dependencies/", dpnd2[j], "~", disnm2, ".csvy")))

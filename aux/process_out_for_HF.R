@@ -8,6 +8,8 @@ prbl = c(0.5, 0.025, 0.975, 0.1, 0.9)
 theme_set(new = theme_economist())
 theme_update(axis.text.x = element_text(size = 9), plot.title = element_text(hjust = 0.5))
 
+# TODO standardised age/agegroup in filenames
+
 # Prvl not standardised----
 
 tt <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_scaled_up.csv.gz"
@@ -18,6 +20,7 @@ outstrata <- c("mc", "year", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -28,6 +31,7 @@ outstrata <- c("mc", "year", "sex", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -38,31 +42,53 @@ outstrata <- c("mc", "year", "dimd", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
 setkeyv(d, setdiff(outstrata, "mc"))
 fwrite(d, "/mnt/storage_fast/output/hf_real/tables/prevalence by year-dimd (not standardised).csv")
 
-outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
-d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
-][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
-d <- melt(d, id.vars = outstrata)
-d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
-setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
-d <- d[disease != "popsize"]
-setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, "/mnt/storage_fast/output/hf_real/tables/prevalence by year-agegroup-sex.csv")
-
+# Pop estimates ----
 outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
-d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
-][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
-setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
-d <- d[disease != "popsize"]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "pop_size_")))
+d[, disease := NULL]
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, "/mnt/storage_fast/output/hf_real/tables/prevalence by year-agegroup-sex-dimd.csv")
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/pop size by year-agegroup-sex-dimd.csv")
+
+outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "pop_size_")))
+d[, disease := NULL]
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/pop size by year-agegroup-sex.csv")
+
+outstrata <- c("mc", "year", "sex", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "pop_size_")))
+d[, disease := NULL]
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/pop size by year-sex.csv")
+
+outstrata <- c("mc", "year", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "pop_size_")))
+d[, disease := NULL]
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/pop size by year.csv")
 
 # Prvl change with 2019 baseline ----
 
@@ -72,6 +98,7 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 d19 <- d[year == 2019][, year := NULL]
 d[d19, on = c(setdiff(outstrata, "year"), "variable"), value := value/i.value]
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -84,6 +111,7 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 d19 <- d[year == 2019][, year := NULL]
 d[d19, on = c(setdiff(outstrata, "year"), "variable"), value := value/i.value]
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -96,6 +124,7 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 d19 <- d[year == 2019][, year := NULL]
 d[d19, on = c(setdiff(outstrata, "year"), "variable"), value := value/i.value]
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -108,6 +137,7 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 d19 <- d[year == 2019][, year := NULL]
 d[d19, on = c(setdiff(outstrata, "year"), "variable"), value := value/i.value]
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -120,6 +150,7 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 d19 <- d[year == 2019][, year := NULL]
 d[d19, on = c(setdiff(outstrata, "year"), "variable"), value := value/i.value]
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -127,7 +158,7 @@ setkeyv(d, setdiff(outstrata, "mc"))
 fwrite(d, "/mnt/storage_fast/output/hf_real/tables/prevalence change by year-agegroup-sex-dimd.csv")
 
 
-# Prvl age standardised----
+# Prvl standardised----
 
 tt <- fread("/mnt/storage_fast/output/hf_real/summaries/prvl_esp.csv.gz"
 )[, `:=` (year = year + 2000L,
@@ -137,6 +168,7 @@ outstrata <- c("mc", "year", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -147,6 +179,7 @@ outstrata <- c("mc", "year", "sex", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -157,6 +190,7 @@ outstrata <- c("mc", "year", "dimd", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -172,6 +206,7 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 d19 <- d[year == 2019][, year := NULL]
 d[d19, on = c(setdiff(outstrata, "year"), "variable"), value := value/i.value]
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -184,6 +219,7 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 d19 <- d[year == 2019][, year := NULL]
 d[d19, on = c(setdiff(outstrata, "year"), "variable"), value := value/i.value]
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -196,6 +232,7 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 d19 <- d[year == 2019][, year := NULL]
 d[d19, on = c(setdiff(outstrata, "year"), "variable"), value := value/i.value]
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 d <- d[disease != "popsize"]
@@ -213,6 +250,7 @@ outstrata <- c("mc", "year", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
@@ -223,6 +261,7 @@ outstrata <- c("mc", "year", "sex", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
@@ -233,6 +272,7 @@ outstrata <- c("mc", "year", "dimd", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
@@ -243,6 +283,7 @@ outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
@@ -253,13 +294,14 @@ outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
 setkeyv(d, setdiff(outstrata, "mc"))
 fwrite(d, "/mnt/storage_fast/output/hf_real/tables/incidence by year-agegroup-sex-dimd.csv")
 
-# Incd age standardised----
+# Incd standardised----
 
 tt <- fread("/mnt/storage_fast/output/hf_real/summaries/incd_esp.csv.gz"
 )[, `:=` (year = year + 2000L,
@@ -269,6 +311,7 @@ outstrata <- c("mc", "year", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
@@ -279,6 +322,7 @@ outstrata <- c("mc", "year", "sex", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
@@ -289,6 +333,7 @@ outstrata <- c("mc", "year", "dimd", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
 ][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
@@ -350,7 +395,7 @@ setkeyv(e, setdiff(outstrata, "mc"))
 fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mortality by year-agegroup-sex-dimd.csv")
 
 
-# Mrtl age standardised ----
+# Mrtl standardised ----
 tt <- fread("/mnt/storage_fast/output/hf_real/summaries/mrtl_esp.csv.gz"
 )[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
@@ -384,30 +429,332 @@ fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mortality by year-dimd (age-s
 
 
 
-# Median CMS ----
+# Mean CMS not standardised ----
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/cms_score_scaled_up.csv.gz"
+)[, `:=` (year = year + 2000L,
+          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
 
-tt <- list.files("/mnt/storage_fast/output/hf_real/lifecourse/", full.names = TRUE)
-out <- lapply(tt[1:2], function(x) {
-    f <- fread(x)[, `:=` (year = year + 2000L,
-                          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
-    out <- list()
-    out$yr <- f[, .(mc, mean_CMS = weighted.mean(cms_score, wt_esp)), keyby = .(year, scenario)]
-    out$dimd <- f[, .(mc, mean_CMS = weighted.mean(cms_score, wt_esp)), keyby = .(year, dimd, scenario)]
-    out
-})
-mean_cms_by_year <- rbindlist(lapply(out, `[[`, 1))[, as.list(fquantile(mean_CMS, prbl)), keyby = .(year, scenario)]
-setnames(mean_cms_by_year, c("year", "scenario", percent(prbl, prefix = "mean_cms_")))
-setkeyv(mean_cms_by_year, c("year", "scenario"))
-fwrite(mean_cms_by_year, "/mnt/storage_fast/output/hf_real/tables/mean cms by year (age-sex-dimd standardised).csv")
+outstrata <- c("mc", "year", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score by year (not standardised).csv")
 
-mean_cms_by_year_dimd <- rbindlist(lapply(out, `[[`, 2))[, as.list(fquantile(mean_CMS, prbl)), keyby = .(year, dimd, scenario)]
-setnames(mean_cms_by_year_dimd, c("year", "dimd", "scenario", percent(prbl, prefix = "mean_cms_")))
-setkeyv(mean_cms_by_year_dimd,c("year", "dimd", "scenario"))
-fwrite(mean_cms_by_year_dimd, "/mnt/storage_fast/output/hf_real/tables/mean cms by year-dimd (age-sex standardised).csv")
+outstrata <- c("mc", "year", "sex", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score by year-sex (not standardised).csv")
+
+outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score by year-agegroup-sex (not standardised).csv")
+
+outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score by year-agegroup-sex-dimd (not standardised).csv")
+
+# Mean CMS change with 2019 baseline not standardised ----
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/cms_score_scaled_up.csv.gz"
+)[, `:=` (year = year + 2000L,
+          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
+
+outstrata <- c("mc", "year", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e19 <- e[year == 2019][, year := NULL]
+e[e19, on = setdiff(outstrata, "year"), mean_cms_score := mean_cms_score/i.mean_cms_score]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score change by year (not standardised).csv")
+
+outstrata <- c("mc", "year", "sex", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e19 <- e[year == 2019][, year := NULL]
+e[e19, on = setdiff(outstrata, "year"), mean_cms_score := mean_cms_score/i.mean_cms_score]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score change by year-sex (not standardised).csv")
+
+outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e19 <- e[year == 2019][, year := NULL]
+e[e19, on = setdiff(outstrata, "year"), mean_cms_score := mean_cms_score/i.mean_cms_score]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score change by year-agegroup-sex (not standardised).csv")
+
+outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e19 <- e[year == 2019][, year := NULL]
+e[e19, on = setdiff(outstrata, "year"), mean_cms_score := mean_cms_score/i.mean_cms_score]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score change by year-agegroup-sex-dimd (not standardised).csv")
+
+# Mean CMS standardised ----
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/cms_score_esp.csv.gz"
+)[, `:=` (year = year + 2000L,
+          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
+
+outstrata <- c("mc", "year", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score by year (age-sex-dimd standardised).csv")
+
+outstrata <- c("mc", "year", "dimd", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score by year-dimd (age-sex standardised).csv")
+
+
+# Mean CMS change wih 2019 as baseline standardised ----
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/cms_score_esp.csv.gz"
+)[, `:=` (year = year + 2000L,
+          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
+
+outstrata <- c("mc", "year", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e19 <- e[year == 2019][, year := NULL]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score change by year (age-sex-dimd standardised).csv")
+
+outstrata <- c("mc", "year", "dimd", "scenario")
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
+        keyby = eval(outstrata)]
+e19 <- e[year == 2019][, year := NULL]
+e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
+setkeyv(e, setdiff(outstrata, "mc"))
+fwrite(e, "/mnt/storage_fast/output/hf_real/tables/mean CMS score change by year-dimd (age-sex standardised).csv")
 
 
 
 
+
+# All-cause mortality by disease not standardised----
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/all_cause_mrtl_by_dis_scaled_up.csv.gz"
+)[, `:=` (year = year + 2000L,
+          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
+
+outstrata <- c("mc", "year", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/all-cause mrtl by disease-year (not standardised).csv")
+
+outstrata <- c("mc", "year", "sex", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/all-cause mrtl by disease-year-sex (not standardised).csv")
+
+outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/all-cause mrtl by disease-year-agegroup-sex (not standardised).csv")
+
+outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/all-cause mrtl by disease-year-agegroup-sex-dimd (not standardised).csv")
+
+# All-cause mortality by disease standardised----
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/all_cause_mrtl_by_dis_esp.csv.gz"
+)[, `:=` (year = year + 2000L,
+          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
+
+outstrata <- c("mc", "year", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/all-cause mrtl by disease-year (age-sex-dimd standardised).csv")
+
+outstrata <- c("mc", "year", "sex", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/all-cause mrtl by disease-year-sex (age-dimd standardised).csv")
+
+outstrata <- c("mc", "year", "dimd", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/all-cause mrtl by disease-year-dimd (age-sex standardised).csv")
+
+outstrata <- c("mc", "year", "sex", "dimd", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/all-cause mrtl by disease-year-sex-dimd (age standardised).csv")
+rm(cases)
+
+# Disease characteristics non standardised ----
+tt <- fread("/mnt/storage_fast/output/hf_real/summaries/dis_characteristics_scaled_up.csv.gz"
+)[, `:=` (year = year + 2000L,
+          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")),
+          mean_cms_count_cms1st_cont = as.numeric(mean_cms_count_cms1st_cont))]
+d1 <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^cases_")]
+d1 <- melt(d1, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
+d1 <- unique(d1, by = c("mc", "year", "scenario", "sex", "dimd", "variable"))
+d1[, `:=` (disease = gsub("^cases_", "", variable), variable = NULL)]
+tt <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^mean_duration_|^mean_age_|^mean_cms_score_|^mean_cms_count_")]
+tt <- melt(tt, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
+tt[, disease := gsub("^mean_duration_|^mean_age_|^mean_cms_score_|^mean_cms_count_", "", variable)]
+tt[d1, on = c("mc", "year", "scenario", "sex", "dimd", "disease"), cases := i.value]
+rm(d1)
+
+outstrata <- c("mc", "year", "scenario")
+d <- tt[, weighted.mean(value, cases), keyby = c(outstrata, "variable")]
+setkey(d, "variable")
+d <- d[, fquantile_byid(V1, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "variable", percent(prbl, prefix = "value_")))
+d[, disease := gsub("^mean_duration_|^mean_age_|^mean_cms_score_|^mean_cms_count_", "", variable)]
+d[grep("^mean_duration_", variable), type := "mean_duration"]
+d[grep("^mean_age_", variable), type := "mean_age"]
+d[grep("^mean_cms_score_", variable), type := "mean_cms_score"]
+d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
+d[, variable := NULL]
+setkeyv(d, c(setdiff(outstrata, "mc"), "disease", "type"))
+setcolorder(d)
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/disease characteristics by year (not standardised).csv")
+
+outstrata <- c("mc", "year", "sex", "scenario")
+d <- tt[, weighted.mean(value, cases), keyby = c(outstrata, "variable")]
+setkey(d, "variable")
+d <- d[, fquantile_byid(V1, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "variable", percent(prbl, prefix = "value_")))
+d[, disease := gsub("^mean_duration_|^mean_age_|^mean_cms_score_|^mean_cms_count_", "", variable)]
+d[grep("^mean_duration_", variable), type := "mean_duration"]
+d[grep("^mean_age_", variable), type := "mean_age"]
+d[grep("^mean_cms_score_", variable), type := "mean_cms_score"]
+d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
+d[, variable := NULL]
+setkeyv(d, c(setdiff(outstrata, "mc"), "disease", "type"))
+setcolorder(d)
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/disease characteristics by year-sex (not standardised).csv")
+
+outstrata <- c("mc", "year", "dimd", "scenario")
+d <- tt[, weighted.mean(value, cases), keyby = c(outstrata, "variable")]
+setkey(d, "variable")
+d <- d[, fquantile_byid(V1, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "variable", percent(prbl, prefix = "value_")))
+d[, disease := gsub("^mean_duration_|^mean_age_|^mean_cms_score_|^mean_cms_count_", "", variable)]
+d[grep("^mean_duration_", variable), type := "mean_duration"]
+d[grep("^mean_age_", variable), type := "mean_age"]
+d[grep("^mean_cms_score_", variable), type := "mean_cms_score"]
+d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
+d[, variable := NULL]
+setkeyv(d, c(setdiff(outstrata, "mc"), "disease", "type"))
+setcolorder(d)
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/disease characteristics by year-dimd (not standardised).csv")
+
+outstrata <- c("mc", "year", "sex", "dimd", "scenario")
+d <- tt[, weighted.mean(value, cases), keyby = c(outstrata, "variable")]
+setkey(d, "variable")
+d <- d[, fquantile_byid(V1, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "variable", percent(prbl, prefix = "value_")))
+d[, disease := gsub("^mean_duration_|^mean_age_|^mean_cms_score_|^mean_cms_count_", "", variable)]
+d[grep("^mean_duration_", variable), type := "mean_duration"]
+d[grep("^mean_age_", variable), type := "mean_age"]
+d[grep("^mean_cms_score_", variable), type := "mean_cms_score"]
+d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
+d[, variable := NULL]
+setkeyv(d, c(setdiff(outstrata, "mc"), "disease", "type"))
+setcolorder(d)
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/disease characteristics by year-sex-dimd (not standardised).csv")
+
+rm(d, tt)
 # XPS ----
 
 xps_tab <- fread("/mnt/storage_fast/output/hf_real/xps/xps.csv.gz")
@@ -448,6 +795,7 @@ outstrata <- c("mc", "year", "scenario")
 d <- xps_tab[, lapply(.SD, weighted.mean, wt_esp), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)
 ]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
@@ -457,6 +805,7 @@ outstrata <- c("mc", "year", "sex", "scenario")
 d <- xps_tab[, lapply(.SD, weighted.mean, wt_esp), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)
 ]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
@@ -475,6 +824,7 @@ outstrata <- c("mc", "year", "sex", "qimd", "scenario")
 d <- xps_tab[, lapply(.SD, weighted.mean, wt_esp), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)
 ]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
@@ -483,6 +833,7 @@ fwrite(d, "/mnt/storage_fast/output/hf_real/tables/exposures by year-sex-qimd (a
 outstrata <- c("mc", "year", "agegrp20", "sex", "qimd", "scenario")
 d <- xps_tab[, lapply(.SD, mean), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)]
 d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))

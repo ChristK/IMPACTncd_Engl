@@ -27,6 +27,8 @@ To be completed...
 \item \href{#method-Simulation-run}{\code{Simulation$run()}}
 \item \href{#method-Simulation-export_summaries}{\code{Simulation$export_summaries()}}
 \item \href{#method-Simulation-get_causal_structure}{\code{Simulation$get_causal_structure()}}
+\item \href{#method-Simulation-get_node_names}{\code{Simulation$get_node_names()}}
+\item \href{#method-Simulation-get_causal_path}{\code{Simulation$get_causal_path()}}
 \item \href{#method-Simulation-update_design}{\code{Simulation$update_design()}}
 \item \href{#method-Simulation-del_outputs}{\code{Simulation$del_outputs()}}
 \item \href{#method-Simulation-del_logs}{\code{Simulation$del_logs()}}
@@ -125,6 +127,41 @@ graph.}
 \subsection{Returns}{
 The processed causality matrix if `processed = TRUE` or the
   graph otherwise.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_node_names"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_node_names}{}}}
+\subsection{Method \code{get_node_names()}}{
+Returns the names of all exposures and diseases.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_node_names()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A string vector.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_causal_path"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_causal_path}{}}}
+\subsection{Method \code{get_causal_path()}}{
+Returns the causal paths between an exposure and an outcome (disease).
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_path(from, to)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{from}}{the beginning of the path (an exposure) as a string. Use `get_node_names` for available nodes.}
+
+\item{\code{to}}{the end of the path (a disease) as a string. Use `get_node_names` for available nodes.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A list with all the possible paths between exposure and disease.
 }
 }
 \if{html}{\out{<hr>}}

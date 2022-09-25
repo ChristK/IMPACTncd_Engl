@@ -13,7 +13,7 @@ disnm2 <- "andep" #  # disease name for saving
 overwrite_incd <- FALSE
 overwrite_prvl <- FALSE
 overwrite_ftlt <- FALSE
-overwrite_dur  <- TRUE
+overwrite_dur  <- FALSE
 overwrite_pred <- FALSE
 overwrite_dpnd <- TRUE
 
@@ -303,12 +303,12 @@ if (overwrite_pred) {
 # Duration ====
 if (overwrite_dur ||
     !file.exists(output_path(paste0(disnm2, "_dur.qs")))) {
-  
+
   dt <- harmonise(read_fst(input_path("panel_short_prev_2018_years.fst"),
                            as.data.table = TRUE)[gender != "I"])[between(age, 20, 100) &
                                                                    get(paste0(disnm, "_years")) >= 2L,
                                                                  .SD, .SDcols = c(paste0(disnm, "_years"), strata)]
-  
+
   setnames(dt, paste0(disnm, "_years"), "dur")
   dt[, dur := dur - 2L] # during the sim will add 2
   #marg_distr <- fitDist(
@@ -319,14 +319,14 @@ if (overwrite_dur ||
   #  trace = TRUE
   #)
   #head(marg_distr$fits)
-  
+
   # workHORSEmisc::distr_validation(marg_distr, dt[between(dur, 0, 50), .(var = dur, wt = 1)],
   #                  expression(bold(duration ~ (years))), discrete = TRUE)
-  
+
   #distr_nam <- names(marg_distr$fits[1]) # pick appropriately and note here ZANBI
-  
+
   #distr_nam <- "ZANBI"
-  
+
   dur_model <- gamlss(
     dur ~ pb(age) + pcat(sex) + pcat(dimd) + pcat(ethnicity),
     ~pb(age) + pcat(sex) + pcat(dimd),
@@ -335,10 +335,10 @@ if (overwrite_dur ||
     data = dt,
     method = mixed(20, 100)
   )
-  
+
   qsave(dur_model, output_path(paste0(disnm2, "_dur.qs")), "archive")
   print(paste0(disnm, "_dur model saved!"))
-  
+
   trms <- all.vars(formula(dur_model))[-1] # -1 excludes dependent var
   newdata <-
     CJ(
@@ -358,10 +358,10 @@ if (overwrite_dur ||
   write_fst(newdata, output_path(paste0(disnm2, "_dur.fst")), 100L)
   print(paste0(disnm, "_dur table saved!"))
   rm(dt, dur_model, newdata, trms)
-  
-  
-  
-  
+
+
+
+
   # cure in c++
   dt <- harmonise(read_fst(input_path("panel_short_prev_2018_years.fst"),
                            as.data.table = TRUE
@@ -370,16 +370,16 @@ if (overwrite_dur ||
                     .SD,
                     .SDcols = c(paste0(disnm, "_years"), strata)
   ]
-  
+
   dt[, dimd := factor(dimd,
                       levels = as.character(10:1),
                       labels = c("1 most deprived", 2:9, "10 least deprived"))]
-  
+
   setnames(dt, paste0(disnm, "_years"), "dur")
   dt[, dur := dur - 1L] # during the sim will add 2
   # c1 <- rgb(173, 216, 230, max = 255, alpha = 80, names = "lt.blue")
   # c2 <- rgb(255, 192, 203, max = 255, alpha = 80, names = "lt.pink")
-  
+
   m <- gamlss(
     dur ~ log(age) + sex + dimd,
     # log(age) better than age
@@ -391,9 +391,9 @@ if (overwrite_dur ||
     data = dt,
     method = mixed(20, 100)
   )
-  
+
   # antilogit_v  <- function(x) exp(x)/(1+exp(x))
-  
+
   # dt[, c("m1", "s1", "n1") := predictAll(m, newdata = .SD, data = dt, type = "response"), .SDcols = c("age", "sex", "dimd")]
   # dt[, dur2 := rZANBI(.N, m1, s1, n1)]
   # dt[, m2 := exp(m$mu.coefficients["(Intercept)"] + m$mu.coefficients["log(age)"] * log(age) + c(0, m$mu.coefficients["sexwomen"])[as.integer(sex)] +
@@ -403,17 +403,17 @@ if (overwrite_dur ||
   # dt[, n2 := antilogit_v(m$nu.coefficients["(Intercept)"] + m$nu.coefficients["log(age)"] * log(age) + c(0, m$nu.coefficients["sexwomen"])[as.integer(sex)] + 0)]
   # dt[, dur3 := my_qZANBI(runif(.N), m2, s2, n2, TRUE, FALSE, 1L)]
   # # dt[, dur3 := qZANBI(runif(.N), m2, s2, n2, TRUE, FALSE)]
-  
-  
+
+
   # dt[, all.equal(n1, n2)]
   # dt[, .(mean(dur), mean(dur2), mean(dur3))]
-  # 
+  #
   # hist(dt$dur, 90, col = c1)
   # hist(dt$dur2, 90, col = c2, add = TRUE)
-  
-  
-  
-  
+
+
+
+
   cc <- list(
     "distr" = "ZANBI",
     "note" = "remember to add 1 to the final result",
@@ -436,42 +436,42 @@ if (overwrite_dur ||
       "dimd" = rep(0, 10)
     )
   )
-  
-  #yaml::write_yaml(cc, "~/My Models/IMPACTncd_Engl/inputs/disease_burden/andep_dur_forward.yaml") 
+
+  #yaml::write_yaml(cc, "~/My Models/IMPACTncd_Engl/inputs/disease_burden/andep_dur_forward.yaml")
   yaml::write_yaml(cc, output_path("andep_dur_forward.yaml"))
-  
-  
+
+
 }
 
 
 # Dependencies ====
 if (overwrite_dpnd ||
     !file.exists(output_path(paste0(disnm2, "_dpnd.qs")))) {
-  
+
   disnm2 <- "andep" # disease name for yaml  files
-  
-  
+
+
   dpnd <- c(paste0(disnm, "ever"),
             "Stroke",
-            "Pain", 
-            "Other cancers", 
+            "Pain",
+            "Other cancers",
             "Primary Malignancy_Breast",
             "Primary Malignancy_Colorectal",
             "Primary Malignancy_Lung",
             "Primary Malignancy_Prostate")
-  
+
   dpnd2 <- c("pastandep",
             "stroke",
-            "pain", 
-            "other_ca", 
+            "pain",
+            "other_ca",
             "breast_ca",
             "colorectal_ca",
             "lung_ca",
             "prostate_ca")
-  
+
   #dpnd2 <- gsub(" ", "_", dpnd) #having spaces is a problem
   #dpnd2 <- gsub("-", "", dpnd2) #having dashes is a problem
-  
+
   dt <- harmonise(read_fst(input_path("panel_short_inc.fst"),
                            as.data.table = TRUE)[gender != "I"])[
                              between(age, 20, 99) &
@@ -483,79 +483,83 @@ if (overwrite_dpnd ||
                                          strata_dpnd)]
   CKutils::to_agegrp(dt, 5, 99, agegrp_colname = "agegroup")
   strata_dpnd <- gsub("^age$", "agegroup", strata_dpnd)
-  
+
   for (j in dpnd) { #Need to make the exposures binary
-    set(dt, NULL, j, fifelse(is.na(dt[[j]]), 0L, dt[[j]])) #setting those without spells to 0 
-    set(dt, NULL, j, fifelse(dt[[j]] > 1L, 1L, 0L)) #if spellnum > 1, then this is not the first spell - therefore exposed. 
+    set(dt, NULL, j, fifelse(is.na(dt[[j]]), 0L, dt[[j]])) #setting those without spells to 0
+    set(dt, NULL, j, fifelse(dt[[j]] > 1L, 1L, 0L)) #if spellnum > 1, then this is not the first spell - therefore exposed.
   }
   rm(j)
-  
+
   adjusted <- CJ(sex = dt$sex,
                  agegroup = dt$agegroup,
                  dimd = dt$dimd,
                  unique = TRUE)
-  
+
   #disnm2 <- gsub(" ", "", disnm) #having spaces is a problem
   #disnm2 <- gsub("-", "_", disnm2) #having hyphens is a problem
   disnm2 <- "andep"
-  setnames(dt, c(disnm, dpnd), c(disnm2,dpnd2)) #renaming for the model 
-  
-  
+  setnames(dt, c(disnm, dpnd), c(disnm2,dpnd2)) #renaming for the model
+
+
   results <- data.table()
-  #for (j in 1:length(dpnd2)){ #Alternating through exposure condtiions 
+  #for (j in 1:length(dpnd2)){ #Alternating through exposure condtiions
   results <- foreach(j = 1:length(dpnd2), .combine = rbind) %dopar% {
     tmptab <- copy(adjusted) #otherwise it just reoverwrites everything
     exps <- c(dpnd2[j], dpnd2[-j])
     frm <- as.formula(paste0(disnm2, "~", paste(exps, collapse = "+"), "+",
                              paste(strata_dpnd, collapse = "+")))
-    
+
     tmp1 <- glm(frm, data = dt, family = binomial())
     summary(tmp1)
-    
-    #Output the RR for all covariate options 
+
+    #Output the RR for all covariate options
     for(i in 1:nrow(adjusted)){
       output <- RRfn(tmp1, data = dt, fixcov = adjusted[i])
-      tmptab[i, `:=` (rr = output$RR, 
-                      lci_rr = output$LCI_RR, 
-                      uci_rr = output$UCI_RR, 
+      tmptab[i, `:=` (rr = output$RR,
+                      lci_rr = output$LCI_RR,
+                      uci_rr = output$UCI_RR,
                       var = output$delta.var,
                       dpnd_on = dpnd2[j])]
     }
     tmptab
   }
-  
-  
+
+
   #Swapping the dimds round for results purposes
   dimdlabs <- c("1 most deprived" ,  "2" ,   "3","4","5" ,  "6"  , "7" ,  "8" , "9" , "10 least deprived")
   results[, dimd := factor(dimd,
                            levels = 10:1,
                            labels = dimdlabs)]
-  
+
   #need to rename for the model
   results[dpnd_on == "pastandep", dpnd_on := "andep"]
-  
+
   dpnd2[1] <- "andep"
-  
+
+  results[dpnd_on == "breast_ca" & sex == "men", c("rr", "lci_rr" , "uci_rr") := 1][, var := 0]
+  results[dpnd_on == "prostate_ca" & sex == "women", c("rr", "lci_rr" , "uci_rr") := 1][, var := 0]
   qsave(results, output_path(paste0("dependencies/",disnm2, "_dpndRR.qs")), nthreads = 10)
   print(paste0(disnm, "_dpndRR table saved!"))
-  
-  
-  #Only want to save the .csvy files if some RRs are statistically sig 
+
+
+  #Only want to save the .csvy files if some RRs are statistically sig
   results[, statsig := ifelse( #add a flag
-    (lci_rr < 1 & uci_rr <1) | (lci_rr > 1 & uci_rr >1), 
+    (lci_rr < 1 & uci_rr <1) | (lci_rr > 1 & uci_rr >1),
     1, 0)]
   keep <- results[, max(statsig), by = dpnd_on][V1 == 1, dpnd_on]
-  
+
   results <- results[dpnd_on %in% keep , .(sex, agegroup, dimd, rr = round(rr, digits = 2), ci_rr = round(uci_rr, digits = 2), dpnd_on )]
-  
-  type <- "_prev"
-  
+  dpnd2 <- dpnd2[dpnd2 %in% keep]
+
+
+  type <- "_prvl"
+
   for(j in 1:length(dpnd2)){
     write_xps_tmplte_file(results, j, dpnd2, disnm2, type, output_path(paste0("dependencies/",dpnd2[j],"~",disnm2,".csvy")))
   }
   rm(j)
-  
-  
+
+
 }
 
 
