@@ -4,11 +4,11 @@ outcome: ckd
 lag: 4
 distribution: lognormal
 source: GBD 2019
-notes: RR per 10mmHg CKD due to hypertension was chosen 
+notes: RR per 10mmHg CKD due to hypertension was chosen
 apply_rr_extra_fn: >
   function(sp) {
     if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
-    sp$pop[, sbp_rr := clamp(sbp_rr^((self$get_ideal_xps_lvl(sp$mc_aggr) - sbp) / 10), 1, 20)]
+    sp$pop[, sbp_rr := clamp(sbp_rr^((sbp - self$get_ideal_xps_lvl(sp$mc_aggr)) / 10), 1, 20)]
   }
 ideal_xps_lvl_fn: >
   function(design_) { # from: PLOS ONE 2013;8:e65174 p7
