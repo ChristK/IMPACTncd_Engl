@@ -78,6 +78,7 @@ rm(e)
 # self    <- diseases[[nn]]$get_rr()[[1]]$.__enclos_env__$self
 # private <-  diseases[[nn]]$get_rr()[[1]]$.__enclos_env__$private
 
+# diseases$t1dm$harmonise_epi_tables(sp)
 
 # lapply(diseases, function(x) x$harmonise_epi_tables(sp))
 lapply(diseases, function(x) {
