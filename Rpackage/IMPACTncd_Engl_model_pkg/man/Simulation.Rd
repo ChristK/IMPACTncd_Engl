@@ -12,7 +12,7 @@ To be completed...
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
-\item{\code{design}}{A Design object with .}
+\item{\code{design}}{A Design object.}
 
 \item{\code{diseases}}{A list of Disease objects.}
 
@@ -55,8 +55,7 @@ Create a new simulation object.
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new `Simulation`
-object.
+A new `Simulation` object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -72,7 +71,7 @@ Runs a simulation
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{mc}}{A positive sequential integer vector with the Monte Carlo
-iterations of synthetic population to simulate.}
+iterations of synthetic population to simulate, or a scalar.}
 
 \item{\code{multicore}}{If TRUE run the simulation in parallel.}
 
@@ -90,13 +89,19 @@ The invisible self for chaining.
 \subsection{Method \code{export_summaries()}}{
 Process the lifecourse files
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$export_summaries(multicore = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$export_summaries(
+  multicore = TRUE,
+  type = c("le", "hle", "dis_char", "prvl", "incd", "dis_mrtl", "mrtl",
+    "allcause_mrtl_by_dis", "cms")
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{multicore}}{If TRUE run the simulation in parallel.}
+
+\item{\code{type}}{The type of summary to extract.}
 }
 \if{html}{\out{</div>}}
 }

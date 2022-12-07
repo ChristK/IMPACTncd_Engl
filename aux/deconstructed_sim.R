@@ -28,11 +28,9 @@ diseases <- lapply(design$sim_prm$diseases, function(x) {
 names(diseases) <- sapply(design$sim_prm$diseases, `[[`, "name")
 
 mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
-    if (nzchar(scenario_name)) { # TODO get suffix from design
-        scenario_suffix_for_pop <- paste0("_", scenario_name)
-    } else {
-        scenario_suffix_for_pop <- scenario_name
-    }
+
+    scenario_suffix_for_pop <- ""
+
     list(
         "exposures"          = design_$sim_prm$exposures,
         "scenarios"          = design_$sim_prm$scenarios, # to be generated programmatically
@@ -276,7 +274,7 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 
 # qsave(sp, "./simulation/tmp.qs", nthreads = 4)
 # sp <- qread("./simulation/tmp.qs"); setDT(sp$pop)
-l <- mk_scenario_init2("", diseases, sp, design)
+l <- mk_scenario_init2("sc0", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
 
 sp$pop[year >= 13 & age >= 30, sum(asthma_prvl > 0), keyby = year][, plot(year, V1)]
