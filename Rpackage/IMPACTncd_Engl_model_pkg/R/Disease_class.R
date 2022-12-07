@@ -649,6 +649,7 @@ Disease <-
 
             # set duration
             dqset.seed(private$seed, stream = sp$mc * 10 + 2L) # not mc_aggr
+            set.seed(private$seed + sp$mc * 10 + 2L) # for sample_int_expj
             tbl <- read_fst(private$filenams$dur, as.data.table = TRUE)
             col_nam <- setdiff(names(tbl), intersect(names(sp$pop), names(tbl)))
             tbl[, (namprvl) := 1L]
@@ -1086,7 +1087,8 @@ Disease <-
             if ("mu1" %in% names(tbl)) tbl[, mu1 := NULL]
             lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             sp$pop[, rp := private$parf$m0 *
-                     sp$get_risks(self$name)[, Reduce(`*`, .SD),                                                                     .SDcols = patterns("_rr$")]]
+                     sp$get_risks(self$name)[, Reduce(`*`, .SD),
+                                             .SDcols = patterns("_rr$")]]
             setnafill(sp$pop, "c", 0, cols = c("rp", "mu2"))
             # Above rp includes rr from diseases that risk_product doesn't have
 
@@ -1108,8 +1110,11 @@ Disease <-
             # private$mrtl2flag == FALSE
             absorb_dt(sp$pop, tbl) # No lookup_dt as tbl for prostate and breast ca not proper lu_tbls
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
-            # ONS calibration was calculated with this inplace. Do not remove or change unless you plan to redo the calibration
-            clbons <- 1.15
+            # ONS calibration was calculated with this in place. Do not remove
+            # or change unless you plan to redo the calibration
+            # set(sp$pop, NULL, "clbfctr", 1)
+
+            clbons <- 1.5
             clbtrend <- 1
             clbintrc <- 1
             if (self$name == "lung_ca") {
@@ -1121,12 +1126,12 @@ Disease <-
               clbintrc <- 1.1
             }
             if (self$name == "nonmodelled") {
-              clbtrend <- 0.98
-              clbintrc <- 1.10
+              clbtrend <- 1
+              clbintrc <- 1
             }
 
             sp$pop[year >= design_$sim_prm$init_year,
-                   clbfctr := clbintrc * clbfctr * clbons * mrtl_clbr *
+                   clbfctr := clbfctr * clbintrc * clbons * mrtl_clbr * # mrtl_clbr from  read_fst("./inputs/mortality/mrtl_clb.fst", as.data.table = TRUE)
                      (clbtrend^(year - design_$sim_prm$init_year))]
             # End of calibration
 
@@ -1474,11 +1479,13 @@ Disease <-
       #' @description Returns a list to pass to the C++ side for Chris' parser.
       #' @param sp A synthetic population.
       #' @param design_ A design object with the simulation parameters.
+      #' @param scenario_name A string with the scenario name. Currently is only
+      #'   used when kismet == FALSE to generate new seeds for each scenario.
       #' @param scenario_suffix the suffix to identify columns from different
-      #'   scenarios
+      #'   scenarios.
       #' @return A list.
 
-      to_cpp = function(sp, design_ = design, scenario_suffix = "") {
+      to_cpp = function(sp, design_ = design, scenario_name, scenario_suffix = "") {
         if (!inherits(sp, "SynthPop")) {
           stop("Argument sp needs to be a SynthPop object.")
         }
@@ -1492,11 +1499,11 @@ Disease <-
             "incidence" = NULL,
             "diagnosis" = NULL,
             "mortality" = NULL,
-            "seed" = fifelse(
-              design_$sim_prm$kismet,
-              private$seed,
-              abs(digest2int(
-                paste0(self$name, scenario_suffix),
+            "seed" = ifelse(
+              design_$sim_prm$kismet, # if Kismet
+              private$seed, # then seed the same for all scenarios
+              abs(digest2int( # else new seed for each scenario
+                paste0(self$name, scenario_name),
                 seed = 230565490L
               ))
             )

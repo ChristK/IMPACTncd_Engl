@@ -45,3 +45,15 @@ identical(sp$pop[pid == tt, prb_breast_ca_mrtl2], sp2$pop[pid == tt, prb_breast_
 
 all.equal(sp$pop[i], sp2$pop[i])
 View(rbind(sp$pop[i], sp2$pop[i]))
+
+
+# Of lifecourses with scenario
+library(data.table)
+dt1 <- fread("/mnt/storage_fast/output/hf_real/lifecourse/1_lifecourse.csv.gz", key = c("pid", "year"))[year < 20]
+dt <- split(dt1, by = "scenario")
+for (j in names(dt$sc0)) {
+  cat(j)
+  print(all.equal(dt$sc0[year < 20, ..j], dt$sc1[year < 20 , ..j]))
+}
+
+

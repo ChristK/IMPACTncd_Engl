@@ -30,6 +30,7 @@ if (interactive() && !nzchar(system.file(package = "CKutils"))) {
 library(CKutils)
 options(rgl.useNULL = TRUE)  # suppress error by demography in rstudio server
 options(future.fork.enable = TRUE) # TODO remove for production
+options(future.globals.maxSize = +Inf)
 options(future.rng.onMisuse = "ignore") # Remove false warning
 options(datatable.verbose = FALSE)
 options(datatable.showProgress = FALSE)
@@ -80,3 +81,4 @@ if (interactive()) {
   }
 }
 library(IMPACTncdEngl)
+

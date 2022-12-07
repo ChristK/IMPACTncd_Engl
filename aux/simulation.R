@@ -9,7 +9,7 @@ scenario_fn <- function(sp) NULL
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(1:200, multicore = TRUE, "")
+  run(1:200, multicore = TRUE, "sc0")
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 # source("./aux/CPRD_sim_validation_plots.R")
@@ -89,17 +89,17 @@ scenario_fn <- function(sp) {
   sp$pop[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]
 
 
-
   # ets need to be after smoking
   if (change > 0) {
-    sp$pop[ets_curr_xps == 1L & smok_status_curr_xps != "4" & rbinom(.N, 1, abs(change)),
+    sp$pop[year >= sc_year & ets_curr_xps == 1L & smok_status_curr_xps != "4" & rbinom(.N, 1, abs(change)),
            ets_curr_xps := 0L]
   } else {
-    sp$pop[ets_curr_xps == 0L & smok_status_curr_xps != "4" & rbinom(.N, 1, abs(change)),
+    sp$pop[year >= sc_year & ets_curr_xps == 0L & smok_status_curr_xps != "4" & rbinom(.N, 1, abs(change)),
            ets_curr_xps := 1L]
   }
 
 }
+
 
 IMPACTncd$
   run(1:200, multicore = TRUE, "sc1")$
@@ -107,6 +107,16 @@ IMPACTncd$
 
 source("./aux/CPRD_sim_validation_plots.R")
 source("./aux/process_out_for_HF.R")
-# IMPACTncd$export_summaries(multicore = TRUE)
 
 
+# dt1 <- fread("/mnt/storage_fast/output/hf_real/lifecourse/1_lifecourse.csv.gz",
+#              key = c("pid", "year"))[year < 20]
+# dt <- split(dt1, by = "scenario")
+# for (j in names(dt$sc0)) {
+#   cat(j)
+#   print(all.equal(dt$sc0[year == 13, ..j], dt$sc1[year == 13, ..j]))
+# }
+# for (j in names(dt$sc0)) {
+#   cat(j)
+#   print(all.equal(dt$sc0[, ..j], dt$sc1[, ..j]))
+# }
