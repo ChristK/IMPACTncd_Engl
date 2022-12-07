@@ -3,10 +3,18 @@
 \docType{package}
 \name{IMPACTncdEngl}
 \alias{IMPACTncdEngl}
+\alias{.datatable.aware}
 \title{IMPACTncdEngl: A package with functions for the IMPACTncdEngl model.}
+\format{
+An object of class \code{logical} of length 1.
+}
+\usage{
+.datatable.aware
+}
 \description{
 Description of your package.
 }
 \author{
 Chris Kypridemos
 }
+\keyword{datasets}

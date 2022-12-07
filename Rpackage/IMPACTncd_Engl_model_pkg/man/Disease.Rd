@@ -500,7 +500,7 @@ The invisible self for chaining.
 \subsection{Method \code{to_cpp()}}{
 Returns a list to pass to the C++ side for Chris' parser.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$to_cpp(sp, design_ = design, scenario_suffix = "")}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Disease$to_cpp(sp, design_ = design, scenario_name, scenario_suffix = "")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -510,8 +510,11 @@ Returns a list to pass to the C++ side for Chris' parser.
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 
+\item{\code{scenario_name}}{A string with the scenario name. Currently is only
+used when kismet == FALSE to generate new seeds for each scenario.}
+
 \item{\code{scenario_suffix}}{the suffix to identify columns from different
-scenarios}
+scenarios.}
 }
 \if{html}{\out{</div>}}
 }
