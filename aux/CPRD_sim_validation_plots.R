@@ -67,7 +67,7 @@ esp90 <- esp90[, .(wt_esp = sum(wt_esp)), by = .(agegroup, sex, dimd)]
 
 #strata <- c( "year", "agegroup"  , "sex", "dimd" )
 
-cprdtab <- fread("./secure_data/summarytable.csv")[!agegroup %in% c("20-24", "25-29")]
+cprdtab <- fread("./secure_data/summarytable.csv")[!agegroup %in% c("20-24", "25-29")][, wt_esp := NULL]
 # setnames(cprdtab, gsub("^colorect_", "colorectal_", names(cprdtab)))
 # setnames(cprdtab, gsub("^psychos_", "psychosis_", names(cprdtab)))
 # setnames(cprdtab, gsub("^constip_", "constipation_", names(cprdtab)))

@@ -7,9 +7,9 @@ IMPACTncd <- Simulation$new("./aux/sim_design_parf.yaml")
 scenario_fn <- function(sp) NULL
 
 IMPACTncd$
-  del_logs()$
-  del_outputs()$
-  run(1:100, multicore = TRUE, "")
+  # del_logs()$
+  # del_outputs()$
+  run(1:200, multicore = TRUE, "")
 
 
 
@@ -19,7 +19,7 @@ scenario_fn <- function(sp) {
 }
 
 IMPACTncd$
-    run(1:100, multicore = TRUE, "bmi")
+    run(1:200, multicore = TRUE, "bmi")
 
 
 scenario_fn <- function(sp) {
@@ -28,7 +28,7 @@ scenario_fn <- function(sp) {
 }
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "sbp")
+  run(1:200, multicore = TRUE, "sbp")
 
 scenario_fn <- function(sp) {
   sc_year <- 13L # The year the change starts
@@ -36,7 +36,7 @@ scenario_fn <- function(sp) {
 }
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "tchol")
+  run(1:200, multicore = TRUE, "tchol")
 
 scenario_fn <- function(sp) {
   sc_year <- 13L # The year the change starts
@@ -44,7 +44,7 @@ scenario_fn <- function(sp) {
 }
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "alc")
+  run(1:200, multicore = TRUE, "alc")
 
 scenario_fn <- function(sp) {
   sc_year <- 13L # The year the change starts
@@ -52,7 +52,7 @@ scenario_fn <- function(sp) {
 }
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "alc")
+  run(1:200, multicore = TRUE, "alc")
 
 
 scenario_fn <- function(sp) {
@@ -62,7 +62,7 @@ scenario_fn <- function(sp) {
   }
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "frvg")
+  run(1:200, multicore = TRUE, "frvg")
 
 
 scenario_fn <- function(sp) {
@@ -73,7 +73,7 @@ scenario_fn <- function(sp) {
 }
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "pa")
+  run(1:200, multicore = TRUE, "pa")
 
 scenario_fn <- function(sp) {
   sc_year <- 13L # The year the change starts
@@ -88,7 +88,7 @@ scenario_fn <- function(sp) {
 }
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "smk")
+  run(1:200, multicore = TRUE, "smk")
 
 
 scenario_fn <- function(sp) {
@@ -113,11 +113,46 @@ scenario_fn <- function(sp) {
 
 
 IMPACTncd$
-  run(1:100, multicore = TRUE, "all")$
-  export_summaries(multicore = TRUE)
+  run(1:200, multicore = TRUE, "all")$
+  export_summaries(multicore = TRUE, type = c("incd", "prvl", "mrtl"))
+
+# Incd not standardised----
+
+tt <- fread("/mnt/storage_fast/output/hf_real_parf/summaries/incd_scaled_up.csv.gz"
+)[, `:=` (year = year + 2000L,
+          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
+
+outstrata <- c("mc", "year", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
+][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
+d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
+d <- d[disease != "popsize"]
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/incidence by year (not standardised).csv")
+
+
+
+outstrata <- c("mc", "year", "dimd", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
+][, lapply(.SD, function(x) x/popsize), keyby = outstrata]
+d <- melt(d, id.vars = outstrata)
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
+d <- d[disease != "popsize"]
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, "/mnt/storage_fast/output/hf_real/tables/incidence by year-dimd (not standardised).csv")
+
+
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 
 # source("./aux/CPRD_sim_validation_plots.R")
 
 # IMPACTncd$export_summaries(multicore = TRUE)
+
+# rr <- fread("/mnt/storage_fast/output/hf_real_parf/lifecourse/12_lifecourse.csv.gz")
+# rr[, table(scenario)]
