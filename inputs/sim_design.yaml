@@ -507,15 +507,18 @@ diseases:
   friendly_name: alcohol problems
   meta:
     incidence:
-      type: 2
-      can_recur: no
+      type: 3
+      influenced_by_disease_name: alcpr
+      can_recur: yes
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZINBI
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/alcpr_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.65
     mortality:
-      type: 1
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
       code: 21
   notes: .na
 - name: psychosis

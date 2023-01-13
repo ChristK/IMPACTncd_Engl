@@ -109,6 +109,13 @@ source("./aux/CPRD_sim_validation_plots.R")
 source("./aux/process_out_for_HF.R")
 
 
+# IMPACTncd$
+#   del_logs()$
+#   del_outputs()$
+#   run(1:20, multicore = TRUE, "sc0")$
+#   export_summaries(multicore = TRUE)
+
+
 # dt1 <- fread("/mnt/storage_fast/output/hf_real/lifecourse/1_lifecourse.csv.gz",
 #              key = c("pid", "year"))[year < 20]
 # dt <- split(dt1, by = "scenario")

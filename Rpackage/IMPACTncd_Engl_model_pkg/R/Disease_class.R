@@ -616,7 +616,8 @@ Disease <-
             # that I will arbitrarily assume that the risk for prevalence is
             # half of that for incidence.
 
-            if (length(private$rr) > 0L && any(sp$pop[[namprvl]] > 0L)) {
+            if (length(private$rr) > 0L && any(sp$pop[[namprvl]] > 0L) &&
+                !(length(private$rr) == 1L && paste0(self$name, "_prvl~", self$name) %in% names(private$rr))) {
               # ncases is the number of prevalent cases expected in each stratum
               tt <- sp$pop[get(namprvl) > 0, .("ncases" = .N), by = eval(strata)]
               absorb_dt(sp$pop, tt, on = strata) # no lookup_dt as tt not a lu_tbl
