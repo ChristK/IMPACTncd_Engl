@@ -25,6 +25,15 @@ diseases <- lapply(design$sim_prm$diseases, function(x) {
     x[["RR"]] <- RR
     do.call(Disease$new, x)
 })
+
+# diseases2 <- future_lapply(design$sim_prm$diseases, function(x) {
+#     print(x$name)
+#     x[["design_"]] <- design
+#     x[["RR"]] <- RR
+#     do.call(Disease$new, x)
+# },
+# future.seed = 627524136L)
+
 names(diseases) <- sapply(design$sim_prm$diseases, `[[`, "name")
 
 mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
@@ -76,7 +85,9 @@ rm(e)
 # self    <- diseases[[nn]]$get_rr()[[1]]$.__enclos_env__$self
 # private <-  diseases[[nn]]$get_rr()[[1]]$.__enclos_env__$private
 
-# diseases$t1dm$harmonise_epi_tables(sp)
+# diseases$alcpr$harmonise_epi_tables(sp)
+# diseases$helo$harmonise_epi_tables(sp)
+# diseases$pain$harmonise_epi_tables(sp)
 
 # lapply(diseases, function(x) x$harmonise_epi_tables(sp))
 lapply(diseases, function(x) {
@@ -486,7 +497,7 @@ sp$pop[, sum(sbp_curr_xps > 140) / .N, keyby = year]
 fwrite_safe(sp$pop[1:10], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
 fwrite_safe(sp$pop[11:20], "/mnt/storage_fast/output/hf_real/lifecourse/test.csv")
 
-tt <- list.files("/mnt/storage_fast/output/hf_real_report//lifecourse/", full.names = T)
+tt <- list.files("/mnt/storage_fast/output/hf_real_report/lifecourse/", full.names = T)
 # lapply(tt, function(x) {
 #     print(x)
 #     fread(x)
@@ -498,3 +509,13 @@ p[, sum(mu2), keyby = year][year<50, plot(year, V1)]
 absorb_dt(f, p)
 f[year == 13, sum(mu)]
 f[, sum(pain_prvl == 1L), keyby = year]
+
+## Fix pain incd rate to 2008 values, due to bias in the data
+# tt <- read_fst("./inputs/disease_burden/pain_incd.fst", as.data.table = TRUE)
+# tt[age == 20 & sex == "men" & dimd == "2" & ethnicity == "white" & sha == "London"]
+# ttt <- tt[year == 8L, ]
+# ttt[, year := NULL]
+# tt[, mu := NULL]
+# absorb_dt(tt, ttt)
+# tt[age == 20 & sex == "men" & dimd == "2" & ethnicity == "white" & sha == "London"]
+# write_fst(tt, "./inputs/disease_burden/pain_incd.fst")

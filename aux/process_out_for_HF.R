@@ -1051,22 +1051,34 @@ setkeyv(d, setdiff(outstrata, "mc"))
 fwrite(d, "/mnt/storage_fast/output/hf_real/tables/exposures by year-qimd (not standardised).csv")
 
 
-# library(data.table)
-# lc <- fread("~/pCloudDrive/pCloud Sync/1_lifecourse.csv.gz", key = c("pid", "year"))
-# nm <- grep("_prvl$", names(lc), value = TRUE)
-# nm <- grep("^cms", nm, value = TRUE, invert = TRUE)
-# for (j in nm) {
-#   set(lc, NULL, j, as.integer(lc[[j]] == 1L))
-#   # set(lc, NULL, j, as.character(lc[[j]]))
-#
-#   lc[, (j) := fifelse(get(j) == 1L, j, "")]
-# }
-# lc[, first_dis := paste0(t2dm_prvl, ra_prvl, ckd_prvl, asthma_prvl, helo_prvl, alcpr_prvl,
-#                          prostate_ca_prvl, ibs_prvl, htn_prvl, copd_prvl, t1dm_prvl,
-#                          ctd_prvl, dementia_prvl, colorectal_ca_prvl, breast_ca_prvl,
-#                          lung_ca_prvl, chd_prvl,  dm_prvl, ctdra_prvl,  other_ca_prvl,
-#                          af_prvl, hf_prvl,  pain_prvl,  cancer_prvl,  stroke_prvl,
-#                          epilepsy_prvl, andep_prvl, psychosis_prvl, constipation_prvl)]
-# lc[cmsmm0_prvl == 1, .N, by = first_dis][order(N, decreasing = TRUE)][1:10]
-#
-# View(lc[, .(pid, year, cmsmm0_prvl, cms_count)])
+library(data.table)
+ans <- data.table()
+for (i in 1:100) {
+lc <- fread(paste0("/mnt/storage_fast/output/hf_real/lifecourse/", i,"_lifecourse.csv.gz"), key = c("pid", "year"))[scenario == "sc0"]
+nm <- grep("_prvl$", names(lc), value = TRUE)
+nm <- grep("^cms", nm, value = TRUE, invert = TRUE)
+for (j in nm) {
+  set(lc, NULL, j, as.integer(lc[[j]] >= 1L))
+  # set(lc, NULL, j, as.character(lc[[j]]))
+
+  lc[, (j) := fifelse(get(j) == 1L, j, "")]
+}
+lc[, first_dis := paste0(t2dm_prvl, ra_prvl, ckd_prvl, asthma_prvl, helo_prvl, alcpr_prvl,
+                         prostate_ca_prvl, ibs_prvl, htn_prvl, copd_prvl, t1dm_prvl,
+                         ctd_prvl, dementia_prvl, colorectal_ca_prvl, breast_ca_prvl,
+                         lung_ca_prvl, chd_prvl,  dm_prvl, ctdra_prvl,  other_ca_prvl,
+                         af_prvl, hf_prvl,  pain_prvl,  cancer_prvl,  stroke_prvl,
+                         epilepsy_prvl, andep_prvl, psychosis_prvl, constipation_prvl)]
+out <- lc[cmsmm0_prvl == 1, .N, by = first_dis][,  N := N/sum(N)][order(N, decreasing = TRUE), ][1:10]
+out[, mc := i]
+ans <- rbind(ans, out)
+}
+
+View(lc[, .(pid, year, cmsmm0_prvl, cms_count)])
+View(lc[cmsmm0_prvl == 1 & first_dis == "", .(pid, year, cmsmm0_prvl, cms_count, t2dm_prvl, ra_prvl, ckd_prvl, asthma_prvl, helo_prvl, alcpr_prvl,
+                                              prostate_ca_prvl, ibs_prvl, htn_prvl, copd_prvl, t1dm_prvl,
+                                              ctd_prvl, dementia_prvl, colorectal_ca_prvl, breast_ca_prvl,
+                                              lung_ca_prvl, chd_prvl,  dm_prvl, ctdra_prvl,  other_ca_prvl,
+                                              af_prvl, hf_prvl,  pain_prvl,  cancer_prvl,  stroke_prvl,
+                                              epilepsy_prvl, andep_prvl, psychosis_prvl, constipation_prvl)])
+View(lc[cmsmm0_prvl == 1 & first_dis == "", ])
