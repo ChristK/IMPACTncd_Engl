@@ -1,9 +1,9 @@
 distr: ZANBI
 note: remember to add 1 to the final result
 mu:
-  intercept: -3.2288624
+  intercept: -3.2288624 # -3.2288624 this value was estimated from the data
   log(age): 1.2452045
-  log(year): 0.0
+  log(year): 1.0 # 0.0 this value was estimated from the data
   sex:
   - 0.0
   - 0.0975812
@@ -21,7 +21,7 @@ mu:
 sigma:
   intercept: 0.7785097
   log(age): -0.2570994
-  log(year): 0.0
+  log(year): 0.0 # 0.0 this value was estimated from the data
   sex:
   - 0.0
   - -0.0962737
@@ -37,9 +37,9 @@ sigma:
   - 0.2997068
   - 0.3950287
 nu:
-  intercept: 3.5217643
+  intercept: 5.0 # 3.5217643 this value was estimated from the data
   log(age): -1.2398301
-  log(year): 0.0
+  log(year): 0.0 # 0.0 this value was estimated from the data
   sex:
   - 0.0
   - -0.1882136

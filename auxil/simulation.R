@@ -6,13 +6,14 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
 scenario_fn <- function(sp) NULL
 
+
 IMPACTncd$
   del_logs()$
   del_outputs()$
   run(1:200, multicore = TRUE, "sc0")
 
 # IMPACTncd$export_summaries(multicore = TRUE)
-# source("./aux/CPRD_sim_validation_plots.R")
+# source("./auxil/CPRD_sim_validation_plots.R")
 
 scenario_fn <- function(sp) {
   sc_year <- 22L # The year the change starts
@@ -105,8 +106,8 @@ IMPACTncd$
   run(1:200, multicore = TRUE, "sc1")$
   export_summaries(multicore = TRUE)
 
-source("./aux/CPRD_sim_validation_plots.R")
-source("./aux/process_out_for_HF.R")
+source("./auxil/process_out_for_HF.R")
+source("./auxil/CPRD_sim_validation_plots.R")
 
 
 # IMPACTncd$

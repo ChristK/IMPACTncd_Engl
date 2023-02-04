@@ -44,6 +44,7 @@ Disease <-
       #' @field notes Any notes regarding the disease.
       notes = NA_character_,
 
+      # initialize ----
       #' @description Create a new disease object.
       #' @param name A string with disease name.
       #' @param friendly_name A string with disease friendly name.
@@ -147,8 +148,11 @@ Disease <-
 
         # Logic to ensure _indx files are up to date.
         snfile <- file.path(db, paste0(".", self$name, "_file_snapshot.qs"))
-        if (file.exists(snfile)) snapshot <- changedFiles(qread(snfile))
-
+			if (file.exists(snfile)) {
+        		snapShotFileBody<- qread(snfile)
+				snapShotFileBody$path<- private$FixPathSoRelativeWorkDir(snapShotFileBody$path)
+				snapshot <- changedFiles(snapShotFileBody)
+			}
         if (!file.exists(snfile) ||
             any(nzchar(snapshot$added),
                 nzchar(snapshot$deleted),
@@ -186,6 +190,7 @@ Disease <-
         invisible(self)
       },
 
+      # gen_parf_files ----
       #' @description Generates PARF and stores it to disk if one doesn not
       #'   exists already.
       #' @param design_ A design object with the simulation parameters.
@@ -219,11 +224,11 @@ Disease <-
                              )), ".qs"))
 
         if (file.exists(tmpfile)) {
-          if (design_$sim_prm$logs) message("Reading file from cache.")
+          if (design_$sim_prm$logs) message("Reading synthpop for PARF file from cache.")
           ans <- qread(tmpfile, nthreads = design_$sim_prm$clusternumber)
           setDT(ans$pop)
         } else {
-          if (design_$sim_prm$logs) message("No available cached file.")
+          if (design_$sim_prm$logs) message("No available synthpop for PARF cached file.")
 
           self$del_parf_file(invert = TRUE) # Delete old versions
 
@@ -439,6 +444,7 @@ Disease <-
         } else NULL
       },
 
+      # gen_parf ----
       #' @description Read PARF file from disk. If missing, generates PARF and
       #'   writes it to disk.
       #' @param sp A synthpop object
@@ -530,7 +536,7 @@ Disease <-
         invisible(self)
       },
 
-
+      # set_init_prvl ----
       #' @description Set disease prevalence & diagnosisin a new col in sp$pop.
       #' @param sp A synthetic population.
       #' @param design_ A design object with the simulation parameters.
@@ -645,6 +651,7 @@ Disease <-
               sp$pop[, (namprvl) := 0L]
               sp$pop[ss, on = c("pid", "year"), (namprvl) := 1L]
               sp$pop[, c("ncases", "disease_wt") := NULL]
+              rm(ss)
             }
 
 
@@ -684,7 +691,7 @@ Disease <-
         invisible(self)
       },
 
-
+      # set_rr ----
       #' @description Set disease incidence probability in a new col in sp$pop.
       #' @param sp A synthetic population.
       #' @param design_ A design object with the simulation parameters.
@@ -719,6 +726,7 @@ Disease <-
         return(invisible(self))
       },
 
+      # set_incd_prb ----
       #' @description Set disease incident probability in a new col in sp$pop.
       #' @param sp A synthetic population.
       #' @param design_ A design object with the simulation parameters.
@@ -768,6 +776,94 @@ Disease <-
             )
           }
 
+           # TODO better calibration process. Now I do it manually
+            # TODO export to yaml
+            # NOTE doe not work for diseases with no risk factors
+            clbtrend <- 1
+            clbintrc <- 1
+            if (self$name == "af") {
+              clbtrend <- 1.05
+              clbintrc <- 0.9
+            }
+            if (self$name == "alcpr") {
+              clbtrend <- 1
+              clbintrc <- 1
+            }
+            if (self$name == "andep") clbintrc <- 1.2
+            if (self$name == "asthma") {
+              clbtrend <- 1.01
+              clbintrc <- 1
+            }
+            if (self$name == "breast_ca") {
+              clbtrend <- 1.01
+              clbintrc <- 1
+            }
+            if (self$name == "chd") {
+              clbtrend <- 1.01
+              clbintrc <- 1
+            }
+            if (self$name == "chd") {
+              clbtrend <- 1.01
+              clbintrc <- 1.05
+            }
+            if (self$name == "constipation") {
+              clbtrend <- 1
+              clbintrc <- 1 # 0.9
+            }
+            if (self$name == "copd") {
+              clbtrend <- 1.012
+              clbintrc <- 1
+            }
+            if (self$name == "ctd") {
+              clbintrc <- 0.9
+            }
+            if (self$name == "dementia") {
+              clbintrc <- 1
+            }
+            if (self$name == "helo") {
+              clbtrend <- 1.01
+              clbintrc <- 1
+            }
+            if (self$name == "hf") clbtrend <- 1.01
+            if (self$name == "ibs") {
+              clbintrc <- 0.85
+              clbtrend <- 0.99
+            }
+            if (self$name == "lung_ca") {
+              clbtrend <- 1.012
+              clbintrc <- 1
+            }
+            if (self$name == "other_ca") {
+              clbtrend <- 1.005
+              clbintrc <- 1
+            }
+            if (self$name == "prostate_ca") {
+              clbtrend <- 1.012
+              clbintrc <- 1
+            }
+            if (self$name == "psychosis") {
+              clbintrc <- 0.95
+            }
+            if (self$name == "pain") {
+              clbtrend <- 1
+              clbintrc <- 1
+            }
+            if (self$name == "ra") {
+              clbintrc <- 0.95
+            }
+            if (self$name == "stroke") {
+              clbtrend <- 1.012
+              clbintrc <- 0.9
+            }
+            if (self$name == "t1dm") {
+              clbtrend <- 0.98
+              clbintrc <- 0.3
+            }
+            if (self$name == "t2dm") {
+              clbtrend <- 1
+              clbintrc <- 1.2
+            }
+
           if (self$meta$incidence$type == 1L) {
             if (length(riskcolnam) == 1L) {
               thresh <- as.numeric(sp$get_risks(self$name)[[riskcolnam]])
@@ -806,6 +902,11 @@ Disease <-
 
             lookup_dt(sp$pop, tbl,
                       check_lookup_tbl_validity = design_$sim_prm$logs)
+
+            sp$pop[year >= design_$sim_prm$init_year,
+                   clbfctr := clbintrc * clbfctr *
+                     (clbtrend^(year - design_$sim_prm$init_year))]
+
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
 
             # End of calibration
@@ -855,7 +956,8 @@ Disease <-
             # We can only get disease incd for initial year. Other years don't
             # have prevalence of the disease that are influencing the incd
             sp$pop[, rp := private$parf$p0 *
-                     sp$get_risks(self$name)[, Reduce(`*`, .SD),                                                             .SDcols = patterns("_rr$")]]
+                     sp$get_risks(self$name)[, Reduce(`*`, .SD),
+                     .SDcols = patterns("_rr$")]]
             setnafill(sp$pop, "c", 0, cols = c("rp", "mu"))
 
 
@@ -865,48 +967,7 @@ Disease <-
             lookup_dt(sp$pop, ein, check_lookup_tbl_validity = design_$sim_prm$logs)
             # absorb_dt(sp$pop, ein)
 
-            # TODO better calibration process. Now I do it manually
-            # TODO export to yaml
-            clbtrend <- 1
-            clbintrc <- 1
-            if (self$name == "constipation") {
-              clbtrend <- 1
-              clbintrc <- 0.9
-            }
-            if (self$name == "dementia") {
-              clbintrc <- 1
-            }
-            if (self$name == "psychosis") {
-              clbintrc <- 0.95
-            }
-            if (self$name == "ctd") {
-              clbintrc <- 0.9
-            }
-            if (self$name == "other_ca") {
-              clbintrc <- 0.97
-            }
-            if (self$name == "pain") {
-              clbtrend <- 1
-              clbintrc <- 0.9
-            }
-            if (self$name == "t1dm") {
-              clbtrend <- 0.98
-            }
-            if (self$name == "af") {
-              clbtrend <- 1.01
-              clbintrc <- 0.95
-            }
-            if (self$name == "hf") clbtrend <- 1.015
-            if (self$name == "andep") clbintrc <- 1.2
-            if (self$name == "ibs") clbintrc <- 0.95
-            if (self$name == "ra") clbintrc <- 0.95
-
-            if (self$name == "asthma") {
-              clbtrend <- 1.01
-              clbintrc <- 1
-            }
-
-            # sp$pop[year >= design_$sim_prm$init_year,
+             # sp$pop[year >= design_$sim_prm$init_year,
             #       summary(clbfctr * (clbtrend^(year - design_$sim_prm$init_year)))]
 
             sp$pop[year >= design_$sim_prm$init_year,
@@ -963,7 +1024,7 @@ Disease <-
         invisible(self)
       },
 
-
+      # set_dgns_prb ----
       #' @description Set diagnosis probability in a new col in sp$pop.
       #' @param sp A synthetic population.
       #' @param design_ A design object with the simulation parameters.
@@ -992,6 +1053,7 @@ Disease <-
         invisible(self)
       },
 
+      # set_mrtl_prb ----
       #' @description Set disease case fatality when relevant, in a new col in
       #'   sp$pop.
       #' @param sp A synthetic population.
@@ -1136,9 +1198,11 @@ Disease <-
                      (clbtrend^(year - design_$sim_prm$init_year))]
             # End of calibration
 
+
             # sp$pop$clbfctr <- 1 # cancels calibration
             set(sp$pop, NULL, private$mrtl_colnam2,
                 clamp(private$parf$m0 * risk_product * sp$pop$clbfctr))
+
 
             # setnames(sp$pop, "clbfctr", paste0(self$name, "_clbfctr_mrtl"))
             # sp$pop[, (paste0(self$name, "_risk_product_mrtl")) := risk_product]
@@ -1157,7 +1221,7 @@ Disease <-
 
 
 
-
+      # calibrate_incd_prb ----
       #' @description Calibrates p0 to account for additional trends in incidence.
       #' @param sp A synthetic population.
       #' @param design_ A design object with the simulation parameters.
@@ -1210,7 +1274,7 @@ Disease <-
 
 
 
-
+      # del_parf_file ----
       #' @description Deletes the PARF file from disk.
       #' @param invert deletes all other disease relevant PARF file except those
       #'   that are associated to the current settings.
@@ -1242,7 +1306,7 @@ Disease <-
 
 
 
-
+      # get_incd ----
       #' @description Get disease incident probability.
       #' @param year_ A vector of years to return. All if missing.
       #' @return A data.table with disease incident probabilities unless
@@ -1273,7 +1337,7 @@ Disease <-
 
 
 
-
+      # get_dur ----
       #' @description Get disease duration distribution parameters.
       #' @return A data.table with duration distribution parameters. unless
       #'   incidence type: Universal when it returns data.table(NULL).
@@ -1290,6 +1354,7 @@ Disease <-
         return(out)
       },
 
+      # get_prvl ----
       #' @description Get disease prevalent probability.
       #' @param year_ A vector of years to return. All if missing.
       #' @return A data.table with disease prevalent probabilities unless
@@ -1318,7 +1383,7 @@ Disease <-
       },
 
 
-
+      # get_ftlt ----
       #' @description Get disease case fatality probability.
       #' @param year_ A vector of years to return. All if missing.
       #' @return A data.table with disease case fatality probabilities unless
@@ -1346,6 +1411,7 @@ Disease <-
         return(out)
       },
 
+      # get_seed ----
       #' @description Get seed for RNG.
       #' @return A seed for the RNG that is produced by the digest of disease
       #'   name and outcome.
@@ -1353,12 +1419,14 @@ Disease <-
         private$seed
       },
 
+      # get_rr ----
       #' @description Get the list of rr for all relevant exposures.
       #' @return A list of exposure objects.
       get_rr = function() {
         private$rr
       },
 
+      # del_stochastic_effect ----
       #' @description Deletes the stochastic effect files and indices from disk
       #'   for all relevant RR.
       #' @return The invisible self for chaining.
@@ -1370,7 +1438,7 @@ Disease <-
       },
 
 
-
+      # get_parf ----
       #' @description Get the PARF by age/sex/dimd/ethnicity/sha.
       #' @param what Columns to return (p0, m0, or parf)
       #' @return A data.table with PARF.
@@ -1382,12 +1450,14 @@ Disease <-
         }
       },
 
+      # get_parf_filename ----
       #' @description Get the PARF filename.
       #' @return A data.table with PARF.
       get_parf_filename = function() {
           private$parf_filenam
       },
 
+      # harmonise_epi_tables ----
       #' @description Harmonises classes and levels between the synthetic
       #'   population and the incidence/prevalence/fatality tables. It saves the
       #'   harmonised table to disk, overwriting the existing one.
@@ -1477,6 +1547,7 @@ Disease <-
           } # End loop over relevant files
       },
 
+      # to_cpp ----
       #' @description Returns a list to pass to the C++ side for Chris' parser.
       #' @param sp A synthetic population.
       #' @param design_ A design object with the simulation parameters.
@@ -1629,108 +1700,7 @@ Disease <-
         out
       },
 
-      #' @description Returns a list to pass to the C++ side for Peter's parser.
-      #' @param sp A synthetic population.
-      #' @param design_ A design object with the simulation parameters.
-      #' @param scenario_suffix the suffix to identify columns from different
-      #'   scenarios
-      #' @return A list.
-
-      to_cpp_Peter = function(sp, design_ = design, scenario_suffix = "") {
-        if (!inherits(sp, "SynthPop")) {
-          stop("Argument sp needs to be a SynthPop object.")
-        }
-        if (!inherits(design_, "Design")) {
-          stop("Argument design_ needs to be a Design object.")
-        }
-
-        out <- list()
-        out <- list("incidence" = NULL, "diagnosis" = NULL, "mortality" = NULL)
-
-
-        out[["incidence"]] <- list(
-          "type" = fifelse(
-            is.numeric(self$meta$incidence$type),
-            paste0("Type", self$meta$incidence$type),
-            as.character(self$meta$incidence$type)
-          ),
-          "prevalence" = list("column_name" = paste0(self$name, "_prvl", scenario_suffix)),
-          "incidence" = list("column_name" = paste0(private$incd_colnam, scenario_suffix)),
-          "rn" = list("column_name" = paste0(
-            "rn_", self$name, "_incd",
-            fifelse(design_$sim_prm$kismet, "", scenario_suffix)
-          )),
-          "can_recur" = self$meta$incidence$can_recur
-        )
-
-        if (self$meta$incidence$type == 3) {
-          influenced_by_incd <- list()
-
-          for (i in self$meta$incidence$influenced_by_disease_name) {
-            influenced_by_incd[[i]] <-
-              list(
-                "multiplier" = list(
-                  "column_name" = paste0(self$name, "_incd_", i, "_prvl_mltp")),
-                  "lag" = private$rr[[paste0(i, "_prvl", "~", self$name)]]$
-                  get_lag(fifelse(design_$sim_prm$stochastic, sp$mc_aggr, 0L)))
-          } # end for loop over influenced_by_disease_name
-          out[["incidence"]][["influenced_by"]] <- influenced_by_incd
-        } # end if incidence type 3
-
-
-        if (!is.null(self$meta$diagnosis$type)) {
-          out[["diagnosis"]] <- list(
-            "type" = fifelse(
-              is.numeric(self$meta$diagnosis$type),
-              paste0("Type", self$meta$diagnosis$type),
-              as.character(self$meta$diagnosis$type)
-            ),
-            "diagnosed" = list("column_name" = paste0(self$name, "_dgns", scenario_suffix)),
-            "probability" = list("column_name" = paste0(private$dgns_colnam, scenario_suffix)),
-            "rn" = list("column_name" = paste0(
-              "rn_",
-              self$name,
-              "_dgn",
-              fifelse(design_$sim_prm$kismet, "", scenario_suffix)
-            ))
-          )
-        } else {
-          out <- within(out, rm("diagnosis"))
-        }
-
-        out[["mortality"]] <- list(
-          "type" = fifelse(
-            is.numeric(self$meta$mortality$type),
-            paste0("Type", self$meta$mortality$type),
-            as.character(self$meta$mortality$type)
-          ),
-          "probability" = list("column_name" = paste0(
-            "prb_", self$name, "_mrtl2", scenario_suffix
-          )),
-          "rn" = list("column_name" = paste0(
-            "rn_",
-            self$name,
-            "_mrtl",
-            fifelse(design_$sim_prm$kismet, "", scenario_suffix)
-          )),
-          "code" = self$meta$mortality$code
-        )
-
-        if (self$meta$mortality$type == 3) {
-          influenced_by_mrtl <- list()
-          for (i in self$meta$mortality$influenced_by_disease_name) {
-            influenced_by_mrtl[[i]] <-
-              list(
-                "multiplier" = list("column_name" = paste0(self$name, "_mrtl_",
-                                                           i, "_prvl_mltp")),
-                "lag" = private$rr[[paste0(i, "_prvl", "~", self$name)]]$
-                  get_lag(fifelse(design_$sim_prm$stochastic, sp$mc_aggr, 0L)))
-          } # end for loop over influenced_by_disease_name
-          out[["mortality"]][["influenced_by"]] <- influenced_by_mrtl
-        } # end if mortality type 3
-        out
-      },
-
+      # print ----
       #' @description Print the simulation parameters.
       #' @return The invisible self for chaining.
       print = function() {
@@ -1810,6 +1780,7 @@ Disease <-
         return(out)
       },
 
+      # gen_sp_forPARF ----
       gen_sp_forPARF =
         function(mc_, ff, design_, diseases_) {
 
@@ -2265,7 +2236,26 @@ Disease <-
           }
 
           invisible(ff)
-        }
+        },
+
+	# Fix given path so relative to current work directory.
+	# @param sGivenPath string file path, perhaps from another computer with
+	#   different root directories, e.g.
+	#   /other/server/IMPACTncd_Engl/a/b/c/file.fst
+	# @return string file path relevant for this PC's working dir, e.g.
+	#   /this/PC/IMPACTncd_Engl_v2/a/b/c/file.fst
+	FixPathSoRelativeWorkDir= function(sGivenPath) {
+		#return(sGivenPath)
+		sProjectTopDir= "IMPACTncd_Engl/"
+		iPatternPos<- regexpr(pattern=sProjectTopDir,sGivenPath)[1]
+		if(iPatternPos==-1)return(sGivenPath)
+			#stop(paste0("Failed finding project top directory [",sProjectTopDir,"] in given file path: ",sGivenPath))
+		else {
+			sFileRelativePath<- substring(sGivenPath,iPatternPos+nchar(sProjectTopDir),nchar(sGivenPath))
+			return(file.path(getwd(),sFileRelativePath))
+		}
+	}
+
 
 
     ) # end of private

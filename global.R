@@ -50,8 +50,7 @@ if (interactive()) {
       install.packages("remotes")
     if (nzchar(system.file(package = "roxygen2")))
       roxygen2::roxygenise("./Rpackage/IMPACTncd_Engl_model_pkg/", clean = TRUE)
-    detach_package <- function(pkg, character.only = FALSE)
-    {
+    detach_package <- function(pkg, character.only = FALSE) {
       if(!character.only)
       {
         pkg <- deparse(substitute(pkg))

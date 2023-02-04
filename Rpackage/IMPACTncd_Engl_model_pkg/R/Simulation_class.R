@@ -67,74 +67,20 @@ Simulation <-
         # Create folders if don't exist
         # TODO write hlp function and use lapply
         message("Creating output subfolders.")
-        if (!dir.exists(self$design$sim_prm$output_dir)) {
-          dir.create(self$design$sim_prm$output_dir, recursive = TRUE)
-          if (self$design$sim_prm$logs)
-            message(paste0("Folder ", self$design$sim_prm$output_dir,
-                           " was created"))
-        }
-
-        pth <- private$output_dir("summaries/")
-        if (!dir.exists(pth)) {
-          dir.create(pth)
-          if (self$design$sim_prm$logs)
-            message(paste0("Folder ", pth, " was created"))
-        }
-
-        pth <- private$output_dir("tables/")
-        if (!dir.exists(pth)) {
-          dir.create(pth)
-          if (self$design$sim_prm$logs)
-            message(paste0("Folder ", pth, " was created"))
-        }
-
-        pth <- private$output_dir("plots/")
-        if (!dir.exists(pth)) {
-          dir.create(pth)
-          if (self$design$sim_prm$logs)
-            message(paste0("Folder ", pth, " was created"))
-        }
-
-        pth <- private$output_dir("lifecourse/")
-        if (!dir.exists(pth)) {
-          dir.create(pth)
-          if (self$design$sim_prm$logs)
-            message(paste0("Folder ", pth, " was created"))
-        }
-
-        if (self$design$sim_prm$export_PARF) {
-          pth <- private$output_dir("parf/")
-          if (!dir.exists(pth)) {
-            dir.create(pth)
-            if (self$design$sim_prm$logs)
-              message(paste0("Folder ", pth, " was created"))
-          }
-        }
-
-        if (self$design$sim_prm$export_xps) {
-          pth <- private$output_dir("xps/")
-          if (!dir.exists(pth)) {
-            dir.create(pth)
-            if (self$design$sim_prm$logs)
-              message(paste0("Folder ", pth, " was created"))
-          }
-        }
-
-        if (self$design$sim_prm$logs) {
-          pth <- private$output_dir("logs/")
-          if (!dir.exists(pth)) {
-            dir.create(pth)
-            message(paste0("Folder ", pth, " was created"))
-          }
-        }
+			private$create_new_folder(self$design$sim_prm$output_dir,self$design$sim_prm$logs)
+			private$create_new_folder(private$output_dir("summaries/"),self$design$sim_prm$logs)
+			private$create_new_folder(private$output_dir("tables/"),self$design$sim_prm$logs)
+			private$create_new_folder(private$output_dir("plots/"),self$design$sim_prm$logs)
+			private$create_new_folder(private$output_dir("lifecourse/"),self$design$sim_prm$logs)
+			if(self$design$sim_prm$export_PARF)
+				private$create_new_folder(private$output_dir("parf/"),self$design$sim_prm$logs)
+			if(self$design$sim_prm$export_xps)
+				private$create_new_folder(private$output_dir("xps/"),self$design$sim_prm$logs)
+			if (self$design$sim_prm$logs)
+				private$create_new_folder(private$output_dir("logs/"),self$design$sim_prm$logs)
 
         # NOTE code below is duplicated in Synthpop class. This is intentional
-        if (!dir.exists(self$design$sim_prm$synthpop_dir)) {
-          dir.create(self$design$sim_prm$synthpop_dir, recursive = TRUE)
-          if (self$design$sim_prm$logs)
-            message(paste0("Folder ", self$design$sim_prm$synthpop_dir,
-                         " was created"))
-        }
+		  private$create_new_folder(self$design$sim_prm$synthpop_dir,self$design$sim_prm$logs)
 
         message("Loading exposures.")
         # RR Create a named list of Exposure objects for the files in
@@ -475,6 +421,8 @@ Simulation <-
       #' @return The invisible self for chaining.
       del_outputs = function() {
 
+        if (dir.exists(self$design$sim_prm$output_dir)) {
+
         fl <- list.files(self$design$sim_prm$output_dir, full.names = TRUE,
                          recursive = TRUE)
 
@@ -482,6 +430,9 @@ Simulation <-
 
         if (length(fl) > 0 && self$design$sim_prm$logs)
           message("Output files deleted.")
+        } else {
+          message("Output folder doesn't exist.")
+        }
 
         invisible(self)
       },
@@ -601,6 +552,20 @@ Simulation <-
 
         sp$update_pop_weights(scenario_nam)
 
+        # Prune pop (NOTE that assignment in the function env makes this
+        # data.table local)
+        sp$pop <- sp$pop[all_cause_mrtl >= 0L &
+                 year >= self$design$sim_prm$init_year &
+                 between(age, self$design$sim_prm$ageL, self$design$sim_prm$ageH), ]
+        setkey(sp$pop, pid, year)
+        sp$pop[, pid_mrk := mk_new_simulant_markers(pid)]
+
+        # apply ESP weights
+        to_agegrp(sp$pop, 5, 99)
+        absorb_dt(sp$pop, private$esp_weights)
+        sp$pop[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
+               by = .(year, agegrp, sex, dimd)] # NOTE keyby changes the key
+
         if (self$design$sim_prm$export_xps) {
           if (self$design$sim_prm$logs) message("Exporting exposures...")
           private$export_xps(sp, scenario_nam)
@@ -609,22 +574,8 @@ Simulation <-
         nam <- c(self$design$sim_prm$cols_for_output,
                  grep("^cms_|_prvl$|_dgns$|_mrtl$", names(sp$pop), value = TRUE))
         nam <- grep("^prb_", nam, value = TRUE, invert = TRUE) # exclude prb_ ... _dgns
+        sp$pop[, setdiff(names(sp$pop), nam) := NULL]
         sp$pop[, mc := sp$mc_aggr]
-
-        # Prune pop (NOTE that assignment in the function env makes this
-        # data.table local)
-        sp$pop <- sp$pop[all_cause_mrtl >= 0L &
-                 year >= self$design$sim_prm$init_year &
-                 between(age, self$design$sim_prm$ageL, self$design$sim_prm$ageH), ..nam]
-        setkey(sp$pop, pid, year)
-        sp$pop[, pid_mrk := mk_new_simulant_markers(pid)]
-
-        # apply ESP weights
-        to_agegrp(sp$pop, 5, 99)
-        absorb_dt(sp$pop, private$esp_weights)
-        sp$pop[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
-           by = .(year, agegrp, sex, dimd)] # NOTE keyby changes the key
-
 
 
         # TODO add logic for the years of having MM. Currently 1 is not the real
@@ -717,24 +668,58 @@ Simulation <-
           smok_dur_curr_xps = NA,
           smok_cig_curr_xps = NA
         )]
-        out_xps <- groupingsets(
+        sp$pop[smok_status_curr_xps == "4", `:=` (
+          smok_quit_yrs_curr_xps = NA)]
+
+        out_xps20 <- groupingsets(
           sp$pop[all_cause_mrtl >= 0L &
                    year >= self$design$sim_prm$init_year &
                    age >= self$design$sim_prm$ageL, ],
           j = lapply(.SD, weighted.mean, wt, na.rm = TRUE),
-          by = c("year", "sex", "agegrp20", "qimd", "ethnicity", "sha"),
+          by = c("year", "sex", "agegrp20", "qimd"), # "ethnicity", "sha"
           .SDcols = xps,
           sets = list(
-            c("year", "sex", "agegrp20", "qimd"),
-            c("year", "sex"),
+            "year",
             c("year", "agegrp20"),
+            c("year", "sex"),
             c("year", "qimd"),
-            c("year", "ethnicity"),
-            c("year", "sha")
+            c("year", "agegrp20", "sex"),
+            c("year", "sex", "agegrp20", "qimd")
+
+            # c("year", "ethnicity"),
+            # c("year", "sha")
           )
-        )[, `:=` (year = year + 2000L, mc = sp$mc)] # TODO this could also be mc_aggr. Getting the uncertainty right here is tricky
-        for (j in seq_len(ncol(out_xps)))
-          set(out_xps, which(is.na(out_xps[[j]])), j, "All")
+        )[, `:=` (year = year + 2000L, mc = sp$mc, scenario = scenario_nam)]
+        # TODO above mc could also be mc_aggr. Getting the uncertainty right here is tricky
+
+        for (j in seq_len(ncol(out_xps20)))
+          set(out_xps20, which(is.na(out_xps20[[j]])), j, "All")
+        setkey(out_xps20, year)
+        fwrite_safe(out_xps20, private$output_dir("xps/xps20.csv.gz"))
+
+        # TODO link strata in the outputs to the design.yaml
+        out_xps5 <- groupingsets(
+          sp$pop[all_cause_mrtl >= 0L &
+                   year >= self$design$sim_prm$init_year &
+                   age >= self$design$sim_prm$ageL, ],
+          j = lapply(.SD, weighted.mean, wt_esp, na.rm = TRUE),
+          by = c("year", "sex", "qimd"), # "ethnicity", "sha"
+          .SDcols = xps,
+          sets = list(
+            "year",
+            c("year", "sex"),
+            c("year", "qimd"),
+            c("year", "sex", "qimd")
+            # c("year", "ethnicity"),
+            # c("year", "sha")
+          )
+        )[, `:=` (year = year + 2000L, mc = sp$mc, scenario = scenario_nam)]
+        for (j in seq_len(ncol(out_xps5)))
+          set(out_xps5, which(is.na(out_xps5[[j]])), j, "All")
+        setkey(out_xps5, year)
+        fwrite_safe(out_xps5, private$output_dir("xps/xps_esp.csv.gz"))
+
+        # Tidy up
         sp$pop[, c(
           "agegrp20",
           "smok_never_curr_xps",
@@ -746,10 +731,8 @@ Simulation <-
           smok_dur_curr_xps = 0,
           smok_cig_curr_xps = 0
         )]
-        out_xps[, scenario := scenario_nam]
-        setkey(out_xps, year)
-
-        fwrite_safe(out_xps, private$output_dir("xps/xps.csv.gz"))
+        sp$pop[smok_status_curr_xps == "4", `:=` (
+          smok_quit_yrs_curr_xps = 0)]
 
         NULL
       },
@@ -948,6 +931,7 @@ Simulation <-
           fwrite_safe(tt,
                       private$output_dir(paste0("summaries/", "dis_characteristics_esp.csv.gz"
                       )))
+          rm(tt)
         }
 
         # prvl ----
@@ -982,16 +966,25 @@ Simulation <-
           #                .SDcols = patterns("_prvl$"), keyby = strata],
           #             private$output_dir(paste0("summaries/", "incd_out.csv.gz"
           #             )))
-          fwrite_safe(lc[, c("popsize" = sum(wt),
-                             lapply(.SD, function(x, wt) sum((x == 1) * wt), wt)),
-                         .SDcols = patterns("_prvl$"), keyby = strata],
+          incdtbl <- lc[, c("popsize" = sum(wt),
+                            lapply(.SD, function(x, wt) sum((x == 1) * wt), wt)),
+                        .SDcols = patterns("_prvl$"), keyby = strata]
+          nm <- grep("_prvl$", names(incdtbl), value = TRUE)
+          setnames(incdtbl, nm, gsub("_prvl$", "_incd", nm))
+          fwrite_safe(incdtbl,
                       private$output_dir(paste0("summaries/", "incd_scaled_up.csv.gz"
                       )))
-          fwrite_safe(lc[, c("popsize" = sum(wt_esp),
-                             lapply(.SD, function(x, wt) sum((x == 1) * wt), wt_esp)),
-                         .SDcols = patterns("_prvl$"), keyby = strata],
+
+          incdtbl <- lc[, c("popsize" = sum(wt_esp),
+                            lapply(.SD, function(x, wt) sum((x == 1) * wt), wt_esp)),
+                        .SDcols = patterns("_prvl$"), keyby = strata]
+          nm <- grep("_prvl$", names(incdtbl), value = TRUE)
+          setnames(incdtbl, nm, gsub("_prvl$", "_incd", nm))
+          fwrite_safe(incdtbl,
                       private$output_dir(paste0("summaries/", "incd_esp.csv.gz"
                       )))
+
+          rm(incdtbl, nm)
         }
 
         # mrtl ----
@@ -1048,10 +1041,10 @@ Simulation <-
             )
 
           setnames(dis_mrtl_out, as.character(private$death_codes),
-                   names(private$death_codes), skip_absent = TRUE)
+                   paste0(names(private$death_codes), "_deaths"), skip_absent = TRUE)
           dis_mrtl_out[, `:=` (
-            popsize = Reduce(`+`, .SD),
-            alive = NULL
+            popsize = Reduce(`+`, .SD), # it includes alive so it is the pop at the start of the year
+            alive_deaths = NULL
           ), .SDcols = !strata]
           fwrite_safe(dis_mrtl_out,
                       private$output_dir(paste0("summaries/", "dis_mrtl_scaled_up.csv.gz"
@@ -1069,14 +1062,15 @@ Simulation <-
             )
 
           setnames(dis_mrtl_out, as.character(private$death_codes),
-                   names(private$death_codes), skip_absent = TRUE)
+                   paste0(names(private$death_codes), "_deaths"), skip_absent = TRUE)
           dis_mrtl_out[, `:=` (
             popsize = Reduce(`+`, .SD),
-            alive = NULL
+            alive_deaths = NULL
           ), .SDcols = !strata]
           fwrite_safe(dis_mrtl_out,
                       private$output_dir(paste0("summaries/", "dis_mrtl_esp.csv.gz"
                       )))
+          rm(dis_mrtl_out)
         }
 
         # All-cause mrtl by disease ----
@@ -1112,6 +1106,7 @@ Simulation <-
           fwrite_safe(tt,
                       private$output_dir(paste0("summaries/", "all_cause_mrtl_by_dis_esp.csv.gz"
                       )))
+          rm(tt)
         }
 
 
@@ -1164,7 +1159,19 @@ Simulation <-
           # of s3.
           value
         }
-      }
+      },
+
+      # @description Create folder if doesn't exist. Stops on failure.
+      # @param sDirPathName String folder path and name.
+      # @param bReport Bool report folder creation.
+		create_new_folder = function(sDirPathName,bReport) {
+			if (!dir.exists(sDirPathName)) {
+				bSuccess <- dir.create(sDirPathName, recursive=TRUE)
+				if (!bSuccess) stop (paste("Failed creating directory",sDirPathName))
+				if (bReport) message(paste0("Folder ",sDirPathName," was created"))
+			}
+		}
+
 
     )
   )
