@@ -517,7 +517,7 @@ write_fst(HSE_ts, "./preparatory_work/HSE_ts.fst")
 
 # totalwu is the grams of ethanol per day, based on average weekly consumption
 # alcohol is the grams of ethanol per day, based on the day with highest alcohol
-# intake ove a week of observation
+# intake over a week of observation
 
 # NOTE method to prescribed medication changed since 2012. Since then they record
 # Actual use rather than prescription for all categories of medicine.

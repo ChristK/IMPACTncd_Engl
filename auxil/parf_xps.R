@@ -1,5 +1,5 @@
 source("./global.R")
-design <- Design$new("./aux/sim_design_parf.yaml")
+design <- Design$new("./auxil/sim_design_parf.yaml")
 
 sp <- SynthPop$new(1L, design)
 path <- file.path(design$sim_prm$output_dir, "parf")

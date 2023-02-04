@@ -1,6 +1,6 @@
 source("./global.R")
 
-IMPACTncd <- Simulation$new("./aux/sim_design_parf.yaml")
+IMPACTncd <- Simulation$new("./auxil/sim_design_parf.yaml")
 
 # g <- IMPACTncd$get_causal_structure(print_plot = T)
 
@@ -150,7 +150,7 @@ fwrite(d, "/mnt/storage_fast/output/hf_real/tables/incidence by year-dimd (not s
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 
-# source("./aux/CPRD_sim_validation_plots.R")
+# source("./auxil/CPRD_sim_validation_plots.R")
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 

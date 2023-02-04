@@ -59,6 +59,7 @@ SynthPop <-
       pop = NA,
 
 
+      # initialize ----
       #' @description Create a new SynthPop object.
       #' If a synthpop file in \code{\link[fst]{fst-package}} format already
       #' exists, then the synthpop is loaded from there. Otherwise it is
@@ -176,6 +177,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # update_design ----
       #' @description
       #' Updates the Design object that is stored in the SynthPop object.
       #' @param design_ A design object with the simulation parameters.
@@ -189,6 +191,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # update_pop_weights ----
       #' @description
       #' Updates the wt_immrtl to account for mortality in baseline scenario.
       #' @param scenario_nam If "sc0" (the baseline scenario) update weights to
@@ -221,7 +224,7 @@ SynthPop <-
         invisible(self)
       },
 
-
+      # delete_synthpop ----
       #' @description
       #' Delete (all) synthpop files in the synthpop directory.
       #' @param mc_ If `mc_ = NULL`, delete all files in the synthpop directory.
@@ -286,14 +289,14 @@ SynthPop <-
         return(invisible(self))
       },
 
+      # delete_incomplete_synthpop ----
       #' @description
       #' Check that every synthpop file has a metafile and an index file. Delete
       #' any orphan files.
       #' @param check_checksum If  `TRUE` only delete incomplete group files
       #'   with the same checksum as the synthpop.
       #' @return The invisible `SynthPop` object.
-      delete_incomplete_synthpop =
-        function(check_checksum = TRUE) {
+      delete_incomplete_synthpop = function(check_checksum = TRUE) {
           if (check_checksum) {
             f1 <- paste0("^synthpop_", private$checksum , ".*\\.fst$")
             f2 <- paste0("^synthpop_", private$checksum , ".*_meta\\.yaml$")
@@ -325,6 +328,7 @@ SynthPop <-
           return(invisible(self))
         },
 
+      # check_integridy ----
       #' @description
       #' Check the integrity of (and optionally delete) .fst files by checking
       #' their metadata are readable.
@@ -333,8 +337,7 @@ SynthPop <-
       #' @param check_checksum If  `TRUE` only check files with the same
       #'   checksum as the synthpop.
       #' @return The invisible `SynthPop` object.
-      check_integridy =
-        function(remove_malformed = FALSE,
+      check_integridy = function(remove_malformed = FALSE,
           check_checksum = TRUE) {
           if (check_checksum) {
             pat <- paste0("^synthpop_", private$checksum , ".*\\.fst$")
@@ -388,15 +391,12 @@ SynthPop <-
           return(invisible(self))
         },
 
-
-
-
+      # count_synthpop ----
       #' @description
       #' Count the synthpop files in a directory. It includes files without
       #' metafiles and index files.
       #' @return The invisible `SynthPop` object.
-      count_synthpop =
-        function() {
+      count_synthpop = function() {
           out <- list()
           # folder size
           files <-
@@ -432,6 +432,7 @@ SynthPop <-
           return(invisible(self))
         },
 
+      # get_checksum ----
       #' @description
       #' Get the synthpop file paths.
       #' @param x One of "all", "synthpop" or "metafile". Can be abbreviated.
@@ -443,6 +444,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # get_filename ----
       #' @description
       #' Get the synthpop file paths.
       #' @param x One of "all", "synthpop" or "metafile". Can be abbreviated.
@@ -462,6 +464,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # get_design ----
       #' @description
       #' Get the synthpop design.
       #' @return The invisible `SynthPop` object.
@@ -471,6 +474,7 @@ SynthPop <-
         private$design
       },
 
+      # get_dir ----
       #' @description
       #' Get the synthpop dir.
       #' @return The invisible `SynthPop` object.
@@ -479,14 +483,14 @@ SynthPop <-
         invisible(self)
       },
 
+      # gen_synthpop_demog ----
       #' @description
       #' Generate synthpop sociodemographics, random sample of the population.
       #' @param design_ A Design object,
       #' @param month April or July are accepted. Use July for mid-year
       #'   population estimates.
       #' @return An invisible `data.table` with sociodemographic information.
-      gen_synthpop_demog =
-        function(design_, month = "April") {
+      gen_synthpop_demog = function(design_, month = "April") {
           stopifnot("Argument month need to be April or July" = month %in% c("April", "July"))
           # Use month = July for mid-year
           lsoas_ <- private$get_unique_LSOAs(design_)
@@ -612,6 +616,7 @@ SynthPop <-
           return(invisible(dt))
         },
 
+      # write_synthpop ----
       #' @description
       #' Generate synthpop files in parallel, using foreach, and writes them to
       #' disk. It skips files that are already on disk.
@@ -711,6 +716,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # get_risks  ----
       #' @description Get the risks for all individuals in a synthetic
       #'   population for a disease.
       #' @param disease_nam The disease that the risks will be returned.
@@ -726,6 +732,7 @@ SynthPop <-
         }
       },
 
+      # store_risks ----
       #' @description Stores the disease risks for all individuals in a synthetic
       #'   population in a private list.
       #' @param disease_nam The disease that the risks will be stored.
@@ -742,6 +749,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # print ----
       #' @description
       #' Prints the synthpop object metadata.
       #' @return The invisible `SynthPop` object.

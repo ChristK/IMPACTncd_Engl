@@ -1,16 +1,16 @@
-iteration_n: 5
+iteration_n: 15
 iteration_n_final: 100
-clusternumber: 10 # explicit parallelisation
+clusternumber: 15 # explicit parallelisation
 n_cpus: 1 # implicit parallelisation
 logs: yes
 export_xps: no
 keep_lifecourse: yes
 export_PARF: no
 'n': 20000
-n_synthpop_aggregation: 5 # number of synthpops to aggregate together (avoid values above 20)
+n_synthpop_aggregation: 10 # number of synthpops to aggregate together (avoid values above 20)
 # n_primers: 10 # better be some multiple of n_synthpop_aggregation
 init_year_long: 2013 # 2008 to 2020 but be careful with max lags
-sim_horizon_max: 2023 # population projections do not support longer horizon
+sim_horizon_max: 2043 # population projections do not support longer horizon
 ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
@@ -27,7 +27,7 @@ simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real_parf
+output_dir: /mnt/storage_fast/output/hf_real_AFFIRMO
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 # synthpop_dir: c:/synthpop
 diseases:
@@ -507,15 +507,18 @@ diseases:
   friendly_name: alcohol problems
   meta:
     incidence:
-      type: 2
-      can_recur: no
+      type: 3
+      influenced_by_disease_name: alcpr
+      can_recur: yes
     diagnosis:
       type: 1
       probability: 1
-      duration_distr_backwards: ZINBI
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/alcpr_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.65
     mortality:
-      type: 1
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
       code: 21
   notes: .na
 - name: psychosis
@@ -650,11 +653,13 @@ cols_for_output:
 - year
 - mc
 - age
+- agegrp
 - sex
 - dimd
 - ethnicity
 - sha
 - wt
+- wt_esp
 strata_for_output:
 - scenario
 - year

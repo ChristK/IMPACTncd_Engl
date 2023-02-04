@@ -2,15 +2,15 @@ iteration_n: 15
 iteration_n_final: 100
 clusternumber: 15 # explicit parallelisation
 n_cpus: 1 # implicit parallelisation
-logs: no
-export_xps: no
+logs: yes
+export_xps: yes
 keep_lifecourse: yes
 export_PARF: no
 'n': 20000
-n_synthpop_aggregation: 20 # number of synthpops to aggregate together (avoid values above 20)
+n_synthpop_aggregation: 10 # number of synthpops to aggregate together (avoid values above 20)
 # n_primers: 10 # better be some multiple of n_synthpop_aggregation
 init_year_long: 2013 # 2008 to 2020 but be careful with max lags
-sim_horizon_max: 2043 # population projections do not support longer horizon
+sim_horizon_max: 2065 # population projections do not support longer horizon
 ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
@@ -27,7 +27,7 @@ simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real_mrtl_clbr
+output_dir: /mnt/storage_fast/output/hf_real
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 # synthpop_dir: c:/synthpop
 diseases:
@@ -647,17 +647,14 @@ diseases:
 scenarios: ''
 cols_for_output:
 - pid # NEED TO be 1st (perhaps not anymore)
-- pid_mrk
 - year
 - mc
 - age
-- agegrp
 - sex
 - dimd
 - ethnicity
 - sha
 - wt
-- wt_esp
 strata_for_output:
 - scenario
 - year

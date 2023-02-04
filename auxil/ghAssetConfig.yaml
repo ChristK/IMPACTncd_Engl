@@ -1,0 +1,13 @@
+%YAML 1.2
+---
+gitHubAssetRoutes:
+   - 
+      id: local_Chris_IMPACTncd_Engl_0.0.3
+      repo: ChristK/IMPACTncd_Engl
+      tag: v0.0.3
+      #personalAccessToken: <your-GitHub-PAT-here-if-you-wish-to-store-it>
+      uploadSrcDirectory: /home/ckyprid/My_Models/IMPACTncd_Engl
+      deployToRootDirectory: /home/max/projects/IMPACT/IMPACTncd_Engl
+      overwriteFilesOnDeploy: 1
+      testWithFirstNAssets: 5
+
