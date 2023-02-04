@@ -87,7 +87,18 @@ rm(e)
 
 # diseases$alcpr$harmonise_epi_tables(sp)
 # diseases$helo$harmonise_epi_tables(sp)
-# diseases$pain$harmonise_epi_tables(sp)
+# diseases$lung_ca$harmonise_epi_tables(sp)
+# setwd("/home/ckyprid/My_Models/IMPACTncd_Engl")
+
+## Fix pain incd rate to 2008 values, due to bias in the data
+# tt <- read_fst("./inputs/disease_burden/pain_incd.fst", as.data.table = TRUE)
+# tt[age == 20 & sex == "men" & dimd == "2" & ethnicity == "white" & sha == "London"]
+# ttt <- tt[year == 8L, ]
+# ttt[, year := NULL]
+# tt[, mu := NULL]
+# absorb_dt(tt, ttt)
+# tt[age == 20 & sex == "men" & dimd == "2" & ethnicity == "white" & sha == "London"]
+# write_fst(tt, "./inputs/disease_burden/pain_incd.fst")
 
 # lapply(diseases, function(x) x$harmonise_epi_tables(sp))
 lapply(diseases, function(x) {
@@ -510,12 +521,4 @@ absorb_dt(f, p)
 f[year == 13, sum(mu)]
 f[, sum(pain_prvl == 1L), keyby = year]
 
-## Fix pain incd rate to 2008 values, due to bias in the data
-# tt <- read_fst("./inputs/disease_burden/pain_incd.fst", as.data.table = TRUE)
-# tt[age == 20 & sex == "men" & dimd == "2" & ethnicity == "white" & sha == "London"]
-# ttt <- tt[year == 8L, ]
-# ttt[, year := NULL]
-# tt[, mu := NULL]
-# absorb_dt(tt, ttt)
-# tt[age == 20 & sex == "men" & dimd == "2" & ethnicity == "white" & sha == "London"]
-# write_fst(tt, "./inputs/disease_burden/pain_incd.fst")
+

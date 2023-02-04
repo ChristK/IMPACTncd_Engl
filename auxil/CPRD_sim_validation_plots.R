@@ -201,8 +201,6 @@ prep_mrtl <- function(strata_mc, outstrata){
 
 # Prvl ----
 if (prvl_plot) {
-
-
     out_prvl <- fread(paste0(mdl_rslts_pth,"prvl_esp.csv.gz"))[scenario == "sc0"]
     setnames(out_prvl, dl_model, dl_model_new)
 

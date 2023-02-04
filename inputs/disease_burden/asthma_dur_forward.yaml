@@ -1,7 +1,7 @@
 distr: ZANBI
 note: remember to add 1 to the final result
 mu:
-  intercept: -3.7144425
+  intercept: -3.3 # -3.7144425
   log(age): 1.1621586
   log(year): 0.0
   sex:
