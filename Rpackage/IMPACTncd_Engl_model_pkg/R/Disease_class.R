@@ -32,7 +32,6 @@
 Disease <-
   R6::R6Class(
     classname = "Disease",
-    # cloneable = FALSE, # cloneable is necessary for multi threading
     # public ------------------------------------------------------------------
     public = list(
       #' @field name The name of the disease.
@@ -83,35 +82,35 @@ Disease <-
         dqRNGkind("pcg64")
         private$seed <- abs(digest2int(name, seed = 230565490L))
 
-        db <- file.path(getwd(), "inputs", "disease_burden")
-        it <- vector("character")
+        private$sDiseaseBurdenDirPath <- file.path(getwd(), "inputs", "disease_burden")
+        vsFileTypes <- vector("character")
         if (is.numeric(meta$incidence$type) && meta$incidence$type > 1L) {
-          private$filenams$incd <- file.path(db,
-            paste0(self$name, "_incd", ".fst")
+          private$filenams$incd <- file.path(private$sDiseaseBurdenDirPath,
+            paste0(self$name, "_incd", ".fst") # incidence
           )
-          private$filenams$incd_indx <- file.path(db,
+          private$filenams$incd_indx <- file.path(private$sDiseaseBurdenDirPath,
             paste0(self$name, "_incd_indx", ".fst")
           )
-          private$filenams$prvl <- file.path(db,
-            paste0(self$name, "_prvl", ".fst")
+          private$filenams$prvl <- file.path(private$sDiseaseBurdenDirPath,
+            paste0(self$name, "_prvl", ".fst") # prevalence
           )
-          private$filenams$prvl_indx <- file.path(db,
+          private$filenams$prvl_indx <- file.path(private$sDiseaseBurdenDirPath,
             paste0(self$name, "_prvl_indx", ".fst")
           )
-          private$filenams$dur <- file.path(db,
-            paste0(self$name, "_dur", ".fst")
+          private$filenams$dur <- file.path(private$sDiseaseBurdenDirPath,
+            paste0(self$name, "_dur", ".fst") # disease duration
           )
-          it <- c(it, "incd", "prvl")
+          vsFileTypes<- c(vsFileTypes, "incd", "prvl")
         }
 
         if (is.numeric(meta$mortality$type)) {
-          private$filenams$ftlt <- file.path(db,
-            paste0(self$name, "_ftlt", ".fst")
+          private$filenams$ftlt <- file.path(private$sDiseaseBurdenDirPath,
+            paste0(self$name, "_ftlt", ".fst") # fatality probability
           )
-          private$filenams$ftlt_indx <- file.path(db,
+          private$filenams$ftlt_indx <- file.path(private$sDiseaseBurdenDirPath,
             paste0(self$name, "_ftlt_indx", ".fst")
           )
-          it <- c(it, "ftlt")
+          vsFileTypes<- c(vsFileTypes, "ftlt")
 
         }
 
@@ -140,50 +139,29 @@ Disease <-
           paste0("PARF_", self$name, "_", private$chksum, ".fst")
         )
 
-        keys <- sapply(private$filenams[names(private$filenams) %in% it],
+        keys <- sapply(private$filenams[names(private$filenams) %in% vsFileTypes],
                        function(x) metadata_fst(x)$keys[[1]])
 
         if (length(keys) > 0 && !all(sapply(keys, identical, "year")))
           stop("1st key need to be year")
 
-        # Logic to ensure _indx files are up to date.
-        snfile <- file.path(db, paste0(".", self$name, "_file_snapshot.qs"))
-			if (file.exists(snfile)) {
-        		snapShotFileBody<- qread(snfile)
-				snapShotFileBody$path<- private$FixPathSoRelativeWorkDir(snapShotFileBody$path)
-				snapshot <- changedFiles(snapShotFileBody)
-			}
-        if (!file.exists(snfile) ||
-            any(nzchar(snapshot$added),
-                nzchar(snapshot$deleted),
-                nzchar(snapshot$changed))) {
+			# update each _indx file on snapshot change, prior to creation of new snapshot
+			bSnapshotChange <- private$UpdateDiseaseSnapshotIfInvalid(FALSE, function() {
+				for(sFileType in vsFileTypes) {
+					sIndexFileType<- paste0(sFileType, "_indx")
+					if(file.exists(private$filenams[[sIndexFileType]]))
+						file.remove(private$filenams[[sIndexFileType]])
 
-          for (i in it) {
-            finn <- paste0(i, "_indx")
-            if (file.exists(private$filenams[[finn]]))
-              file.remove(private$filenams[[finn]])
-
-            private[[finn]] <-
-              read_fst(private$filenams[[i]], as.data.table = TRUE, columns = "year"
-              )[, .(from = min(.I), to = max(.I)), keyby = "year"]
-
-            write_fst(private[[finn]], private$filenams[[finn]], 100L)
+					# write each [year]'s min and max row index to _indx file
+					private[[sIndexFileType]]<- read_fst(private$filenams[[sFileType]],
+						as.data.table=TRUE,columns="year") [, .(from=min(.I), to=max(.I)), keyby="year"]
+					write_fst(private[[sIndexFileType]], private$filenams[[sIndexFileType]], 100L)
           }
-
-          if (file.exists(snfile)) file.remove(snfile)
-          qsave(
-            fileSnapshot(
-              private$parf_dir,
-              timestamp = NULL,
-              md5sum = TRUE,
-              recursive = FALSE,
-              pattern = self$name
-            ), snfile
-          )
-        } else { # if indx up to date
-          for (i in it) {
-            private[[paste0(i, "_indx")]] <-
-              read_fst(private$filenams[[paste0(i, "_indx")]], as.data.table = TRUE)
+			})
+		if(!bSnapshotChange) { # if indx up to date
+          for (sFileType in vsFileTypes) {
+            private[[paste0(sFileType, "_indx")]] <-
+              read_fst(private$filenams[[paste0(sFileType, "_indx")]], as.data.table = TRUE)
           }
         }
 
@@ -194,15 +172,16 @@ Disease <-
       #' @description Generates PARF and stores it to disk if one doesn not
       #'   exists already.
       #' @param design_ A design object with the simulation parameters.
-      #' @param diseases_ A list of Disease objects
-      #' @param popsize The population size for each stratum
+      #' @param diseases_ A list of Disease objects.
+      #' @param popsize The population size for each stratum.
       #' @param check Check for NAs in parf_dt.
-      #' @param keep_intermediate_file Whether to keep the intermediate synthpop file
+      #' @param keep_intermediate_file Whether to keep the intermediate synthpop file.
+		  #' @param bUpdateExistingDiseaseSnapshot bool, update existing disease PARF and snapshot files as necessary.
       #' @return The PARF data.table if it was created, otherwise `NULL`.
 
       gen_parf_files = function(design_ = design, diseases_ = diseases,
                                 popsize = 100, check = design_$sim_prm$logs,
-                                keep_intermediate_file = TRUE) {
+                                keep_intermediate_file = TRUE, bUpdateExistingDiseaseSnapshot = TRUE) {
 
         if ((is.numeric(self$meta$incidence$type) &&
              self$meta$incidence$type < 2L) ||
@@ -217,18 +196,23 @@ Disease <-
         if (!all(sapply(diseases_, inherits, "Disease"))) {
           stop("Argument diseases_ needs to be a list of disease object.")
         }
-        if (!file.exists(private$parf_filenam)) {
+
+		  # delete disease PARF file and update snapshot if necessary
+		  if (bUpdateExistingDiseaseSnapshot)
+        private$UpdateDiseaseSnapshotIfInvalid(TRUE, function() self$del_parf_file())
+        if (file.exists(private$parf_filenam)) return(NULL) # nothing to do
+
         tmpfile <- file.path(private$parf_dir,
                              paste0("PARF_", self$name, "_", digest(sort(
                                sapply(private$rr, `[[`, "name")
                              )), ".qs"))
 
         if (file.exists(tmpfile)) {
-          if (design_$sim_prm$logs) message("Reading synthpop for PARF file from cache.")
+          if (design_$sim_prm$logs) message("Reading file from cache.")
           ans <- qread(tmpfile, nthreads = design_$sim_prm$clusternumber)
           setDT(ans$pop)
         } else {
-          if (design_$sim_prm$logs) message("No available synthpop for PARF cached file.")
+          if (design_$sim_prm$logs) message("No available cached file.")
 
           self$del_parf_file(invert = TRUE) # Delete old versions
 
@@ -339,7 +323,7 @@ Disease <-
 
         parf_dt <-
           ans$pop[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH),
-                  .(parf = 1 - .N / sum(Reduce(`*`, .SD))),
+                  .(parf = 1 - .N / sum(Reduce(`*`, .SD))), # mbirkett: #PARF
                   keyby = .(age, sex, dimd, ethnicity, sha), .SDcols = nam
           ]
 
@@ -441,7 +425,6 @@ Disease <-
         if (!keep_intermediate_file) file.remove(tmpfile)
 
         parf_dt
-        } else NULL
       },
 
       # gen_parf ----
@@ -482,30 +465,7 @@ Disease <-
 
         # Logic to ensure parf files are regenerated when disease incidence
         # change.
-        # TODO this is currently too strict. Changes in prvl and dur files
-        # shouldn't trigger the deletion of the parf file
-        snfile <- file.path(getwd(), "inputs", "disease_burden",
-                            paste0(".", self$name, "_file_snapshot_parf.qs"))
-        if (file.exists(snfile)) snapshot <- changedFiles(qread(snfile))
-
-        if (!file.exists(snfile) ||
-            any(nzchar(snapshot$added),
-                nzchar(snapshot$deleted),
-                nzchar(snapshot$changed))) {
-
-            self$del_parf_file()
-
-          if (file.exists(snfile)) file.remove(snfile)
-          qsave(
-            fileSnapshot(
-              private$parf_dir,
-              timestamp = NULL,
-              md5sum = TRUE,
-              recursive = FALSE,
-              pattern = paste0("^", self$name, "_incd|^", self$name, "_ftlt")
-            ), snfile
-          )
-          }
+		    private$UpdateDiseaseSnapshotIfInvalid(TRUE, function() self$del_parf_file())
 
         if (file.exists(private$parf_filenam)) {
           if (design_$sim_prm$logs) message("Reading parf file from disk.")
@@ -526,7 +486,7 @@ Disease <-
 
           parf_dt <- self$gen_parf_files(design_, diseases_,
                                      popsize, check,
-                                     keep_intermediate_file)
+                                     keep_intermediate_file,bUpdateExistingDiseaseSnapshot=FALSE)
           colnam <-
             setdiff(names(parf_dt), intersect(names(sp$pop), names(parf_dt)))
           private$parf <- parf_dt[sp$pop, on = .NATURAL, ..colnam]
@@ -1219,8 +1179,6 @@ Disease <-
         invisible(self)
       },
 
-
-
       # calibrate_incd_prb ----
       #' @description Calibrates p0 to account for additional trends in incidence.
       #' @param sp A synthetic population.
@@ -1270,10 +1228,6 @@ Disease <-
         invisible(self)
       },
 
-
-
-
-
       # del_parf_file ----
       #' @description Deletes the PARF file from disk.
       #' @param invert deletes all other disease relevant PARF file except those
@@ -1303,9 +1257,6 @@ Disease <-
         invisible(self)
       },
 
-
-
-
       # get_incd ----
       #' @description Get disease incident probability.
       #' @param year_ A vector of years to return. All if missing.
@@ -1333,9 +1284,6 @@ Disease <-
         }
         return(out)
       },
-
-
-
 
       # get_dur ----
       #' @description Get disease duration distribution parameters.
@@ -1436,7 +1384,6 @@ Disease <-
         lapply(private$rr, function(x) x$del_stochastic_effect)
         invisible(self)
       },
-
 
       # get_parf ----
       #' @description Get the PARF by age/sex/dimd/ethnicity/sha.
@@ -1726,8 +1673,9 @@ Disease <-
       prvl_indx = data.table(NULL),
       ftlt_indx = data.table(NULL),
       chksum = NA,
-      parf_dir = NA,
-      parf_filenam = NA,
+      parf_dir = NA_character_,
+      parf_filenam = NA_character_,
+		  sDiseaseBurdenDirPath = NA,
       parf = data.table(NULL),
       rr = list(), # holds the list of relevant RR
 
@@ -2254,9 +2202,44 @@ Disease <-
 			sFileRelativePath<- substring(sGivenPath,iPatternPos+nchar(sProjectTopDir),nchar(sGivenPath))
 			return(file.path(getwd(),sFileRelativePath))
 		}
-	}
+	},
 
+	# Create or update snapshot of disease-related source files, as necessary.
+	# Snapshot is updated on finding either no snapshot file, or added/deleted/changed source files.
+	# Snapshot used subsequentially to detect source file changes, allowing dependent files to be updated.
+	# @param bParfSnapshot bool, consider only PARF source files: '<diseaseName>_ftlt*.fst' and '<diseaseName>_incd*.fst'.
+	# @param fnOnSnapshotChange function, action taken on snapshot update.
+	# @return bool, a snapshot update occurred.
+ UpdateDiseaseSnapshotIfInvalid = function(bParfSnapshot, fnOnSnapshotChange) {
+   sSnapshotFilePath <- file.path(
+     private$sDiseaseBurdenDirPath,
+     paste0(".", self$name, "_file_snapshot", if (bParfSnapshot) "_parf" else "", ".qs")
+   )
 
+   if (file.exists(sSnapshotFilePath)) {
+     diseaseSnapShot <- qread(sSnapshotFilePath)
+     diseaseSnapShot$path <- private$FixPathSoRelativeWorkDir(diseaseSnapShot$path)
+     diseaseFileChanges <- changedFiles(diseaseSnapShot)
+   } else {
+     diseaseSnapShot <- NULL
+   }
+
+   if (is.null(diseaseSnapShot) || any(
+     nzchar(diseaseFileChanges$added),
+     nzchar(diseaseFileChanges$deleted), nzchar(diseaseFileChanges$changed)
+   )) {
+     fnOnSnapshotChange()
+     if (!is.null(diseaseSnapShot)) file.remove(sSnapshotFilePath)
+     sSourceFilesPattern <- if (bParfSnapshot) paste0("^", self$name, "_incd|^", self$name, "_ftlt") else self$name
+     qsave(fileSnapshot(private$sDiseaseBurdenDirPath,
+       timestamp = NULL, md5sum = TRUE,
+       recursive = FALSE, pattern = sSourceFilesPattern
+     ), sSnapshotFilePath)
+     return(TRUE)
+   } else {
+     return(FALSE)
+   }
+ }
 
     ) # end of private
   )

@@ -46,7 +46,6 @@ To be completed...
 \item \href{#method-Disease-get_parf_filename}{\code{Disease$get_parf_filename()}}
 \item \href{#method-Disease-harmonise_epi_tables}{\code{Disease$harmonise_epi_tables()}}
 \item \href{#method-Disease-to_cpp}{\code{Disease$to_cpp()}}
-\item \href{#method-Disease-to_cpp_Peter}{\code{Disease$to_cpp_Peter()}}
 \item \href{#method-Disease-print}{\code{Disease$print()}}
 \item \href{#method-Disease-clone}{\code{Disease$clone()}}
 }
@@ -94,7 +93,8 @@ Generates PARF and stores it to disk if one doesn not
   diseases_ = diseases,
   popsize = 100,
   check = design_$sim_prm$logs,
-  keep_intermediate_file = TRUE
+  keep_intermediate_file = TRUE,
+  bUpdateExistingDiseaseSnapshot = TRUE
 )}\if{html}{\out{</div>}}
 }
 
@@ -103,13 +103,15 @@ Generates PARF and stores it to disk if one doesn not
 \describe{
 \item{\code{design_}}{A design object with the simulation parameters.}
 
-\item{\code{diseases_}}{A list of Disease objects}
+\item{\code{diseases_}}{A list of Disease objects.}
 
-\item{\code{popsize}}{The population size for each stratum}
+\item{\code{popsize}}{The population size for each stratum.}
 
 \item{\code{check}}{Check for NAs in parf_dt.}
 
-\item{\code{keep_intermediate_file}}{Whether to keep the intermediate synthpop file}
+\item{\code{keep_intermediate_file}}{Whether to keep the intermediate synthpop file.}
+
+\item{\code{bUpdateExistingDiseaseSnapshot}}{bool, update existing disease PARF and snapshot files as necessary.}
 }
 \if{html}{\out{</div>}}
 }
@@ -515,31 +517,6 @@ used when kismet == FALSE to generate new seeds for each scenario.}
 
 \item{\code{scenario_suffix}}{the suffix to identify columns from different
 scenarios.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A list.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Disease-to_cpp_Peter"></a>}}
-\if{latex}{\out{\hypertarget{method-Disease-to_cpp_Peter}{}}}
-\subsection{Method \code{to_cpp_Peter()}}{
-Returns a list to pass to the C++ side for Peter's parser.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Disease$to_cpp_Peter(sp, design_ = design, scenario_suffix = "")}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{sp}}{A synthetic population.}
-
-\item{\code{design_}}{A design object with the simulation parameters.}
-
-\item{\code{scenario_suffix}}{the suffix to identify columns from different
-scenarios}
 }
 \if{html}{\out{</div>}}
 }
