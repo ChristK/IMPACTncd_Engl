@@ -37,7 +37,7 @@ options(datatable.showProgress = FALSE)
 
 dependencies(yaml::read_yaml("./dependencies.yaml"))
 
-if (interactive()) {
+# if (interactive()) {
   snfile <- "./Rpackage/.IMPACTncd_Engl_model_pkg_snapshot.qs"
   if (file.exists(snfile)) snapshot <- changedFiles(qread(snfile))
 
@@ -77,7 +77,7 @@ if (interactive()) {
       ),
       snfile
     )
-  }
+#  }
 }
 library(IMPACTncdEngl)
 
