@@ -173,7 +173,7 @@ Exposure <-
         private$suffix <- paste0(self$name, "~", self$outcome)
 
         private$filedir <- file.path(getwd(), "simulation", "rr")
-        if (!dir.exists(private$filedir)) dir.create(private$filedir)
+        if (!dir.exists(private$filedir)) dir.create(private$filedir,recursive=TRUE)
         private$filenam <- file.path(private$filedir,
                                      paste0("rr_", private$suffix, "_",
                                             private$chksum, "_l.fst"))
