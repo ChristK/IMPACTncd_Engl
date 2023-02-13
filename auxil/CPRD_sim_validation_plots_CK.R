@@ -98,7 +98,7 @@ tt <- tt[order(match(tt, "all_ftlt_N"))]
 cprdtab[, nonmodelled_ftlt_N := Reduce(`-`, .SD), .SDcols = tt]
 
 # outstrata <- "year"
-# suffix <- "incd"
+# suffix <- "mrtl"
 validation_plot <- function(outstrata, suffix) {
   if (suffix == "prvl") {
     term0 <- "Prevalence"
@@ -147,7 +147,7 @@ validation_plot <- function(outstrata, suffix) {
                 "Type") := .(
                   mx, mx, "Observed/Forecasted")]
     setnames(onsmrtl, "mx", paste0(suffix, "_rate_50.0%"))
-
+    tt[, disease := NULL]
     t1 <- rbind(tt, onsmrtl)
 
     # TODO avoid replication of plotting code

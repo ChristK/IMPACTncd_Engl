@@ -3,7 +3,7 @@ note: remember to add 1 to the final result
 mu:
   intercept: 0.6 # -0.0065775
   log(age): 0.2908805
-  log(year): 0.5 # 0.0
+  log(year): 0.2 # 0.0
   sex:
   - 0.0
   - 0.1331436

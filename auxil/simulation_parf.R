@@ -117,7 +117,7 @@ IMPACTncd$
   export_summaries(multicore = TRUE, type = c("incd", "prvl", "mrtl"))
 
 # Incd not standardised----
-
+prbl <- c(0.5, 0.025, 0.975, 0.1, 0.9)
 tt <- fread("/mnt/storage_fast/output/hf_real_parf/summaries/incd_scaled_up.csv.gz"
 )[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
@@ -128,10 +128,10 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
-setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
+setnames(d, c(setdiff(outstrata, "mc"), "disease", scales::percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, "/mnt/storage_fast/output/hf_real/tables/incidence by year (not standardised).csv")
+fwrite(d, "/mnt/storage_fast/output/hf_real_parf/tables/incidence by year (not standardised).csv")
 
 
 
@@ -141,10 +141,10 @@ d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval
 d <- melt(d, id.vars = outstrata)
 setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
-setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
+setnames(d, c(setdiff(outstrata, "mc"), "disease", scales::percent(prbl, prefix = "incd_rate_")))
 d <- d[disease != "popsize"]
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, "/mnt/storage_fast/output/hf_real/tables/incidence by year-dimd (not standardised).csv")
+fwrite(d, "/mnt/storage_fast/output/hf_real_parf/tables/incidence by year-dimd (not standardised).csv")
 
 
 
@@ -156,3 +156,4 @@ fwrite(d, "/mnt/storage_fast/output/hf_real/tables/incidence by year-dimd (not s
 
 # rr <- fread("/mnt/storage_fast/output/hf_real_parf/lifecourse/12_lifecourse.csv.gz")
 # rr[, table(scenario)]
+# fread("/mnt/storage_fast/output/hf_real_parf/summaries/prvl_scaled_up.csv.gz")[, table(scenario, mc)]

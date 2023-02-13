@@ -3,7 +3,7 @@ note: remember to add 1 to the final result
 mu:
   intercept: -3.2288624 # -3.2288624 this value was estimated from the data
   log(age): 1.2452045
-  log(year): 1.0 # 0.0 this value was estimated from the data
+  log(year): 0.7 # 0.0 this value was estimated from the data
   sex:
   - 0.0
   - 0.0975812

@@ -16,13 +16,36 @@ IMPACTncd$
 # source("./auxil/CPRD_sim_validation_plots.R")
 
 scenario_fn <- function(sp) {
-  sc_year <- 22L # The year the change starts
+
+  # The major risk factors included in our model in three cases have “healthy”
+  # ranges according to government guidelines, body mass index (BMI), systolic
+  # blood pressure and cholesterol: for example the NHS advises an adults BMI in
+  # the range 18.5-24.9. In this setting, the 20% improvement of risk factors is
+  # relative to the distance from the middle of the range (21.7): someone with a
+  # BMI of 31.7 is 10kg/m2 above the middle of the range, so a 20% improvement
+  # is a 2kg/m2 reduction to 29.7. The NHS advised ranges for blood pressure and
+  # cholesterol are 90/60mmHg - 120/80mmHg, for total cholesterol the
+  # recommendation is below 5mmol/L, but above 1mmol/L for “good cholesterol”.
+  # We model improvements in the other risk factors as follows: fruit and
+  # vegetable intake is 20% higher than the base case for each person; alcohol
+  # intake is 20% lower; 20% of the population become more active by one active
+  # day per week; smoking prevalence drops by 20% (relative); smoking
+  # consumption for those that still smoke drops by 20%; passive smoking
+  # prevalence drops by 20% (relative).
+  sc_year <- 23L # The year the change starts
   change <- 0.2 # positive means health improvement. Do not set to 0
 
+  bmi_target <- mean(c(18.5, 24.9))
+  sp$pop[year >= sc_year & bmi_curr_xps > bmi_target, bmi_curr_xps := bmi_curr_xps + (bmi_target - bmi_curr_xps) * change]
 
-  sp$pop[year >= sc_year, bmi_curr_xps := bmi_curr_xps * (1 - change)]
-  sp$pop[year >= sc_year, sbp_curr_xps := sbp_curr_xps * (1 - change)]
-  sp$pop[year >= sc_year, tchol_curr_xps := tchol_curr_xps * (1 - change)]
+  sbp_target <- mean(c(90, 120))
+  sp$pop[year >= sc_year & sbp_curr_xps > sbp_target, sbp_curr_xps := sbp_curr_xps + (sbp_target - sbp_curr_xps) * change]
+
+  tchol_target <- mean(c(3, 5)) # Lower bound arbitrary but high enough to ensure HDL > 1mmol/L possible
+  sp$pop[year >= sc_year & tchol_curr_xps > tchol_target, tchol_curr_xps := tchol_curr_xps + (tchol_target - tchol_curr_xps) * change]
+
+
+
   sp$pop[year >= sc_year, alcohol_curr_xps := as.integer(round(alcohol_curr_xps * (1 - change)))]
   sp$pop[year >= sc_year, fruit_curr_xps := as.integer(round(fruit_curr_xps * (1 + change)))]
   sp$pop[year >= sc_year, veg_curr_xps := as.integer(round(veg_curr_xps * (1 + change)))]
@@ -106,25 +129,7 @@ IMPACTncd$
   run(1:200, multicore = TRUE, "sc1")$
   export_summaries(multicore = TRUE)
 
+# IMPACTncd$export_summaries(multicore = TRUE)
 source("./auxil/process_out_for_HF.R")
-source("./auxil/CPRD_sim_validation_plots.R")
-
-
-# IMPACTncd$
-#   del_logs()$
-#   del_outputs()$
-#   run(1:20, multicore = TRUE, "sc0")$
-#   export_summaries(multicore = TRUE)
-
-
-# dt1 <- fread("/mnt/storage_fast/output/hf_real/lifecourse/1_lifecourse.csv.gz",
-#              key = c("pid", "year"))[year < 20]
-# dt <- split(dt1, by = "scenario")
-# for (j in names(dt$sc0)) {
-#   cat(j)
-#   print(all.equal(dt$sc0[year == 13, ..j], dt$sc1[year == 13, ..j]))
-# }
-# for (j in names(dt$sc0)) {
-#   cat(j)
-#   print(all.equal(dt$sc0[, ..j], dt$sc1[, ..j]))
-# }
+source("./auxil/CPRD_sim_validation_plots_CK.R")
+# Bus error (core dumped)
