@@ -73,7 +73,7 @@ rm(e)
 
 # diseases$ckd$gen_parf(sp, design)
 
-# nn <- "prostate_ca"
+# nn <- "chd"
 # self <- diseases[[nn]]$.__enclos_env__$self
 # private <- diseases[[nn]]$.__enclos_env__$private
 # design_ <- design
@@ -87,7 +87,7 @@ rm(e)
 
 # diseases$alcpr$harmonise_epi_tables(sp)
 # diseases$helo$harmonise_epi_tables(sp)
-# diseases$lung_ca$harmonise_epi_tables(sp)
+# diseases$t1dm$harmonise_epi_tables(sp)
 # setwd("/home/ckyprid/My_Models/IMPACTncd_Engl")
 
 ## Fix pain incd rate to 2008 values, due to bias in the data
