@@ -392,12 +392,18 @@ Simulation <-
       #' @description Returns the causal paths between an exposure and an outcome (disease).
       #' @param from the beginning of the path (an exposure) as a string. Use `get_node_names` for available nodes.
       #' @param to the end of the path (a disease) as a string. Use `get_node_names` for available nodes.
+      #' @param shortest_paths Boolean. If true, only returns the paths with the smallest number of nodes. Else, all possible paths (excluding multiple and loop edges) are returned.
       #' @return A list with all the possible paths between exposure and disease.
-      get_causal_path = function(from, to) {
+      get_causal_path = function(from, to, shortest_paths = FALSE) {
         nm <- V(private$causality_structure)$name
-        from <- which(nm == "bmi")
-        to <- which(nm == "hf")
-        return(get.all.shortest.paths(private$causality_structure, from, to, mode = "out"))
+        from <- which(nm == from)
+        to <- which(nm == to)
+        if (shortest_paths) {
+          out <- get.all.shortest.paths(private$causality_structure, from, to, mode = "out")
+        } else {
+          out <- all_simple_paths(private$causality_structure, from, to, mode = "out")
+        }
+        return(out)
       },
 
       # update_design ----
