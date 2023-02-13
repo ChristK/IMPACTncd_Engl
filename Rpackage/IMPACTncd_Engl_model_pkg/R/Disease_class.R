@@ -80,7 +80,7 @@ Disease <-
                          c("smok_status", "smok_cig", "smok_packyrs")))]
 
         dqRNGkind("pcg64")
-        private$seed <- abs(digest2int(name, seed = 230565490L))
+        private$seed <- abs(digest2int(self$name, seed = 230565490L))
 
         private$sDiseaseBurdenDirPath <- file.path(getwd(), "inputs", "disease_burden")
         vsFileTypes <- vector("character")
@@ -558,12 +558,28 @@ Disease <-
             set.seed(private$seed + sp$mc * 10 + 1L) # for sample_int_expj
             # First find out how many prevalent cases by pop subgroup
             tbl <- rbind(
-              self$get_prvl(design_$sim_prm$init_year
-            )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)],
-            self$get_prvl(seq(design_$sim_prm$init_year + 1L,
-                              design_$sim_prm$init_year +
-                                design_$sim_prm$sim_horizon_max)
-            )[age == design_$sim_prm$ageL])
+              self$get_prvl(design_$sim_prm$init_year)[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)],
+              self$get_prvl(seq(
+                design_$sim_prm$init_year + 1L,
+                design_$sim_prm$init_year +
+                  design_$sim_prm$sim_horizon_max
+              ))[age == design_$sim_prm$ageL]
+            )
+
+            # inject uncertainty for initial prvl (type > 1)
+            # Note uncertainty for incd type 0 arises from the diseases that
+            # form the type 0 disease. Uncertainty for type 1, is currently
+            # influenced by uncertainty of exposure only.
+            if (any(design_$sim_prm$uncertainty$prevalence$upper != 0,
+                design_$sim_prm$uncertainty$prevalence$lower != 0)) {
+                uf <- private$with_random(runif(
+                  1,
+                  1 + design_$sim_prm$uncertainty$prevalence$lower,
+                  1 + design_$sim_prm$uncertainty$prevalence$upper
+                ), private$seed + sp$mc_aggr * 10 + 3L) # must be mc_aggr here
+
+                tbl[, mu := mu * uf]
+                }
 
             strata <- setdiff(names(tbl), c("mu"))
             absorb_dt(sp$pop, tbl) # no lookup_dt here as tbl not proper lu_tbl
@@ -711,6 +727,23 @@ Disease <-
             )
           }
 
+          # inject uncertainty for incidence (type > 1)
+          # Note uncertainty for incd type 0 arises from the diseases that
+          # form the type 0 disease. Uncertainty for type 1, is currently
+          # influenced by uncertainty of exposure only.
+          if (any(
+            design_$sim_prm$uncertainty$incidence$upper != 0,
+            design_$sim_prm$uncertainty$incidence$lower != 0
+          )) {
+            uf <- private$with_random(runif(
+              1,
+              1 + design_$sim_prm$uncertainty$incidence$lower,
+              1 + design_$sim_prm$uncertainty$incidence$upper
+            ), private$seed + sp$mc_aggr * 10 + 4L) # must be mc_aggr here
+          } else {
+            uf <- 1
+          }
+
           # Get colnames in risk that end with _rr but exclude the influence by
           # diseases
           if (self$meta$incidence$type == 3) {
@@ -736,14 +769,13 @@ Disease <-
             )
           }
 
-           # TODO better calibration process. Now I do it manually
-            # TODO export to yaml
-            # NOTE doe not work for diseases with no risk factors
+            # TODO better calibration process. Now I do it manually
+            # TODO concider exporting to yaml
             clbtrend <- 1
             clbintrc <- 1
             if (self$name == "af") {
-              clbtrend <- 1.05
-              clbintrc <- 0.9
+              clbtrend <- 1.01
+              clbintrc <- 1.0
             }
             if (self$name == "alcpr") {
               clbtrend <- 1
@@ -755,73 +787,76 @@ Disease <-
               clbintrc <- 1
             }
             if (self$name == "breast_ca") {
-              clbtrend <- 1.01
+              clbtrend <- 1.0
               clbintrc <- 1
             }
             if (self$name == "chd") {
-              clbtrend <- 1.01
-              clbintrc <- 1
+              clbtrend <- 1.0
+              clbintrc <- 0.97 # 1
             }
-            if (self$name == "chd") {
-              clbtrend <- 1.01
-              clbintrc <- 1.05
+            if (self$name == "ckd") {
+              clbtrend <- 1.002
+              clbintrc <- 1.0 # 1
             }
             if (self$name == "constipation") {
               clbtrend <- 1
               clbintrc <- 1 # 0.9
             }
             if (self$name == "copd") {
-              clbtrend <- 1.012
+              clbtrend <- 1.0
               clbintrc <- 1
             }
             if (self$name == "ctd") {
+              clbtrend <- 0.999
               clbintrc <- 0.9
             }
             if (self$name == "dementia") {
               clbintrc <- 1
             }
             if (self$name == "helo") {
-              clbtrend <- 1.01
-              clbintrc <- 1
+              clbtrend <- 1.0
+              clbintrc <- 0.95
             }
-            if (self$name == "hf") clbtrend <- 1.01
+            if (self$name == "hf") {
+              clbtrend <- 1.01
+            }
             if (self$name == "ibs") {
-              clbintrc <- 0.85
-              clbtrend <- 0.99
+               clbtrend <- 0.99
+               clbintrc <- 1
             }
             if (self$name == "lung_ca") {
-              clbtrend <- 1.012
-              clbintrc <- 1
+              clbtrend <- 1.005
+              clbintrc <- 1.1
             }
             if (self$name == "other_ca") {
-              clbtrend <- 1.005
-              clbintrc <- 1
+              clbtrend <- 0.999
+              clbintrc <- 0.98
             }
             if (self$name == "prostate_ca") {
-              clbtrend <- 1.012
+              clbtrend <- 1.002
               clbintrc <- 1
             }
             if (self$name == "psychosis") {
-              clbintrc <- 0.95
+              clbintrc <- 0.92
             }
             if (self$name == "pain") {
               clbtrend <- 1
-              clbintrc <- 1
+              clbintrc <- 0.9
             }
             if (self$name == "ra") {
               clbintrc <- 0.95
             }
             if (self$name == "stroke") {
-              clbtrend <- 1.012
-              clbintrc <- 0.9
+              clbtrend <- 1.005
+              clbintrc <- 0.99
             }
             if (self$name == "t1dm") {
-              clbtrend <- 0.98
-              clbintrc <- 0.3
+              clbtrend <- 1
+              clbintrc <- 1
             }
             if (self$name == "t2dm") {
               clbtrend <- 1
-              clbintrc <- 1.2
+              clbintrc <- 1.05
             }
 
           if (self$meta$incidence$type == 1L) {
@@ -868,11 +903,11 @@ Disease <-
                      (clbtrend^(year - design_$sim_prm$init_year))]
 
             setnafill(sp$pop, "c", 1, cols = "clbfctr")
-
-            # End of calibration
             # sp$pop[, clbfctr := 1] # cancels calibration
+            # End of calibration
+
             set(sp$pop, NULL, private$incd_colnam,
-                clamp(private$parf$p0 * risk_product * sp$pop$clbfctr))
+                clamp(uf * private$parf$p0 * risk_product * sp$pop$clbfctr))
             # NOTE product above not expected to be equal to incidence because
             # p0 estimated using mean lags and RR, while each mc run samples
             # from their distribution.
@@ -915,6 +950,7 @@ Disease <-
                       check_lookup_tbl_validity = design_$sim_prm$logs)
             # We can only get disease incd for initial year. Other years don't
             # have prevalence of the disease that are influencing the incd
+
             sp$pop[, rp := private$parf$p0 *
                      sp$get_risks(self$name)[, Reduce(`*`, .SD),
                      .SDcols = patterns("_rr$")]]
@@ -939,7 +975,7 @@ Disease <-
             # End of calibration
 
             set(sp$pop, NULL, private$incd_colnam,
-                clamp(private$parf$p0 * risk_product * sp$pop$clbfctr))
+                clamp(uf * private$parf$p0 * risk_product * sp$pop$clbfctr))
             # NOTE product above not expected to be equal to incidence because
             # p0 estimated using mean lags and RR, while each mc run samples
             # from their distribution.
@@ -971,12 +1007,23 @@ Disease <-
 
           } else { # End of incident$type not 1 and no associated RF
             # For diseases with no related RF
-            tbl <- self$get_incd(seq(design_$sim_prm$init_year,
-                                     design_$sim_prm$init_year +
-                                       design_$sim_prm$sim_horizon_max)
-            )[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
-            setnames(tbl, "mu", private$incd_colnam)
+            tbl <- self$get_incd(seq(
+              design_$sim_prm$init_year,
+              design_$sim_prm$init_year +
+                design_$sim_prm$sim_horizon_max
+            ))[between(age, design_$sim_prm$ageL, design_$sim_prm$ageH)]
+
             lookup_dt(sp$pop, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
+
+          sp$pop[
+            year >= design_$sim_prm$init_year,
+            clbfctr := clbintrc * (clbtrend^(year - design_$sim_prm$init_year))
+          ]
+          setnafill(sp$pop, "c", 1, cols = "clbfctr")
+
+          sp$pop[, mu := uf * mu * clbfctr]
+          setnames(sp$pop, "mu", private$incd_colnam)
+          sp$pop[, ("clbfctr") := NULL]
           } # End if no associated RF
 
           setnafill(sp$pop, "c", 0, cols = private$incd_colnam)
@@ -1041,13 +1088,32 @@ Disease <-
               )
             )
 
-          if (!"mu2" %in% names(ftlt))
+          if (!"mu2" %in% names(ftlt)) {
             stop("mu2 need to be present in the ftlt file.")
+          }
+
+            # inject uncertainty for mortality
+            # Note uncertainty for incd type 0 arises from the diseases that
+            # form the type 0 disease. Uncertainty for type 1, is currently
+            # influenced by uncertainty of exposure only.
+            if (any(
+              design_$sim_prm$uncertainty$mortality$upper != 0,
+              design_$sim_prm$uncertainty$mortality$lower != 0
+            )) {
+              uf <- private$with_random(runif(
+                1,
+                1 + design_$sim_prm$uncertainty$mortality$lower,
+                1 + design_$sim_prm$uncertainty$mortality$upper
+              ), private$seed + sp$mc_aggr * 10 + 5L) # must be mc_aggr here
+            } else {
+              uf <- 1
+            }
+
 
           # Deal with mrtl1 if present as it is unaffected by the logic below
           if ("mu1" %in% names(ftlt)) {
             private$mrtl2flag <- TRUE
-            nam <- paste0("prb_", self$name, "_mrtl", 1)
+            nam <- paste0("prb_", self$name, "_mrtl1")
             if (nam %in% names(sp$pop))
               stop("Column ", nam, " exists already in sp$pop.")
             setnames(ftlt, "mu1", nam)
@@ -1057,7 +1123,7 @@ Disease <-
                       type = "const",
                       fill = 0,
                       cols = nam)
-            sp$pop[, (nam) := get(nam) * mrtl_clbr]
+            sp$pop[, (nam) := uf * get(nam) * mrtl_clbr]
             ftlt[, (nam) := NULL]
           } else {
             private$mrtl2flag <- FALSE
@@ -1137,7 +1203,7 @@ Disease <-
             # or change unless you plan to redo the calibration
             # set(sp$pop, NULL, "clbfctr", 1)
 
-            clbons <- 1.5
+            clbons <- 1.45 # 1.5
             clbtrend <- 1
             clbintrc <- 1
             if (self$name == "lung_ca") {
@@ -1148,11 +1214,14 @@ Disease <-
               clbtrend <- 1
               clbintrc <- 1.1
             }
+            if (self$name == "t1dm") {
+              clbtrend <- 1
+              clbintrc <- 1.1
+            }
             if (self$name == "nonmodelled") {
               clbtrend <- 1
               clbintrc <- 1
-            }
-
+    }
             sp$pop[year >= design_$sim_prm$init_year,
                    clbfctr := clbfctr * clbintrc * clbons * mrtl_clbr * # mrtl_clbr from  read_fst("./inputs/mortality/mrtl_clb.fst", as.data.table = TRUE)
                      (clbtrend^(year - design_$sim_prm$init_year))]
@@ -1161,7 +1230,7 @@ Disease <-
 
             # sp$pop$clbfctr <- 1 # cancels calibration
             set(sp$pop, NULL, private$mrtl_colnam2,
-                clamp(private$parf$m0 * risk_product * sp$pop$clbfctr))
+                clamp(uf * private$parf$m0 * risk_product * sp$pop$clbfctr))
 
 
             # setnames(sp$pop, "clbfctr", paste0(self$name, "_clbfctr_mrtl"))
@@ -2239,6 +2308,17 @@ Disease <-
    } else {
      return(FALSE)
    }
+ },
+
+ # from https://stackoverflow.com/questions/14324096/setting-seed-locally-not-globally-in-r
+ # changes the seed temporarily
+ with_random = function(expr, seed) {
+   old <- .Random.seed # Assumes one exists. Make sure it does
+   on.exit({
+     .Random.seed <<- old
+   })
+   set.seed(seed)
+   expr
  }
 
     ) # end of private
