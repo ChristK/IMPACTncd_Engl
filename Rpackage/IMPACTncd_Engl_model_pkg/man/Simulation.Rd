@@ -153,7 +153,7 @@ A string vector.
 \subsection{Method \code{get_causal_path()}}{
 Returns the causal paths between an exposure and an outcome (disease).
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_path(from, to)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_path(from, to, shortest_paths = FALSE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -162,6 +162,8 @@ Returns the causal paths between an exposure and an outcome (disease).
 \item{\code{from}}{the beginning of the path (an exposure) as a string. Use `get_node_names` for available nodes.}
 
 \item{\code{to}}{the end of the path (a disease) as a string. Use `get_node_names` for available nodes.}
+
+\item{\code{shortest_paths}}{Boolean. If true, only returns the paths with the smallest number of nodes. Else, all possible paths (excluding multiple and loop edges) are returned.}
 }
 \if{html}{\out{</div>}}
 }
