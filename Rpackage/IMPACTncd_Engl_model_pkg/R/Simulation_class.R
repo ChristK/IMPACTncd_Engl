@@ -349,13 +349,23 @@ Simulation <-
       #' @param processed If `TRUE` generates the causality matrix from the
       #'   graph.
       #' @param print_plot If `TRUE` prints the causal structure graph.
+      #' @param focus If missing the whole causal structure is returned.
+      #'  Otherwise, if a named node only the subgraph of the 1st order
+      #'  neighbours that point to the given vertrice is returned.
       #' @return The processed causality matrix if `processed = TRUE` or the
       #'   graph otherwise.
-      get_causal_structure = function(processed = TRUE, print_plot = FALSE) {
+      get_causal_structure = function(processed = TRUE, print_plot = FALSE, focus = FALSE) {
+        if (missing(focus)) {
+          graph <- private$causality_structure
+        } else {
+          if (length(focus) > 1L) stop("focus need to be scalar string.")
+          if (!focus %in% self$get_node_names()) stop("focus need to be a node name. Use get_node_names() to get the list of eligible values.")
+          graph <- make_ego_graph(private$causality_structure, order = 1,  nodes = focus, mode = "in")[[1]]
+        }
         if (print_plot) {
           print(
             plot(
-              private$causality_structure,
+              graph,
               vertex.shape = "none",
               edge.arrow.size = .3,
               vertex.label.font = 2,
@@ -369,14 +379,12 @@ Simulation <-
         }
 
         if (processed) {
-          g <- as.matrix(as_adjacency_matrix(private$causality_structure))
+          graph <- as.matrix(as_adjacency_matrix(graph))
           n <- sapply(self$diseases, `[[`, "name")
-          g <- g[rowSums(g) > 0, colnames(g) %in% n]
-
-        } else {
-          g <- private$causality_structure
+          graph <- graph[rowSums(graph) > 0, colnames(graph) %in% n]
         }
-        return(g)
+
+        return(graph)
       },
 
       # get_node_names ----
