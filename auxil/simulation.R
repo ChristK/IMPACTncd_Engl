@@ -3,6 +3,9 @@ source("./global.R")
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
 # g <- IMPACTncd$get_causal_structure(print_plot = TRUE)
+# g <- IMPACTncd$get_causal_structure(processed = FALSE, print_plot = TRUE, focus = "chd")
+
+plot(igraph::make_ego_graph(g, order = 1, c("pain"), "in")[[1]])
 
 scenario_fn <- function(sp) NULL
 

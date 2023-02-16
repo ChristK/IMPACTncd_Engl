@@ -116,7 +116,11 @@ The invisible self for chaining.
 Returns the causality matrix and optionally plots the
   causality structure.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_structure(processed = TRUE, print_plot = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_structure(
+  processed = TRUE,
+  print_plot = FALSE,
+  focus = FALSE
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -126,6 +130,10 @@ Returns the causality matrix and optionally plots the
 graph.}
 
 \item{\code{print_plot}}{If `TRUE` prints the causal structure graph.}
+
+\item{\code{focus}}{If missing the whole causal structure is returned.
+Otherwise, if a named node only the subgraph of the 1st order
+neighbours that point to the given vertrice is returned.}
 }
 \if{html}{\out{</div>}}
 }
