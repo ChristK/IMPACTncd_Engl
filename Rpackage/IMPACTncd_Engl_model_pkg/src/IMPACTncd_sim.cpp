@@ -430,7 +430,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         if (dsmeta[j].incd.type == "Type0")
         {
-          for (int k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+          for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
             if (dsmeta[j].incd.influenced_by.disease_prvl[k][i] > dsmeta[j].incd.prvl[i])
             {
@@ -506,7 +506,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         else if (dsmeta[j].incd.type == "Type3") // NOTE I don't need this type. Can be replaced by a flag to notify disease dependence
         {
-          for (int k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+          for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
             // if lag > 0 look back. For diseases depending on self, lag = 0 and
             // that triggers the use of the .incd.flag
@@ -603,7 +603,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].dgns.type == "Type0")
         {
-          for (int k = 0; k < dsmeta[j].dgns.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+          for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].dgns.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
             if (dsmeta[j].dgns.influenced_by.disease_prvl[k][i] > dsmeta[j].dgns.prvl[i])
             {
@@ -664,7 +664,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           // Type 3 mortality (no cure, disease dependency)
           else if (dsmeta[j].mrtl.type == "Type3")
           {
-            for (int k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+            for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
             {
               if (dsmeta[j].mrtl.influenced_by.disease_prvl[k][i - dsmeta[j].mrtl.influenced_by.lag[k]] > 0)
               {
@@ -689,7 +689,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           // incidence is impossible to be of type 4 because there is no cure.
           else if (dsmeta[j].mrtl.type == "Type4")
           {
-            for (int k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+            for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
             {
               if (dsmeta[j].incd.influenced_by.lag[k] > 0 && // to exclude conditions that depend on themselves, like asthma
                   dsmeta[j].mrtl.influenced_by.disease_prvl[k][i - dsmeta[j].mrtl.influenced_by.lag[k]] > 0)
