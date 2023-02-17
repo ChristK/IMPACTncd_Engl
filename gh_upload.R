@@ -25,8 +25,7 @@ source("ghAssetUtils.R")
 #' @param sAssetConfigFilePath string (optional): path to ghAssetConfig.yaml file - provided for interactive calls (RStudio).
 #' @param sGitHubAssetRouteId string (optional): ID designating asset route in asset config.yaml file - provided for interactive calls (RStudio).
 #' @param sToken string (optional): GitHub personal access token (PAT).
-UploadGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL,sToken=NULL) # consider as a Simulation class method
-{
+UploadGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL,sToken=NULL) { # consider as a Simulation class method
 	# get GitHub asset route data
 	GetGitHubAssetRouteInfo(sId,sRepo,sTag,sUploadSrcDirPath,sDeployToRootDirPath,bOverwriteFilesOnDeploy,
 		iTestWithFirstNAssets,sToken=sToken,sAssetConfigFilePath=sAssetConfigFilePath,sGitHubAssetRouteId=sGitHubAssetRouteId)
@@ -36,7 +35,7 @@ UploadGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL
 	# pb_release_delete(sRepo, sTag)
 
 	# find local assets, excluding secure_data, "*tmp.qs", and "*parf/PARF_*.qs" files.
-	lsLocalAssetPathNames<- list.files(sUploadSrcDirPath, pattern = ".fst$|.xls$|.xlsx$|.qs$", full.names = TRUE, recursive = TRUE)
+	lsLocalAssetPathNames<- list.files(sUploadSrcDirPath, pattern = ".fst$|.xls$|.xlsx$|.qs$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
 	lsLocalAssetPathNames<- grep("secure_data", lsLocalAssetPathNames, value = TRUE, invert = TRUE)
 	# NOTE currently no necessary files ar .qs. For future proof I add them above
 	# and exclude the below
@@ -55,9 +54,18 @@ UploadGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL
 	fwrite(dtOriginalAndSanitisedFilePathNames, "./auxil/filindx.csv")
 
 	lsSrcFilePath<- file.path(dtOriginalAndSanitisedFilePathNames$abs_dir,dtOriginalAndSanitisedFilePathNames$orig_file)
-	lsHttpResponses<- piggyback::pb_upload(lsSrcFilePath,repo=sRepo,tag=sTag,name=dtOriginalAndSanitisedFilePathNames$sanit_file,.token=sToken) # piggyback:: prefix necessary to use R.utils::reassignInPackage() injected code modification
+ lsHttpResponses <- piggyback::pb_upload(lsSrcFilePath,
+     repo = sRepo, tag = sTag, name = dtOriginalAndSanitisedFilePathNames$sanit_file,
+     .token = sToken, use_timestamps = FALSE, overwrite = TRUE
+ ) # piggyback:: prefix necessary to use R.utils::reassignInPackage() injected code modification
 
 	StopOnHttpFailure(lsHttpResponses,TRUE)
 }
 
-if(sys.nframe()==0)UploadGitHubAssets() # execute with defaults if run from topmost frame (under Rscript)
+if (sys.nframe() == 0) {
+    UploadGitHubAssets(
+        sAssetConfigFilePath = "./auxil/ghAssetConfig.yaml",
+        sGitHubAssetRouteId = "local_Chris_IMPACTncd_Engl_0.0.4"
+    )
+} # execute with defaults if run from topmost frame (under Rscript)
+
