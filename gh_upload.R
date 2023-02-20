@@ -48,6 +48,8 @@ UploadGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL
 		sanit_file = gsub("[^[:alnum:]&&^\\.]", ".", basename(lsLocalAssetPathNames)), # replace all not (alphanumeric or '.') with .
 		abs_dir = dirname(lsLocalAssetPathNames),
 		rel_dir = gsub(sUploadSrcDirPath, "", dirname(lsLocalAssetPathNames)), key = "orig_file") # rel_dir to keep initial slash
+#print(nrow(dtOriginalAndSanitisedFilePathNames))
+#return(0)
 	if (any(duplicated(dtOriginalAndSanitisedFilePathNames$sanit_file))) stop("Duplicated filenames found")
 	if(iTestWithFirstNAssets!=0)
 		dtOriginalAndSanitisedFilePathNames<- dtOriginalAndSanitisedFilePathNames[1:iTestWithFirstNAssets,]
@@ -63,9 +65,9 @@ UploadGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL
 }
 
 if (sys.nframe() == 0) {
-    UploadGitHubAssets(
-        sAssetConfigFilePath = "./auxil/ghAssetConfig.yaml",
-        sGitHubAssetRouteId = "local_Chris_IMPACTncd_Engl_0.0.4"
-    )
+    UploadGitHubAssets()
+#        sAssetConfigFilePath = "./auxil/ghAssetConfig.yaml",
+ #       sGitHubAssetRouteId = "local_Chris_IMPACTncd_Engl_0.0.4"
+  #  )
 } # execute with defaults if run from topmost frame (under Rscript)
 

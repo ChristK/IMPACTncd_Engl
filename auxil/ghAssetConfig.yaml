@@ -2,12 +2,12 @@
 ---
 gitHubAssetRoutes:
    -
-      id: local_Chris_IMPACTncd_Engl_0.0.4
+      id: live_Max_IMPACTncd_Engl_0.0.5
       repo: ChristK/IMPACTncd_Engl
-      tag: v0.0.4
+      tag: v0.0.5
       #personalAccessToken: <your-GitHub-PAT-here-if-you-wish-to-store-it>
-      uploadSrcDirectory: /home/ckyprid/My_Models/IMPACTncd_Engl
-      deployToRootDirectory: /home/max/projects/IMPACT/IMPACTncd_Engl
+      uploadSrcDirectory: /home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst
+      deployToRootDirectory: /home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst
       overwriteFilesOnDeploy: 1
       # testWithFirstNAssets: 5
 
