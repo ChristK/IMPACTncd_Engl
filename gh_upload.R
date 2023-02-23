@@ -44,10 +44,11 @@ UploadGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL
 	lsLocalAssetPathNames<- grep("/DELETEME/",lsLocalAssetPathNames,value=TRUE,invert=TRUE)
 
 	# write table with original and *unique sanitised* file names and directories
+	lsSanitisedFileNames<- gsub("[^[:alnum:]&&^\\.]", ".", basename(lsLocalAssetPathNames)) # replace all not (alphanumeric or '.') with .
+	lsSanitisedFileNames<- sub("^[.]","default.",lsSanitisedFileNames)
 	dtOriginalAndSanitisedFilePathNames<- data.table(orig_file = basename(lsLocalAssetPathNames),
-		sanit_file = gsub("[^[:alnum:]&&^\\.]", ".", basename(lsLocalAssetPathNames)), # replace all not (alphanumeric or '.') with .
-		abs_dir = dirname(lsLocalAssetPathNames),
-		rel_dir = gsub(sUploadSrcDirPath, "", dirname(lsLocalAssetPathNames)), key = "orig_file") # rel_dir to keep initial slash
+		sanit_file= lsSanitisedFileNames, abs_dir= dirname(lsLocalAssetPathNames),
+		rel_dir= gsub(sUploadSrcDirPath, "", dirname(lsLocalAssetPathNames)), key = "orig_file") # rel_dir to keep initial slash
 #print(nrow(dtOriginalAndSanitisedFilePathNames))
 #return(0)
 	if (any(duplicated(dtOriginalAndSanitisedFilePathNames$sanit_file))) stop("Duplicated filenames found")
