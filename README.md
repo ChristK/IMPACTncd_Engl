@@ -3,10 +3,13 @@
 --------------------------------------------------------------------------------
 
 IMPACTncd_Engl is an implementation of the IMPACTncd framework, developed by Chris
-Kypridemos with contributions from Peter Crowther (Melandra Ltd), Maria
-Guzman-Castillo, Amandine Robert, and Piotr Bandosz. 
+Kypridemos with contributions from Max Birkett, Anna Head, Brendan Collins, Martin O'Flaherty,
+Peter Crowther (Melandra Ltd), Maria Guzman-Castillo, Amandine Robert, and Piotr Bandosz. 
 
-Copyright (C) 2018-2022 University of Liverpool, Chris Kypridemos
+Several research grants have supported its development including grants from the Health Foundation,
+NIHR, EU Horizon2020, Liverpool City Council, MRC, NIH, and the National Cerebral and Cardiovascular Center in Japan.  
+
+Copyright (C) 2018-2023 University of Liverpool, Chris Kypridemos.
 
 IMPACTncd_Engl is free software; you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
