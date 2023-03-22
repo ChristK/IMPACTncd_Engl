@@ -5,7 +5,7 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 # g <- IMPACTncd$get_causal_structure(print_plot = TRUE)
 # g <- IMPACTncd$get_causal_structure(processed = FALSE, print_plot = TRUE, focus = "chd")
 
-plot(igraph::make_ego_graph(g, order = 1, c("pain"), "in")[[1]])
+#plot(igraph::make_ego_graph(g, order = 1, c("pain"), "in")[[1]])
 
 scenario_fn <- function(sp) NULL
 
@@ -134,5 +134,5 @@ IMPACTncd$
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 source("./auxil/process_out_for_HF.R")
-source("./auxil/CPRD_sim_validation_plots_CK.R")
+if(IMPACTncd$design$sim_prm$validation)source("./auxil/CPRD_sim_validation_plots_CK.R")
 # Bus error (core dumped)
