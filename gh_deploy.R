@@ -46,7 +46,7 @@ DeployGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL
 	lsHttpResponses<- piggyback::pb_download(file=sanitisedToOriginalFilePaths$sanit_file,
 		dest=file.path(sDeployToRootDirPath,subDirectoryPaths,sanitisedToOriginalFilePaths$orig_file),
 		repo=sRepo, tag=sTag, overwrite=bOverwriteFilesOnDeploy, use_timestamps=FALSE, .token=sToken)
-		# NOTE: 1. pb_download() has bug - only allows 'dest=file.path(sDeployToRootDirPath,subDirectoryPaths)' if scalar.
+		# 1. WARNING! confusing pb_download() behaviour: 'dest=' *directory* required for single asset; destination *filenames* required for multiple assets.
 		# 2. piggyback:: prefix necessary to use R.utils::reassignInPackage() injected code modification.
 	StopOnHttpFailure(lsHttpResponses,FALSE)
 

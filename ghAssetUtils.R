@@ -362,7 +362,7 @@ pb_upload_file_liverpool <- function(file,
 #' all assets attached to the release will be downloaded.
 #' @param dest name of vector of names of where file should be downloaded.
 #' Can be a directory or a list of filenames the same length as `file`
-#' vector. Any directories in the path provided must already exist.
+#' vector. Any directories in the path provided must already exist. WARNING! confusing behaviour: *directory* required for single asset; destination *filenames* required for multiple assets.
 #' @param overwrite Should any local files of the same name be overwritten?
 #'  default `TRUE`.
 #' @param ignore a list of files to ignore (if downloading "all" because
@@ -420,7 +420,7 @@ pb_download_liverpool <- function(file = NULL,
 
   ## if dest paths are not provided, we will write all files to dest dir
   # User is responsible for making sure dest dir exists!
-  if (length(dest) == 1) {
+  if (length(dest) == 1) { # mbirkett: this unexpectedly causes different behaviour for single/multiple assets (i.e. length of [file] list). Destination _filenames_ expected for multiple assets, while single assets require destination _directory_. For latter, perhaps should use destination filename if given, else assuming destination directory. Current behaviour can cause errors and some confusion.
     i <- which(df$file_name %in% file)
     dest <- file.path(dest, df$file_name[i])
   }
