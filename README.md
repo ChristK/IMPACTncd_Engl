@@ -82,10 +82,13 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 	Alternatively, if wanting to avoid the Linux terminal, assets may be downloaded from within RStudio as follows:
 	
 	```
+	setwd("<path-to-your-IMPACTncd_Engl-distribution>")
 	source("gh_deploy.R")
 	DeployGitHubAssets(sAssetConfigFilePath="auxil/ghAssetConfig.yaml",
 		sGitHubAssetRouteId="<simulation-id>",sToken="<your-personal-access-token>")
 	```
+	
+	where `<path-to-your-IMPACTncd_Engl-distribution>` is the directory in which the IMPACTncd_Engl simulation has been installed, something like `C:/.../IMPACTncd_evaluateTreatment1/IMPACTncd_Engl` on Windows.
 
 4. after this, the first five assets in `auxil/filindx.csv` should have downloaded:
 
@@ -97,12 +100,13 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 	simulation/parf/PARF_asthma_5ba32a1a5d21f638e4ab8afda42befc3.fst
 	```
 
-5. if the last step was successful, the full set of 632 assets listed in `auxil/filindx.csv` (as of 2023-03-21) should now be downloaded. First edit `auxil/ghAssetConfig.yaml` and comment-out the [`testWithFirstNAssets`] line. Now save `ghAssetConfig.yaml` and re-run the above step 3.
+5. if the last step was successful, the full set of 631 assets listed in `auxil/filindx.csv` (as of 2023-03-27) should now be downloaded. First edit `auxil/ghAssetConfig.yaml` and comment-out the [`testWithFirstNAssets`] line. Now save `ghAssetConfig.yaml` and re-run the above step 3.
 
 6. finally, set a model-specific configuration across the following IMPACTncd_Engl files:
 	a. in `auxil/simulation.R`, set the current `run(1:200,` command (lines 16 and 132), which describe a number of repetitions, to something appropriate - perhaps `run(1:2,` for testing.
 	
 	b. in `auxil/sim_design_parf.yaml` and `inputs/sim_design.yaml`, set:
+
 		* paths to pre-existing output directories for [`output_dir`] and [`synthpop_dir`], as otherwise any prior data here may be deleted. 
 		* the [`validation`] value so inactive, i.e. `validation: no`.
 		* the [`clusternumber`] parameter to an appropriate number of cores on which to run the model in parallel, e.g. perhaps only 2-4 cores for either a personal laptop or if running on a shared server. The default 15 cores will impact other users using the same shared server.
