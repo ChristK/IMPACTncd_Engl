@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 IMPACTncd_Engl is an implementation of the IMPACTncd framework, developed by Chris
-Kypridemos with contributions from Max Birkett, Anna Head, Brendan Collins, Martin O'Flaherty,
+Kypridemos with contributions from Max Birkett, Karl Emmert-Fees, Anna Head, Brendan Collins, Martin O'Flaherty,
 Peter Crowther (Melandra Ltd), Maria Guzman-Castillo, Amandine Robert, and Piotr Bandosz. 
 
 Several research grants have supported its development including grants from the Health Foundation,
@@ -25,7 +25,7 @@ Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 ## Overview
 
-A simulation consists of *null* and *alternative* scenarios (or hypotheses). Alternative scenarios typically comprise populations with *improved* risk factors, e.g. after some future health programme, 20% of the population show 
+A simulation consists of *baseline* and *what-if* policy scenarios (or hypotheses). Policy scenarios typically comprise populations with *improved* risk factors, e.g. after some future health policy, 20% of the population show 
 
 - improved body mass index (BMI), blood pressure, or cholesterol level (each by 20%).
 - increased fruit and vegetable intake (by 20%).
@@ -37,12 +37,9 @@ Output data is then analysed for health improvements, e.g. in disease prevalence
 
 ## Requirements
 
-The IMPACTncd_Engl distribution is usually installed directly from [GitHub](https://github.com/ChristK/IMPACTncd_Engl/) via the [Git](https://git-scm.com/) version control system, which should be installed on the target system. While not absolutely required, Git eases installation of future updates. Git 2.40.0 was the latest at release time.
+The IMPACTncd_Engl distribution is usually installed directly from [GitHub](https://github.com/ChristK/IMPACTncd_Engl/) via the [Git](https://git-scm.com/) version control system, which should be installed on the target system. While not absolutely required, Git eases installation of future updates. Git 2.40.0 was the latest at release time, but the process should work with earlier versions of Git as well.
 
-The IMPACTncd_Engl model is written primarily in, and so requires installation of, the [R programming language](https://cran.r-project.org/), for which version 4.2.3 was the latest at release time. Additional R packages will be installed automatically if missing at execution time, e.g. `data.table`, `piggyback`, `foreach`. The `dependencies.yaml` file lists many of these packages.
-
-Optionally, users may wish to run IMPACTncd_Engl within the [RStudio](https://posit.co/downloads/) development environment; RStudio Desktop (2023.03.0+386) was the most recent at release time.
-
+The IMPACTncd_Engl model is written primarily in, and so requires installation of, the [R programming language](https://cran.r-project.org/), for which version 4.2.3 was the latest at release time. Additional R packages will be installed automatically if missing at execution time, e.g. `data.table`, `piggyback`, `foreach`. The `dependencies.yaml` file lists these packages.
 
 ## Installation
 
