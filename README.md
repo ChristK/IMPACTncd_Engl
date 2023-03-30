@@ -37,55 +37,55 @@ Output data is then analysed for health improvements, e.g. in disease prevalence
 
 ## Requirements
 
-The IMPACTncd_Engl distribution is usually installed directly from [GitHub](https://github.com/ChristK/IMPACTncd_Engl/) via the [Git](https://git-scm.com/) version control system, which should be installed on the target system. While not absolutely required, Git eases installation of future updates. Git 2.40.0 was the latest at release time, but the process should work with earlier versions of Git as well.
+The IMPACTncd_Engl distribution is usually installed directly from [GitHub](https://github.com/ChristK/IMPACTncd_Engl/) via the [Git](https://git-scm.com/) version control system, which should be installed on the target system. While not absolutely required, Git eases installation of future updates and previous releases. While earlier versions will suffice, Git 2.40.0 was the latest at release time.
 
-The IMPACTncd_Engl model is written primarily in, and so requires installation of, the [R programming language](https://cran.r-project.org/), for which version 4.2.3 was the latest at release time. Additional R packages will be installed automatically if missing at execution time, e.g. `data.table`, `piggyback`, `foreach`. The `dependencies.yaml` file lists these packages.
+The IMPACTncd_Engl model is written primarily in, and so requires installation of, the [R programming language](https://cran.r-project.org/), for which version 4.2.3 was the latest at release time. Additional R packages (listed in `dependencies.yaml`) will be installed automatically if missing at execution time, e.g. `data.table`, `piggyback`, `foreach`.
 
 ## Installation
 
-IMPACTncd_Engl is installed directly from GitHub, after which a model-specific configuration is set. With different configurations, multiple IMPACTncd_Engl models may be installed on the same server, e.g. to test different scenarios. The following notes describe installation and execution of a test model:
+IMPACTncd_Engl is installed directly from GitHub, after which a model-specific configuration is set. With multiple configurations, different policy scenarios may be tested on the same server. The following notes describe installation and execution of a test model:
 
 1. create a folder in which to install your IMPACTncd_Engl distribution and change the current directory to this folder, e.g. from a Linux terminal:
 
 	```
-	$ mkdir IMPACTncd_evaluateTreatment1
-	$ cd IMPACTncd_evaluateTreatment1
+	$ mkdir IMPACTncdEngl
+	$ cd IMPACTncdEngl
 	```
   
 2. install the IMPACTncd_Engl repository ('repo') from GitHub. As IMPACTncd_Engl is a publicly visible repo, no GitHub account is needed to access the source code or other repo assets:
 
 	```$ git clone https://github.com/ChristK/IMPACTncd_Engl.git```
 
-	Alternatively, users may wish to install from an existing IMPACTncd_Engl installation on the same server, e.g. to examine a development version:
+	The above installs the most recent IMPACTncd_Engl development version. If a particular earlier version is required, perhaps a 
+	specific release ('tag') or code change ('commit'), select this now with:
 	
-	```$ git clone <IMPACTncd_Engl-source-directory>```
-
-	For private GitHub repos, the repo owner must first give your GitHub account sufficient access permissions. Subsequently, you may need a personal access token (PAT), which is a personal code permitting repo access.[^createPAT] For access to private IMPACTncd_Engl repos you may create a new PAT, or use an existing PAT if you have one already, then proceed as above.
-
-3. now to install certain large data files, stored as GitHub repo *assets*. A config file `auxil/ghAssetConfig.yaml` holds certain details which ease asset installation. In here, set [`id`] to a suitable name for this particular IMPACTncd_Engl simulation, and [`uploadSrcDirectory`] and [`deployToRootDirectory`] to a desired target IMPACTncd_Engl folder path/name. Download the first five assets with (from a Linux terminal):
+	```$ git checkout <release-or-commit-id>```	
+	
+	where `<release-or-commit-id>` is a particular release or commit ID; `git tag` or `git log` will show a complete list of tag or commit options. After examining this earlier version, return to the most recent code with:
+	
+	```$ git checkout main```	
+	
+3. now to install certain large data files, stored as GitHub repo *assets*. A config file `auxil/ghAssetConfig.yaml` holds details which ease asset installation. In here, set [`id`] to a suitable name for this particular IMPACTncd_Engl simulation, and [`uploadSrcDirectory`] and [`deployToRootDirectory`] to a desired target IMPACTncd_Engl folder path/name. Download the first five assets with (from a Linux terminal):
 
 	```
-	$ Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation-id> [<optional-personal-access-token>]
+	$ Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation-id>
 	```
 	
 	or, on Windows:
 	
 	```
-	<R-installation-directory>\bin\Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation-id> [<optional-personal-access-token>]
+	<R-installation-directory>\bin\Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation-id>
 	```  
 	
-	where `<R-installation-directory>` is likely to be something like `C:\Program Files\R\R-4.2.0`, `<simulation-id>` is your name (from `auxil/ghAssetConfig.yaml`) for this IMPACTncd_Engl simulation, and the `<optional-personal-access-token>` may only be required for private GitHub repositories.
-   
-	Alternatively, if wanting to avoid the Linux terminal, assets may be downloaded from within RStudio as follows:
+	where `<R-installation-directory>` is likely to be something like `C:\Program Files\R\R-4.2.0`, `<simulation-id>` is your name (from `auxil/ghAssetConfig.yaml`) for this IMPACTncd_Engl simulation. Alternatively, if wanting to avoid the Linux terminal, assets may be downloaded from within RStudio as follows:
 	
 	```
 	setwd("<path-to-your-IMPACTncd_Engl-distribution>")
 	source("gh_deploy.R")
-	DeployGitHubAssets(sAssetConfigFilePath="auxil/ghAssetConfig.yaml",
-		sGitHubAssetRouteId="<simulation-id>",sToken="<your-personal-access-token>")
+	DeployGitHubAssets(sAssetConfigFilePath="auxil/ghAssetConfig.yaml",sGitHubAssetRouteId="<simulation-id>")
 	```
 	
-	where `<path-to-your-IMPACTncd_Engl-distribution>` is the directory in which the IMPACTncd_Engl simulation has been installed, something like `C:/.../IMPACTncd_evaluateTreatment1/IMPACTncd_Engl` on Windows.
+	where `<path-to-your-IMPACTncd_Engl-distribution>` is the directory in which the IMPACTncd_Engl simulation has been installed, something like `C:/.../IMPACTncdEngl/IMPACTncd_Engl` on Windows.
 
 4. after this, the first five assets in `auxil/filindx.csv` should have downloaded:
 
@@ -99,7 +99,8 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 
 5. if the last step was successful, the full set of 631 assets listed in `auxil/filindx.csv` (as of 2023-03-27) should now be downloaded. First edit `auxil/ghAssetConfig.yaml` and comment-out the [`testWithFirstNAssets`] line. Now save `ghAssetConfig.yaml` and re-run the above step 3.
 
-6. finally, set a model-specific configuration across the following IMPACTncd_Engl files:
+6. finally, a model and configuration is set. The model defines the *baseline* and *what-if* scenarios, while the configuration specifies other computational and model settings, e.g. output directories, parallelisation, population and disease parameters (see the **Model design and execution** section below). Using the default model, set the below configuration changes:
+
 	a. in `auxil/simulation.R`, set the current `run(1:200,` command (lines 16 and 132), which describe a number of repetitions, to something appropriate - perhaps `run(1:2,` for testing.
 	
 	b. in `auxil/sim_design_parf.yaml` and `inputs/sim_design.yaml`, set:
@@ -112,9 +113,9 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 
 ## Model design and execution
 
-Presently, the `auxil/simulation.R` tool both prepares an alternative scenario dataset,[^alternativeScenario] and then executes the null and alternative scenarios. In a subsequent release, creation of the alternative dataset, presently from direct code in `auxil/simulation.R:scenario_fn()`, will be simplified and moved elsewhere. 
+Presently, `auxil/simulation.R` tool both prepares a default model,[^policyScenario] and then executes the *baseline* and *what-if* scenarios after loading a configuration set in `inputs/sim_design.yaml`. The what-if dataset is created by code in `auxil/simulation.R:scenario_fn()`, which enables evaluation of detailed models. Multiple models may be examined from one IMPACTncd_Engl directory by creating copies of `auxil/simulation.R` and `inputs/sim_design.yaml` - each with an appropriate `scenario_fn()` and relevant parameters. In a subsequent release, a tool will create a range of what-if datasets without such source code changes.
 
-In RStudio, models may be executed with `source("auxil/simulation.R")`. Alternatively, within a Linux terminal:
+Due to RStudio parallelisation issues the simulation is best executed from within a Linux terminal. Within an R session, models may be executed with `source("auxil/simulation.R")`. Alternatively, directly within a Linux terminal:
 
 ```
 $ Rscript auxil/simulation.R > myLogFile230321a.txt 2>&1 &
@@ -124,6 +125,4 @@ where the optional piping (`> myLogFile230321a.txt 2>&1 &`) commands direct the 
 	
 ## Further notes and references
 
-[^createPAT]: go to "GitHub / sign-in / Settings / Developer Settings / Personal access tokens / Tokens (classic) / Generate new token button / Generate new token button (classic)". Give a sensible name, set a desired expiry date, tick to get 'Full control of private repositories'. Press 'Generate token' button. Save the secret string token value. Use this value subsequently in password boxes.
-
-[^alternativeScenario]: the default alternative scenario is described further elsewhere.
+[^policyScenario]: the default what-if scenario is described further elsewhere.
