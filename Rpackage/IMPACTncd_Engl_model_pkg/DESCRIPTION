@@ -27,10 +27,14 @@ Imports: Rcpp (>= 1.0.2),
          foreach,
          BH,
          igraph
-Suggests: roxygen2
+Suggests: 
+    knitr,
+    rmarkdown,
+    roxygen2
 LinkingTo: Rcpp, 
            dqrng,
            sitmo,
            BH,
            data.table
 RoxygenNote: 7.2.3
+VignetteBuilder: knitr
