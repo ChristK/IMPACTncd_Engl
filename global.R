@@ -22,7 +22,7 @@
 # https://github.com/Rdatatable/data.table/issues/1967
 
 cat("Initialising IMPACTncd_Engl model...\n\n")
-if (interactive() && !nzchar(system.file(package = "CKutils"))) {
+if (!nzchar(system.file(package = "CKutils"))) {
   if (!nzchar(system.file(package = "remotes"))) install.packages("remotes")
   remotes::install_github("ChristK/CKutils", force = TRUE, upgrade = "never")
 }
@@ -35,7 +35,7 @@ options(future.rng.onMisuse = "ignore") # Remove false warning
 options(datatable.verbose = FALSE)
 options(datatable.showProgress = FALSE)
 
-dependencies(yaml::read_yaml("./dependencies.yaml"))
+CKutils::dependencies(yaml::read_yaml("./dependencies.yaml")) # install missing packages
 
 #' @description Detach library package.
 detach_package<- function(pkg, character.only = FALSE)

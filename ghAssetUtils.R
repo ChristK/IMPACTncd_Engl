@@ -138,7 +138,7 @@ GetGitHubAssetRouteInfo<- function(sId,sRepo,sTag,sUploadSrcDirPath,sDeployToRoo
 
 			if(sGitHubToken=="") { # no access token given previously
 				sGitHubToken<- gitHubAssetRouteFinal$personalAccessToken
-				if(is.null(sGitHubToken))stop("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
+				if(is.null(sGitHubToken))warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
 					May set PAT on command-line or in asset config file [personalAccessToken] variable.")
 			}
 
