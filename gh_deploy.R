@@ -1,12 +1,16 @@
 if (!require(piggyback)) {
-  install.packages("piggyback")
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings=FALSE, recursive=TRUE)
+  install.packages("piggyback",lib=Sys.getenv("R_LIBS_USER") , repos="https://cran.rstudio.com/")
   library(piggyback)
 }
 if (!require(data.table)) {
-  install.packages("data.table")
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings=FALSE, recursive=TRUE)
+  install.packages("data.table",lib=Sys.getenv("R_LIBS_USER"),repos="https://cran.rstudio.com/")
   library(data.table)
 }
+
 source("ghAssetUtils.R")
+
 
 #' @description Deploy large GitHub asset files into their relevant locations.
 #'	Additional data is held in an asset config YAML file. BACKGROUND: Standard GitHub repositories do not allow large files exceeding 100 MB (as of 22-08-05); however, such files ('assets'), each up to 2 GB in size, may be attached separately to the repository.
@@ -27,11 +31,12 @@ source("ghAssetUtils.R")
 #' @param sToken string (optional): GitHub personal access token (PAT).
 DeployGitHubAssets<- function(sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL,sToken=NULL)
 {
+	
 	# get GitHub asset route data
 	GetGitHubAssetRouteInfo(sId,sRepo,sTag,sUploadSrcDirPath,sDeployToRootDirPath,bOverwriteFilesOnDeploy,
 		iTestWithFirstNAssets,sToken=sToken,sAssetConfigFilePath=sAssetConfigFilePath,sGitHubAssetRouteId=sGitHubAssetRouteId)
 	sDeployToRootDirPath<- TrimSlashes(sDeployToRootDirPath,bRidStartSlash=FALSE)
-
+	
 	# get table which maps SANITISED to ORIGINAL filenames
 	sanitisedToOriginalFilePaths<- fread(file.path(sDeployToRootDirPath,"/auxil/filindx.csv"),key="orig_file")
 	if(iTestWithFirstNAssets!=0) # if testing, only use first N assets
