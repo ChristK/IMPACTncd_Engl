@@ -1035,7 +1035,7 @@ SynthPop <-
             # logic necessary for new cohorts entering the simulation that currently age < 30
             # These will have the same distribution as if 30 years old
             tt <- tbl[age == min(age)]
-            tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max)
+            tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max) # TODO adding design_$sim_prm$sim_horizon_max + design_$sim_prm$maxlag for longer projections
             tt[, age := age - .id] # as the sim progress these will become 30 yo
             # increase population by 0.5% every year
             tt[, .id := NULL]
