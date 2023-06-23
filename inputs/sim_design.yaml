@@ -66,8 +66,7 @@ diseases:
       duration_distr_backwards: ZINBI
       mm_wt: 0.08
     mortality:
-      type: 1
-      code: 6
+      type: ~
   notes: .na
 - name: chd
   friendly_name: CHD
@@ -204,9 +203,7 @@ diseases:
       duration_distr_forwards: ./inputs/disease_burden/asthma_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.19
     mortality:
-      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
-      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
-      code: 9
+      type: ~
   notes: .na
 - name: constipation
   friendly_name: constipation
@@ -245,9 +242,7 @@ diseases:
       duration_distr_forwards: ./inputs/disease_burden/constipation_dur_forward.yaml # used in c++ for future duration
       mm_wt: 1.12
     mortality:
-      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
-      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
-      code: 25
+      type: ~
   notes: .na
 - name: pain
   friendly_name: chronic pain
@@ -273,9 +268,7 @@ diseases:
       duration_distr_forwards: ./inputs/disease_burden/pain_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.92
     mortality:
-      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
-      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
-      code: 26
+      type: ~
   notes: .na
 - name: ckd
   friendly_name: ckd stage 3-5
@@ -382,9 +375,7 @@ diseases:
       duration_distr_forwards: ./inputs/disease_burden/andep_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.5
     mortality:
-      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
-      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
-      code: 15
+      type: ~
   notes: .na
 - name: helo
   friendly_name: hearing loss
@@ -526,9 +517,7 @@ diseases:
       duration_distr_forwards: ./inputs/disease_burden/alcpr_dur_forward.yaml # used in c++ for future duration
       mm_wt: 0.65
     mortality:
-      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
-      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
-      code: 21
+      type: ~
   notes: .na
 - name: psychosis
   friendly_name: psychosis
