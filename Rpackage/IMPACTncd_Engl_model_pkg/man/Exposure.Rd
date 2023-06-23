@@ -71,13 +71,13 @@ Currently lognormal and normal are supported.}
 \subsection{Method \code{new()}}{
 Reads exposure parameter from file and creates a new exposure object..
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$new(xps_prm, design)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Exposure$new(sRelativeRiskByPopulationSubsetForExposureFilePath, design)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{xps_prm}}{A path to a csvy file with the exposure parameters.}
+\item{\code{sRelativeRiskByPopulationSubsetForExposureFilePath}}{string, path to .csvy file detailing relative risk (RR) by population subset (age, sex, maybe decile 'Index of Multiple Deprivation' DIMD) for a specific exposure. File header may contain other exposure parameters.}
 
 \item{\code{design}}{A design object with the simulation parameters.}
 }
