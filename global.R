@@ -42,7 +42,7 @@ detach_package<- function(pkg, character.only = FALSE)
 {
 	if(!character.only) pkg <- deparse(substitute(pkg))
 	search_item <- paste("package", pkg, sep = ":")
-	while(search_item %in% search()) 
+	while(search_item %in% search())
 	{
 		detach(search_item, unload = TRUE, character.only = TRUE)
 	}
@@ -56,11 +56,11 @@ InstallIMPACTncdPackage<- function(sIMPACTncdPackageDirPath)
 	if(nzchar(system.file(package = "roxygen2")))
 		roxygen2::roxygenise(sIMPACTncdPackageDirPath, clean = TRUE) # update package exports (and docs) if necessary
 	detach_package(IMPACTncdEngl)
-	
+
 	# ensure full install by removing intermediate files
 	file.remove(list.files(sIMPACTncdPackageDirPath,
 		pattern=".o$|.dll&|.so&", recursive=TRUE, full.names=TRUE))
-	remotes::install_local(sIMPACTncdPackageDirPath,force=TRUE,upgrade="never")
+	remotes::install_local(sIMPACTncdPackageDirPath, build_vignettes = TRUE,force=TRUE,upgrade="never")
 }
 
 #' @description Re/install the IMPACTncd_Engl package if not installed or if local package files have changed.
@@ -71,9 +71,9 @@ InstallIMPACTncdPackageOnChange<- function()
 	IMPACTncdPackageSnapshot<-NULL
 	if(file.exists(sIMPACTncdPackageSnapshotFilePath))
 		IMPACTncdPackageSnapshot<- changedFiles(qread(sIMPACTncdPackageSnapshotFilePath))
-		
-	if(!nzchar(system.file(package="IMPACTncdEngl")) || is.null(IMPACTncdPackageSnapshot) || 
-		any( nzchar(IMPACTncdPackageSnapshot$added), nzchar(IMPACTncdPackageSnapshot$deleted), 
+
+	if(!nzchar(system.file(package="IMPACTncdEngl")) || is.null(IMPACTncdPackageSnapshot) ||
+		any( nzchar(IMPACTncdPackageSnapshot$added), nzchar(IMPACTncdPackageSnapshot$deleted),
 			nzchar(IMPACTncdPackageSnapshot$changed) ) )
 	{
 		# re/install IMPACTncd_Engl package and update snapshot
