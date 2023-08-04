@@ -895,6 +895,22 @@ setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_c
 setkeyv(d, setdiff(outstrata, "mc"))
 fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-sex (not standardised).csv"))
 
+
+
+outstrata <- c("mc", "year", "agegrp", "scenario")
+d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
+        keyby = eval(outstrata)]
+d <- melt(d, id.vars = outstrata)
+cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
+d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
+d[cases, on = c(outstrata, "variable"), value := value/i.value]
+setkey(d, "variable")
+d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
+setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
+setkeyv(d, setdiff(outstrata, "mc"))
+fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-agegrp (not standardised).csv"))
+
+
 outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
         keyby = eval(outstrata)]
