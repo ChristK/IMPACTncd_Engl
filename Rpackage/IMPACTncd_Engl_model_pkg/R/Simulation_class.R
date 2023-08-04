@@ -41,6 +41,9 @@ Simulation <-
       #' @field diseases A list of Disease objects.
       diseases = NA,
 
+      #' @field RR A list of RR for the simulated exposures.
+      RR = NA,
+
       #' @field scenarios A list of scenario objects.
       scenarios = NA,
 
@@ -87,12 +90,12 @@ Simulation <-
         # ./inputs/RR
         fl <- list.files(path = "./inputs/RR", pattern = ".csvy$", full.names = TRUE)
         # RR <- future_lapply(fl, Exposure$new, future.seed = 950480304L)
-        RR <- lapply(fl, Exposure$new, design = self$design)
-        names(RR) <- sapply(RR, function(x) x$get_name())
+        self$RR <- lapply(fl, Exposure$new, design = self$design)
+        names(self$RR) <- sapply(self$RR, function(x) x$get_name())
         # invisible(future_lapply(RR, function(x) {
         #   x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
         # }, future.seed = 627524136L))
-        invisible(lapply(RR, function(x) {
+        invisible(lapply(self$RR, function(x) {
           x$gen_stochastic_effect(self$design, overwrite = FALSE, smooth = FALSE)
         }))
         # NOTE smooth cannot be exported to Design for now, because the first
@@ -104,14 +107,14 @@ Simulation <-
         message("Loading diseases.")
         self$diseases <- lapply(self$design$sim_prm$diseases, function(x) {
           x[["design_"]] <- self$design
-          x[["RR"]] <- RR
+          x[["RR"]] <- self$RR
           do.call(Disease$new, x)
         })
         names(self$diseases) <- sapply(self$design$sim_prm$diseases, `[[`, "name")
 
         message("Generating microsimulation structure.")
         # Generate the graph with the causality structure
-        ds <- unlist(strsplit(names(RR), "~"))
+        ds <- unlist(strsplit(names(self$RR), "~"))
         ds[grep("^smok_", ds)] <- "smoking"
         ds <- gsub("_prvl$", "", ds)
 
