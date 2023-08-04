@@ -78,7 +78,7 @@ incidence, diagnosis, and mortality.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new `Disease` object.
+A new \code{Disease} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -86,7 +86,7 @@ A new `Disease` object.
 \if{latex}{\out{\hypertarget{method-Disease-gen_parf_files}{}}}
 \subsection{Method \code{gen_parf_files()}}{
 Generates PARF and stores it to disk if one doesn not
-  exists already.
+exists already.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$gen_parf_files(
   design_ = design,
@@ -116,7 +116,7 @@ Generates PARF and stores it to disk if one doesn not
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The PARF data.table if it was created, otherwise `NULL`.
+The PARF data.table if it was created, otherwise \code{NULL}.
 }
 }
 \if{html}{\out{<hr>}}
@@ -124,7 +124,7 @@ The PARF data.table if it was created, otherwise `NULL`.
 \if{latex}{\out{\hypertarget{method-Disease-gen_parf}{}}}
 \subsection{Method \code{gen_parf()}}{
 Read PARF file from disk. If missing, generates PARF and
-  writes it to disk.
+writes it to disk.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$gen_parf(
   sp = sp,
@@ -200,7 +200,7 @@ Set disease incidence probability in a new col in sp$pop.
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 
-\item{\code{checkNAs}}{If `TRUE`, prints the table of NAs before they get
+\item{\code{checkNAs}}{If \code{TRUE}, prints the table of NAs before they get
 overwritten with 1. Note that for some exposures, NAs are expected
 for certain levels of exposure (i.e. for active days).}
 
@@ -262,7 +262,7 @@ The invisible self for chaining.
 \if{latex}{\out{\hypertarget{method-Disease-set_mrtl_prb}{}}}
 \subsection{Method \code{set_mrtl_prb()}}{
 Set disease case fatality when relevant, in a new col in
-  sp$pop.
+sp$pop.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$set_mrtl_prb(sp, design_ = design)}\if{html}{\out{</div>}}
 }
@@ -341,7 +341,7 @@ Get disease incident probability.
 }
 \subsection{Returns}{
 A data.table with disease incident probabilities unless
-  incidence type: Universal when it returns data.table(NULL).
+incidence type: Universal when it returns data.table(NULL).
 }
 }
 \if{html}{\out{<hr>}}
@@ -355,7 +355,7 @@ Get disease duration distribution parameters.
 
 \subsection{Returns}{
 A data.table with duration distribution parameters. unless
-  incidence type: Universal when it returns data.table(NULL).
+incidence type: Universal when it returns data.table(NULL).
 }
 }
 \if{html}{\out{<hr>}}
@@ -376,7 +376,7 @@ Get disease prevalent probability.
 }
 \subsection{Returns}{
 A data.table with disease prevalent probabilities unless
-  incidence type: Universal when it returns data.table(NULL).
+incidence type: Universal when it returns data.table(NULL).
 }
 }
 \if{html}{\out{<hr>}}
@@ -397,7 +397,7 @@ Get disease case fatality probability.
 }
 \subsection{Returns}{
 A data.table with disease case fatality probabilities unless
-  mortality type: Non-fatal when it returns data.table(NULL).
+mortality type: Non-fatal when it returns data.table(NULL).
 }
 }
 \if{html}{\out{<hr>}}
@@ -411,7 +411,7 @@ Get seed for RNG.
 
 \subsection{Returns}{
 A seed for the RNG that is produced by the digest of disease
-  name and outcome.
+name and outcome.
 }
 }
 \if{html}{\out{<hr>}}
@@ -432,7 +432,7 @@ A list of exposure objects.
 \if{latex}{\out{\hypertarget{method-Disease-del_stochastic_effect}{}}}
 \subsection{Method \code{del_stochastic_effect()}}{
 Deletes the stochastic effect files and indices from disk
-  for all relevant RR.
+for all relevant RR.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$del_stochastic_effect()}\if{html}{\out{</div>}}
 }
@@ -479,8 +479,8 @@ A data.table with PARF.
 \if{latex}{\out{\hypertarget{method-Disease-harmonise_epi_tables}{}}}
 \subsection{Method \code{harmonise_epi_tables()}}{
 Harmonises classes and levels between the synthetic
-  population and the incidence/prevalence/fatality tables. It saves the
-  harmonised table to disk, overwriting the existing one.
+population and the incidence/prevalence/fatality tables. It saves the
+harmonised table to disk, overwriting the existing one.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Disease$harmonise_epi_tables(sp)}\if{html}{\out{</div>}}
 }

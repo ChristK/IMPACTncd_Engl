@@ -84,7 +84,7 @@ Reads exposure parameter from file and creates a new exposure object..
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-An `Exposure` object.
+An \code{Exposure} object.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -119,13 +119,13 @@ are not regenerated.}
 
 \item{\code{smooth}}{If true applies loess smoothing to the input relative risks}
 
-\item{\code{...}}{Further arguments to be passed to `loess`, usually span =
+\item{\code{...}}{Further arguments to be passed to \code{loess}, usually span =
 0.7, degree = 1}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-An `Exposure` object.
+An \code{Exposure} object.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -175,7 +175,7 @@ Get relative risks from disk.
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 
-\item{\code{drop}}{If `TRUE` returns a scalar numeric of the RR if the RR is
+\item{\code{drop}}{If \code{TRUE} returns a scalar numeric of the RR if the RR is
 common for all age groups and both sexes. Otherwise, a data.table.}
 
 \item{\code{plot_rr}}{If TRUE, plots the relative risk}
@@ -184,7 +184,7 @@ common for all age groups and both sexes. Otherwise, a data.table.}
 }
 \subsection{Returns}{
 A data.table with the stochastic relative risks, if stochastic
-  = TRUE; else, the deterministic relative risks.
+= TRUE; else, the deterministic relative risks.
 }
 }
 \if{html}{\out{<hr>}}
@@ -197,7 +197,7 @@ Clear the cache for get_rr.
 }
 
 \subsection{Returns}{
-The `Exposure` object.
+The \code{Exposure} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -205,8 +205,8 @@ The `Exposure` object.
 \if{latex}{\out{\hypertarget{method-Exposure-xps_to_rr}{}}}
 \subsection{Method \code{xps_to_rr()}}{
 Apply the RR in a new column in sp$pop based on the
-  exposure level. I the case of smok_quit_yrs it modifies the risk of
-  smok_cig or packyrs and no new column is created.
+exposure level. I the case of smok_quit_yrs it modifies the risk of
+smok_cig or packyrs and no new column is created.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$xps_to_rr(
   sp,
@@ -223,7 +223,7 @@ Apply the RR in a new column in sp$pop based on the
 
 \item{\code{design_}}{A design object with the simulation parameters.}
 
-\item{\code{checkNAs}}{If `TRUE`, prints the table of NAs before they get
+\item{\code{checkNAs}}{If \code{TRUE}, prints the table of NAs before they get
 overwritten with 1. Note that for some exposures, NAs are expected
 for certain levels of exposure (i.e. for active days).}
 
@@ -286,7 +286,7 @@ Get seed for RNG.
 
 \subsection{Returns}{
 A seed for the RNG that is produced by the digest of exposure
-  name and outcome.
+name and outcome.
 }
 }
 \if{html}{\out{<hr>}}
@@ -307,7 +307,7 @@ file with placeholder exposure parameters.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The `Exposure` object.
+The \code{Exposure} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -339,14 +339,14 @@ new file.}
 2 with the 1st element being the point estimate and the 2nd one of
 the CI.}
 
-\item{\code{second_estimate_is_p}}{If `TRUE` and the `estimates` not `NULL` then the
-second element of `estimates` is interpreted like a p-value for ratio
+\item{\code{second_estimate_is_p}}{If \code{TRUE} and the \code{estimates} not \code{NULL} then the
+second element of \code{estimates} is interpreted like a p-value for ratio
 rather than a CI.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The `Exposure` object.
+The \code{Exposure} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -413,7 +413,7 @@ Print the simulation parameters.
 }
 
 \subsection{Returns}{
-The `Exposure` object.
+The \code{Exposure} object.
 }
 }
 \if{html}{\out{<hr>}}

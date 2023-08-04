@@ -538,7 +538,7 @@ Simulation <-
             set_init_prvl(sp, self$design)
         })
 
-        scenario_fn(sp) # apply simple scenario
+        scenario_fn_primary_prevention(sp) # apply primary pevention scenario
 
         lapply(self$diseases, function(x) {
           x$set_rr(sp, self$design)$
@@ -546,6 +546,8 @@ Simulation <-
             set_dgns_prb(sp, self$design)$
             set_mrtl_prb(sp, self$design)
         })
+
+        scenario_fn_secondary_prevention(sp) # apply secondary pevention scenario
 
         # ds <- copy(self$diseases) # Necessary for parallelisation
         # lapply(self$diseases, function(x) {
