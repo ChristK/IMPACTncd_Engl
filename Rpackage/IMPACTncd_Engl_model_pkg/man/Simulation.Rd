@@ -16,6 +16,8 @@ To be completed...
 
 \item{\code{diseases}}{A list of Disease objects.}
 
+\item{\code{RR}}{A list of RR for the simulated exposures.}
+
 \item{\code{scenarios}}{A list of scenario objects.}
 }
 \if{html}{\out{</div>}}
