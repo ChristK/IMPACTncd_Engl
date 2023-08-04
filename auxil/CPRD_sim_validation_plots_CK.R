@@ -33,13 +33,20 @@ if (exists("IMPACTncd")) {
 } else stop()
 
 dsnm <- dsnm[!dsnm %in% c("dm", "ctdra", "cancer", "cms1st_cont", "nonmodelled")]
+dsnm <- c(dsnm, "cmsmm0", "cmsmm1.5", "cmsmm2")
 if (!dir.exists(out_pth)) dir.create(out_pth, recursive = TRUE)
 # mdl_rslts_pth <- "past_results/Model_results_13-01-23_new_alcpr_def/tables/"
 # out_pth <- "past_results/Model_results_13-01-23_new_alcpr_def//plots/validation/"
 
 # Setting the plot settings
-theme_set(new = theme_economist())
-theme_update(axis.text.x = element_text(size = 8), plot.title = element_text(hjust = 0.5))
+theme_set(new = theme_economist_white(gray_bg = FALSE))
+theme_update(axis.text = element_text(size = 12),
+             axis.title = element_text(size = 12,
+                                       margin = margin(t = 10, r = 10, b = 10, l = 10)),
+             legend.position = "bottom",
+             legend.text=element_text(size=12),
+             #plot.title = element_text(hjust = 0.5),
+             )
 
 
 # European standardised population 2013 (esp) weights
@@ -97,6 +104,8 @@ tt <- grep("_ftlt_N$", names(cprdtab), value = TRUE)
 tt <- tt[order(match(tt, "all_ftlt_N"))]
 cprdtab[, nonmodelled_ftlt_N := Reduce(`-`, .SD), .SDcols = tt]
 
+out_pth <- "/mnt/alhead/UoL/CPRD2021/epi_models/tmp_plots/"
+
 # outstrata <- "year"
 # suffix <- "mrtl"
 validation_plot <- function(outstrata, suffix) {
@@ -131,6 +140,27 @@ validation_plot <- function(outstrata, suffix) {
   out_pth_plot <- paste0(out_pth, paste0(suffix, "/"), term2, "/")
   if (!dir.exists(out_pth_plot)) dir.create(out_pth_plot, recursive = TRUE)
 
+#  out_pth_plot <- "/mnt/alhead/UoL/CPRD2021/epi_models/structure_plots/"
+
+  plotmod <- function(mydt){
+    ggplot(mydt, aes(
+      x = year,
+      y = .data[[Y]],
+      ymin = .data[[Ymin]],
+      ymax = .data[[Ymax]],
+      col = Type,
+      group = Type ))  +
+      geom_point(size = 1) +
+      geom_ribbon(fill = NA, linetype=2, show.legend = FALSE, size = 1) +
+      geom_line(linewidth = 1) +
+      scale_x_continuous(name = "Year") +
+      scale_y_continuous(name = term0, labels = scales::percent) +
+      expand_limits(y = 0) +
+      # theme(legend.position="bottom", legend.text=element_text(size=12)) +
+      scale_color_brewer(palette = "Set1")
+    }
+
+
   # Plots for
   if (suffix == "mrtl") {
     onsmrtl <- fread("./inputs/mortality/lt.csv")[between(year, 2002, 2043)]
@@ -151,27 +181,12 @@ validation_plot <- function(outstrata, suffix) {
     t1 <- rbind(tt, onsmrtl)
 
     # TODO avoid replication of plotting code
-      ggplot(t1, aes(
-        x = year,
-        y = .data[[Y]],
-        ymin = .data[[Ymin]],
-        ymax = .data[[Ymax]],
-        col = Type, group = Type
-      )) +
-        geom_point(size = 0.5) +
-        geom_ribbon(fill = NA) +
-        geom_line(linetype = "dotdash") +
-        scale_x_continuous(name = "Year") +
-        scale_y_continuous(name = term0, labels = scales::percent) +
-        ggtitle(paste0("All-cause mortality",  "\n", term4)) +
-        expand_limits(y = 0) #+
-      # scale_colour_brewer(type = "qual")
+    plotmod(t1)
 
 
     ggsave(
       filename = paste0(out_pth_plot, "All-cause_", suffix, ".png"),
-      scale = 1.5
-    )
+      width = 8, height = 8, scale = 0.75, dpi = 600)
   } else {
 
     if (Sys.info()["sysname"] == "Windows") {
@@ -203,35 +218,33 @@ validation_plot <- function(outstrata, suffix) {
 
       t1 <- tt[disease == dp, .SD,
                .SDcols = c(outstrata, "Type", Y, Ymin, Ymax)]
+
+      #CMS Incidence starts at 0 so removing for 1st year
+      if (suffix == "incd" && i %like% "cms") {
+        t1 <- t1[year != 2013]
+      }
+
       if (suffix == "ftlt" && i != "nonmodelled") {
         t2 <- cprdtab[, .("____y" = sum(get(dp2) * wt_esp) / sum(get(paste0(i, "_prvl_N")) * wt_esp)), keyby = outstrata]
       } else {
         t2 <- cprdtab[, .("____y" = sum(get(dp2) * wt_esp) / sum(popsize_wtd)), keyby = outstrata]
       }
+      #CMS Incidence starts at 0 so removing for 1st year
+      if (suffix == "incd" && i %like% "cms") {
+        t2 <- t2[year != 2008]
+      }
       t2[, c(Ymin, Ymax, "Type") := .(`____y`, `____y`, "Observed")]
       setnames(t2, "____y", Y)
       t1 <- rbind(t1, t2)
 
-      ggplot(t1, aes(
-          x = year,
-          y = .data[[Y]],
-          ymin = .data[[Ymin]],
-          ymax = .data[[Ymax]],
-          col = Type, group = Type
-        )) +
-          geom_point(size = 0.5) +
-          geom_ribbon(fill = NA) +
-          geom_line(linetype = "dotdash") +
-          scale_x_continuous(name = "Year") +
-          scale_y_continuous(name = term0, labels = scales::percent) +
-          ggtitle(paste0(term0, " of ", i, "\n", term4)) +
-          expand_limits(y = 0) #+
+
+      plotmod(t1) #+
+
         # scale_colour_brewer(type = "qual")
 
       ggsave(
         filename = paste0(out_pth_plot, suffix, "_", i, ".png"),
-        scale = 1.5
-      )
+        width = 8, height = 8, scale = 0.75, dpi = 600)
 
       NULL
     }
@@ -241,6 +254,7 @@ validation_plot <- function(outstrata, suffix) {
 
 validation_plot("year", "prvl")
 validation_plot("year", "incd")
+dsnm <- dsnm[!dsnm %in% c("cmsmm0", "cmsmm1.5", "cmsmm2")] #don't have mortality for cms scores
 validation_plot("year", "ftlt")
 validation_plot("year", "mrtl")
 
