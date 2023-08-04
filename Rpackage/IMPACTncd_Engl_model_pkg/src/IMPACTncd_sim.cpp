@@ -601,7 +601,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         // diagnosis & multimorbidity --------------------------------
         rn1 = runif_impl();
 
-        if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].dgns.type == "Type0")
+        if (dsmeta[j].incd.type != "Universal" && dsmeta[j].incd.prvl(i) > 0 && dsmeta[j].dgns.type == "Type0")
         {
           for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].dgns.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
@@ -611,7 +611,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
             }
           }
         }
-        else if (dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].dgns.type == "Type1") // enter branch only for prevalent cases
+        else if (dsmeta[j].incd.type != "Universal" && dsmeta[j].incd.prvl[i] > 0 && dsmeta[j].dgns.type == "Type1") // enter branch only for prevalent cases
         {
           if (dsmeta[j].dgns.prvl[i - 1] == 0 && rn1 <= dsmeta[j].dgns.prbl1[i])
           {
