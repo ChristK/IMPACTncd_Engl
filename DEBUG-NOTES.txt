@@ -1,0 +1,64 @@
+= CALL STACK DEBUG INFORMATION - COMPILATION 
+
+To get call stacks in error messages, simcpp() must be compiled with the -O0 and -ggdb3 debug flags:
+
+-O0: the default g++ optimisation level, gives debug information and reduced compile time. Higher optimisation levels try to improve performance at the cost of debug abilities and compile time.
+
+-ggdb3: gives debug information with line numbers, and also considers local variables.
+
+However, when compiling packages, R sets an -O2 higher optimisation flag in CXXFLAGS by default (in RHOME/etc/Makeconf, e.g. /usr/lib/R/etc/Makeconf):
+
+CXXFLAGS = -g -O2 ...
+...
+ALL_CXXFLAGS =  $(PKG_CXXFLAGS) $(CXXPICFLAGS) $(SHLIB_CXXFLAGS) $(CXXFLAGS)
+
+Flags set in PKG_CXXFLAGS for a specific package [1] appear to the *left* of CXXFLAGS. The g++ compiler takes the right-most optimisation flag over any others, so the -O0 optimisation flag is disabled. This could mean that some nested functions are optimised-out, so not appearing in the call stack and making debugging more difficult. *Currently* with the -O2 and -ggdb3 flags, simcpp() shows line numbers for the important functions, but functions may be optimised-out after future work. 
+
+To get line numbers for all call stack levels, set the following flags in the package's Makevars file [1]:
+	PKG_CXXFLAGS= -O0 -ggdb3
+	
+Optionally, to ensure that package functions are not optimised-out, change the flag order in your R user-specific compiler config file (in ~/.R/Makevars):
+	
+ALL_CXXFLAGS =  $(CXXPICFLAGS) $(SHLIB_CXXFLAGS) $(CXXFLAGS) $(PKG_CXXFLAGS)
+
+After making these changes, the R package must be rebuilt, e.g. as follows:
+
+	remotes::install_local("Rpackage/IMPACTncd_Japan_model_pkg/",force=TRUE,upgrade="never")
+
+= CALL STACK DEBUG INFORMATION 
+
+After compilation as above, call stacks won't be given for all error cases, as they must be explicitly added to error messages by the code which detects and throws the error. Vector out of bounds errors show call stacks for all code which uses the VectElem() wrapper function, e.g. as follows:
+
+Error: IMPACTncd_sim.cpp: Index out of bounds: [index=10; extent=0].
+/home/pp0u8134/R/x86_64-pc-linux-gnu-library/4.2/IMPACTncdJapan/libs/IMPACTncdJapan.so(_Z13GetStackTraceB5cxx11v+0x5c) [0x7fb79586255e]
+/home/pp0u8134/R/x86_64-pc-linux-gnu-library/4.2/IMPACTncdJapan/libs/IMPACTncdJapan.so(_Z8VectElemRN4Rcpp6VectorILi13ENS_15PreserveStorageEEEi+0xca) [0x7fb795862811]
+/home/pp0u8134/R/x86_64-pc-linux-gnu-library/4.2/IMPACTncdJapan/libs/IMPACTncdJapan.so(_Z6simcppN4Rcpp14DataFrame_ImplINS_15PreserveStorageEEENS_6VectorILi19ES1_EEi+0x2327) [0x7fb7958684ca]
+/home/pp0u8134/R/x86_64-pc-linux-gnu-library/4.2/IMPACTncdJapan/libs/IMPACTncdJapan.so(_IMPACTncdJapan_simcpp+0x15a) [0x7fb795883a1c]
+/usr/lib/R/lib/libR.so(+0xfb29e) [0x7fb8eeb2a29e]
+/usr/lib/R/lib/libR.so(+0xfb84d) [0x7fb8eeb2a84d]
+/usr/lib/R/lib/libR.so(+0x138255) [0x7fb8eeb67255]
+/usr/lib/R/lib/libR.so(Rf_eval+0x180) [0x7fb8eeb81cf0]
+/usr/lib/R/lib/libR.so(+0x154d86) [0x7fb8eeb83d86]
+/usr/lib/R/lib/libR.so(Rf_applyClosure+0x1a5) [0
+Execution halted
+
+The first line shows the error message. The subsequent lines are the call stack, each has the following format:
+
+<library>(<functionName>+<offset>) [<address>]
+
+In these, the string in the round brackets is the important part. Note above the compiled <library> package location: /home/pp0u8134/R/x86_64-pc-linux-gnu-library/4.2/IMPACTncdJapan/libs/IMPACTncdJapan.so. There are two different cases:
+
+1. <functionName>+<offset>: e.g. (_Z13GetStackTraceB5cxx11v+0x5c). Interpret with gdb:
+	gdb -nh -batch -ex 'info line *(<functionName+offset>)' <libraryName.so>
+	e.g. gdb -nh -batch -ex 'info line *(_Z13GetStackTraceB5cxx11v+0x5c)' /home/pp0u8134/R/x86_64-pc-linux-gnu-library/4.2/IMPACTncdJapan/libs/IMPACTncdJapan.so
+	 > Line 110 of "IMPACTncd_sim.cpp" starts at address 0x5454a <_Z13GetStackTraceB5cxx11v+72> and ends at 0x54564 <_Z13GetStackTraceB5cxx11v+98>.
+		
+2. just offset: +<offset>, e.g. (+0xfb29e). Interpret with addr2line:
+	addr2line -C -p -f -e <libraryName.so> <offset>
+	e.g. addr2line -C -p -f -e /usr/lib/R/lib/libR.so +0xfb29e
+	 > Rf_NewFrameConfirm at ??:?
+		
+The important part of (1) above is 'Line 110', which reveals the line involved in the error. Line numbers are only available for libraries compiled with suitable debug information (e.g. -ggdb3 above); notice no line number is given in (2) above. Subsequently, when errors arise, examining each line of the call stack significantly benefits error investigations.
+
+[1] e.g. in Rpackage/IMPACTncd_Japan_model_pkg/src/Makevars
+
