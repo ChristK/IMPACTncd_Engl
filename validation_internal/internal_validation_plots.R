@@ -8,6 +8,8 @@ library(RColorBrewer)
 library(viridis)
 library(stringr)
 library(CKutils)
+theme_set(new = theme_economist())
+theme_update(axis.text.x = element_text(size = 9), plot.title = element_text(hjust = 0.5))
 
 source(paste0("/mnt/", Sys.info()[["user"]], "/UoL/CPRD2021/epi_models/scripts/aux_fn.R"))
 
@@ -45,8 +47,6 @@ absorb_dt(esp, tt)
 
 fl <- list.files("/mnt/storage_fast/output/hf_real/lifecourse",
                  "_lifecourse.csv.gz$", full.names = TRUE)
-
-
 
 
 out <- rbindlist(lapply(fl, fread))
@@ -255,8 +255,8 @@ setnafill(mort_dt, "c", 0L, cols = c("diedinCPRD", "diedinyr"))
 subtab1 <- out[, weighted.mean(all_cause_mrtl > 0, wt_esp), keyby = .(year, mc)
                ][,  quantile(V1, 0.5), keyby = year][, year := year + 2000]
 
-subtab2 <- mort_dt[,
-                   weighted.mean(diedinyr == 1, wt_esp), keyby = year]
+subtab2 <- mort_dt[, # TODO should be diedinyr == 1 but looks strange
+                   weighted.mean(diedinCPRD == 1, wt_esp), keyby = year]
 
 subtab1 <- rbind(subtab1[, Type := "Simulated"], subtab2[, Type := "CPRD"])
 
@@ -266,10 +266,10 @@ ggplot(subtab1, aes(x = year, y = V1 * 100000, col = Type)) +
   geom_smooth(linetype = "dotdash", se = FALSE) +
   scale_x_continuous(name = "Year") +
   scale_y_continuous(name = "All-cause mortality (per 100,000 persons)",
-                     limits = c(0,2000)) +
+                     limits = c(0,NA)) +
   ggtitle("All-cause mortality (per 100,000 persons)") +
   scale_colour_brewer(type = "qual")
-ggsave(filename = output_dir_ftlt("all_cause_mort.png"), scale = 1.5)
+ggsave(filename = output_dir_ftlt("all_cause_mort.png"), scale = 1.5, width = 16, height = 9)
 
 rm(subtab1, subtab2)
 

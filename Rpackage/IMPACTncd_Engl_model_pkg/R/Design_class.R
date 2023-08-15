@@ -136,7 +136,7 @@ Design <-
           }
         }
         g <- make_graph(out, directed = TRUE)
-        stopifnot(is_dag(g))
+        # stopifnot(is_dag(g)) # Removed for diseases depend on diseases
         # get all cycles in the graph
         Cycles = NULL
         for(v1 in V(g)) {

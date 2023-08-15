@@ -25,6 +25,7 @@ To be completed...
 \itemize{
 \item \href{#method-Simulation-new}{\code{Simulation$new()}}
 \item \href{#method-Simulation-run}{\code{Simulation$run()}}
+\item \href{#method-Simulation-export_summaries}{\code{Simulation$export_summaries()}}
 \item \href{#method-Simulation-get_causal_structure}{\code{Simulation$get_causal_structure()}}
 \item \href{#method-Simulation-update_design}{\code{Simulation$update_design()}}
 \item \href{#method-Simulation-del_outputs}{\code{Simulation$del_outputs()}}
@@ -61,7 +62,7 @@ A new `Simulation` object.
 \subsection{Method \code{run()}}{
 Runs a simulation
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$run(mc, multicore = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$run(mc, multicore = TRUE, scenario_nam)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -70,6 +71,28 @@ Runs a simulation
 \item{\code{mc}}{A positive sequential integer vector with the Monte Carlo
 iterations of synthetic population to simulate.}
 
+\item{\code{multicore}}{If TRUE run the simulation in parallel.}
+
+\item{\code{scenario_nam}}{A string for the scenario name (i.e. sc1)}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-export_summaries"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-export_summaries}{}}}
+\subsection{Method \code{export_summaries()}}{
+Process the lifecourse files
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$export_summaries(multicore = TRUE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
 \item{\code{multicore}}{If TRUE run the simulation in parallel.}
 }
 \if{html}{\out{</div>}}
