@@ -22,7 +22,7 @@
 # https://github.com/Rdatatable/data.table/issues/1967
 
 cat("Initialising IMPACTncd_Engl model...\n\n")
-if (interactive() && !nzchar(system.file(package = "CKutils"))) {
+if (!nzchar(system.file(package = "CKutils"))) {
   if (!nzchar(system.file(package = "remotes"))) install.packages("remotes")
   remotes::install_github("ChristK/CKutils", force = TRUE, upgrade = "never")
 }
@@ -30,110 +30,61 @@ if (interactive() && !nzchar(system.file(package = "CKutils"))) {
 library(CKutils)
 options(rgl.useNULL = TRUE)  # suppress error by demography in rstudio server
 options(future.fork.enable = TRUE) # TODO remove for production
+options(future.globals.maxSize = +Inf)
 options(future.rng.onMisuse = "ignore") # Remove false warning
 options(datatable.verbose = FALSE)
 options(datatable.showProgress = FALSE)
 
-dependencies(yaml::read_yaml("./dependencies.yaml"))
+CKutils::dependencies(yaml::read_yaml("./dependencies.yaml")) # install missing packages
 
-if (interactive()) {
-  snfile <- "./Rpackage/.IMPACTncd_Engl_model_pkg_snapshot.qs"
-  if (file.exists(snfile)) snapshot <- changedFiles(qread(snfile))
-
-
-  if (!nzchar(system.file(package = "IMPACTncdEngl")) ||
-      !file.exists(snfile) || any(nzchar(snapshot$added),
-        nzchar(snapshot$deleted),
-        nzchar(snapshot$changed))) {
-    if (!nzchar(system.file(package = "remotes")))
-      install.packages("remotes")
-    if (nzchar(system.file(package = "roxygen2")))
-      roxygen2::roxygenise("./Rpackage/IMPACTncd_Engl_model_pkg/", clean = TRUE)
-    detach_package <- function(pkg, character.only = FALSE)
-    {
-      if(!character.only)
-      {
-        pkg <- deparse(substitute(pkg))
-      }
-      search_item <- paste("package", pkg, sep = ":")
-      while(search_item %in% search())
-      {
-        detach(search_item, unload = TRUE, character.only = TRUE)
-      }
-    }
-    detach_package(IMPACTncdEngl)
-    file.remove(list.files("./Rpackage/IMPACTncd_Engl_model_pkg/", pattern = ".o$|.dll&", recursive = TRUE, full.names = TRUE))
-    remotes::install_local("./Rpackage/IMPACTncd_Engl_model_pkg/",
-      force = TRUE,
-      upgrade = "never")
-
-    if (file.exists(snfile)) file.remove(snfile)
-    qsave(
-      fileSnapshot(
-        "./Rpackage/IMPACTncd_Engl_model_pkg/",
-        timestamp = NULL,
-        md5sum = TRUE,
-        recursive = TRUE
-      ),
-      snfile
-    )
-  }
+#' @description Detach library package.
+detach_package<- function(pkg, character.only = FALSE)
+{
+	if(!character.only) pkg <- deparse(substitute(pkg))
+	search_item <- paste("package", pkg, sep = ":")
+	while(search_item %in% search()) 
+	{
+		detach(search_item, unload = TRUE, character.only = TRUE)
+	}
 }
+
+#' @description Re/install the IMPACTncd_Engl package from local directory.
+#' @param sIMPACTncdPackageDirPath string, IMPACTncd_Engl package directory path.
+InstallIMPACTncdPackage<- function(sIMPACTncdPackageDirPath)
+{
+	if(!nzchar(system.file(package = "remotes")))install.packages("remotes")
+	if(nzchar(system.file(package = "roxygen2")))
+		roxygen2::roxygenise(sIMPACTncdPackageDirPath, clean = TRUE) # update package exports (and docs) if necessary
+	detach_package(IMPACTncdEngl)
+	
+	# ensure full install by removing intermediate files
+	file.remove(list.files(sIMPACTncdPackageDirPath,
+		pattern=".o$|.dll&|.so&", recursive=TRUE, full.names=TRUE))
+	remotes::install_local(sIMPACTncdPackageDirPath,force=TRUE,upgrade="never")
+}
+
+#' @description Re/install the IMPACTncd_Engl package if not installed or if local package files have changed.
+InstallIMPACTncdPackageOnChange<- function()
+{
+	# load previously saved snapshot of package files
+	sIMPACTncdPackageSnapshotFilePath<- "./Rpackage/.IMPACTncd_Engl_model_pkg_snapshot.qs"
+	IMPACTncdPackageSnapshot<-NULL
+	if(file.exists(sIMPACTncdPackageSnapshotFilePath))
+		IMPACTncdPackageSnapshot<- changedFiles(qread(sIMPACTncdPackageSnapshotFilePath))
+		
+	if(!nzchar(system.file(package="IMPACTncdEngl")) || is.null(IMPACTncdPackageSnapshot) || 
+		any( nzchar(IMPACTncdPackageSnapshot$added), nzchar(IMPACTncdPackageSnapshot$deleted), 
+			nzchar(IMPACTncdPackageSnapshot$changed) ) )
+	{
+		# re/install IMPACTncd_Engl package and update snapshot
+		sIMPACTncdPackageDirPath<- "./Rpackage/IMPACTncd_Engl_model_pkg/"
+		InstallIMPACTncdPackage(sIMPACTncdPackageDirPath)
+		if(!is.null(IMPACTncdPackageSnapshot))file.remove(sIMPACTncdPackageSnapshotFilePath)
+		IMPACTncdPackageSnapshot<- fileSnapshot(sIMPACTncdPackageDirPath,timestamp=NULL,md5sum=TRUE,recursive=TRUE)
+		qsave(IMPACTncdPackageSnapshot,sIMPACTncdPackageSnapshotFilePath)
+	}
+}
+
+#if(interactive())
+InstallIMPACTncdPackageOnChange()
 library(IMPACTncdEngl)
-
-
-# registerDoFuture()
-# plan(multicore, workers = design$sim_prm$clusternumber)
-
-
-
-# run_sim <- function(mc_, diseases, design) {
-#   sp <- SynthPop$new(mc_, design)
-#   lapply(diseases, function(x) {
-#     x$gen_parf(sp, design)$
-#       set_init_prvl(sp, design)$
-#       set_rr(sp, design)$
-#       set_incd_prb(sp, design)$
-#       set_dgns_prb(sp, design)$
-#       set_mrtl_prb(sp, design)
-#   })
-#   l <- mk_scenario_init2("", diseases, sp, design)
-#   simcpp(sp$pop, l, sp$mc)
-#
-#   sp$update_pop_weights()
-#   nam <- c("mc", "pid", "year", "sex", "dimd", "ethnicity", "sha", "wt", grep("_prvl$|_mrtl$", names(sp$pop), value = TRUE))
-#   sp$pop[, mc := sp$mc_aggr]
-#   fwrite_safe(sp$pop[all_cause_mrtl >= 0L, ..nam],
-#               file.path(design$sim_prm$output_dir, "lifecourse", paste0(sp$mc_aggr, "_lifecourse.csv")))
-# }
-# lapply(2, run_sim, diseases = diseases, design = design)
-
-# future_lapply(1:100, run_sim, diseases = diseases, design = design, future.seed = 32168731L)
-
-# NOTE future and mclapply do not work here for some reason
-# if (Sys.info()["sysname"] == "Windows") {
-#   cl <-
-#     makeCluster(design$sim_prm$clusternumber) # used for clustering. Windows compatible
-#   registerDoParallel(cl)
-# } else {
-#   registerDoParallel(design$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
-# }
-# xps_dt <- foreach(
-#   mc_iter = 1:100,
-#   .inorder = FALSE,
-#   .verbose = design$sim_prm$logs,
-#   .packages = c(
-#     "R6",
-#     "gamlss.dist",
-#     "dqrng",
-#     "CKutils",
-#     "IMPACTncdEngl",
-#     "fst",
-#     "data.table"
-#   ),
-#   .export = NULL,
-#   .noexport = NULL # c("time_mark")
-# ) %dopar% {
-#   run_sim(mc = mc_iter, diseases = diseases, design = design)
-# }
-# if (exists("cl")) stopCluster(cl)

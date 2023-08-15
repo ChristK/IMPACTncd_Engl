@@ -31,9 +31,8 @@
 # those already in the file
 #' @export
 fwrite_safe <- function(x,
-                        file,
+                        file = "",
                         append = TRUE,
-                        threat_safe = append,
                         ...) {
   if (append) {
     if (file.exists(file)) {
@@ -45,20 +44,39 @@ fwrite_safe <- function(x,
       setcolorder(x, col_names_disk)
     }
   }
-
-  # create threat-safe mechanism
-  flock <- paste0(file, ".lock")
-
-
-  while (file.exists(flock)) {
-    Sys.sleep(runif(1))
-  }
-
-    file.create(flock)
-    fwrite(x, file, append, ...)
-    on.exit(if (file.exists(flock)) file.remove(flock))
-
+  fwrite(x, file, append, ...)
 }
+
+# NOTE implementation below suffers by race conditions although it looks safer.
+# fwrite_safe <- function(x,
+#                         file,
+#                         append = TRUE,
+#                         threat_safe = append,
+#                         ...) {
+#   if (append) {
+#     if (file.exists(file)) {
+#       col_names_disk <- names(fread(file, nrows = 0))
+#       col_names_file <- names(x)
+#       col_names <- outersect(col_names_disk, col_names_file)
+#       if (length(col_names) > 0)
+#         x[, (col_names) := NA]
+#       setcolorder(x, col_names_disk)
+#     }
+#   }
+#
+#   # create threat-safe mechanism
+#   flock <- paste0(file, ".lock")
+#
+#
+#   while (file.exists(flock)) {
+#     Sys.sleep(runif(1))
+#   }
+#
+#     file.create(flock)
+#     fwrite(x, file, append, ...)
+#     on.exit(if (file.exists(flock)) file.remove(flock))
+#
+# }
 
 
 #' @export

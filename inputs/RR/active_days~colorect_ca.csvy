@@ -1,6 +1,6 @@
 ---
 xps_name: active_days
-outcome: colorect_ca
+outcome: colorectal_ca
 lag: 9
 distribution: lognormal
 source: WHO | Comparative Quantification of Health Risks, Table 10.22 (with adjustment

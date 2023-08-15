@@ -1,59 +1,52 @@
-# Disease Duration Models - distributions
+# Disease Duration Models - distributions: all ZINBI
 
-# CHD - ZANBI
+# CHD - ZINBI
 
-# Type 2 Diabetes Mellitus - ZANBI
+# Type 2 Diabetes Mellitus - ZINBI
 
-# Stroke - ZANBI
+# Stroke - ZINBI
 
-# "Anxiety_Depression" - ZANBI
+# "Anxiety_Depression - spell" - ZINBI
 
-# "Asthma" - ZANBI
+# "Asthma - spell" - ZINBI
 
-# "Atrial Fibrillation" - ZANBI         
+# "Atrial Fibrillation" - ZINBI         
 
-#"Chronic Kidney Disease" - ZANBI (for all sub-types as well)
+#"Chronic Kidney Disease" - ZINBI (ckd 345 altogether)
 
-# "COPD" - ZANBI                        
+# "COPD" - ZINBI                        
 
-# "Dementia" - ZANBI. NB: ZAPIG was no1, but slower? 3 parameters + q has a max value. BICs:
-    #   ZAPIG    ZANBI   
-    #  27395.48  27451.48                    
+# "Dementia" - ZINBI.                  
 
-#"Heart failure" - ZANBI       
+#"Heart failure" - ZINBI       
 
-# "Hypertension"     - ZANBI                
+# "Hypertension"     - ZINBI                
 
-# "Obesity"   - ZANBI       
+# "Obesity"   - ZINBI       
 
-# "Other cancers"    - ZANBI             
+# "Other cancers"    - ZINBI             
 
-#"Primary Malignancy_Breast" - ZANBI    
+#"Primary Malignancy_Breast" - ZINBI    
 
-# "Primary Malignancy_Colorectal" - ZANBI    
+# "Primary Malignancy_Colorectal" - ZINBI    
 
-#"Primary Malignancy_Lung" - ZANBI    
+#"Primary Malignancy_Lung" - ZINBI    
 
-# "Primary Malignancy_Prostate" - ZANBI    
+# "Primary Malignancy_Prostate" - ZINBI    
 
-# Alcohol problems - ZANBI. NB: ZAPIG was no1, but slower? 3 parameters + q has a max value. BICs:
+# Alcohol problems - ZINBI.
 
-# ZAPIG    ZANBI      
-# 227073.1 227896.2 
+#Connective tissue disorder  - ZINBI        
 
-# CLD - ZANBI    
+#Diabetes excl Type 2  - ZINBI           
 
-#Connective tissue disorder  - ZANBI        
+#Epilepsy  - ZINBI          
 
-#Diabetes excl Type 2  - ZANBI           
+#Hearing loss - ZINBI       
 
-#Epilepsy  - ZANBI          
+#IBS  - ZINBI           
 
-#Hearing loss - ZANBI       
+#Psychosis  - ZINBI           
 
-#IBS  - ZANBI           
-
-#Psychosis  - ZANBI           
-
-#Rheumatoid arthritis - ZANBI     
+#Rheumatoid arthritis - ZINBI     
 

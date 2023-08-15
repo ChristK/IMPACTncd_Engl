@@ -20,7 +20,7 @@
 ## Boston, MA 02110-1301 USA.
 
 
-setwd("/home/ckypridMy_ModelsIMPACTncd_Engl/")
+setwd("/home/ckyprid/My_Models/IMPACTncd_Engl/")
 univariate_analysis <- FALSE
 diagnostics         <- FALSE
 plots               <- TRUE
@@ -158,7 +158,12 @@ newdata <- rbindlist(newdata)
 setattr(newdata, "distribution", distr_nam)
 newdata[, age := age_int]
 newdata[, age_int := NULL]
-newdata[, smok_status := as.integer(as.character(smok_status))]
+
+kc <- sort(setdiff(names(newdata), c("mu", "sigma", "nu", "tau")))
+kc <- kc[order(match(kc, "year"))]
+setcolorder(newdata, kc)
+setkeyv(newdata, kc)
+
 write_fst(newdata, "./inputs/exposure_distributions/smok_dur_ex_table.fst", 100L)
 
 print("Table saved")

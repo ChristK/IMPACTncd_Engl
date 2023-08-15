@@ -38,6 +38,11 @@ vignettes/*.pdf
 # IMPACTncd specific
 /outputs/
 /secure_data/
+/past_results/
 DELETEme*
 *.png
 .history
+Thumbs.db
+Rplots.pdf
+.DS_Store
+IMPACTncd_Engl.code-workspace

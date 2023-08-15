@@ -1,0 +1,682 @@
+iteration_n: 15
+iteration_n_final: 100
+clusternumber: 15 # explicit parallelisation
+n_cpus: 1 # implicit parallelisation
+logs: no
+export_xps: no
+keep_lifecourse: yes
+export_PARF: no
+'n': 20000
+n_synthpop_aggregation: 20 # number of synthpops to aggregate together (avoid values above 20)
+# n_primers: 10 # better be some multiple of n_synthpop_aggregation
+init_year_long: 2013 # 2008 to 2020 but be careful with max lags
+sim_horizon_max: 2043 # population projections do not support longer horizon
+ageL: 30
+ageH: 99
+apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
+model_trends_in_redidual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
+maxlag: 10
+jumpiness: 1.0 # increase for more erratic jumps in trajectories
+smoking_relapse_limit: 3
+statin_adherence: 0.9
+bpmed_adherence: 0.9
+decision_aid: 0.8
+stochastic: yes
+kismet: yes
+simsmok_calibration: yes
+validation: no # or yes. Note, no yes/no
+max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
+iteration_n_max: 1000
+output_dir: /mnt/storage_fast/output/hf_real_mrtl_clbr
+synthpop_dir: /mnt/storage_fast/synthpop/hf_real
+# synthpop_dir: c:/synthpop
+diseases:
+- name: obesity
+  friendly_name: obesity
+  meta:
+    incidence:
+      type: 1 # deterministically depend on exposure(s)
+      aggregation: 'any' # Other option is "all". If more than one RF is case definition expects any or all to be present?. Irrelevant for 1 RF
+      can_recur: yes # cure depends on the relevant exposure(s)
+    diagnosis:
+      type: 1
+      probability: 1
+      mm_wt: 0.0
+    mortality:
+      type: ~ # NULL
+  notes: .na
+- name: htn
+  friendly_name: hypertension
+  meta:
+    incidence:
+      type: 2
+      can_recur: no # assumes no cure after incidence till death
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.08
+    mortality:
+      type: 1
+      code: 6
+  notes: .na
+- name: chd
+  friendly_name: CHD
+  meta:
+    incidence:
+      type: 3 # incidence depends on disease
+      influenced_by_disease_name:
+        - t2dm
+        - ra
+        - ckd
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.49
+    mortality:
+      type: 3
+      influenced_by_disease_name:
+        - t2dm
+        - ra
+        - ckd
+      code: 2
+  notes: .na
+- name: stroke
+  friendly_name: Stroke
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - t2dm
+        - af
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.8
+    mortality:
+      type: 3
+      influenced_by_disease_name:
+        - t2dm
+        - af
+      code: 3
+  notes: .na
+# - name: cvd
+#   friendly_name: CVD
+#   meta:
+#     incidence:
+#       type: 0
+#       influenced_by_disease_name:
+#         - chd
+#         - stroke
+#     diagnosis:
+#       type: 0
+#     mortality:
+#       type: ~
+#   notes: .na
+- name: t2dm
+  friendly_name: T2DM
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 1
+      code: 4
+  notes: .na
+- name: af
+  friendly_name: AF
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: chd
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 1.34
+    mortality:
+      type: 3
+      influenced_by_disease_name: chd
+      code: 5
+  notes: .na
+- name: copd
+  friendly_name: COPD
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 1.46
+    mortality:
+      type: 1
+      code: 7
+  notes: .na
+- name: dementia
+  friendly_name: dementia
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: t2dm
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 2.5
+    mortality:
+      type: 3
+      influenced_by_disease_name: t2dm
+      code: 8
+  notes: .na
+- name: asthma
+  friendly_name: asthma
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: asthma
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/asthma_dur_forward.yaml # used in c++ for future duration
+      mm_wt: 0.19
+    mortality:
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
+      code: 9
+  notes: .na
+- name: constipation
+  friendly_name: constipation
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - constipation
+        - helo
+        - alcpr
+        - prostate_ca
+        - ibs
+        - other_ca
+        - epilepsy
+        - dementia
+        - t2dm
+        - colorectal_ca
+        - stroke
+        - htn
+        - pain
+        - psychosis
+        - hf
+        - chd
+        - copd
+        - t1dm
+        - breast_ca
+        - lung_ca
+        - af
+        - andep
+        - asthma
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/constipation_dur_forward.yaml # used in c++ for future duration
+      mm_wt: 1.12
+    mortality:
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
+      code: 25
+  notes: .na
+- name: pain
+  friendly_name: chronic pain
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - pain
+        - ctd
+        - lung_ca
+        - ra
+        - prostate_ca
+        - breast_ca
+        - colorectal_ca
+        - ckd
+        - other_ca
+        - htn
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/pain_dur_forward.yaml # used in c++ for future duration
+      mm_wt: 0.92
+    mortality:
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
+      code: 26
+  notes: .na
+- name: ckd
+  friendly_name: ckd stage 3-5
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.53
+    mortality:
+      type: ~ # 1 NOTE GAMLSS model increases mrtl by time. This is an artefact. Disabling mrtl for now
+      # code: 10
+  notes: .na
+- name: lung_ca
+  friendly_name: lung cancer
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: t2dm
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 4 # Both cure and depend on disease(s)
+      influenced_by_disease_name: t2dm
+      cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
+      code: 11
+  notes: .na
+- name:  colorectal_ca
+  friendly_name: colorectal cancer
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: t2dm
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 4
+      influenced_by_disease_name: t2dm
+      cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
+      code: 12
+  notes: .na
+- name: prostate_ca
+  friendly_name: prostate cancer
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 2 # cure, not disease dependent
+      cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
+      code: 13
+  notes: .na
+- name: breast_ca
+  friendly_name: breast cancer
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: t2dm
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 4
+      influenced_by_disease_name: t2dm
+      cure: 10 # need to be >2 & <=10 and need to be aligned with the definition of cancer prevalence
+      code: 14
+  notes: .na
+- name: andep
+  friendly_name: anxiety & depression
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - andep
+        - prostate_ca
+        - pain
+        - other_ca
+        - lung_ca
+        - stroke
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI # used in init_prvl
+      duration_distr_forwards: ./inputs/disease_burden/andep_dur_forward.yaml # used in c++ for future duration
+      mm_wt: 0.5
+    mortality:
+      type: 2 # cure, not disease dependent (ignore self-dependence on asthma, NOTE that Cpp has an extra check to exclude multipliers with lag = 0 from affecting mortality)
+      cure: 0 # 0 has a special meaning. Cure time is stochastic based on duration_distr_forwards
+      code: 15
+  notes: .na
+- name: helo
+  friendly_name: hearing loss
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.09
+    mortality:
+      type: ~
+  notes: .na
+- name: ibs
+  friendly_name: irritable bowel syndrome
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.21
+    mortality:
+      type: ~
+  notes: .na
+- name: other_ca
+  friendly_name: other cancers
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - prostate_ca
+        - lung_ca
+        - breast_ca
+        - colorectal_ca
+      can_recur: yes
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 4
+      influenced_by_disease_name:
+        - prostate_ca
+        - lung_ca
+        - breast_ca
+        - colorectal_ca
+      cure: 10
+      code: 16
+  notes: .na
+- name: hf
+  friendly_name: heart failure
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - chd
+        - copd
+        - htn
+        - t2dm
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 1.18
+    mortality:
+      type: 3
+      influenced_by_disease_name:
+        - chd
+        - copd
+        - htn
+        - t2dm
+      code: 17
+  notes: .na
+# - name: cld
+#   friendly_name: chronic liver disease
+#   meta:
+#     incidence:
+#       type: 2
+#       can_recur: no
+#     diagnosis:
+#       type: 1
+#       probability: 1
+#       duration_distr_backwards: ZINBI
+#       mm_wt: 0.0
+#     mortality:
+#       type: 1
+#       code: 18
+#   notes: .na
+- name: ctd
+  friendly_name: connective tissue disorders
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 1
+      code: 19
+  notes: .na
+- name: epilepsy
+  friendly_name: epilepsy
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name: stroke
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.92
+    mortality:
+      type: 3
+      influenced_by_disease_name: stroke
+      code: 20
+  notes: .na
+- name: alcpr
+  friendly_name: alcohol problems
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.65
+    mortality:
+      type: 1
+      code: 21
+  notes: .na
+- name: psychosis
+  friendly_name: psychosis
+  meta:
+    incidence:
+      type: 3
+      influenced_by_disease_name:
+        - andep
+        - alcpr
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.64
+    mortality:
+      type: 3
+      influenced_by_disease_name:
+        - andep
+        - alcpr
+      code: 22
+  notes: .na
+- name: ra
+  friendly_name: rheumatoid arthritis
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 1
+      code: 23
+  notes: .na
+- name: t1dm
+  friendly_name: non-type-2 diabetes mellitus
+  meta:
+    incidence:
+      type: 2
+      can_recur: no
+    diagnosis:
+      type: 1
+      probability: 1
+      duration_distr_backwards: ZINBI
+      mm_wt: 0.0
+    mortality:
+      type: 1
+      code: 24
+  notes: .na
+- name: dm
+  friendly_name: Diabetes mellitus
+  meta:
+    incidence:
+      type: 0
+      influenced_by_disease_name:
+        - t1dm
+        - t2dm
+    diagnosis:
+      type: 0
+      mm_wt: 0.75
+    mortality:
+      type: ~
+  notes: .na
+- name: ctdra
+  friendly_name: Connective tissue disorders & rheumatoid arthritis
+  meta:
+    incidence:
+      type: 0
+      influenced_by_disease_name:
+        - ctd
+        - ra
+    diagnosis:
+      type: 0
+      mm_wt: 0.43
+    mortality:
+      type: ~
+  notes: .na
+- name: cancer
+  friendly_name: All cancers
+  meta:
+    incidence:
+      type: 0
+      influenced_by_disease_name:
+        - lung_ca
+        - breast_ca
+        - colorectal_ca
+        - prostate_ca
+        - other_ca
+    diagnosis:
+      type: 0
+      mm_wt: 1.53
+    mortality:
+      type: ~
+  notes: .na
+- name: nonmodelled
+  friendly_name: nonmodelled
+  meta:
+    incidence:
+      type: Universal
+    diagnosis:
+      type: ~ # NULL
+    mortality:
+      type: 3 # influenced by
+      influenced_by_disease_name:
+        - t2dm
+        - other_ca
+        - af
+        - epilepsy
+        - dementia
+        - constipation
+        - helo
+        - andep
+        - ibs
+        - pain
+        - hf
+        - t1dm
+        - ctd
+        - psychosis
+        - copd
+        - ckd
+        - lung_ca
+        - stroke
+      code: 1
+  notes: .na
+scenarios: ''
+cols_for_output:
+- pid # NEED TO be 1st (perhaps not anymore)
+- pid_mrk
+- year
+- mc
+- age
+- agegrp
+- sex
+- dimd
+- ethnicity
+- sha
+- wt
+- wt_esp
+strata_for_output:
+- scenario
+- year
+- agegrp
+- sex
+- dimd
+# - ethnicity
+# - sha
+exposures:
+- age
+- sex
+- dimd
+- active_days
+- fruit
+- veg
+- smok_status
+- smok_cig
+- ets
+- alcohol
+- bmi
+- sbp
+- tchol

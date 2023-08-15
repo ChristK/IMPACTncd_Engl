@@ -21,7 +21,7 @@
 
 
 
-setwd("/home/ckypridMy_ModelsIMPACTncd_Engl")
+setwd("/home/ckyprid/My_Models/IMPACTncd_Engl")
 
 # For ages 20 to 90
 # Only used to impute HSE_ts during HSE_ts correlation structure extraction
@@ -136,6 +136,12 @@ newdata <- CJ(year = 3:14, age = 20:90, sex = unique(dt$sex), qimd = unique(dt$q
 
 newdata[, (levels(dt$ethnicity)) := data.table(matrixStats::rowCumsums(predict(ethnicity_model, type = "p", newdata = .SD))), .SDcols = trms]
 # newdata[, c("other") := NULL]
+
+kc <- sort(setdiff(names(newdata), c("mu", "sigma", "nu", "tau")))
+kc <- kc[order(match(kc, "year"))]
+setcolorder(newdata, kc)
+setkeyv(newdata, kc)
+
 write_fst(newdata, "./inputs/exposure_distributions/ethnicity_table.fst", 100L)
 
 print("Table saved")
