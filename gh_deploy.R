@@ -1,15 +1,12 @@
 library(piggyback)
-tag <- "v0.0.2"
+library(data.table)
+
+tag <- "v0.0.3"
 repo <- "ChristK/IMPACTncd_Engl"
 
-if (interactive()) {
-  print("interactive")
-  pb_download(repo = repo, tag = tag, show_progress = TRUE)
-} else { # used with Rscript
-  # i.e. Rscript /root/IMPACTncd_Engl/gh_deploy.R "/root/IMPACTncd_Engl/"
-  args <- commandArgs(TRUE)
-  pb_download(dest = args, repo = repo, tag = tag, show_progress = FALSE)
-}
+args <- ifelse(interactive(), getwd(), commandArgs(TRUE))
+filindx <- fread(file.path(args, "/aux/filindx.csv"), key = "orig_file")
 
+pb_download(filindx$sanit_file, dest = file.path(args, filindx$rel_dir), repo = repo, tag = tag, overwrite = !interactive())
+file.rename(file.path(args, filindx$rel_dir, filindx$sanit_file), file.path(args, filindx$rel_dir, filindx$orig_file))
 
-#

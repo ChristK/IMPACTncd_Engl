@@ -361,7 +361,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         // reset flags for new simulants
         if (pid_mrk)
         {
-          dsmeta[j].incd.flag = false; // denotes that incd occurred
+          dsmeta[j].incd.flag = dsmeta[j].incd.prvl[i] > 0 ? true : false; // denotes that incd occurred
           dsmeta[j].mrtl.flag = false; // denotes cure
         }
 
@@ -460,7 +460,8 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         {
           for (int k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
-            if (VECT_ELEM(dsmeta[j].incd.influenced_by.disease_prvl[k],i - dsmeta[j].incd.influenced_by.lag[k]) > 0)
+            if (dsmeta[j].incd.influenced_by.lag[k] > 0 && VECT_ELEM(dsmeta[j].incd.influenced_by.disease_prvl[k],i - dsmeta[j].incd.influenced_by.lag[k]) > 0 || 
+					dsmeta[j].incd.influenced_by.lag[k] == 0 && dsmeta[j].incd.flag)
             {
               mltp *= VECT_ELEM(dsmeta[j].incd.influenced_by.mltp[k],i); // no lag here
             }

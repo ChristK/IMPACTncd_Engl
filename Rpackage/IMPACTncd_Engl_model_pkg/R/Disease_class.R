@@ -169,7 +169,7 @@ Disease <-
           if (file.exists(snfile)) file.remove(snfile)
           qsave(
             fileSnapshot(
-              private$parf_dir,
+              db,
               timestamp = NULL,
               md5sum = TRUE,
               recursive = FALSE,
@@ -272,6 +272,7 @@ Disease <-
           xps_dt <- foreach(
             mc_iter = seq(1, (popsize / 10L)),
             .inorder = FALSE,
+            .options.multicore = list(preschedule = FALSE),
             .verbose = design_$sim_prm$logs,
             .packages = c(
               "R6",
@@ -306,7 +307,7 @@ Disease <-
           # TODO implement automation of the logic above based on topological
           # ordering.
           # Generate diseases that act as exposures
-          for (xps in c("t2dm_prvl", "af_prvl")) {
+          for (xps in paste0(names(design_$sim_prm$diseases), "_prvl")) {
             if (xps %in% sapply(private$rr, `[[`, "name")) {
               lag <- private$rr[[paste0(xps, "~", self$name)]]$lag
               ans$pop[, year := year - lag]
@@ -322,7 +323,7 @@ Disease <-
           if (design_$sim_prm$logs) message("Saving parf cache.")
           qsave(ans, tmpfile)
         } # end tmpfile bypass
-        self$set_rr(ans, design_, forPARF = TRUE)
+        self$set_rr(ans, design_, forPARF = TRUE, ignore_selfreference = FALSE)
 
         nam <- grep("_rr$", names(ans$pop), value = TRUE)
         # risks <- ans$pop[, .SD, .SDcols = c("pid", "year", nam)]
@@ -553,7 +554,10 @@ Disease <-
           if (self$meta$incidence$type == 0L) {
             set(sp$pop, NULL, namprvl, 0L)
           } else if (self$meta$incidence$type == 1L) {
-            self$set_rr(sp, design_, forPARF = FALSE)
+            self$set_rr(sp,
+                        design_,
+                        forPARF = FALSE,
+                        ignore_selfreference = FALSE)
             riskcolnam <- grep("_rr$",
                                names(sp$get_risks(self$name)),
                                value = TRUE,
@@ -624,15 +628,25 @@ Disease <-
             # have better RF control post diagnosis. For that I will arbitrarily
             # assume that the risk for prevalence is half of that for incidence.
 
-            if (length(private$rr) > 0L && any(sp$pop[[namprvl]] > 0L)) {
+            if (length(private$rr) > 0L && any(sp$pop[[namprvl]] > 0L) &&
+                !(length(private$rr) == 1L &&
+                  identical(paste0(self$name, "_prvl~", self$name),
+                            names(private$rr))) # exclude self dependent diseases with no other RF
+                ) {
               # ncases is the number of prevalent cases expected in each stratum
-              sp$pop[year >= design_$sim_prm$init_year,
-                     ncases := sum(get(namprvl), na.rm = TRUE),
-                     by = eval(strata)]
+
+              tt <- sp$pop[year >= design_$sim_prm$init_year &
+                              get(namprvl) > 0L,
+                            .("ncases" = .N),  keyby = eval(strata)]
+              absorb_dt(sp$pop, tt) # Not lookup_dt here as tt not properly formated
+              setnafill(sp$pop, "c", fill = 0L, cols = "ncases")
               # Generate unique name using the relevant RR and lags
 
               # TODO below should apply only to strata with ncases > 0 for efficiency
-              self$set_rr(sp, design_, forPARF = TRUE, checkNAs = design_$sim_prm$logs)
+              # NOTE ignore_selfreference = TRUE as it is meaningless otherwise
+              self$set_rr(sp, design_, forPARF = TRUE,
+                          checkNAs = design_$sim_prm$logs,
+                          ignore_selfreference = TRUE)
 
               nam <- grep("_rr$", names(sp$pop), value = TRUE) # necessary because above forPARF = TRUE
 
@@ -693,10 +707,13 @@ Disease <-
       #'   for certain levels of exposure (i.e. for active days).
       #' @param forPARF Set TRUE when applied on the specialised forPARF
       #'   SynthPop
+      #' @param ignore_selfreference   If TRUE then the risk of diseases that
+      #'   depend on themselves is ignored (i.e. asthma).
       #' @return The invisible self for chaining.
 
       set_rr = function(sp, design_ = design,
-                        checkNAs = design_$sim_prm$logs, forPARF = FALSE) {
+                        checkNAs = design_$sim_prm$logs, forPARF = FALSE,
+                        ignore_selfreference = FALSE) {
         # For incd type 1 forPARF = TRUE is meaningless but gen_parf() skips
         # this type so we are good here.
 
@@ -708,8 +725,14 @@ Disease <-
           stop("Argument design_ needs to be a Design object.")
         }
 
-        lapply(private$rr, function(x)
-          x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF))
+
+        lapply(private$rr, function(x) {
+          if (!all(x$name == paste0(self$name, "_prvl"),
+                   x$outcome == self$name,
+                   ignore_selfreference)) {
+            x$xps_to_rr(sp, design_, checkNAs = checkNAs, forPARF = forPARF)
+          }
+        })
 
         if (!forPARF && length(private$rr) > 0) sp$store_risks(self$name)
 
@@ -1354,6 +1377,13 @@ Disease <-
                 "multiplier" = paste0(self$name, "_incd_", i, "_prvl_mltp"),
                 "lag" = private$rr[[paste0(i, "_prvl", "~", self$name)]]$
                   get_lag(fifelse(design_$sim_prm$stochastic, sp$mc_aggr, 0L)))
+
+            # special case for diseases influenced by themselves. In this case
+            # the lag will be set to 0L. In the C++ side this will be
+            # interpreted as ever had the diseases before and will use the
+            # .incd.flag instead of a specific lag.
+            if (identical(i, self$name))
+              influenced_by_incd[[paste0(i, "_prvl")]]$lag <- 0L
           } # end for loop over influenced_by_disease_name
           out[["incidence"]][["influenced_by"]] <- influenced_by_incd
         } # end if incidence type 3

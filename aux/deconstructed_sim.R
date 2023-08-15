@@ -27,8 +27,11 @@ diseases <- lapply(design$sim_prm$diseases, function(x) {
 names(diseases) <- sapply(design$sim_prm$diseases, `[[`, "name")
 
 mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
-    # scenario_suffix_for_pop <- paste0("_", scenario_name) # TODO get suffix from design
-    scenario_suffix_for_pop <- scenario_name
+    if (nzchar(scenario_name)) { # TODO get suffix from design
+        scenario_suffix_for_pop <- paste0("_", scenario_name)
+    } else {
+        scenario_suffix_for_pop <- scenario_name
+    }
     list(
         "exposures"          = design_$sim_prm$exposures,
         "scenarios"          = design_$sim_prm$scenarios, # to be generated programmatically
@@ -43,7 +46,8 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
         "cms_score"          = paste0("cms_score", scenario_suffix_for_pop),
         "cms_count"          = paste0("cms_count", scenario_suffix_for_pop),
         "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
-        "diseases"           = lapply(diseases_, function(x) x$to_cpp(sp, design_))
+        "diseases"           = lapply(diseases_, function(x)
+            x$to_cpp(sp, design_, scenario_suffix_for_pop))
     )
 }
 
@@ -53,6 +57,16 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
 # ll <- sim$gen_synthpop_demog(design)
 sp <- SynthPop$new(1L, design)
 
+# design_ <- design
+# diseases_ = diseases
+# popsize = 100
+# check = design_$sim_prm$logs
+# keep_intermediate_file = TRUE
+# self <- diseases$asthma$.__enclos_env__$self
+# private <- diseases$asthma$.__enclos_env__$private
+#
+# self <- RR$`asthma_prvl~asthma`$.__enclos_env__$self
+# private <- RR$`asthma_prvl~asthma`$.__enclos_env__$private
 
 # lapply(diseases, function(x) x$harmonise_epi_tables(sp))
 lapply(diseases, function(x) {
@@ -248,6 +262,13 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 # sp <- qread("./simulation/tmp.qs"); setDT(sp$pop)
 l <- mk_scenario_init2("", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
+
+
+sp$pop[, sum(asthma_prvl > 0), keyby = age][, plot(age, V1)]
+
+id <- sp$pop[asthma_prvl > 0, unique(pid)]
+sp$pop[pid %in% id, sum(asthma_prvl > 0), by = pid][, table(V1)]
+View(sp$pop[pid %in% id, .(as.character(pid), year, asthma_prvl)])
 
 
 disnam <- paste0(names(diseases), "_prvl")
