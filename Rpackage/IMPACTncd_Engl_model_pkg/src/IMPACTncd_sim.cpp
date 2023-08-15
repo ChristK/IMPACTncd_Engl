@@ -11,6 +11,9 @@
 #include <dqrng.h>
 #include <Rcpp.h>
 #include <execinfo.h> // backtrace, backtrace_symbols
+#include "NBI_distribution.h"
+#include "aux_functions.h"
+
 using namespace Rcpp;
 using namespace std;
 
@@ -51,11 +54,29 @@ namespace
   generator runif_impl = [] () {return uniform(*rng);};
 }
 
+// for disease influence
 struct infl
 {
   vector<IntegerVector> disease_prvl;
   vector<NumericVector> mltp;
   vector<int> lag;
+};
+
+// for parameters from GAMLSS models
+struct distr_prm_vr
+{
+  double intercept;
+  double log_age_coef;
+  NumericVector sex_coef;
+  NumericVector dimd_coef;
+};
+
+// for parameters from GAMLSS models
+struct duration_prm
+{
+  distr_prm_vr mu;
+  distr_prm_vr sigma;
+  distr_prm_vr nu;
 };
 
 struct disease_epi
@@ -65,6 +86,7 @@ struct disease_epi
   NumericVector prbl1; // for 1st year case fatality
   NumericVector prbl2; // for prevalent cases case fatality
   infl influenced_by;
+  duration_prm dur_forward;
   CharacterVector aggregate;
   double mm_wt;
   bool can_recur;
@@ -89,6 +111,8 @@ struct simul_meta
   IntegerVector pid;
   IntegerVector year;
   IntegerVector age;
+  IntegerVector sex; // 1 = men, 2 = women
+  IntegerVector dimd; // 1 = 1 most deprived
   IntegerVector dead;
   IntegerVector mm_count;
   NumericVector mm_score;
@@ -102,6 +126,8 @@ simul_meta get_simul_meta(const List l, DataFrame dt)
   out.pid = dt[as<string>(l["pids"])];
   out.year = dt[as<string>(l["years"])];
   out.age = dt[as<string>(l["ages"])];
+  out.sex = dt[as<string>(l["sexs"])];
+  out.dimd = dt[as<string>(l["dimds"])];
   out.dead = dt[as<string>(l["all_cause_mrtl"])];
   out.mm_count = dt[as<string>(l["cms_count"])];
   out.mm_score = dt[as<string>(l["cms_score"])];
@@ -232,6 +258,50 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
     if (dgns.containsElementNamed("diagnosed")) out.dgns.prvl  = dtSynthPop[as<string>(dgns["diagnosed"])];
     if (dgns.containsElementNamed("probability")) out.dgns.prbl1 = dtSynthPop[as<string>(dgns["probability"])];
 
+    if (dgns.containsElementNamed("duration_distr_forwards")) // an indirect feature of recurrence
+    {
+      List ib = dgns["duration_distr_forwards"];
+      List pr = ib["mu"];
+      out.dgns.dur_forward.mu.intercept = as<double>(pr["intercept"]);
+      out.dgns.dur_forward.mu.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.mu.sex_coef = as<NumericVector>(pr["sex"]);
+      out.dgns.dur_forward.mu.dimd_coef = as<NumericVector>(pr["dimd"]);
+
+      pr = ib["sigma"];
+      out.dgns.dur_forward.sigma.intercept = as<double>(pr["intercept"]);
+      out.dgns.dur_forward.sigma.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.sigma.sex_coef = as<NumericVector>(pr["sex"]);
+      out.dgns.dur_forward.sigma.dimd_coef = as<NumericVector>(pr["dimd"]);
+
+      pr = ib["nu"];
+      out.dgns.dur_forward.nu.intercept = as<double>(pr["intercept"]);
+      out.dgns.dur_forward.nu.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.nu.sex_coef = as<NumericVector>(pr["sex"]);
+      out.dgns.dur_forward.nu.dimd_coef = as<NumericVector>(pr["dimd"]);
+
+      out.dgns.flag = true; // denotes asthma-like disease
+    }
+    else
+    { // if duration forward doesn't exist
+      out.dgns.dur_forward.mu.intercept = 0.0;
+      out.dgns.dur_forward.mu.log_age_coef = 0.0;
+      out.dgns.dur_forward.mu.sex_coef = {0.0, 0.0};
+      out.dgns.dur_forward.mu.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+      out.dgns.dur_forward.sigma.intercept = 0.0;
+      out.dgns.dur_forward.sigma.log_age_coef = 0.0;
+      out.dgns.dur_forward.sigma.sex_coef ={0.0, 0.0};
+      out.dgns.dur_forward.sigma.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+      out.dgns.dur_forward.nu.intercept = 0.0;
+      out.dgns.dur_forward.nu.log_age_coef = 0.0;
+      out.dgns.dur_forward.nu.sex_coef = {0.0, 0.0};
+      out.dgns.dur_forward.nu.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+      out.dgns.flag = false;
+    }
+
+
     if (out.dgns.type == "Type0")
     {
       List ib = dgns["influenced_by"];
@@ -245,7 +315,7 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
       }
     }
 
-    out.dgns.flag = false;
+    out.dgns.cure = 0; // to hold the stochastic disease duration
   }
 
   // mortality
@@ -265,6 +335,7 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
       out.mrtl1flag = true;
     }
     if (mrtl.containsElementNamed("cure")) out.mrtl.cure = as<int>(mrtl["cure"]);
+    else out.mrtl.cure = -1; // NOTE 0 has special meaning for i.e. asthma
     if (mrtl.containsElementNamed("code")) out.mrtl.death_code = as<int>(mrtl["code"]);
 
     if (mrtl.containsElementNamed("influenced_by"))
@@ -290,6 +361,27 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
   return out;
 }
 
+int get_dur_forward (const int i, // represents the row
+                     const double& rn, // random number
+                     const disease_meta& ds,
+                     const simul_meta& sm)
+{
+  double mu = exp(ds.dgns.dur_forward.mu.intercept +
+                  ds.dgns.dur_forward.mu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.mu.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.mu.dimd_coef[sm.dimd[i] - 1]);
+  double sigma = exp(ds.dgns.dur_forward.sigma.intercept +
+                  ds.dgns.dur_forward.sigma.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.sigma.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.sigma.dimd_coef[sm.dimd[i] - 1]);
+  double nu = antilogit(ds.dgns.dur_forward.nu.intercept +
+                  ds.dgns.dur_forward.nu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.nu.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.nu.dimd_coef[sm.dimd[i] - 1]
+  );
+
+  return my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
+}
 
 //' @export
 // [[Rcpp::export]]
@@ -335,7 +427,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
     {
       // NOTE values of i - x are certainly inbound and belong to the same
       // individual as long as x <= max_lag
-      // NA_INTEGER == 0 is false
+      // NA_INTEGER == 0 returns false
 
       if (i>0 && meta.pid[i] == pid_buffer) // same simulant as the last row?
       {
@@ -357,21 +449,22 @@ void simcpp(DataFrame dt, const List l, const int mc) {
         // Generate RN irrespective of whether will be used. Crucial for
         // reproducibility and to remove stochastic noise between scenarios
         rn1 = runif_impl();
-
         // reset flags for new simulants
         if (pid_mrk)
         {
-          dsmeta[j].incd.flag = dsmeta[j].incd.prvl[i] > 0 ? true : false; // denotes that incd occurred
+          dsmeta[j].incd.flag = dsmeta[j].incd.prvl[i] > 0; // denotes that incd occurred
           dsmeta[j].mrtl.flag = false; // denotes cure
         }
 
 
-        // reset prvl if cure and this is not a new patient
+        // reset prvl if cure. Always false for new patient. No issue with init
+        // year as logic makes sense for diseases, even for asthma. The flag
+        // signifies cure that happened at some point in the previous year and
+        // reflects at the beginning of current year.
         if (dsmeta[j].mrtl.flag)
         {
-
-			VECT_ELEM(dsmeta[j].incd.prvl,i) = 0;
-          // VECT_ELEM(dsmeta[j].dgns.prvl,i) = 0;
+			 VECT_ELEM(dsmeta[j].incd.prvl,i) = 0;
+          VECT_ELEM(dsmeta[j].dgns.prvl,i) = 0;
           if ((dsmeta[j].dgns.type == "Type0" || dsmeta[j].dgns.type == "Type1") && dsmeta[j].dgns.mm_wt > 0.0 && VECT_ELEM(dsmeta[j].dgns.prvl,i - 1) > 0) {
 					meta.mm_score[i] -= dsmeta[j].dgns.mm_wt;
 					meta.mm_count[i]--;
@@ -456,10 +549,12 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           }
         } // end Type2
 
-        else if (dsmeta[j].incd.type == "Type3") // Don't need this type. Can be replaced by a flag to notify disease dependence
+        else if (dsmeta[j].incd.type == "Type3") // NOTE I don't need this type. Can be replaced by a flag to notify disease dependence
         {
           for (int k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
+            // if lag > 0 look back. For diseases depending on self, lag = 0 and
+            // that triggers the use of the .incd.flag
             if (dsmeta[j].incd.influenced_by.lag[k] > 0 && VECT_ELEM(dsmeta[j].incd.influenced_by.disease_prvl[k],i - dsmeta[j].incd.influenced_by.lag[k]) > 0 || 
 					dsmeta[j].incd.influenced_by.lag[k] == 0 && dsmeta[j].incd.flag)
             {
@@ -470,15 +565,37 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           if (dsmeta[j].incd.can_recur) // no need to check incd.flag
           {
             if (VECT_ELEM(dsmeta[j].incd.prvl,i - 1) == 0 && rn1 <= VECT_ELEM(dsmeta[j].incd.prbl1,i) * mltp)
-            {
+            { // if new disease case
 					VECT_ELEM(dsmeta[j].incd.prvl,i) = 1;
+              // dsmeta[j].dgns.cure holds the duration_prm for this spell
+              // NOTE dsmeta[j].incd.influenced_by.lag[k] == 0 identifies diseases like asthma
+              if (dsmeta[j].dgns.flag)  dsmeta[j].dgns.cure = 1 + get_dur_forward(i, runif_impl(), dsmeta[j], meta);
             }
 
-            if (dsmeta[j].mrtl.type == "Type2" || dsmeta[j].mrtl.type == "Type4")
+            // Below is the logic for diseases like asthma to cure prevalent
+            // cases in initial year. NOTE I don't add 1 to duration
+            // intentionally, to allow 0s.
+            if (dsmeta[j].dgns.flag &&
+                meta.year[i] == meta.init_year &&
+                dsmeta[j].incd.prvl[i] > 1 ) // >1 to exclude incident cases from above.
+            {
+              dsmeta[j].dgns.cure = get_dur_forward(i, runif_impl(), dsmeta[j], meta); // NOTE no 1 + ZANBI
+            }
+
+            // Logic to advance duration of prevalent cases by 1
+            if ((dsmeta[j].mrtl.type == "Type2" || dsmeta[j].mrtl.type == "Type4") &&
+                dsmeta[j].mrtl.cure > 0) // deterministic duration, i.e. for cancers
             {
               if (VECT_ELEM(dsmeta[j].incd.prvl,i - 1) > 0 &&
                   VECT_ELEM(dsmeta[j].incd.prvl,i - 1) < dsmeta[j].mrtl.cure)
 							VECT_ELEM(dsmeta[j].incd.prvl,i) = VECT_ELEM(dsmeta[j].incd.prvl,i - 1) + 1;
+            }
+            else if ((dsmeta[j].mrtl.type == "Type2" || dsmeta[j].mrtl.type == "Type4") &&
+                dsmeta[j].mrtl.cure == 0 && dsmeta[j].dgns.flag) // stochastic duration, i.e. for asthma
+            {
+              if (dsmeta[j].incd.prvl[i - 1] > 0 &&
+                  dsmeta[j].incd.prvl[i - 1] < dsmeta[j].dgns.cure)
+                dsmeta[j].incd.prvl[i] = dsmeta[j].incd.prvl[i - 1] + 1;
             }
             else
             {
@@ -540,7 +657,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           }
         }
 
-        if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 0 && dsmeta[j].dgns.type == "Type1") // enter branch only for prevalent cases
+        else if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 0 && dsmeta[j].dgns.type == "Type1") // enter branch only for prevalent cases
         {
           if (VECT_ELEM(dsmeta[j].dgns.prvl,i - 1) == 0 && rn1 <= VECT_ELEM(dsmeta[j].dgns.prbl1,i))
           {
@@ -568,26 +685,26 @@ void simcpp(DataFrame dt, const List l, const int mc) {
               if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
               if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
             }
-            else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
+            else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code); // only prevalent cases enter this branch
           }// End Type 1
 
 
-          // Type 2 mortality (cure, no disease dependency). Not compatible
-          // with universal incidence (would be meaningless as Type 2 mortality
-          // allows cure).
-          // NOTE cure with disease dependence is type 4
+          // Type 2 mortality (cure, no disease dependency). Not compatible with
+          // universal incidence (would be meaningless as Type 2 mortality
+          // allows cure). NOTE cure with disease dependence is type 4
           else if (dsmeta[j].mrtl.type == "Type2")
           {
-            if (VECT_ELEM(dsmeta[j].incd.prvl,i) < dsmeta[j].mrtl.cure) // Valid since not universal incidence
+            if (VECT_ELEM(dsmeta[j].incd.prvl,i) <= (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure : dsmeta[j].mrtl.cure)) // Valid since not universal incidence
             {
               if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
               {
                 if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
                 if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
               }
-              else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
+              else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code); // only prevalent cases enter this branch
             }
             else dsmeta[j].mrtl.flag = true; // if alive cure after defined period
+
           } // End Type 2 mortality
 
           // Type 3 mortality (no cure, disease dependency)
@@ -614,18 +731,20 @@ void simcpp(DataFrame dt, const List l, const int mc) {
             mltp = 1.0;
           } // End Type 3 mortality
 
-          // Type 4 mortality (cure, disease dependency). Note that universal incidence is impossible to be of type 4 because there is no cure.
+          // Type 4 mortality (cure, disease dependency). Note that universal
+          // incidence is impossible to be of type 4 because there is no cure.
           else if (dsmeta[j].mrtl.type == "Type4")
           {
             for (int k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
             {
-              if (dsmeta[j].mrtl.influenced_by.disease_prvl[k](i - dsmeta[j].mrtl.influenced_by.lag[k]) > 0)
+              if (dsmeta[j].incd.influenced_by.lag[k] > 0 && // to exclude conditions that depend on themselves, like asthma
+						VECT_ELEM(dsmeta[j].mrtl.influenced_by.disease_prvl[k],i - dsmeta[j].mrtl.influenced_by.lag[k]) > 0)
               {
                 mltp *= dsmeta[j].mrtl.influenced_by.mltp[k](i); // no lag here
               }
             }
 
-            if (VECT_ELEM(dsmeta[j].incd.prvl,i) < dsmeta[j].mrtl.cure) // Valid since not universal incidence
+            if (VECT_ELEM(dsmeta[j].incd.prvl,i) <= (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure : dsmeta[j].mrtl.cure)) // Valid since not universal incidence
             {
               if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
               {

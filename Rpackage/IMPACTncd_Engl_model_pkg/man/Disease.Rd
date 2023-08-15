@@ -186,8 +186,7 @@ Set disease incidence probability in a new col in sp$pop.
   sp,
   design_ = design,
   checkNAs = design_$sim_prm$logs,
-  forPARF = FALSE,
-  ignore_selfreference = FALSE
+  forPARF = FALSE
 )}\if{html}{\out{</div>}}
 }
 
@@ -204,9 +203,6 @@ for certain levels of exposure (i.e. for active days).}
 
 \item{\code{forPARF}}{Set TRUE when applied on the specialised forPARF
 SynthPop}
-
-\item{\code{ignore_selfreference}}{If TRUE then the risk of diseases that
-depend on themselves is ignored (i.e. asthma).}
 }
 \if{html}{\out{</div>}}
 }

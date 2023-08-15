@@ -21,13 +21,16 @@
 
 #include <Rcpp.h>
 #include <Rmath.h>
-
+#include "aux_functions.h"
 using namespace Rcpp;
 
 //' @export
 // [[Rcpp::export]]
-IntegerVector carry_forward(IntegerVector& x, const LogicalVector& pid_mrk,
-                            const int& y, const bool& byref = false) {
+IntegerVector carry_forward(IntegerVector& x,
+                            const LogicalVector& pid_mrk,
+                            const int& y,
+                            const bool& byref)
+{
   const int n = x.size();
   if (byref) // Alters x by reference
   {
@@ -52,8 +55,8 @@ IntegerVector carry_forward(IntegerVector& x, const LogicalVector& pid_mrk,
 //' @export
 // [[Rcpp::export]]
 IntegerVector carry_forward_incr(IntegerVector& x, const LogicalVector& pid_mrk,
-                                 const bool& recur, const int& y = 1,
-                                 const bool& byref = false) {
+                                 const bool& recur, const int& y,
+                                 const bool& byref) {
   // byref = true changes input x inplace
   // recur = false means that the value constantly increasing until it meets a new pid
   // recur = true means that the process restarts as soon as it finds a value < y
@@ -109,7 +112,7 @@ IntegerVector carry_forward_incr(IntegerVector& x, const LogicalVector& pid_mrk,
 //' @export
 // [[Rcpp::export]]
 IntegerVector carry_backward(const IntegerVector& x, const LogicalVector& pid_mrk,
-                             const int& y = 0) {
+                             const int& y) {
   const int n = x.size();
   IntegerVector out = clone(x);
   for (int i = n - 1; i > 0; i--) // Go backwards but stop from one row before the last
@@ -230,4 +233,11 @@ NumericVector fbound(const NumericVector &x, NumericVector &a, NumericVector &b)
     }
   }
   return out;
+}
+
+//' @export
+// [[Rcpp::export]]
+double antilogit(const double& x)
+{
+  return exp(x)/(1 + exp(x));
 }

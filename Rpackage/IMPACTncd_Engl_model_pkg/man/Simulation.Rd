@@ -53,7 +53,8 @@ Create a new simulation object.
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new `Simulation` object.
+A new `Simulation`
+object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -106,7 +107,7 @@ The invisible self for chaining.
 \if{latex}{\out{\hypertarget{method-Simulation-get_causal_structure}{}}}
 \subsection{Method \code{get_causal_structure()}}{
 Returns the causality matrix and optionally plots the
-causality structure.
+  causality structure.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_structure(processed = TRUE, print_plot = FALSE)}\if{html}{\out{</div>}}
 }
@@ -114,22 +115,24 @@ causality structure.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{processed}}{If `TRUE` generates the causality matrix from the graph.}
+\item{\code{processed}}{If `TRUE` generates the causality matrix from the
+graph.}
 
 \item{\code{print_plot}}{If `TRUE` prints the causal structure graph.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The processed causality matrix if `processed = TRUE` or the graph
-  otherwise.
+The processed causality matrix if `processed = TRUE` or the
+  graph otherwise.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Simulation-update_design"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-update_design}{}}}
 \subsection{Method \code{update_design()}}{
-Updates the Design object that is stored in the Simulation object.
+Updates the Design object that is stored in the Simulation
+  object.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$update_design(new_design)}\if{html}{\out{</div>}}
 }
@@ -175,7 +178,8 @@ The invisible self for chaining.
 \if{html}{\out{<a id="method-Simulation-get_esp"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-get_esp}{}}}
 \subsection{Method \code{get_esp()}}{
-Get the European Standardised Population 2013 by sex and dimd.
+Get the European Standardised Population 2013 by sex and
+  dimd.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_esp()}\if{html}{\out{</div>}}
 }
@@ -188,7 +192,8 @@ A data.table with the European Standardised Population 2013.
 \if{html}{\out{<a id="method-Simulation-get_mm_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-get_mm_weights}{}}}
 \subsection{Method \code{get_mm_weights()}}{
-Get the disease multimorbidity weifgts (i.e. Cambridge Morbidity Score weights).
+Get the disease multimorbidity weights (i.e. Cambridge
+  Morbidity Score weights).
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_mm_weights()}\if{html}{\out{</div>}}
 }
