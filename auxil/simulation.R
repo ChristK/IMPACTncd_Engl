@@ -7,8 +7,8 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
 #plot(igraph::make_ego_graph(g, order = 1, c("pain"), "in")[[1]])
 
-scenario_fn <- function(sp) NULL
-
+scenario_fn_primary_prevention   <- function(sp) NULL
+scenario_fn_secondary_prevention <- function(sp) NULL
 
 IMPACTncd$
   del_logs()$
@@ -18,7 +18,7 @@ IMPACTncd$
 # IMPACTncd$export_summaries(multicore = TRUE)
 # source("./auxil/CPRD_sim_validation_plots.R")
 
-scenario_fn <- function(sp) {
+scenario_fn_primary_prevention <- function(sp) {
 
   # The major risk factors included in our model in three cases have “healthy”
   # ranges according to government guidelines, body mass index (BMI), systolic
