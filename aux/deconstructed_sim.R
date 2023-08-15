@@ -41,6 +41,8 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
         "pids"               = "pid",
         "years"              = "year",
         "ages"               = "age",
+        "sexs"               = "sex",
+        "dimds"              = "dimd",
         "ageL"               = design_$sim_prm$ageL,
         "all_cause_mrtl"     = paste0("all_cause_mrtl", scenario_suffix_for_pop),
         "cms_score"          = paste0("cms_score", scenario_suffix_for_pop),
@@ -115,12 +117,15 @@ lapply(diseases, function(x) {
 # diseases$af$set_mrtl_prb(sp, design)
 
 # diseases$asthma$harmonise_epi_tables(sp)
-# diseases$asthma$gen_parf(sp, design)
-# diseases$asthma$set_init_prvl(sp, design)
-# diseases$asthma$set_rr(sp, design)
-# diseases$asthma$set_incd_prb(sp, design)
-# diseases$asthma$set_dgns_prb(sp, design)
-# diseases$asthma$set_mrtl_prb(sp, design)
+diseases$asthma$gen_parf(sp, design)
+diseases$asthma$set_init_prvl(sp, design)
+diseases$asthma$set_rr(sp, design)
+diseases$asthma$set_incd_prb(sp, design)
+diseases$asthma$set_dgns_prb(sp, design)
+diseases$asthma$set_mrtl_prb(sp, design)
+
+self <- diseases$asthma$.__enclos_env__$self
+private <- diseases$asthma$.__enclos_env__$private
 
 # diseases$copd$harmonise_epi_tables(sp)
 # diseases$copd$gen_parf(sp, design)
@@ -258,15 +263,27 @@ transpose(sp$pop[, lapply(.SD, anyNA)], keep.names = "rn")[(V1)]
 
 
 
-# qsave(sp, "./simulation/tmp.qs")
+# qsave(sp, "./simulation/tmp.qs", nthreads = 4)
 # sp <- qread("./simulation/tmp.qs"); setDT(sp$pop)
 l <- mk_scenario_init2("", diseases, sp, design)
 simcpp(sp$pop, l, sp$mc)
 
-
+sp$pop[asthma_dgns != asthma_prvl, .N]
+sp$pop[asthma_prvl > 0, mean(asthma_prvl)]
 sp$pop[, sum(asthma_prvl > 0), keyby = age][, plot(age, V1)]
+sp$pop[, sum(asthma_prvl > 0), keyby = year][, plot(year, V1)]
+sp$pop[asthma_prvl > 0, hist(asthma_prvl)]
+sp$pop[asthma_prvl > 0 & year == 13, table(asthma_prvl)]
+
+
+sp$pop[asthma_prvl > 0, mean(asthma_prvl), keyby = year][, plot(year, V1)]
+sp$pop[asthma_prvl > 0, max(asthma_prvl), keyby = year][, plot(year, V1)]
 
 id <- sp$pop[asthma_prvl > 0, unique(pid)]
+sp$pop[pid %in% id, sum(asthma_prvl > 0), by = pid][, table(V1)]
+View(sp$pop[pid %in% id, .(as.character(pid), year, asthma_prvl)])
+
+id <- sp$pop[asthma_prvl > 0 & year == 13L, unique(pid)]
 sp$pop[pid %in% id, sum(asthma_prvl > 0), by = pid][, table(V1)]
 View(sp$pop[pid %in% id, .(as.character(pid), year, asthma_prvl)])
 

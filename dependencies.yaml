@@ -8,20 +8,20 @@
 - fst
 - wrswoR
 - ggplot2
-- shiny
-- shinydashboard
-- shinyBS
-- bsplus # from https://ijlyttle.github.io/bsplus/index.html
-- shinythemes
-- shinyjs
-- shinyWidgets # http://shinyapps.dreamrs.fr/shinyWidgets/
-- DT
-- plotly
+# - shiny
+# - shinydashboard
+# - shinyBS
+# - bsplus # from https://ijlyttle.github.io/bsplus/index.html
+# - shinythemes
+# - shinyjs
+# - shinyWidgets # http://shinyapps.dreamrs.fr/shinyWidgets/
+# - DT
+# - plotly
 - viridis
-- colourpicker
+# - colourpicker
 - dichromat
-- htmltools
-- promises # needed for %...>%
+# - htmltools
+# - promises # needed for %...>%
 - future
 - doFuture
 - future.apply

@@ -102,6 +102,26 @@ my_qMN4 <- function(p, mu, sigma, nu, lower_tail = TRUE, log_p = FALSE, n_cpu = 
 }
 
 #' @export
+my_dNBI <- function(x, mu, sigma, log_p, n_cpu) {
+    .Call('_IMPACTncdEngl_my_dNBI', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, log_p, n_cpu)
+}
+
+#' @export
+my_pNBI <- function(q, mu, sigma, lower_tail, log_p, n_cpu) {
+    .Call('_IMPACTncdEngl_my_pNBI', PACKAGE = 'IMPACTncdEngl', q, mu, sigma, lower_tail, log_p, n_cpu)
+}
+
+#' @export
+my_qNBI <- function(p, mu, sigma, lower_tail, log_p, n_cpu) {
+    .Call('_IMPACTncdEngl_my_qNBI', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, lower_tail, log_p, n_cpu)
+}
+
+#' @export
+my_qZANBI <- function(p, mu, sigma, nu, lower_tail, log_p, n_cpu) {
+    .Call('_IMPACTncdEngl_my_qZANBI', PACKAGE = 'IMPACTncdEngl', p, mu, sigma, nu, lower_tail, log_p, n_cpu)
+}
+
+#' @export
 my_dSICHEL <- function(x, mu, sigma, nu, log_ = FALSE, n_cpu = 1L) {
     .Call('_IMPACTncdEngl_my_dSICHEL', PACKAGE = 'IMPACTncdEngl', x, mu, sigma, nu, log_, n_cpu)
 }
@@ -127,17 +147,17 @@ my_pZISICHEL <- function(q, mu, sigma, nu, tau, lower_tail = TRUE, log_p = FALSE
 }
 
 #' @export
-carry_forward <- function(x, pid_mrk, y, byref = FALSE) {
+carry_forward <- function(x, pid_mrk, y, byref) {
     .Call('_IMPACTncdEngl_carry_forward', PACKAGE = 'IMPACTncdEngl', x, pid_mrk, y, byref)
 }
 
 #' @export
-carry_forward_incr <- function(x, pid_mrk, recur, y = 1L, byref = FALSE) {
+carry_forward_incr <- function(x, pid_mrk, recur, y, byref) {
     .Call('_IMPACTncdEngl_carry_forward_incr', PACKAGE = 'IMPACTncdEngl', x, pid_mrk, recur, y, byref)
 }
 
 #' @export
-carry_backward <- function(x, pid_mrk, y = 0L) {
+carry_backward <- function(x, pid_mrk, y) {
     .Call('_IMPACTncdEngl_carry_backward', PACKAGE = 'IMPACTncdEngl', x, pid_mrk, y)
 }
 
@@ -169,6 +189,11 @@ hc_effect <- function(x, prb_of_continuation, pid) {
 #' @export
 fbound <- function(x, a, b) {
     .Call('_IMPACTncdEngl_fbound', PACKAGE = 'IMPACTncdEngl', x, a, b)
+}
+
+#' @export
+antilogit <- function(x) {
+    .Call('_IMPACTncdEngl_antilogit', PACKAGE = 'IMPACTncdEngl', x)
 }
 
 dtsubset <- function(x, rows, cols) {
