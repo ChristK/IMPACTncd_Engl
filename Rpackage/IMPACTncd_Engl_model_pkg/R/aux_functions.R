@@ -407,7 +407,6 @@ get_ons_incd <-
 
 
 # Extract causal pathways from RR list
-#' @export
 get_causal_paths <- function(RR) {
   exposures <- sapply(RR, `[[`, "name", USE.NAMES = FALSE)
   # tobacco_lung_ca RR is a function and handled separately
@@ -426,7 +425,6 @@ get_causal_paths <- function(RR) {
 # causal_paths <- get_causal_paths(RR)
 # causal_paths$by_outcome$chd
 
-#' @export
 get_lifetable_all <-
   function(mc, disease, design, type = c("qx", "mx")) {
     if (disease %in% c("allcause", "nonmodelled")) {
@@ -522,7 +520,6 @@ get_lifetable_all <-
 
 
 # Get population estimates adjusted for mortality
-#' @export
 generate_pop_adj_for_mrtl <-
   function(mc, dt, design, update_dt = FALSE) {
     tt <- get_lifetable_all(mc = mc, "allcause", design = design, "qx")
@@ -561,7 +558,6 @@ generate_pop_adj_for_mrtl <-
 # design$sim_horizon) & between(age, design$ageL, design$ageH), .N]
 
 
-#' @export
 generate_rns <- function(mc, dt, colnams) {
   dqRNGkind("pcg64") # dqRNGkind("Xoroshiro128+") ~10% faster
   SEED <- 4719349L # sample(1e7, 1)
@@ -895,7 +891,6 @@ generate_informal_care_costs <- function(dt, mc) {
   dt
 }
 
-#' @export
 generate_health_econ <- function(dt, mc) {
   generate_eq5d_decr(dt)
   generate_healthcare_costs(dt, mc)
