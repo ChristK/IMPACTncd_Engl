@@ -427,7 +427,7 @@ int get_dur_forward_prvl (const int& i, // represents the row
   }
 }
 
-void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int& j, int& i, double& rn1)
+inline void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int j, int i, double rn1)
 {
 	 if (dsmeta[j].incd.can_recur) // no need to check incd.flag
 	 {
@@ -476,7 +476,7 @@ void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int& j, int& i, double& 
 	 }
 }
 
-void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int& i, int& j, double& mltp, double& rn1, simul_meta &meta)
+inline void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int i, int j, double& mltp, double rn1, simul_meta &meta)
 {
 	 for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
 	 {
@@ -560,8 +560,9 @@ void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int& i, int& j, double& 
 	 mltp = 1.0;
 }
 
-void EvalDiseaseIncidence(vector<disease_meta> &dsmeta,int& i, int& j, double& rn1, double& mltp, simul_meta &meta)
+inline void EvalDiseaseIncidence(vector<disease_meta> &dsmeta,int i, int j, double rn1, double& mltp, simul_meta &meta)
 {
+	try {
 	  if (dsmeta[j].incd.type == "Type0")
 	  {
 		 for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
@@ -604,10 +605,16 @@ void EvalDiseaseIncidence(vector<disease_meta> &dsmeta,int& i, int& j, double& r
 	  {
 		 // TODO
 	  }
+  }
+	catch(std::exception &e) { 
+		// forward standard library exceptions as runtime_errors - all these have a explanatory message which Rcpp prints.
+		throw std::runtime_error((string)"Error within EvalDiseaseIncidence(): "+e.what());
+	}
 }
 
-void EvalDiagnosis(vector<disease_meta> &dsmeta,double& rn1, int& j, int& i, simul_meta& meta)
+inline void EvalDiagnosis(vector<disease_meta> &dsmeta,double& rn1, int j, int i, simul_meta& meta)
 {
+	try {
 	  rn1 = runif_impl();
 
 	  if (dsmeta[j].incd.type != "Universal" &&VECT_ELEM(dsmeta[j].incd.prvl,i) > 0 && dsmeta[j].dgns.type == "Type0")
@@ -635,95 +642,106 @@ void EvalDiagnosis(vector<disease_meta> &dsmeta,double& rn1, int& j, int& i, sim
 
 	  if ((dsmeta[j].dgns.type == "Type0" || dsmeta[j].dgns.type == "Type1") && VECT_ELEM(dsmeta[j].dgns.prvl,i) > 0 && dsmeta[j].dgns.mm_wt > 0.0) meta.mm_score[i] += dsmeta[j].dgns.mm_wt;
 	  if ((dsmeta[j].dgns.type == "Type0" || dsmeta[j].dgns.type == "Type1") && VECT_ELEM(dsmeta[j].dgns.prvl,i) > 0 && dsmeta[j].dgns.mm_wt > 0.0) meta.mm_count[i]++;
+  }
+	catch(std::exception &e) { 
+		// forward standard library exceptions as runtime_errors - all these have a explanatory message which Rcpp prints.
+		throw std::runtime_error((string)"Error within EvalDiagnosis(): "+e.what());
+	}
 }
 
-void EvalMortality(vector<disease_meta> &dsmeta,vector<int> &tempdead,int& i, int& j, double& rn1, double& mltp)
+inline void EvalMortality(vector<disease_meta> &dsmeta,vector<int> &tempdead,int i, int j, double& rn1, double& mltp)
 {
-  rn1 = runif_impl();
+	try {
+	  rn1 = runif_impl();
 
-  if (dsmeta[j].incd.type == "Universal" || VECT_ELEM(dsmeta[j].incd.prvl,i) > 0) // enter branch only for prevalent cases or Universal incidence
-  {
-	 // Type 1 mortality (no cure, no disease dependency)
-	 if (dsmeta[j].mrtl.type == "Type1")
-	 {
-		if (dsmeta[j].mrtl1flag)  // Type universal never enters this branch
-		{
-		  if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
-		  if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
-		}
-		else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code); // only prevalent cases enter this branch
-	 }// End Type 1
+	  if (dsmeta[j].incd.type == "Universal" || VECT_ELEM(dsmeta[j].incd.prvl,i) > 0) // enter branch only for prevalent cases or Universal incidence
+	  {
+		 // Type 1 mortality (no cure, no disease dependency)
+		 if (dsmeta[j].mrtl.type == "Type1")
+		 {
+			if (dsmeta[j].mrtl1flag)  // Type universal never enters this branch
+			{
+			  if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
+			  if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
+			}
+			else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code); // only prevalent cases enter this branch
+		 }// End Type 1
 
 
-	 // Type 2 mortality (cure, no disease dependency). Not compatible with
-	 // universal incidence (would be meaningless as Type 2 mortality
-	 // allows cure). NOTE cure with disease dependence is type 4
-	 else if (dsmeta[j].mrtl.type == "Type2")
-	 {
-		if (VECT_ELEM(dsmeta[j].incd.prvl,i) <= (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure : dsmeta[j].mrtl.cure)) // Valid since not universal incidence
-		{
-		  if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
-		  {
-			 if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
-			 if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
-		  }
-		  else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code); // only prevalent cases enter this branch
-		}
-		else dsmeta[j].mrtl.flag = true; // if alive cure after defined period
+		 // Type 2 mortality (cure, no disease dependency). Not compatible with
+		 // universal incidence (would be meaningless as Type 2 mortality
+		 // allows cure). NOTE cure with disease dependence is type 4
+		 else if (dsmeta[j].mrtl.type == "Type2")
+		 {
+			if (VECT_ELEM(dsmeta[j].incd.prvl,i) <= (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure : dsmeta[j].mrtl.cure)) // Valid since not universal incidence
+			{
+			  if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
+			  {
+				 if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
+				 if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code);
+			  }
+			  else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i)) tempdead.push_back(dsmeta[j].mrtl.death_code); // only prevalent cases enter this branch
+			}
+			else dsmeta[j].mrtl.flag = true; // if alive cure after defined period
 
-	 } // End Type 2 mortality
+		 } // End Type 2 mortality
 
-	 // Type 3 mortality (no cure, disease dependency)
-	 else if (dsmeta[j].mrtl.type == "Type3")
-	 {
-		for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
-		{
-		  if (dsmeta[j].mrtl.influenced_by.disease_prvl[k](i - dsmeta[j].mrtl.influenced_by.lag[k]) > 0)
-		  {
-			 mltp *= dsmeta[j].mrtl.influenced_by.mltp[k](i); // no lag here
-		  }
-		}
+		 // Type 3 mortality (no cure, disease dependency)
+		 else if (dsmeta[j].mrtl.type == "Type3")
+		 {
+			for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+			{
+			  if (VECT_ELEM(dsmeta[j].mrtl.influenced_by.disease_prvl[k],i - dsmeta[j].mrtl.influenced_by.lag[k]) > 0)
+			  {
+				 mltp *= dsmeta[j].mrtl.influenced_by.mltp[k](i); // no lag here
+			  }
+			}
 
-		if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
-		{
-		  if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i))        tempdead.push_back(dsmeta[j].mrtl.death_code); // mltp not needed here
-		  if (VECT_ELEM(dsmeta[j].incd.prvl,i)  > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i) * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
-		}
-		else // if (dsmeta[j].incd.type == "Universal" || !dsmeta[j].mrtl1flag). NOTE Universal enters this branch as well.
-		{
-		  if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i) * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
-		}
+			if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
+			{
+			  if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i))        tempdead.push_back(dsmeta[j].mrtl.death_code); // mltp not needed here
+			  if (VECT_ELEM(dsmeta[j].incd.prvl,i)  > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i) * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
+			}
+			else // if (dsmeta[j].incd.type == "Universal" || !dsmeta[j].mrtl1flag). NOTE Universal enters this branch as well.
+			{
+			  if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i) * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
+			}
 
-		mltp = 1.0;
-	 } // End Type 3 mortality
+			mltp = 1.0;
+		 } // End Type 3 mortality
 
-	 // Type 4 mortality (cure, disease dependency). Note that universal
-	 // incidence is impossible to be of type 4 because there is no cure.
-	 else if (dsmeta[j].mrtl.type == "Type4")
-	 {
-		for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
-		{
-		  if (dsmeta[j].incd.influenced_by.lag[k] > 0 && // to exclude conditions that depend on themselves, like asthma
-				VECT_ELEM(dsmeta[j].mrtl.influenced_by.disease_prvl[k],i - dsmeta[j].mrtl.influenced_by.lag[k]) > 0)
-		  {
-			 mltp *= dsmeta[j].mrtl.influenced_by.mltp[k](i); // no lag here
-		  }
-		}
+		 // Type 4 mortality (cure, disease dependency). Note that universal
+		 // incidence is impossible to be of type 4 because there is no cure.
+		 else if (dsmeta[j].mrtl.type == "Type4")
+		 {
+			for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+			{
+			  if (dsmeta[j].incd.influenced_by.lag[k] > 0 && // to exclude conditions that depend on themselves, like asthma
+					VECT_ELEM(dsmeta[j].mrtl.influenced_by.disease_prvl[k],i - dsmeta[j].mrtl.influenced_by.lag[k]) > 0)
+			  {
+				 mltp *= dsmeta[j].mrtl.influenced_by.mltp[k](i); // no lag here
+			  }
+			}
 
-		if (VECT_ELEM(dsmeta[j].incd.prvl,i) <= (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure : dsmeta[j].mrtl.cure)) // Valid since not universal incidence
-		{
-		  if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
-		  {
-			 if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i))        tempdead.push_back(dsmeta[j].mrtl.death_code); // mltp not needed here
-			 if (VECT_ELEM(dsmeta[j].incd.prvl,i)  > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i) * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
-		  }
-		  else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i) * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
-		}
-		else dsmeta[j].mrtl.flag = true; // if alive cure after defined period
+			if (VECT_ELEM(dsmeta[j].incd.prvl,i) <= (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure : dsmeta[j].mrtl.cure)) // Valid since not universal incidence
+			{
+			  if (dsmeta[j].mrtl1flag)  // if fatality for incident cases estimated separately
+			  {
+				 if (VECT_ELEM(dsmeta[j].incd.prvl,i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1,i))        tempdead.push_back(dsmeta[j].mrtl.death_code); // mltp not needed here
+				 if (VECT_ELEM(dsmeta[j].incd.prvl,i)  > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i) * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
+			  }
+			  else if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2,i) * mltp) tempdead.push_back(dsmeta[j].mrtl.death_code);
+			}
+			else dsmeta[j].mrtl.flag = true; // if alive cure after defined period
 
-		mltp = 1.0;
-	 } // End Type 4 mortality
-  } // end if prevalent case
+			mltp = 1.0;
+		 } // End Type 4 mortality
+	  } // end if prevalent case
+	}
+	catch(std::exception &e) { 
+		// forward standard library exceptions as runtime_errors - all these have a explanatory message which Rcpp prints.
+		throw std::runtime_error((string)"Error within EvalMortality(): "+e.what());
+	}
 }
 
 //' @export
