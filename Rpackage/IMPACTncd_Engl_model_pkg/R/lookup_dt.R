@@ -108,8 +108,8 @@ lookup_dt <- function(tbl,
       xmax <- last(lookup_tbl[[j]])
       xmin <- first(lookup_tbl[[j]])
       if (check_lookup_tbl_validity &&
-         (min(tbl[[j]]) < xmin || max(tbl[[j]]) > xmin))
-        warning(j, " has rows in tbl without a match in lookup_tbl!")
+         (min(tbl[[j]], na.rm = TRUE) < xmin || max(tbl[[j]], na.rm = TRUE) > xmax))
+        message(j, " has rows in tbl without a match in lookup_tbl!")
       cardinality[[j]] <- xmax - xmin + 1L
       min_lookup[[j]] <- xmin
     }
@@ -189,7 +189,7 @@ is_valid_lookup_tbl <- function(lookup_tbl, keycols) {
         )
     }
 
-    if (!identical(key(lookup_tbl), keycols)) warning("for best performance, set key to lookup_tbl to ", keycols)
+    if (!identical(key(lookup_tbl), keycols)) message("for best performance, set key to lookup_tbl to ", paste(keycols, collapse = ", "))
   }
 
   if (nrow(lookup_tbl) != expected_rows) stop(paste0("If all possible combinations of key columns would be present in the lookup table it should have ", expected_rows, " rows. This table has ", nrow(lookup_tbl), " rows."))

@@ -51,30 +51,34 @@ Exposure <-
 
 
       #' @description Reads exposure parameter from file and creates a new exposure object..
-      #' @param xps_prm A path to a csvy file with the exposure parameters.
+      #' @param sRelativeRiskByPopulationSubsetForExposureFilePath string, path to .csvy file detailing relative risk (RR) by population subset (age, sex, maybe decile 'Index of Multiple Deprivation' DIMD) for a specific exposure. File header may contain other exposure parameters.
       #' @param design A design object with the simulation parameters.
       #' @return An `Exposure` object.
       #' @examples
       #' af_stroke$read_xps_prm("./inputs/RR/af_stroke.csvy", design)
-      initialize = function(xps_prm, design) {
+      initialize = function(sRelativeRiskByPopulationSubsetForExposureFilePath, design) {
 
-        xps_prm <- normalizePath(xps_prm, mustWork = TRUE)
+        sRelativeRiskByPopulationSubsetForExposureFilePath<- normalizePath(sRelativeRiskByPopulationSubsetForExposureFilePath, mustWork = TRUE)
 
         if (!inherits(design, "Design"))
           stop("Argument design needs to be a Design object.")
 
-        if (file.exists(xps_prm)) {
+        if (file.exists(sRelativeRiskByPopulationSubsetForExposureFilePath)) {
           # TODO add some checks to ensure proper structure
-          effect <- fread(
-            xps_prm,
+          dtRelativeRiskByPopulationSubset<- fread(
+            sRelativeRiskByPopulationSubsetForExposureFilePath,
             stringsAsFactors = TRUE, yaml = TRUE
             )
 
-          if ("smok_status" %in% names(effect))
-            effect[, smok_status :=
+          # NOTE This needs manual update every time a new factor (other than
+          # smok_status, ethnicity, dimd) appears as a new stratum in a RR file.
+          # TODO add some checks and perhaps automate to some extent. Add
+          # documentation to avoid silent errors
+          if ("smok_status" %in% names(dtRelativeRiskByPopulationSubset))
+            dtRelativeRiskByPopulationSubset[, smok_status :=
                                factor(smok_status, levels = 1:4)]
-          if ("ethnicity" %in% names(effect))
-            effect[, ethnicity :=
+          if ("ethnicity" %in% names(dtRelativeRiskByPopulationSubset))
+            dtRelativeRiskByPopulationSubset[, ethnicity :=
                      factor(
                        ethnicity,
                        levels = c(
@@ -85,19 +89,40 @@ Exposure <-
                       )
                    ]
 
-          effect[, agegroup := relevel(agegroup, "<1")]
+          if ("dimd" %in% names(dtRelativeRiskByPopulationSubset))
+            dtRelativeRiskByPopulationSubset[, dimd :=
+                     factor(
+                       dimd,
+                       levels = c(
+                         "1 most deprived", 2:9, "10 least deprived"
+                       )
+                     )
+            ]
 
-          nam <- setdiff(names(effect), c("rr", "ci_rr"))
+          if ("qimd" %in% names(dtRelativeRiskByPopulationSubset))
+            dtRelativeRiskByPopulationSubset[, qimd :=
+                     factor(
+                       qimd,
+                       levels = c(
+                         "1 most deprived", 2:4, "5 least deprived"
+                       )
+                     )
+            ]
+
+
+          dtRelativeRiskByPopulationSubset[, agegroup := relevel(agegroup, "<1")]
+
+          nam <- setdiff(names(dtRelativeRiskByPopulationSubset), c("rr", "ci_rr"))
           # sex and agegroup always at the beginning
           nam <- nam[order(match(nam, c("sex", "agegroup")))]
-          setkeyv(effect, nam)
+          setkeyv(dtRelativeRiskByPopulationSubset, nam)
 
-          metadata <- attr(effect, "yaml_metadata")
-          setattr(effect, "yaml_metadata", NULL)
-            # private$get_yaml_header(xps_prm, verbose = design$sim_prm$logs)
+          metadata <- attr(dtRelativeRiskByPopulationSubset, "yaml_metadata")
+          setattr(dtRelativeRiskByPopulationSubset, "yaml_metadata", NULL)
+            # private$get_yaml_header(sRelativeRiskByPopulationSubsetForExposureFilePath, verbose = design$sim_prm$logs)
         } else {
           stop(
-            "File does not exist for argument xps_prm path."
+            "File does not exist for argument sRelativeRiskByPopulationSubsetForExposureFilePath path."
           )
         }
 
@@ -107,8 +132,8 @@ Exposure <-
             (metadata$xps_name == "met" && design$sim_prm$ignore_xps == "active_days") ||
             (grepl("^smok_", metadata$xps_name) && design$sim_prm$ignore_xps == "smoking")
             )) {
-          set(effect, NULL, "rr", 1)
-          set(effect, NULL, "ci_rr", 1)
+          set(dtRelativeRiskByPopulationSubset, NULL, "rr", 1)
+          set(dtRelativeRiskByPopulationSubset, NULL, "ci_rr", 1)
         }
 
         # Validation
@@ -144,11 +169,11 @@ Exposure <-
         private$seed <- abs(digest2int(paste0(ifelse(
           grepl("^smok_", self$name), "smoking", self$name), # rename all smoking dimensions to smoking
           self$outcome), seed = 764529L))
-        private$chksum <- digest(effect) # NOTE not affected by metadata changes
+        private$chksum <- digest(dtRelativeRiskByPopulationSubset) # NOTE not affected by metadata changes
         private$suffix <- paste0(self$name, "~", self$outcome)
 
         private$filedir <- file.path(getwd(), "simulation", "rr")
-        if (!dir.exists(private$filedir)) dir.create(private$filedir)
+        if (!dir.exists(private$filedir)) dir.create(private$filedir,recursive=TRUE)
         private$filenam <- file.path(private$filedir,
                                      paste0("rr_", private$suffix, "_",
                                             private$chksum, "_l.fst"))
@@ -189,9 +214,9 @@ Exposure <-
           setkeyv(tt, c("sex", "age"))
         } else if (length(nam) == 3L) {
           nam <- setdiff(nam, c("sex", "agegroup"))
-          if (is.numeric(effect[[nam]])) {
-            t3 <- min((effect[[nam]])):max((effect[[nam]]))
-            t4 <- sort(unique(effect[[nam]]))
+          if (is.numeric(dtRelativeRiskByPopulationSubset[[nam]])) {
+            t3 <- min((dtRelativeRiskByPopulationSubset[[nam]])):max((dtRelativeRiskByPopulationSubset[[nam]]))
+            t4 <- sort(unique(dtRelativeRiskByPopulationSubset[[nam]]))
             # check if consecutive elements
             if (!isTRUE(all.equal(t3, t4))) interpolate <- TRUE
 
@@ -204,7 +229,7 @@ Exposure <-
             tt <-
               CJ(age = (design$sim_prm$ageL - design$sim_prm$maxlag):design$sim_prm$ageH,
                 sex = factor(c("men", "women")),
-                V3 = unique(effect[[nam]]))
+                V3 = unique(dtRelativeRiskByPopulationSubset[[nam]]))
           }
 
           setnames(tt, "V3", nam)
@@ -216,12 +241,12 @@ Exposure <-
 
         to_agegrp(tt, 5L, max(tt$age), "age", "agegroup")
 
-        private$effect <- copy(effect)
+        private$effect <- copy(dtRelativeRiskByPopulationSubset)
         private$metadata <- metadata
-        private$xps_prm_file <- xps_prm
+        private$xps_prm_file <- sRelativeRiskByPopulationSubsetForExposureFilePath
 
         private$input_rr <-
-          setcolorder(effect[tt, on = .NATURAL], c("age", "agegroup", "sex"))
+          setcolorder(dtRelativeRiskByPopulationSubset[tt, on = .NATURAL], c("age", "agegroup", "sex"))
         private$input_rr[, "ci_rr" := NULL] # NOTE agegroup necessary for gen_stochastic_RR
         if (exists("interpolate") && isTRUE(interpolate)) { # linear interpolation
           private$input_rr[, rr := approx(get(nam), rr, get(nam))$y,
@@ -453,13 +478,24 @@ Exposure <-
 
           if (forPARF) {
             set(sp$pop, NULL, self$name, sp$pop[[xps_tolag]])
-            lookup_dt(sp$pop, self$get_input_rr(), check_lookup_tbl_validity = FALSE)
+            lookup_dt(sp$pop, self$get_input_rr(),
+                      check_lookup_tbl_validity = design_$sim_prm$logs)
 
           } else {
+            if (inherits(sp$pop[[xps_tolag]], "numeric")) {
+              rw <- 0
+            } else if (inherits(sp$pop[[xps_tolag]], "integer")) {
+              rw <- 0L
+            } else if (inherits(sp$pop[[xps_tolag]], "factor")) {
+              rw <- 1L # The first level
+            } else {
+              stop("Only numerics, integers, and factors are supported")
+            }
             set(sp$pop, NULL, self$name, # column without _curr_xps is lagged
-                shift_bypid(sp$pop[[xps_tolag]], self$get_lag(sp$mc_aggr), sp$pop$pid))
+                shift_bypid(sp$pop[[xps_tolag]], self$get_lag(sp$mc_aggr), sp$pop$pid, rw))
+            # setnafill(sp$pop, "nocb", cols = self$name)
             lookup_dt(sp$pop, self$get_rr(sp$mc_aggr, design_, drop = FALSE),
-                      check_lookup_tbl_validity = FALSE)
+                      check_lookup_tbl_validity = design_$sim_prm$logs)
           }
 
           private$apply_rr_extra(sp)
@@ -482,7 +518,7 @@ Exposure <-
 
           if (paste0(self$name, "____") %in% names(sp$pop)) {
             # To prevent overwriting t2dm_prvl
-            # TODO consider deleting xps_tolag for diseases, i.e t2dm_prvl_curr_xps
+            sp$pop[, (xps_tolag) := NULL]
             setnames(sp$pop, paste0(self$name, "____"), self$name)
           }
 

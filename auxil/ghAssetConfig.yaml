@@ -1,0 +1,13 @@
+%YAML 1.2
+---
+gitHubAssetRoutes:
+   -
+      id: live_Max_IMPACTncd_Engl_0.0.5
+      repo: ChristK/IMPACTncd_Engl
+      tag: v0.0.5
+      #personalAccessToken: <your-GitHub-PAT-here-if-you-wish-to-store-it>
+      uploadSrcDirectory: /home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst
+      deployToRootDirectory: /home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst
+      overwriteFilesOnDeploy: 1
+      # testWithFirstNAssets: 5
+

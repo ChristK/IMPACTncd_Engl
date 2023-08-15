@@ -22,7 +22,7 @@
 
 
 # preample ---------------------------------------------------
-setwd("/home/ckypridMy_ModelsIMPACTncd_Engl/")
+setwd("/home/ckyprid/My_Models/IMPACTncd_Engl/")
 
 if (!require(CKutils)) {
   if (!require(remotes))

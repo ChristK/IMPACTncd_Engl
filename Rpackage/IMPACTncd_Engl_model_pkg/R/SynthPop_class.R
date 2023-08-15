@@ -59,6 +59,7 @@ SynthPop <-
       pop = NA,
 
 
+      # initialize ----
       #' @description Create a new SynthPop object.
       #' If a synthpop file in \code{\link[fst]{fst-package}} format already
       #' exists, then the synthpop is loaded from there. Otherwise it is
@@ -176,6 +177,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # update_design ----
       #' @description
       #' Updates the Design object that is stored in the SynthPop object.
       #' @param design_ A design object with the simulation parameters.
@@ -189,26 +191,40 @@ SynthPop <-
         invisible(self)
       },
 
+      # update_pop_weights ----
       #' @description
       #' Updates the wt_immrtl to account for mortality in baseline scenario.
+      #' @param scenario_nam If "sc0" (the baseline scenario) update weights to
+      #'   scale to ONS projections. Else copy weights from the baseline
+      #'   scenario to the current scenario for the common person-years.
       #' @return The invisible self for chaining.
-      update_pop_weights = function() {
-        if (!"wt" %in% names(self$pop)) { # baseline
+      update_pop_weights = function(scenario_nam = "sc0") {
+
+
+        if (scenario_nam == "sc0" && !"wt" %in% names(self$pop)) { # baseline
           self$pop[, tmp := sum(wt_immrtl), keyby = .(year, age, sex)]
           set(self$pop, NULL, "wt", 0)
           self$pop[!is.na(all_cause_mrtl), wt := wt_immrtl * tmp / sum(wt_immrtl),
                    by = .(year, age, sex)]
 
-          self[, tmp := NULL]
-        } else { # For policy scenarios
-          self$pop[wt == 0 & sc_all_cause_mrtl == 0L, wt := wt_immrtl]
-        }
+          self$pop[, tmp := NULL]
+        } else if (scenario_nam != "sc0" && !"wt" %in% names(self$pop)) {
+          # For policy scenarios.
+          x <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
 
+          t0 <- fread(x, select = list(integer = c("pid", "year"), character = "scenario", numeric = "wt"),
+                      key = c("scenario", "pid", "year"))[scenario == "sc0", ] # wt for sc0
+          self$pop[t0, on = c("pid", "year"), wt := i.wt]
+          self$pop[is.na(all_cause_mrtl), wt := 0]
+          self$pop[is.na(wt), wt := wt_immrtl]
+        } else {
+          stop("The baseline scenario need to be named 'sc0' and simulated first, before any policy scenarios.") # TODO more informative message
+        }
 
         invisible(self)
       },
 
-
+      # delete_synthpop ----
       #' @description
       #' Delete (all) synthpop files in the synthpop directory.
       #' @param mc_ If `mc_ = NULL`, delete all files in the synthpop directory.
@@ -273,14 +289,14 @@ SynthPop <-
         return(invisible(self))
       },
 
+      # delete_incomplete_synthpop ----
       #' @description
       #' Check that every synthpop file has a metafile and an index file. Delete
       #' any orphan files.
       #' @param check_checksum If  `TRUE` only delete incomplete group files
       #'   with the same checksum as the synthpop.
       #' @return The invisible `SynthPop` object.
-      delete_incomplete_synthpop =
-        function(check_checksum = TRUE) {
+      delete_incomplete_synthpop = function(check_checksum = TRUE) {
           if (check_checksum) {
             f1 <- paste0("^synthpop_", private$checksum , ".*\\.fst$")
             f2 <- paste0("^synthpop_", private$checksum , ".*_meta\\.yaml$")
@@ -312,6 +328,7 @@ SynthPop <-
           return(invisible(self))
         },
 
+      # check_integridy ----
       #' @description
       #' Check the integrity of (and optionally delete) .fst files by checking
       #' their metadata are readable.
@@ -320,8 +337,7 @@ SynthPop <-
       #' @param check_checksum If  `TRUE` only check files with the same
       #'   checksum as the synthpop.
       #' @return The invisible `SynthPop` object.
-      check_integridy =
-        function(remove_malformed = FALSE,
+      check_integridy = function(remove_malformed = FALSE,
           check_checksum = TRUE) {
           if (check_checksum) {
             pat <- paste0("^synthpop_", private$checksum , ".*\\.fst$")
@@ -375,15 +391,12 @@ SynthPop <-
           return(invisible(self))
         },
 
-
-
-
+      # count_synthpop ----
       #' @description
       #' Count the synthpop files in a directory. It includes files without
       #' metafiles and index files.
       #' @return The invisible `SynthPop` object.
-      count_synthpop =
-        function() {
+      count_synthpop = function() {
           out <- list()
           # folder size
           files <-
@@ -419,6 +432,7 @@ SynthPop <-
           return(invisible(self))
         },
 
+      # get_checksum ----
       #' @description
       #' Get the synthpop file paths.
       #' @param x One of "all", "synthpop" or "metafile". Can be abbreviated.
@@ -430,6 +444,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # get_filename ----
       #' @description
       #' Get the synthpop file paths.
       #' @param x One of "all", "synthpop" or "metafile". Can be abbreviated.
@@ -449,6 +464,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # get_design ----
       #' @description
       #' Get the synthpop design.
       #' @return The invisible `SynthPop` object.
@@ -458,6 +474,7 @@ SynthPop <-
         private$design
       },
 
+      # get_dir ----
       #' @description
       #' Get the synthpop dir.
       #' @return The invisible `SynthPop` object.
@@ -466,14 +483,14 @@ SynthPop <-
         invisible(self)
       },
 
+      # gen_synthpop_demog ----
       #' @description
       #' Generate synthpop sociodemographics, random sample of the population.
       #' @param design_ A Design object,
       #' @param month April or July are accepted. Use July for mid-year
       #'   population estimates.
       #' @return An invisible `data.table` with sociodemographic information.
-      gen_synthpop_demog =
-        function(design_, month = "April") {
+      gen_synthpop_demog = function(design_, month = "April") {
           stopifnot("Argument month need to be April or July" = month %in% c("April", "July"))
           # Use month = July for mid-year
           lsoas_ <- private$get_unique_LSOAs(design_)
@@ -599,6 +616,7 @@ SynthPop <-
           return(invisible(dt))
         },
 
+      # write_synthpop ----
       #' @description
       #' Generate synthpop files in parallel, using foreach, and writes them to
       #' disk. It skips files that are already on disk.
@@ -698,6 +716,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # get_risks  ----
       #' @description Get the risks for all individuals in a synthetic
       #'   population for a disease.
       #' @param disease_nam The disease that the risks will be returned.
@@ -713,6 +732,7 @@ SynthPop <-
         }
       },
 
+      # store_risks ----
       #' @description Stores the disease risks for all individuals in a synthetic
       #'   population in a private list.
       #' @param disease_nam The disease that the risks will be stored.
@@ -729,6 +749,7 @@ SynthPop <-
         invisible(self)
       },
 
+      # print ----
       #' @description
       #' Prints the synthpop object metadata.
       #' @return The invisible `SynthPop` object.
@@ -989,7 +1010,7 @@ SynthPop <-
             # add non-correlated RNs
             rank_cols <-
               c(
-                "rankstat_ncc",
+                # "rankstat_ncc",
                 "rankstat_pa_dur",
                 "rankstat_pa_met",
                 "rankstat_bpmed_adherence",
@@ -1014,7 +1035,7 @@ SynthPop <-
             # logic necessary for new cohorts entering the simulation that currently age < 30
             # These will have the same distribution as if 30 years old
             tt <- tbl[age == min(age)]
-            tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max)
+            tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max) # TODO adding design_$sim_prm$sim_horizon_max + design_$sim_prm$maxlag for longer projections
             tt[, age := age - .id] # as the sim progress these will become 30 yo
             # increase population by 0.5% every year
             tt[, .id := NULL]
@@ -1153,7 +1174,7 @@ SynthPop <-
               read_fst("./inputs/exposure_distributions/frtpor_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, fruit :=
                  my_qZISICHEL(rank_fruit,
                               mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu) * 80L]  # g/d
@@ -1167,7 +1188,7 @@ SynthPop <-
               read_fst("./inputs/exposure_distributions/vegpor_table.fst", as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, veg :=
                  my_qDEL(rank_veg, mu, sigma, nu, n_cpu = design_$sim_prm$n_cpu) * 80L]  # g/d
             dt[, (col_nam) := NULL]
@@ -1182,7 +1203,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, smok_status_ref := my_qMN4(rankstat_smok, mu, sigma, nu)] # for calibration
             dt[(pid_mrk), smok_status := smok_status_ref]
             dt[, (col_nam) := NULL]
@@ -1196,7 +1217,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             set(dt, NULL, "smok_quit_yrs", 0L)
             dt[(pid_mrk) &
                  smok_status %in% 2:3,
@@ -1208,9 +1229,10 @@ SynthPop <-
             tbl <-
               read_fst("./inputs/exposure_distributions/smok_dur_ex_table.fst",
                        as.data.table = TRUE)
+            tbl[, smok_status := as.integer(as.character(smok_status))]
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            absorb_dt(dt, tbl) # not lookup_dt because some smok levels are not present
             set(dt, NULL, "smok_dur", 0L)
             dt[(pid_mrk) &
                  smok_status %in% 2:3, smok_dur := my_qDPO(rankstat_smok_dur_ex, mu, sigma)]
@@ -1223,7 +1245,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[(pid_mrk) &
                  smok_status == 4, smok_dur := as.integer(round(qNBI(rankstat_smok_dur_curr, mu, sigma)))]
             dt[, rankstat_smok_dur_curr := NULL]
@@ -1246,7 +1268,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             setnames(dt, "mu", "prb_smok_incid")
 
             # Assign smok_cessation probabilities
@@ -1255,7 +1277,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             setnames(dt, "mu", "prb_smok_cess")
 
             # Handle smok_relapse probabilities
@@ -1429,7 +1451,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[smok_status == 4L,
                smok_cig := qZINBI(rankstat_smok_cig_curr, mu, sigma, nu)]
             dt[, (col_nam) := NULL]
@@ -1443,7 +1465,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[(pid_mrk) &
                  smok_status == 3L,
                smok_cig := my_qZABNB(rankstat_smok_cig_ex,
@@ -1482,7 +1504,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, ets := as.integer(rank_ets < mu)]
             dt[, rank_ets := NULL]
             dt[, (col_nam) := NULL]
@@ -1496,7 +1518,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, alcohol := as.integer(qZINBI(rank_alcohol, mu, sigma, nu))]
             dt[, rank_alcohol := NULL]
             dt[, (col_nam) := NULL]
@@ -1509,7 +1531,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, bmi := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             dt[, rank_bmi := NULL]
             dt[, (col_nam) := NULL]
@@ -1522,7 +1544,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, sbp := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             dt[, rank_sbp := NULL]
             dt[, (col_nam) := NULL]
@@ -1531,13 +1553,14 @@ SynthPop <-
             if (design_$sim_prm$logs) message("Generate BP medication")
 
             dt[, `:=` (sbp_acc = sbp,
-                       sbp = round(clamp(sbp, 110, 200), -1))]
+                       sbp = as.integer(round(clamp(sbp, 110, 200), -1)))]
             tbl <-
               read_fst("./inputs/exposure_distributions/bp_med_table.fst",
                        as.data.table = TRUE)
+            tbl[, sbp := as.integer(sbp)] # TODO Update the tbl with int sbp
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            absorb_dt(dt, tbl) # not lookup_tbl because not all sbp from 0
             dt[, bpmed := as.integer(rank_bpmed < mu)]
             dt[, rank_bpmed := NULL]
             dt[, (col_nam) := NULL]
@@ -1554,7 +1577,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, tchol := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
             dt[, rank_tchol := NULL]
             dt[, (col_nam) := NULL]
@@ -1569,7 +1592,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, tchol_hdl_ratio := 1 / qGB1(rank_hdl, mu, sigma, nu, tau)]
             dt[, rank_hdl := NULL]
             dt[, (col_nam) := NULL]
@@ -1584,7 +1607,7 @@ SynthPop <-
                        as.data.table = TRUE)
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
-            lookup_dt(dt, tbl, check_lookup_tbl_validity = FALSE)
+            absorb_dt(dt, tbl) # not lookup_dt. Not tchol from 0
             dt[, statin_px := as.integer(rank_statin_px < mu)]
             dt[, rank_statin_px := NULL]
             dt[, (col_nam) := NULL]
@@ -1594,21 +1617,21 @@ SynthPop <-
 
             # Estimate number of comorbidities (ncc) calculation ----
             # to be used in QALY
-            if (design_$sim_prm$logs) message("Generate ncc")
-
-            dt[, ncc := as.integer(clamp(qbinom(rankstat_ncc, ceiling(age / 8L),
-                                                fifelse(age < 55, 0.25, 0.40)),
-                                         0, 10))]
+            # if (design_$sim_prm$logs) message("Generate ncc")
+            #
+            # dt[, ncc := as.integer(clamp(qbinom(rankstat_ncc, ceiling(age / 8L),
+            #                                     fifelse(age < 55, 0.25, 0.40)),
+            #                              0, 10))]
             # calibrated to Sullivan et all 2011 (web table 1)
             # to_agegrp(output, 10L, 89L, "age", "agegrp10", to_factor = TRUE)
             # output[, round(mean(ncc), 1), keyby = agegrp10]
             # target by agegrp 1.1  1.6  2.4  3.1  4.0  4.4 from
 
-            dt[, `:=` (
-              pid_mrk = NULL,
-              # to be recreated when loading synthpop
-              rankstat_ncc = NULL
-            )]
+            # dt[, `:=` (
+            #   pid_mrk = NULL,
+            #   # to be recreated when loading synthpop
+            #   rankstat_ncc = NULL
+            # )]
 
 
             dt[, statin_adherence := qBE(rankstat_statin_adherence, design_$sim_prm$statin_adherence, 0.2)]

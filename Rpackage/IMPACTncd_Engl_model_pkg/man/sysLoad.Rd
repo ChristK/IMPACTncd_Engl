@@ -7,10 +7,10 @@
 sysLoad()
 }
 \value{
-A named numeric vector with five non-negative elements `1min`,
-  `5min`, and `15min` average CPU utilisation, used RAM, and available RAM.
+A named numeric vector with five non-negative elements \verb{1min},
+\verb{5min}, and \verb{15min} average CPU utilisation, used RAM, and available RAM.
 The first values represent estimates of the CPU load during the last
-minute, the last five minutes, and the last fifteen minutes \[1\]. An idle
+minute, the last five minutes, and the last fifteen minutes [1]. An idle
 system have values close to zero, and a heavily loaded system have values
 near one`. If they are unknown, missing values are returned. Only works for
 Linux systems.
@@ -24,8 +24,10 @@ heavily based on parallely::cpuLoad
 (\url{https://github.com/HenrikBengtsson/parallelly})
 }
 \references{
-1. Linux Load Averages: Solving the Mystery,
-   Brendan Gregg's Blog, 2017-08-08,
-   \url{http://www.brendangregg.com/blog/2017-08-08/linux-load-averages.html}
+\enumerate{
+\item Linux Load Averages: Solving the Mystery,
+Brendan Gregg's Blog, 2017-08-08,
+\url{http://www.brendangregg.com/blog/2017-08-08/linux-load-averages.html}
+}
 }
 \keyword{internal}
