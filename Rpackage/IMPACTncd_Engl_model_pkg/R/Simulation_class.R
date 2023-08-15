@@ -65,6 +65,7 @@ Simulation <-
 
 
         # Create folders if don't exist
+        # TODO write hlp function and use lapply
         if (!dir.exists(self$design$sim_prm$output_dir)) {
           dir.create(self$design$sim_prm$output_dir, recursive = TRUE)
           if (self$design$sim_prm$logs)
@@ -86,6 +87,12 @@ Simulation <-
             message(paste0("Folder ", pth, " was created"))
         }
 
+        pth <- private$output_dir("plots/")
+        if (!dir.exists(pth)) {
+          dir.create(pth)
+          if (self$design$sim_prm$logs)
+            message(paste0("Folder ", pth, " was created"))
+        }
 
           pth <- private$output_dir("lifecourse/")
           if (!dir.exists(pth)) {
@@ -207,8 +214,9 @@ Simulation <-
       #' @param mc A positive sequential integer vector with the Monte Carlo
       #'   iterations of synthetic population to simulate.
       #' @param multicore If TRUE run the simulation in parallel.
+      #' @param scenario_nam A string for the scenario name (i.e. sc1)
       #' @return The invisible self for chaining.
-      run = function(mc, multicore = TRUE) {
+      run = function(mc, multicore = TRUE, scenario_nam) {
 
         if (!is.integer(mc)) stop("mc need to be an integer vector")
         if (any(mc <= 0)) stop("mc need to be positive")
@@ -233,8 +241,12 @@ Simulation <-
             paste0(mc, "_lifecourse.csv")
           )
         ))) {
-          stop("Results from a previous simulation exists in the output folder.
-               Please remove them before run a new one.")
+          # stop("Results from a previous simulation exists in the output folder.
+          #      Please remove them before run a new one.")
+          message(
+            "Results from a previous simulation exists in the output folder. Please remove them if this was unintentional."
+          )
+
         }
 
 
@@ -260,6 +272,7 @@ Simulation <-
           xps_dt <- foreach(
             mc_iter = mc_sp,
             .inorder = FALSE,
+            .options.multicore = list(preschedule = FALSE),
             .verbose = self$design$sim_prm$logs,
             .packages = c(
               "R6",
@@ -274,7 +287,7 @@ Simulation <-
             .noexport = NULL # c("time_mark")
           ) %dopar% {
 
-            private$run_sim(mc_ = mc_iter)
+            private$run_sim(mc_ = mc_iter, scenario_nam)
 
           }
 
@@ -287,14 +300,26 @@ Simulation <-
           if (self$design$sim_prm$logs)
             private$time_mark("Start of single-core run")
 
-          lapply(mc_sp, private$run_sim)
+          lapply(mc_sp, private$run_sim, scenario_nam)
 
           if (self$design$sim_prm$logs)
             private$time_mark("End of single-core run")
 
         }
 
-        # process summarised outputs
+        while (sink.number() > 0L) sink()
+
+
+        invisible(self)
+        },
+
+      #' @description
+      #' Process the lifecourse files
+      #' @param multicore If TRUE run the simulation in parallel.
+      #' @return The invisible self for chaining.
+      export_summaries = function(multicore = TRUE) {
+
+        fl <- list.files(private$output_dir("lifecourse"), full.names = TRUE)
 
         if (multicore) {
 
@@ -310,8 +335,9 @@ Simulation <-
             private$time_mark("Start exporting summaries")
 
           xps_dt <- foreach(
-             i = mc,
+            i = seq_along(fl),
             .inorder = TRUE,
+            .options.multicore = list(preschedule = FALSE),
             .verbose = self$design$sim_prm$logs,
             .packages = c(
               "R6",
@@ -323,25 +349,24 @@ Simulation <-
             .noexport = NULL # c("time_mark")
           ) %dopar% {
 
-            pth <- private$output_dir(paste0("lifecourse/", i, "_lifecourse.csv.gz"))
-            lc <-   fread(pth, stringsAsFactors = TRUE, key = c("pid", "year"))
-            private$export_summaries(lc)
+            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("scenario", "pid", "year"))
+            private$export_summaries_hlpr(lc)
             NULL
           }
 
           if (exists("cl")) stopCluster(cl)
 
-          if (self$design$sim_prm$logs) private$time_mark("End of exporting summuries")
+          if (self$design$sim_prm$logs)
+            private$time_mark("End of exporting summuries")
 
 
         } else {
           if (self$design$sim_prm$logs)
             private$time_mark("Start of single-core run")
 
-          lapply(mc, function(i) {
-            pth <- private$output_dir(paste0("lifecourse/", i, "_lifecourse.csv.gz"))
-            lc <-   fread(pth, stringsAsFactors = TRUE, key = c("pid", "year"))
-            private$export_summaries(lc)
+          lapply(seq_along(fl), function(i) {
+            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("pid", "year"))
+            private$export_summaries_hlpr(lc)
             NULL
           })
 
@@ -350,21 +375,11 @@ Simulation <-
 
         }
 
-
-
-        for (i in mc) {
-
-
-
-        }
-
         while (sink.number() > 0L) sink()
 
 
         invisible(self)
-        },
-
-
+      },
       #' @description Returns the causality matrix and optionally plots the
       #' causality structure.
       #' @param processed If `TRUE` generates the causality matrix from the graph.
@@ -391,7 +406,8 @@ Simulation <-
         if (processed) {
           g <- as.matrix(as_adjacency_matrix(private$causality_structure))
           n <- sapply(self$diseases, `[[`, "name")
-          g <- g[!rownames(g) %in% n, colnames(g) %in% n]
+          g <- g[rowSums(g) > 0, colnames(g) %in% n]
+
         } else {
           g <- private$causality_structure
         }
@@ -512,7 +528,7 @@ Simulation <-
 
 
       # Runs the simulation in one core. mc is scalar
-      run_sim = function(mc_) {
+      run_sim = function(mc_, scenario_nam = "") {
 
         if (self$design$sim_prm$logs) {
           private$time_mark(paste0("Start mc iteration ", mc_))
@@ -525,6 +541,9 @@ Simulation <-
         }
 
         sp <- SynthPop$new(mc_, self$design)
+
+        scenario_fn(sp) # apply simple scenario
+
         # ds <- copy(self$diseases) # Necessary for parallelisation
         lapply(self$diseases, function(x) {
           print(x$name)
@@ -536,7 +555,7 @@ Simulation <-
             set_mrtl_prb(sp, self$design)
         })
 
-        l <- private$mk_scenario_init(sp, "") # TODO update with scenarios
+        l <- private$mk_scenario_init(sp, scenario_nam) # TODO update with scenarios
         simcpp(sp$pop, l, sp$mc)
         # it doesn't matter if mc or mc_aggr is used in the above, because it is
         # only used for the RNG stream and the pid are different in each mc_aggr
@@ -551,6 +570,7 @@ Simulation <-
 
         nam <- c(self$design$sim_prm$cols_for_output,
                  grep("^cms_|_prvl$|_dgns$|_mrtl$", names(sp$pop), value = TRUE))
+        nam <- grep("^prb_", nam, value = TRUE, invert = TRUE) # exclude prb_ ... _dgns
         sp$pop[, mc := sp$mc_aggr]
 
         # Prune pop (NOTE that assignment in the function env makes this data.table local)
@@ -564,7 +584,7 @@ Simulation <-
         to_agegrp(sp$pop, 5, 99)
         absorb_dt(sp$pop, private$esp_weights)
         sp$pop[, wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
-           keyby = .(year, agegrp, sex, dimd)]
+           by = .(year, agegrp, sex, dimd)] # NOTE keyby changes the key
 
 
         # combine all cancers (moved to C++)
@@ -584,17 +604,24 @@ Simulation <-
         # sp$pop[, cms_score := Reduce(`+`, lapply(private$diseasenam_hlp,
         #                                    private$cms_hlpfn, sp$pop,
         #                                    private$cms_weights))]
+
+        # TODO add logic for the years of having MM. Currently 1 is not the real
+        # incidence. It is still prevalence
         sp$pop[, `:=` (
           cms1st_cont_prvl   = carry_forward_incr(as.integer(cms_count == 1),
                                              pid_mrk, TRUE, 1L),
-          cmsmm1_prvl   = carry_forward_incr(as.integer(cms_score >= 1),
+          cmsmm0_prvl   = carry_forward_incr(as.integer(cms_score > 0),
                                              pid_mrk, TRUE, 1L),
-          cmsmm1.5_prvl = carry_forward_incr(as.integer(cms_score >= 1.5),
+          cmsmm1_prvl   = carry_forward_incr(as.integer(cms_score > 1),
                                              pid_mrk, TRUE, 1L),
-          cmsmm2_prvl   = carry_forward_incr(as.integer(cms_score >= 2),
+          cmsmm1.5_prvl = carry_forward_incr(as.integer(cms_score > 1.5),
+                                             pid_mrk, TRUE, 1L),
+          cmsmm2_prvl   = carry_forward_incr(as.integer(cms_score > 2),
                                              pid_mrk, TRUE, 1L)
         )]
 
+        if (!nzchar(scenario_nam)) scenario_nam <- "sc0"
+          sp$pop[, scenario := scenario_nam]
 
         # Write lifecourse
           if (self$design$sim_prm$logs) message("Exporting lifecourse...")
@@ -607,12 +634,12 @@ Simulation <-
         # if (self$design$sim_prm$logs) message("Exporting summaries...")
         # strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
         #
-        # # Life expectancy NOTE for scale_up LE weights need to apply from the very beginning
+        # # Life expectancy NOTE for scaled_up LE weights need to apply from the very beginning
         # fwrite_safe(sp$pop[all_cause_mrtl > 0, .("popsize" = (.N), LE = mean(age)),  keyby = strata],
         #             private$output_dir(paste0("summaries/", "le_out.csv"
         #             )))
         # fwrite_safe(sp$pop[all_cause_mrtl > 0, .("popsize" = sum(wt), LE = weighted.mean(age, wt)),  keyby = strata],
-        #             private$output_dir(paste0("summaries/", "le_scale_up.csv"
+        #             private$output_dir(paste0("summaries/", "le_scaled_up.csv"
         #             )))
         # fwrite_safe(sp$pop[all_cause_mrtl > 0, .("popsize" = sum(wt_esp), LE = weighted.mean(age, wt_esp)),  keyby = strata],
         #             private$output_dir(paste0("summaries/", "le_esp.csv"
@@ -623,7 +650,7 @@ Simulation <-
         #             private$output_dir(paste0("summaries/", "le60_out.csv"
         #             )))
         # fwrite_safe(sp$pop[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt), LE60 = weighted.mean(age, wt)),  keyby = strata],
-        #             private$output_dir(paste0("summaries/", "le60_scale_up.csv"
+        #             private$output_dir(paste0("summaries/", "le60_scaled_up.csv"
         #             )))
         # fwrite_safe(sp$pop[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt_esp), LE60 = weighted.mean(age, wt_esp)),  keyby = strata],
         #             private$output_dir(paste0("summaries/", "le60_esp.csv"
@@ -641,7 +668,7 @@ Simulation <-
         #                    .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
         #                    keyby = strata],
         #             private$output_dir(paste0(
-        #               "summaries/", "hle_1st_cond_scale_up.csv"
+        #               "summaries/", "hle_1st_cond_scaled_up.csv"
         #             )))
         # fwrite_safe(sp$pop[cms_count == 1L,
         #                    .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
@@ -656,7 +683,7 @@ Simulation <-
         #                    .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
         #                    keyby = strata],
         #             private$output_dir(paste0(
-        #               "summaries/", "hle_cmsmm1.5_scale_up.csv"
+        #               "summaries/", "hle_cmsmm1.5_scaled_up.csv"
         #             )))
         # fwrite_safe(sp$pop[cmsmm1.5_prvl == 1L,
         #                    .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
@@ -674,7 +701,7 @@ Simulation <-
         # fwrite_safe(sp$pop[, c("popsize" = sum(wt),
         #                        lapply(.SD, function(x, wt) sum((x > 0) * wt), wt)),
         #                    .SDcols = patterns("_prvl$"), keyby = strata],
-        #             private$output_dir(paste0("summaries/", "prvl_scale_up.csv"
+        #             private$output_dir(paste0("summaries/", "prvl_scaled_up.csv"
         #             )))
         # fwrite_safe(sp$pop[, c("popsize" = sum(wt_esp),
         #                        lapply(.SD, function(x, wt) sum((x > 0) * wt), wt_esp)),
@@ -689,7 +716,7 @@ Simulation <-
         # fwrite_safe(sp$pop[, c("popsize" = sum(wt),
         #                        lapply(.SD, function(x, wt) sum((x == 1) * wt), wt)),
         #                    .SDcols = patterns("_prvl$"), keyby = strata],
-        #             private$output_dir(paste0("summaries/", "incd_scale_up.csv"
+        #             private$output_dir(paste0("summaries/", "incd_scaled_up.csv"
         #             )))
         # fwrite_safe(sp$pop[, c("popsize" = sum(wt_esp),
         #                        lapply(.SD, function(x, wt) sum((x == 1) * wt), wt_esp)),
@@ -704,7 +731,7 @@ Simulation <-
         # fwrite_safe(sp$pop[, c("popsize" = sum(wt),
         #                        "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt)),
         #                    keyby = strata],
-        #             private$output_dir(paste0("summaries/", "mrtl_scale_up.csv"
+        #             private$output_dir(paste0("summaries/", "mrtl_scaled_up.csv"
         #             )))
         # fwrite_safe(sp$pop[, c("popsize" = sum(wt_esp),
         #                        "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt_esp)),
@@ -754,7 +781,7 @@ Simulation <-
         #   alive = NULL
         # ), .SDcols = !strata]
         # fwrite_safe(dis_mrtl_out,
-        #             private$output_dir(paste0("summaries/", "dis_mrtl_scale_up.csv"
+        #             private$output_dir(paste0("summaries/", "dis_mrtl_scaled_up.csv"
         #             )))
         #
         # dis_mrtl_out <- # scale up esp
@@ -790,8 +817,15 @@ Simulation <-
       # creates the list that is used in c++ side
       # sp is needed for sp$mc_aggr in to_cpp()
       mk_scenario_init = function(sp, scenario_name) {
-        # scenario_suffix_for_pop <- paste0("_", scenario_name) # TODO get suffix from design
-        scenario_suffix_for_pop <- scenario_name
+        if (nzchar(scenario_name)) { # TODO get suffix from design
+          scenario_suffix_for_pop <- paste0("_", scenario_name)
+        } else {
+          scenario_suffix_for_pop <- scenario_name
+        }
+
+        # TODO the next line counteracts the logic above. Resolve
+        scenario_suffix_for_pop <- ""
+
         list(
           "exposures"          = self$design$sim_prm$exposures,
           "scenarios"          = self$design$sim_prm$scenarios, # to be generated programmatically
@@ -805,8 +839,9 @@ Simulation <-
           "all_cause_mrtl"     = paste0("all_cause_mrtl", scenario_suffix_for_pop),
           "cms_score"          = paste0("cms_score", scenario_suffix_for_pop),
           "cms_count"          = paste0("cms_count", scenario_suffix_for_pop),
-          "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
-          "diseases"           = lapply(self$diseases, function(x) x$to_cpp(sp, self$design))
+          # "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
+          "diseases"           = lapply(self$diseases, function(x)
+            x$to_cpp(sp, self$design, scenario_suffix_for_pop))
         )
       },
 
@@ -886,31 +921,35 @@ Simulation <-
 
       # function to export summaries from lifecourse files
       # lc is a lifecourse file
-      export_summaries = function(lc) {
+      export_summaries_hlpr = function(lc) {
         if (self$design$sim_prm$logs) message("Exporting summaries...")
-        strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
+        # strata <- setdiff(self$design$sim_prm$cols_for_output, c("age", "pid", "wt"))
+        strata <- c("mc",
+                    setdiff(self$design$sim_prm$strata_for_output, c("agegrp")))
 
-        # Life expectancy NOTE for scale_up LE weights need to apply from the very beginning
+        # Life expectancy NOTE for scaled_up LE weights need to apply from the very beginning
         fwrite_safe(lc[all_cause_mrtl > 0, .("popsize" = (.N), LE = mean(age)),  keyby = strata],
                     private$output_dir(paste0("summaries/", "le_out.csv.gz"
                     )))
         fwrite_safe(lc[all_cause_mrtl > 0, .("popsize" = sum(wt), LE = weighted.mean(age, wt)),  keyby = strata],
-                    private$output_dir(paste0("summaries/", "le_scale_up.csv.gz"
+                    private$output_dir(paste0("summaries/", "le_scaled_up.csv.gz"
                     )))
         fwrite_safe(lc[all_cause_mrtl > 0, .("popsize" = sum(wt_esp), LE = weighted.mean(age, wt_esp)),  keyby = strata],
                     private$output_dir(paste0("summaries/", "le_esp.csv.gz"
                     )))
         # Life expectancy at 60
 
+        if (self$design$sim_prm$ageL < 60L && self$design$sim_prm$ageH > 60L) {
         fwrite_safe(lc[all_cause_mrtl > 0 & age > 60, .("popsize" = (.N), LE60 = mean(age)),  keyby = strata],
                     private$output_dir(paste0("summaries/", "le60_out.csv.gz"
                     )))
         fwrite_safe(lc[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt), LE60 = weighted.mean(age, wt)),  keyby = strata],
-                    private$output_dir(paste0("summaries/", "le60_scale_up.csv.gz"
+                    private$output_dir(paste0("summaries/", "le60_scaled_up.csv.gz"
                     )))
         fwrite_safe(lc[all_cause_mrtl > 0 & age > 60, .("popsize" = sum(wt_esp), LE60 = weighted.mean(age, wt_esp)),  keyby = strata],
                     private$output_dir(paste0("summaries/", "le60_esp.csv.gz"
                     )))
+        }
         # Note: for less aggregation use wtd.mean with popsize i.e le_out[, weighted.mean(LE, popsize), keyby = year]
 
         # Healthy life expectancy
@@ -924,7 +963,7 @@ Simulation <-
                        .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
                        keyby = strata],
                     private$output_dir(paste0(
-                      "summaries/", "hle_1st_cond_scale_up.csv.gz"
+                      "summaries/", "hle_1st_cond_scaled_up.csv.gz"
                     )))
         fwrite_safe(lc[cms_count == 1L,
                        .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
@@ -939,7 +978,7 @@ Simulation <-
                        .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
                        keyby = strata],
                     private$output_dir(paste0(
-                      "summaries/", "hle_cmsmm1.5_scale_up.csv.gz"
+                      "summaries/", "hle_cmsmm1.5_scaled_up.csv.gz"
                     )))
         fwrite_safe(lc[cmsmm1.5_prvl == 1L,
                        .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
@@ -957,13 +996,14 @@ Simulation <-
         fwrite_safe(lc[, c("popsize" = sum(wt),
                            lapply(.SD, function(x, wt) sum((x > 0) * wt), wt)),
                        .SDcols = patterns("_prvl$"), keyby = strata],
-                    private$output_dir(paste0("summaries/", "prvl_scale_up.csv.gz"
+                    private$output_dir(paste0("summaries/", "prvl_scaled_up.csv.gz"
                     )))
         fwrite_safe(lc[, c("popsize" = sum(wt_esp),
                            lapply(.SD, function(x, wt) sum((x > 0) * wt), wt_esp)),
                        .SDcols = patterns("_prvl$"), keyby = strata],
                     private$output_dir(paste0("summaries/", "prvl_esp.csv.gz"
                     )))
+        # NOTE incd includes prevalent cases in denominator
         fwrite_safe(lc[, c("popsize" = (.N),
                            lapply(.SD, function(x) sum(x == 1))),
                        .SDcols = patterns("_prvl$"), keyby = strata],
@@ -972,24 +1012,24 @@ Simulation <-
         fwrite_safe(lc[, c("popsize" = sum(wt),
                            lapply(.SD, function(x, wt) sum((x == 1) * wt), wt)),
                        .SDcols = patterns("_prvl$"), keyby = strata],
-                    private$output_dir(paste0("summaries/", "incd_scale_up.csv.gz"
+                    private$output_dir(paste0("summaries/", "incd_scaled_up.csv.gz"
                     )))
         fwrite_safe(lc[, c("popsize" = sum(wt_esp),
                            lapply(.SD, function(x, wt) sum((x == 1) * wt), wt_esp)),
                        .SDcols = patterns("_prvl$"), keyby = strata],
                     private$output_dir(paste0("summaries/", "incd_esp.csv.gz"
                     )))
-        fwrite_safe(lc[, c("popsize" = (.N),
+        fwrite_safe(lc[, .("popsize" = (.N),
                            "all_cause_mrtl" = sum(all_cause_mrtl > 0)),
                        keyby = strata],
                     private$output_dir(paste0("summaries/", "mrtl_out.csv.gz"
                     )))
-        fwrite_safe(lc[, c("popsize" = sum(wt),
+        fwrite_safe(lc[, .("popsize" = sum(wt),
                            "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt)),
                        keyby = strata],
-                    private$output_dir(paste0("summaries/", "mrtl_scale_up.csv.gz"
+                    private$output_dir(paste0("summaries/", "mrtl_scaled_up.csv.gz"
                     )))
-        fwrite_safe(lc[, c("popsize" = sum(wt_esp),
+        fwrite_safe(lc[, .("popsize" = sum(wt_esp),
                            "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt_esp)),
                        keyby = strata],
                     private$output_dir(paste0("summaries/", "mrtl_esp.csv.gz"
@@ -1037,7 +1077,7 @@ Simulation <-
           alive = NULL
         ), .SDcols = !strata]
         fwrite_safe(dis_mrtl_out,
-                    private$output_dir(paste0("summaries/", "dis_mrtl_scale_up.csv.gz"
+                    private$output_dir(paste0("summaries/", "dis_mrtl_scaled_up.csv.gz"
                     )))
 
         dis_mrtl_out <- # scale up esp

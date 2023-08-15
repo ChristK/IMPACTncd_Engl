@@ -627,6 +627,7 @@ SynthPop <-
         foreach(
           mc_iter = mc_,
           .inorder = FALSE,
+          .options.multicore = list(preschedule = FALSE),
           .verbose = private$design$sim_prm$logs,
           .packages = c(
             "R6",
