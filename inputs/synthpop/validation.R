@@ -20,7 +20,7 @@
 ## Boston, MA 02110-1301 USA.
 
 cat("Validating IMPACTncd_Engl model...\n\n")
-# setwd("~/My Models/IMPACTncd_Engl/")
+# setwd("~/My_Models/IMPACTncd_Engl/")
 XPS <- TRUE
 delete_previous_results <- FALSE # any change to IMPACTncdEnglmisc deletes output
 

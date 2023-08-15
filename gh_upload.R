@@ -1,5 +1,11 @@
-library(piggyback)
-library(data.table)
+if (!require(piggyback)) {
+  install.packages("piggyback")
+  library(piggyback)
+}
+if (!require(data.table)) {
+  install.packages("data.table")
+  library(data.table)
+}
 
 # Note consider making this a method for Simulation class
 
@@ -9,8 +15,9 @@ repo <- "ChristK/IMPACTncd_Engl"
 # pb_release_delete(repo, tag)
 
 
-fl <- list.files(getwd(), pattern = ".fst$|.xls$|.xlsx$.qs$", full.names = TRUE, recursive = TRUE)
+fl <- list.files(getwd(), pattern = ".fst$|.xls$|.xlsx$|.qs$", full.names = TRUE, recursive = TRUE)
 fl <- grep("secure_data", fl, value = TRUE, invert = TRUE)
+fl <- grep("tmp.qs$", fl, value = TRUE, invert = TRUE)
 
 filindx <- data.table(orig_file = basename(fl),
                         sanit_file = gsub("[^[:alnum:]&&^\\.]", ".", basename(fl)), # replace all non alphanumerics by ... except .

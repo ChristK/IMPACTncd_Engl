@@ -62,6 +62,7 @@ if (interactive()) {
       }
     }
     detach_package(IMPACTncdEngl)
+    file.remove(list.files("./Rpackage/IMPACTncd_Engl_model_pkg/", pattern = ".o$|.dll&", recursive = TRUE, full.names = TRUE))
     remotes::install_local("./Rpackage/IMPACTncd_Engl_model_pkg/",
       force = TRUE,
       upgrade = "never")
