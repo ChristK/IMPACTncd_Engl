@@ -16,6 +16,8 @@ To be completed...
 
 \item{\code{diseases}}{A list of Disease objects.}
 
+\item{\code{RR}}{A list of RR for the simulated exposures.}
+
 \item{\code{scenarios}}{A list of scenario objects.}
 }
 \if{html}{\out{</div>}}
@@ -55,7 +57,7 @@ Create a new simulation object.
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new `Simulation` object.
+A new \code{Simulation} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -114,7 +116,7 @@ The invisible self for chaining.
 \if{latex}{\out{\hypertarget{method-Simulation-get_causal_structure}{}}}
 \subsection{Method \code{get_causal_structure()}}{
 Returns the causality matrix and optionally plots the
-  causality structure.
+causality structure.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_structure(
   processed = TRUE,
@@ -126,10 +128,10 @@ Returns the causality matrix and optionally plots the
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{processed}}{If `TRUE` generates the causality matrix from the
+\item{\code{processed}}{If \code{TRUE} generates the causality matrix from the
 graph.}
 
-\item{\code{print_plot}}{If `TRUE` prints the causal structure graph.}
+\item{\code{print_plot}}{If \code{TRUE} prints the causal structure graph.}
 
 \item{\code{focus}}{If missing the whole causal structure is returned.
 Otherwise, if a named node only the subgraph of the 1st order
@@ -138,8 +140,8 @@ neighbours that point to the given vertrice is returned.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The processed causality matrix if `processed = TRUE` or the
-  graph otherwise.
+The processed causality matrix if \code{processed = TRUE} or the
+graph otherwise.
 }
 }
 \if{html}{\out{<hr>}}
@@ -167,9 +169,9 @@ Returns the causal paths between an exposure and an outcome (disease).
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{from}}{the beginning of the path (an exposure) as a string. Use `get_node_names` for available nodes.}
+\item{\code{from}}{the beginning of the path (an exposure) as a string. Use \code{get_node_names} for available nodes.}
 
-\item{\code{to}}{the end of the path (a disease) as a string. Use `get_node_names` for available nodes.}
+\item{\code{to}}{the end of the path (a disease) as a string. Use \code{get_node_names} for available nodes.}
 
 \item{\code{shortest_paths}}{Boolean. If true, only returns the paths with the smallest number of nodes. Else, all possible paths (excluding multiple and loop edges) are returned.}
 }
@@ -184,7 +186,7 @@ A list with all the possible paths between exposure and disease.
 \if{latex}{\out{\hypertarget{method-Simulation-update_design}{}}}
 \subsection{Method \code{update_design()}}{
 Updates the Design object that is stored in the Simulation
-  object.
+object.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$update_design(new_design)}\if{html}{\out{</div>}}
 }
@@ -231,7 +233,7 @@ The invisible self for chaining.
 \if{latex}{\out{\hypertarget{method-Simulation-get_esp}{}}}
 \subsection{Method \code{get_esp()}}{
 Get the European Standardised Population 2013 by sex and
-  dimd.
+dimd.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_esp()}\if{html}{\out{</div>}}
 }
@@ -245,7 +247,7 @@ A data.table with the European Standardised Population 2013.
 \if{latex}{\out{\hypertarget{method-Simulation-get_mm_weights}{}}}
 \subsection{Method \code{get_mm_weights()}}{
 Get the disease multimorbidity weights (i.e. Cambridge
-  Morbidity Score weights).
+Morbidity Score weights).
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_mm_weights()}\if{html}{\out{</div>}}
 }
@@ -264,7 +266,7 @@ Prints the simulation object metadata.
 }
 
 \subsection{Returns}{
-The invisible `SynthPop` object.
+The invisible \code{SynthPop} object.
 }
 }
 \if{html}{\out{<hr>}}
