@@ -650,6 +650,7 @@ diseases:
 scenarios: ''
 cols_for_output:
 - pid # NEED TO be 1st (perhaps not anymore)
+- pid_mrk
 - year
 - mc
 - age

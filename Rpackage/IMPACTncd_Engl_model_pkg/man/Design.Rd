@@ -52,7 +52,7 @@ appropriate format.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new `Design` object.
+A new \code{Design} object.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -81,7 +81,7 @@ file with the simulation parameters.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The `Design` object.
+The \code{Design} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -101,7 +101,7 @@ Updates the design object from GUI.
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The `Design` object.
+The \code{Design} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -114,7 +114,7 @@ Print the simulation parameters.
 }
 
 \subsection{Returns}{
-The `Design` object.
+The \code{Design} object.
 }
 }
 \if{html}{\out{<hr>}}

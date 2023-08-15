@@ -1329,3 +1329,37 @@ fwrite(d, paste0(sTablesSubDirPath, "exposures by year-qimd (age-sex standardise
 #                                               af_prvl, hf_prvl,  pain_prvl,  cancer_prvl,  stroke_prvl,
 #                                               epilepsy_prvl, andep_prvl, psychosis_prvl, constipation_prvl)])
 # View(lc[cmsmm0_prvl == 1 & first_dis == "", ])
+
+
+library(data.table)
+ans <- data.table()
+strata <- c("year", "age", "sex")
+for (i in 1:100) {
+        print(i)
+lc <- fread(paste0("/mnt/storage_fast/output/hf_real/lifecourse/", i,"_lifecourse.csv.gz"), key = c("pid", "year"))[scenario == "sc0"]
+t1 <- lc[copd_prvl == 1L, .(incd = sum(wt)),  keyby = strata]
+t2 <- lc[copd_prvl > 0L, .(prvl = sum(wt)), keyby = strata]
+t3 <- lc[all_cause_mrtl > 0, .(mrtl = sum(wt)), keyby = strata]
+t4 <- lc[copd_prvl == 0L, .(pop_atrisk = sum(wt)), keyby = strata]
+t5 <- lc[, .(pop = sum(wt)), keyby = strata]
+
+out <- t1[t2[t3[t4[t5]]]]
+setnafill(out, "c", 0, cols = c("incd", "prvl", "mrtl"))
+out[, `:=`(
+        incd_rt = incd / pop,
+        incd_hz = incd / pop_atrisk,
+        prvl_rt = prvl / pop,
+        prvl_hz = prvl / pop_atrisk,
+        mrtl_rt = mrtl / pop
+)]
+out[, mc := i]
+ans <- rbind(ans, out)
+}
+
+ans2 <- ans[, lapply(.SD, median), keyby = strata, .SDcols = -"mc"]
+fwrite(ans2, "/mnt/storage_fast/output/hf_real/tables/copd epi by year,age,sex.csv")
+
+
+ans2 <- ans[, lapply(.SD, sum), keyby = .(year, age, mc), .SDcols = -"sex"]
+ans2 <- ans2[, lapply(.SD, median), keyby = .(year, age), .SDcols = -"mc"]
+fwrite(ans2, "/mnt/storage_fast/output/hf_real/tables/copd epi by year,age.csv")

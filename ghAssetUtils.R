@@ -1,7 +1,13 @@
 # temporary fix: R.utils::reassignInPackage() used to inject our revised functions (see below) into the [piggyback] package, prior to their expected adoption by the piggyback team
 if (!require(R.utils)) {
-  install.packages("R.utils")
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings=FALSE, recursive=TRUE)
+  install.packages("R.utils",lib=Sys.getenv("R_LIBS_USER"),repos="https://cran.rstudio.com/")
   library(R.utils)
+}
+if (!require(yaml)) {
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings=FALSE, recursive=TRUE)
+  install.packages("yaml",lib=Sys.getenv("R_LIBS_USER"),repos="https://cran.rstudio.com/")
+  library(yaml)
 }
 
 #' @description Remove slashes from start and end of path.
@@ -138,7 +144,7 @@ GetGitHubAssetRouteInfo<- function(sId,sRepo,sTag,sUploadSrcDirPath,sDeployToRoo
 
 			if(sGitHubToken=="") { # no access token given previously
 				sGitHubToken<- gitHubAssetRouteFinal$personalAccessToken
-				if(is.null(sGitHubToken))stop("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
+				if(is.null(sGitHubToken))warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
 					May set PAT on command-line or in asset config file [personalAccessToken] variable.")
 			}
 

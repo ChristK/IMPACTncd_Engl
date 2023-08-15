@@ -13,8 +13,8 @@ theme_update(axis.text.x = element_text(size = 9), plot.title = element_text(hju
 
 # Prvl not standardised----
 simulationParameters <- read_yaml(base::normalizePath("./inputs/sim_design.yaml", mustWork=TRUE))
-sSummariesSubDirPath <- file.path(simulationParameters$output_dir,"summaries/")
-sTablesSubDirPath <- file.path(simulationParameters$output_dir,"tables/")
+sSummariesSubDirPath <- file.path(simulationParameters$output_dir, "summaries/")
+sTablesSubDirPath <- file.path(simulationParameters$output_dir, "tables/")
 output_dir <- simulationParameters$output_dir
 
 smmrs_prvl_not_standardised <- function(

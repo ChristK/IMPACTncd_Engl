@@ -28,6 +28,7 @@
 - digest
 - piggyback
 - igraph # For topological ordering of diseases
+- ggthemes
 - data.table
 # - gamlss, # only necessary when fitting the models
 # - gamlss.tr, # only necessary when fitting the models
