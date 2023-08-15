@@ -405,6 +405,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// my_pZANBI_scalar
+double my_pZANBI_scalar(const int& q, const double& mu, const double& sigma, const double& nu, const bool& lower_tail, const bool& log_p, const bool& check);
+RcppExport SEXP _IMPACTncdEngl_my_pZANBI_scalar(SEXP qSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP lower_tailSEXP, SEXP log_pSEXP, SEXP checkSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const int& >::type q(qSEXP);
+    Rcpp::traits::input_parameter< const double& >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< const double& >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< const double& >::type nu(nuSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type lower_tail(lower_tailSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type log_p(log_pSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type check(checkSEXP);
+    rcpp_result_gen = Rcpp::wrap(my_pZANBI_scalar(q, mu, sigma, nu, lower_tail, log_p, check));
+    return rcpp_result_gen;
+END_RCPP
+}
 // my_dSICHEL
 NumericVector my_dSICHEL(const IntegerVector& x, const NumericVector& mu, const NumericVector& sigma, const NumericVector& nu, const bool& log_, const int& n_cpu);
 RcppExport SEXP _IMPACTncdEngl_my_dSICHEL(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP nuSEXP, SEXP log_SEXP, SEXP n_cpuSEXP) {
@@ -864,6 +881,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_IMPACTncdEngl_my_pNBI", (DL_FUNC) &_IMPACTncdEngl_my_pNBI, 6},
     {"_IMPACTncdEngl_my_qNBI", (DL_FUNC) &_IMPACTncdEngl_my_qNBI, 6},
     {"_IMPACTncdEngl_my_qZANBI", (DL_FUNC) &_IMPACTncdEngl_my_qZANBI, 7},
+    {"_IMPACTncdEngl_my_pZANBI_scalar", (DL_FUNC) &_IMPACTncdEngl_my_pZANBI_scalar, 7},
     {"_IMPACTncdEngl_my_dSICHEL", (DL_FUNC) &_IMPACTncdEngl_my_dSICHEL, 6},
     {"_IMPACTncdEngl_my_pSICHEL", (DL_FUNC) &_IMPACTncdEngl_my_pSICHEL, 7},
     {"_IMPACTncdEngl_my_qSICHEL", (DL_FUNC) &_IMPACTncdEngl_my_qSICHEL, 7},

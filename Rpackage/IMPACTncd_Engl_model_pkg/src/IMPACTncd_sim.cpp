@@ -67,6 +67,7 @@ struct distr_prm_vr
 {
   double intercept;
   double log_age_coef;
+  double log_year_coef;
   NumericVector sex_coef;
   NumericVector dimd_coef;
 };
@@ -264,18 +265,21 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
       List pr = ib["mu"];
       out.dgns.dur_forward.mu.intercept = as<double>(pr["intercept"]);
       out.dgns.dur_forward.mu.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.mu.log_year_coef = as<double>(pr["log(year)"]);
       out.dgns.dur_forward.mu.sex_coef = as<NumericVector>(pr["sex"]);
       out.dgns.dur_forward.mu.dimd_coef = as<NumericVector>(pr["dimd"]);
 
       pr = ib["sigma"];
       out.dgns.dur_forward.sigma.intercept = as<double>(pr["intercept"]);
       out.dgns.dur_forward.sigma.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.sigma.log_year_coef = as<double>(pr["log(year)"]);
       out.dgns.dur_forward.sigma.sex_coef = as<NumericVector>(pr["sex"]);
       out.dgns.dur_forward.sigma.dimd_coef = as<NumericVector>(pr["dimd"]);
 
       pr = ib["nu"];
       out.dgns.dur_forward.nu.intercept = as<double>(pr["intercept"]);
       out.dgns.dur_forward.nu.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.nu.log_year_coef = as<double>(pr["log(year)"]);
       out.dgns.dur_forward.nu.sex_coef = as<NumericVector>(pr["sex"]);
       out.dgns.dur_forward.nu.dimd_coef = as<NumericVector>(pr["dimd"]);
 
@@ -285,16 +289,19 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
     { // if duration forward doesn't exist
       out.dgns.dur_forward.mu.intercept = 0.0;
       out.dgns.dur_forward.mu.log_age_coef = 0.0;
+      out.dgns.dur_forward.mu.log_year_coef = 0.0;
       out.dgns.dur_forward.mu.sex_coef = {0.0, 0.0};
       out.dgns.dur_forward.mu.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
       out.dgns.dur_forward.sigma.intercept = 0.0;
       out.dgns.dur_forward.sigma.log_age_coef = 0.0;
+      out.dgns.dur_forward.sigma.log_year_coef = 0.0;
       out.dgns.dur_forward.sigma.sex_coef ={0.0, 0.0};
       out.dgns.dur_forward.sigma.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
       out.dgns.dur_forward.nu.intercept = 0.0;
       out.dgns.dur_forward.nu.log_age_coef = 0.0;
+      out.dgns.dur_forward.nu.log_year_coef = 0.0;
       out.dgns.dur_forward.nu.sex_coef = {0.0, 0.0};
       out.dgns.dur_forward.nu.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -368,19 +375,55 @@ int get_dur_forward (const int i, // represents the row
 {
   double mu = exp(ds.dgns.dur_forward.mu.intercept +
                   ds.dgns.dur_forward.mu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.mu.log_year_coef * log(sm.year[i]) +
                   ds.dgns.dur_forward.mu.sex_coef[sm.sex[i] - 1] +
                   ds.dgns.dur_forward.mu.dimd_coef[sm.dimd[i] - 1]);
   double sigma = exp(ds.dgns.dur_forward.sigma.intercept +
                   ds.dgns.dur_forward.sigma.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.sigma.log_year_coef * log(sm.year[i]) +
                   ds.dgns.dur_forward.sigma.sex_coef[sm.sex[i] - 1] +
                   ds.dgns.dur_forward.sigma.dimd_coef[sm.dimd[i] - 1]);
   double nu = antilogit(ds.dgns.dur_forward.nu.intercept +
                   ds.dgns.dur_forward.nu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.nu.log_year_coef * log(sm.year[i]) +
                   ds.dgns.dur_forward.nu.sex_coef[sm.sex[i] - 1] +
                   ds.dgns.dur_forward.nu.dimd_coef[sm.dimd[i] - 1]
   );
 
-  return my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
+  return 1 + my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
+}
+
+int get_dur_forward_prvl (const int& i, // represents the row
+                     const double& rn, // random number
+                     const int& prvl_dur, // used only for prevalent cases that enter the simulation
+                     const disease_meta& ds,
+                     const simul_meta& sm)
+{
+  double mu = exp(ds.dgns.dur_forward.mu.intercept +
+                  ds.dgns.dur_forward.mu.log_age_coef * log(sm.age[i]) +
+                  ds.dgns.dur_forward.mu.log_year_coef * log(sm.year[i]) +
+                  ds.dgns.dur_forward.mu.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.mu.dimd_coef[sm.dimd[i] - 1]);
+  double sigma = exp(ds.dgns.dur_forward.sigma.intercept +
+                     ds.dgns.dur_forward.sigma.log_age_coef * log(sm.age[i]) +
+                     ds.dgns.dur_forward.sigma.log_year_coef * log(sm.year[i]) +
+                     ds.dgns.dur_forward.sigma.sex_coef[sm.sex[i] - 1] +
+                     ds.dgns.dur_forward.sigma.dimd_coef[sm.dimd[i] - 1]);
+  double nu = antilogit(ds.dgns.dur_forward.nu.intercept +
+                        ds.dgns.dur_forward.nu.log_age_coef * log(sm.age[i]) +
+                        ds.dgns.dur_forward.nu.log_year_coef * log(sm.year[i]) +
+                        ds.dgns.dur_forward.nu.sex_coef[sm.sex[i] - 1] +
+                        ds.dgns.dur_forward.nu.dimd_coef[sm.dimd[i] - 1]
+  );
+
+  double thresh = my_pZANBI_scalar(prvl_dur,mu, sigma, nu, true, false, true);
+  if (rn < thresh)
+  {
+    return prvl_dur + my_qZANBI_scalar(1 - rn, mu, sigma, nu, true, false, true);  }
+  else
+  {
+    return prvl_dur + my_qZANBI_scalar(rn, mu, sigma, nu, true, false, true);
+  }
 }
 
 //' @export
@@ -475,7 +518,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         if (dsmeta[j].incd.type == "Type0")
         {
-          for (int k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+          for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
             if (VECT_ELEM(dsmeta[j].incd.influenced_by.disease_prvl[k],i) > VECT_ELEM(dsmeta[j].incd.prvl,i))
             {
@@ -551,7 +594,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         else if (dsmeta[j].incd.type == "Type3") // NOTE I don't need this type. Can be replaced by a flag to notify disease dependence
         {
-          for (int k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+          for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
             // if lag > 0 look back. For diseases depending on self, lag = 0 and
             // that triggers the use of the .incd.flag
@@ -569,17 +612,17 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 					VECT_ELEM(dsmeta[j].incd.prvl,i) = 1;
               // dsmeta[j].dgns.cure holds the duration_prm for this spell
               // NOTE dsmeta[j].incd.influenced_by.lag[k] == 0 identifies diseases like asthma
-              if (dsmeta[j].dgns.flag)  dsmeta[j].dgns.cure = 1 + get_dur_forward(i, runif_impl(), dsmeta[j], meta);
+              if (dsmeta[j].dgns.flag)  dsmeta[j].dgns.cure = get_dur_forward(i, runif_impl(), dsmeta[j], meta);
             }
 
             // Below is the logic for diseases like asthma to cure prevalent
             // cases in initial year. NOTE I don't add 1 to duration
             // intentionally, to allow 0s.
             if (dsmeta[j].dgns.flag &&
-                meta.year[i] == meta.init_year &&
+                (meta.year[i] == meta.init_year || meta.age[i] == meta.age_low) &&
                 dsmeta[j].incd.prvl[i] > 1 ) // >1 to exclude incident cases from above.
             {
-              dsmeta[j].dgns.cure = get_dur_forward(i, runif_impl(), dsmeta[j], meta); // NOTE no 1 + ZANBI
+              dsmeta[j].dgns.cure = get_dur_forward_prvl(i, runif_impl(), dsmeta[j].incd.prvl[i], dsmeta[j], meta);
             }
 
             // Logic to advance duration of prevalent cases by 1
@@ -648,7 +691,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
 
         if (dsmeta[j].incd.type != "Universal" &&VECT_ELEM(dsmeta[j].incd.prvl,i) > 0 && dsmeta[j].dgns.type == "Type0")
         {
-          for (int k = 0; k < dsmeta[j].dgns.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+          for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].dgns.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
           {
             if (dsmeta[j].dgns.influenced_by.disease_prvl[k](i) > VECT_ELEM(dsmeta[j].dgns.prvl,i))
             {
@@ -657,7 +700,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           }
         }
 
-        else if (VECT_ELEM(dsmeta[j].incd.prvl,i) > 0 && dsmeta[j].dgns.type == "Type1") // enter branch only for prevalent cases
+        else if (dsmeta[j].incd.type != "Universal" && VECT_ELEM(dsmeta[j].incd.prvl,i) > 0 && dsmeta[j].dgns.type == "Type1") // enter branch only for prevalent cases
         {
           if (VECT_ELEM(dsmeta[j].dgns.prvl,i - 1) == 0 && rn1 <= VECT_ELEM(dsmeta[j].dgns.prbl1,i))
           {
@@ -710,7 +753,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           // Type 3 mortality (no cure, disease dependency)
           else if (dsmeta[j].mrtl.type == "Type3")
           {
-            for (int k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+            for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
             {
               if (dsmeta[j].mrtl.influenced_by.disease_prvl[k](i - dsmeta[j].mrtl.influenced_by.lag[k]) > 0)
               {
@@ -735,7 +778,7 @@ void simcpp(DataFrame dt, const List l, const int mc) {
           // incidence is impossible to be of type 4 because there is no cure.
           else if (dsmeta[j].mrtl.type == "Type4")
           {
-            for (int k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
+            for (vector<IntegerVector>::size_type k = 0; k < dsmeta[j].mrtl.influenced_by.disease_prvl.size(); ++k) // Loop over influenced by diseases
             {
               if (dsmeta[j].incd.influenced_by.lag[k] > 0 && // to exclude conditions that depend on themselves, like asthma
 						VECT_ELEM(dsmeta[j].mrtl.influenced_by.disease_prvl[k],i - dsmeta[j].mrtl.influenced_by.lag[k]) > 0)

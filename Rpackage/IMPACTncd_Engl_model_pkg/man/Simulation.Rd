@@ -12,7 +12,7 @@ To be completed...
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
-\item{\code{design}}{A Design object with .}
+\item{\code{design}}{A Design object.}
 
 \item{\code{diseases}}{A list of Disease objects.}
 
@@ -27,6 +27,8 @@ To be completed...
 \item \href{#method-Simulation-run}{\code{Simulation$run()}}
 \item \href{#method-Simulation-export_summaries}{\code{Simulation$export_summaries()}}
 \item \href{#method-Simulation-get_causal_structure}{\code{Simulation$get_causal_structure()}}
+\item \href{#method-Simulation-get_node_names}{\code{Simulation$get_node_names()}}
+\item \href{#method-Simulation-get_causal_path}{\code{Simulation$get_causal_path()}}
 \item \href{#method-Simulation-update_design}{\code{Simulation$update_design()}}
 \item \href{#method-Simulation-del_outputs}{\code{Simulation$del_outputs()}}
 \item \href{#method-Simulation-del_logs}{\code{Simulation$del_logs()}}
@@ -53,8 +55,7 @@ Create a new simulation object.
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new `Simulation`
-object.
+A new \code{Simulation} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -70,7 +71,7 @@ Runs a simulation
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{mc}}{A positive sequential integer vector with the Monte Carlo
-iterations of synthetic population to simulate.}
+iterations of synthetic population to simulate, or a scalar.}
 
 \item{\code{multicore}}{If TRUE run the simulation in parallel.}
 
@@ -88,13 +89,19 @@ The invisible self for chaining.
 \subsection{Method \code{export_summaries()}}{
 Process the lifecourse files
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$export_summaries(multicore = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$export_summaries(
+  multicore = TRUE,
+  type = c("le", "hle", "dis_char", "prvl", "incd", "dis_mrtl", "mrtl",
+    "allcause_mrtl_by_dis", "cms")
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{multicore}}{If TRUE run the simulation in parallel.}
+
+\item{\code{type}}{The type of summary to extract.}
 }
 \if{html}{\out{</div>}}
 }
@@ -107,24 +114,69 @@ The invisible self for chaining.
 \if{latex}{\out{\hypertarget{method-Simulation-get_causal_structure}{}}}
 \subsection{Method \code{get_causal_structure()}}{
 Returns the causality matrix and optionally plots the
-  causality structure.
+causality structure.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_structure(processed = TRUE, print_plot = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_structure(
+  processed = TRUE,
+  print_plot = FALSE,
+  focus = FALSE
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{processed}}{If `TRUE` generates the causality matrix from the
+\item{\code{processed}}{If \code{TRUE} generates the causality matrix from the
 graph.}
 
-\item{\code{print_plot}}{If `TRUE` prints the causal structure graph.}
+\item{\code{print_plot}}{If \code{TRUE} prints the causal structure graph.}
+
+\item{\code{focus}}{If missing the whole causal structure is returned.
+Otherwise, if a named node only the subgraph of the 1st order
+neighbours that point to the given vertrice is returned.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The processed causality matrix if `processed = TRUE` or the
-  graph otherwise.
+The processed causality matrix if \code{processed = TRUE} or the
+graph otherwise.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_node_names"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_node_names}{}}}
+\subsection{Method \code{get_node_names()}}{
+Returns the names of all exposures and diseases.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_node_names()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A string vector.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_causal_path"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_causal_path}{}}}
+\subsection{Method \code{get_causal_path()}}{
+Returns the causal paths between an exposure and an outcome (disease).
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_path(from, to, shortest_paths = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{from}}{the beginning of the path (an exposure) as a string. Use \code{get_node_names} for available nodes.}
+
+\item{\code{to}}{the end of the path (a disease) as a string. Use \code{get_node_names} for available nodes.}
+
+\item{\code{shortest_paths}}{Boolean. If true, only returns the paths with the smallest number of nodes. Else, all possible paths (excluding multiple and loop edges) are returned.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A list with all the possible paths between exposure and disease.
 }
 }
 \if{html}{\out{<hr>}}
@@ -132,7 +184,7 @@ The processed causality matrix if `processed = TRUE` or the
 \if{latex}{\out{\hypertarget{method-Simulation-update_design}{}}}
 \subsection{Method \code{update_design()}}{
 Updates the Design object that is stored in the Simulation
-  object.
+object.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$update_design(new_design)}\if{html}{\out{</div>}}
 }
@@ -179,7 +231,7 @@ The invisible self for chaining.
 \if{latex}{\out{\hypertarget{method-Simulation-get_esp}{}}}
 \subsection{Method \code{get_esp()}}{
 Get the European Standardised Population 2013 by sex and
-  dimd.
+dimd.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_esp()}\if{html}{\out{</div>}}
 }
@@ -193,7 +245,7 @@ A data.table with the European Standardised Population 2013.
 \if{latex}{\out{\hypertarget{method-Simulation-get_mm_weights}{}}}
 \subsection{Method \code{get_mm_weights()}}{
 Get the disease multimorbidity weights (i.e. Cambridge
-  Morbidity Score weights).
+Morbidity Score weights).
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_mm_weights()}\if{html}{\out{</div>}}
 }
@@ -212,7 +264,7 @@ Prints the simulation object metadata.
 }
 
 \subsection{Returns}{
-The invisible `SynthPop` object.
+The invisible \code{SynthPop} object.
 }
 }
 \if{html}{\out{<hr>}}

@@ -1,0 +1,437 @@
+---
+xps_name: prostate_ca_prvl
+outcome: other_ca
+lag: 1
+distribution: lognormal
+source: CPRD
+notes: 'other covariate conditions: breast_ca,colorectal_ca,lung_ca'
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    # multiplier for the risk of other_ca for prostate_ca
+    if (!'other_ca_incd_prostate_ca_prvl_mltp' %in% names(sp$pop)) sp$pop[, other_ca_incd_prostate_ca_prvl_mltp := prostate_ca_prvl_rr]
+    if (!'other_ca_mrtl_prostate_ca_prvl_mltp' %in% names(sp$pop)) sp$pop[, other_ca_mrtl_prostate_ca_prvl_mltp := prostate_ca_prvl_rr]
+    sp$pop[prostate_ca_prvl == 0L, prostate_ca_prvl_rr := 1]
+  }
+---
+agegroup,sex,dimd,rr,ci_rr
+<1,men,1 most deprived,1,1
+01-04,men,1 most deprived,1,1
+05-09,men,1 most deprived,1,1
+10-14,men,1 most deprived,1,1
+15-19,men,1 most deprived,1,1
+20-24,men,1 most deprived,2.33,2.45
+25-29,men,1 most deprived,2.33,2.45
+30-34,men,1 most deprived,2.33,2.45
+35-39,men,1 most deprived,2.33,2.45
+40-44,men,1 most deprived,2.33,2.44
+45-49,men,1 most deprived,2.32,2.44
+50-54,men,1 most deprived,2.32,2.43
+55-59,men,1 most deprived,2.31,2.43
+60-64,men,1 most deprived,2.3,2.42
+65-69,men,1 most deprived,2.29,2.4
+70-74,men,1 most deprived,2.28,2.39
+75-79,men,1 most deprived,2.26,2.37
+80-84,men,1 most deprived,2.25,2.36
+85-89,men,1 most deprived,2.25,2.36
+90-94,men,1 most deprived,2.26,2.36
+95-99,men,1 most deprived,2.27,2.38
+<1,men,2,1,1
+01-04,men,2,1,1
+05-09,men,2,1,1
+10-14,men,2,1,1
+15-19,men,2,1,1
+20-24,men,2,2.33,2.45
+25-29,men,2,2.33,2.45
+30-34,men,2,2.33,2.45
+35-39,men,2,2.33,2.45
+40-44,men,2,2.33,2.44
+45-49,men,2,2.32,2.44
+50-54,men,2,2.32,2.43
+55-59,men,2,2.31,2.43
+60-64,men,2,2.3,2.42
+65-69,men,2,2.29,2.4
+70-74,men,2,2.28,2.39
+75-79,men,2,2.27,2.38
+80-84,men,2,2.26,2.36
+85-89,men,2,2.25,2.36
+90-94,men,2,2.26,2.37
+95-99,men,2,2.27,2.38
+<1,men,3,1,1
+01-04,men,3,1,1
+05-09,men,3,1,1
+10-14,men,3,1,1
+15-19,men,3,1,1
+20-24,men,3,2.33,2.45
+25-29,men,3,2.33,2.45
+30-34,men,3,2.33,2.45
+35-39,men,3,2.33,2.45
+40-44,men,3,2.33,2.44
+45-49,men,3,2.32,2.44
+50-54,men,3,2.32,2.43
+55-59,men,3,2.31,2.43
+60-64,men,3,2.3,2.42
+65-69,men,3,2.29,2.4
+70-74,men,3,2.28,2.39
+75-79,men,3,2.27,2.38
+80-84,men,3,2.26,2.36
+85-89,men,3,2.25,2.36
+90-94,men,3,2.26,2.37
+95-99,men,3,2.27,2.38
+<1,men,4,1,1
+01-04,men,4,1,1
+05-09,men,4,1,1
+10-14,men,4,1,1
+15-19,men,4,1,1
+20-24,men,4,2.33,2.45
+25-29,men,4,2.33,2.45
+30-34,men,4,2.33,2.45
+35-39,men,4,2.33,2.45
+40-44,men,4,2.33,2.44
+45-49,men,4,2.32,2.44
+50-54,men,4,2.32,2.43
+55-59,men,4,2.31,2.43
+60-64,men,4,2.3,2.42
+65-69,men,4,2.29,2.4
+70-74,men,4,2.28,2.39
+75-79,men,4,2.27,2.37
+80-84,men,4,2.25,2.36
+85-89,men,4,2.25,2.36
+90-94,men,4,2.26,2.36
+95-99,men,4,2.27,2.38
+<1,men,5,1,1
+01-04,men,5,1,1
+05-09,men,5,1,1
+10-14,men,5,1,1
+15-19,men,5,1,1
+20-24,men,5,2.33,2.45
+25-29,men,5,2.33,2.45
+30-34,men,5,2.33,2.45
+35-39,men,5,2.33,2.45
+40-44,men,5,2.33,2.44
+45-49,men,5,2.32,2.44
+50-54,men,5,2.32,2.43
+55-59,men,5,2.31,2.43
+60-64,men,5,2.3,2.42
+65-69,men,5,2.29,2.4
+70-74,men,5,2.28,2.39
+75-79,men,5,2.27,2.38
+80-84,men,5,2.26,2.36
+85-89,men,5,2.25,2.36
+90-94,men,5,2.26,2.37
+95-99,men,5,2.27,2.38
+<1,men,6,1,1
+01-04,men,6,1,1
+05-09,men,6,1,1
+10-14,men,6,1,1
+15-19,men,6,1,1
+20-24,men,6,2.33,2.45
+25-29,men,6,2.33,2.45
+30-34,men,6,2.33,2.45
+35-39,men,6,2.33,2.45
+40-44,men,6,2.33,2.44
+45-49,men,6,2.32,2.44
+50-54,men,6,2.32,2.43
+55-59,men,6,2.31,2.43
+60-64,men,6,2.3,2.42
+65-69,men,6,2.29,2.4
+70-74,men,6,2.28,2.39
+75-79,men,6,2.27,2.37
+80-84,men,6,2.25,2.36
+85-89,men,6,2.25,2.36
+90-94,men,6,2.26,2.37
+95-99,men,6,2.27,2.38
+<1,men,7,1,1
+01-04,men,7,1,1
+05-09,men,7,1,1
+10-14,men,7,1,1
+15-19,men,7,1,1
+20-24,men,7,2.33,2.45
+25-29,men,7,2.33,2.45
+30-34,men,7,2.33,2.45
+35-39,men,7,2.33,2.45
+40-44,men,7,2.33,2.44
+45-49,men,7,2.32,2.44
+50-54,men,7,2.32,2.43
+55-59,men,7,2.31,2.43
+60-64,men,7,2.3,2.42
+65-69,men,7,2.29,2.4
+70-74,men,7,2.28,2.39
+75-79,men,7,2.27,2.37
+80-84,men,7,2.25,2.36
+85-89,men,7,2.25,2.36
+90-94,men,7,2.26,2.36
+95-99,men,7,2.27,2.38
+<1,men,8,1,1
+01-04,men,8,1,1
+05-09,men,8,1,1
+10-14,men,8,1,1
+15-19,men,8,1,1
+20-24,men,8,2.33,2.45
+25-29,men,8,2.33,2.45
+30-34,men,8,2.33,2.45
+35-39,men,8,2.33,2.45
+40-44,men,8,2.33,2.44
+45-49,men,8,2.32,2.44
+50-54,men,8,2.32,2.43
+55-59,men,8,2.31,2.43
+60-64,men,8,2.3,2.41
+65-69,men,8,2.29,2.4
+70-74,men,8,2.28,2.39
+75-79,men,8,2.26,2.37
+80-84,men,8,2.25,2.36
+85-89,men,8,2.25,2.35
+90-94,men,8,2.25,2.36
+95-99,men,8,2.27,2.38
+<1,men,9,1,1
+01-04,men,9,1,1
+05-09,men,9,1,1
+10-14,men,9,1,1
+15-19,men,9,1,1
+20-24,men,9,2.33,2.45
+25-29,men,9,2.33,2.45
+30-34,men,9,2.33,2.45
+35-39,men,9,2.33,2.45
+40-44,men,9,2.33,2.44
+45-49,men,9,2.32,2.44
+50-54,men,9,2.32,2.43
+55-59,men,9,2.31,2.43
+60-64,men,9,2.3,2.41
+65-69,men,9,2.29,2.4
+70-74,men,9,2.28,2.38
+75-79,men,9,2.26,2.37
+80-84,men,9,2.25,2.36
+85-89,men,9,2.25,2.35
+90-94,men,9,2.25,2.36
+95-99,men,9,2.27,2.38
+<1,men,10 least deprived,1,1
+01-04,men,10 least deprived,1,1
+05-09,men,10 least deprived,1,1
+10-14,men,10 least deprived,1,1
+15-19,men,10 least deprived,1,1
+20-24,men,10 least deprived,2.33,2.45
+25-29,men,10 least deprived,2.33,2.45
+30-34,men,10 least deprived,2.33,2.45
+35-39,men,10 least deprived,2.33,2.45
+40-44,men,10 least deprived,2.33,2.44
+45-49,men,10 least deprived,2.32,2.44
+50-54,men,10 least deprived,2.32,2.43
+55-59,men,10 least deprived,2.31,2.43
+60-64,men,10 least deprived,2.3,2.41
+65-69,men,10 least deprived,2.29,2.4
+70-74,men,10 least deprived,2.28,2.39
+75-79,men,10 least deprived,2.26,2.37
+80-84,men,10 least deprived,2.25,2.36
+85-89,men,10 least deprived,2.25,2.35
+90-94,men,10 least deprived,2.25,2.36
+95-99,men,10 least deprived,2.27,2.38
+<1,women,1 most deprived,1,1
+01-04,women,1 most deprived,1,1
+05-09,women,1 most deprived,1,1
+10-14,women,1 most deprived,1,1
+15-19,women,1 most deprived,1,1
+20-24,women,1 most deprived,2.33,2.45
+25-29,women,1 most deprived,2.33,2.45
+30-34,women,1 most deprived,2.33,2.45
+35-39,women,1 most deprived,2.33,2.45
+40-44,women,1 most deprived,2.33,2.45
+45-49,women,1 most deprived,2.33,2.44
+50-54,women,1 most deprived,2.32,2.44
+55-59,women,1 most deprived,2.32,2.43
+60-64,women,1 most deprived,2.31,2.42
+65-69,women,1 most deprived,2.3,2.41
+70-74,women,1 most deprived,2.29,2.4
+75-79,women,1 most deprived,2.28,2.39
+80-84,women,1 most deprived,2.27,2.37
+85-89,women,1 most deprived,2.26,2.37
+90-94,women,1 most deprived,2.27,2.38
+95-99,women,1 most deprived,2.28,2.39
+<1,women,2,1,1
+01-04,women,2,1,1
+05-09,women,2,1,1
+10-14,women,2,1,1
+15-19,women,2,1,1
+20-24,women,2,2.33,2.45
+25-29,women,2,2.33,2.45
+30-34,women,2,2.33,2.45
+35-39,women,2,2.33,2.45
+40-44,women,2,2.33,2.45
+45-49,women,2,2.33,2.44
+50-54,women,2,2.32,2.44
+55-59,women,2,2.32,2.43
+60-64,women,2,2.31,2.42
+65-69,women,2,2.3,2.41
+70-74,women,2,2.29,2.4
+75-79,women,2,2.28,2.39
+80-84,women,2,2.27,2.38
+85-89,women,2,2.27,2.38
+90-94,women,2,2.27,2.38
+95-99,women,2,2.28,2.39
+<1,women,3,1,1
+01-04,women,3,1,1
+05-09,women,3,1,1
+10-14,women,3,1,1
+15-19,women,3,1,1
+20-24,women,3,2.33,2.45
+25-29,women,3,2.33,2.45
+30-34,women,3,2.33,2.45
+35-39,women,3,2.33,2.45
+40-44,women,3,2.33,2.45
+45-49,women,3,2.33,2.44
+50-54,women,3,2.32,2.44
+55-59,women,3,2.32,2.43
+60-64,women,3,2.31,2.42
+65-69,women,3,2.3,2.41
+70-74,women,3,2.29,2.4
+75-79,women,3,2.28,2.39
+80-84,women,3,2.27,2.38
+85-89,women,3,2.27,2.38
+90-94,women,3,2.27,2.38
+95-99,women,3,2.28,2.39
+<1,women,4,1,1
+01-04,women,4,1,1
+05-09,women,4,1,1
+10-14,women,4,1,1
+15-19,women,4,1,1
+20-24,women,4,2.33,2.45
+25-29,women,4,2.33,2.45
+30-34,women,4,2.33,2.45
+35-39,women,4,2.33,2.45
+40-44,women,4,2.33,2.45
+45-49,women,4,2.33,2.44
+50-54,women,4,2.32,2.44
+55-59,women,4,2.32,2.43
+60-64,women,4,2.31,2.42
+65-69,women,4,2.3,2.41
+70-74,women,4,2.29,2.4
+75-79,women,4,2.28,2.39
+80-84,women,4,2.27,2.38
+85-89,women,4,2.26,2.37
+90-94,women,4,2.27,2.38
+95-99,women,4,2.28,2.39
+<1,women,5,1,1
+01-04,women,5,1,1
+05-09,women,5,1,1
+10-14,women,5,1,1
+15-19,women,5,1,1
+20-24,women,5,2.33,2.45
+25-29,women,5,2.33,2.45
+30-34,women,5,2.33,2.45
+35-39,women,5,2.33,2.45
+40-44,women,5,2.33,2.45
+45-49,women,5,2.33,2.44
+50-54,women,5,2.32,2.44
+55-59,women,5,2.32,2.43
+60-64,women,5,2.31,2.42
+65-69,women,5,2.3,2.41
+70-74,women,5,2.29,2.4
+75-79,women,5,2.28,2.39
+80-84,women,5,2.27,2.38
+85-89,women,5,2.27,2.37
+90-94,women,5,2.27,2.38
+95-99,women,5,2.28,2.39
+<1,women,6,1,1
+01-04,women,6,1,1
+05-09,women,6,1,1
+10-14,women,6,1,1
+15-19,women,6,1,1
+20-24,women,6,2.33,2.45
+25-29,women,6,2.33,2.45
+30-34,women,6,2.33,2.45
+35-39,women,6,2.33,2.45
+40-44,women,6,2.33,2.45
+45-49,women,6,2.33,2.44
+50-54,women,6,2.32,2.44
+55-59,women,6,2.32,2.43
+60-64,women,6,2.31,2.42
+65-69,women,6,2.3,2.41
+70-74,women,6,2.29,2.4
+75-79,women,6,2.28,2.39
+80-84,women,6,2.27,2.38
+85-89,women,6,2.27,2.37
+90-94,women,6,2.27,2.38
+95-99,women,6,2.28,2.39
+<1,women,7,1,1
+01-04,women,7,1,1
+05-09,women,7,1,1
+10-14,women,7,1,1
+15-19,women,7,1,1
+20-24,women,7,2.33,2.45
+25-29,women,7,2.33,2.45
+30-34,women,7,2.33,2.45
+35-39,women,7,2.33,2.45
+40-44,women,7,2.33,2.45
+45-49,women,7,2.33,2.44
+50-54,women,7,2.32,2.44
+55-59,women,7,2.32,2.43
+60-64,women,7,2.31,2.42
+65-69,women,7,2.3,2.41
+70-74,women,7,2.29,2.4
+75-79,women,7,2.28,2.39
+80-84,women,7,2.27,2.38
+85-89,women,7,2.26,2.37
+90-94,women,7,2.27,2.38
+95-99,women,7,2.28,2.39
+<1,women,8,1,1
+01-04,women,8,1,1
+05-09,women,8,1,1
+10-14,women,8,1,1
+15-19,women,8,1,1
+20-24,women,8,2.33,2.45
+25-29,women,8,2.33,2.45
+30-34,women,8,2.33,2.45
+35-39,women,8,2.33,2.45
+40-44,women,8,2.33,2.45
+45-49,women,8,2.33,2.44
+50-54,women,8,2.32,2.44
+55-59,women,8,2.32,2.43
+60-64,women,8,2.31,2.42
+65-69,women,8,2.3,2.41
+70-74,women,8,2.29,2.4
+75-79,women,8,2.27,2.38
+80-84,women,8,2.27,2.37
+85-89,women,8,2.26,2.37
+90-94,women,8,2.27,2.38
+95-99,women,8,2.28,2.39
+<1,women,9,1,1
+01-04,women,9,1,1
+05-09,women,9,1,1
+10-14,women,9,1,1
+15-19,women,9,1,1
+20-24,women,9,2.33,2.45
+25-29,women,9,2.33,2.45
+30-34,women,9,2.33,2.45
+35-39,women,9,2.33,2.45
+40-44,women,9,2.33,2.45
+45-49,women,9,2.33,2.44
+50-54,women,9,2.32,2.44
+55-59,women,9,2.32,2.43
+60-64,women,9,2.31,2.42
+65-69,women,9,2.3,2.41
+70-74,women,9,2.29,2.4
+75-79,women,9,2.27,2.38
+80-84,women,9,2.26,2.37
+85-89,women,9,2.26,2.37
+90-94,women,9,2.27,2.38
+95-99,women,9,2.28,2.39
+<1,women,10 least deprived,1,1
+01-04,women,10 least deprived,1,1
+05-09,women,10 least deprived,1,1
+10-14,women,10 least deprived,1,1
+15-19,women,10 least deprived,1,1
+20-24,women,10 least deprived,2.33,2.45
+25-29,women,10 least deprived,2.33,2.45
+30-34,women,10 least deprived,2.33,2.45
+35-39,women,10 least deprived,2.33,2.45
+40-44,women,10 least deprived,2.33,2.45
+45-49,women,10 least deprived,2.33,2.44
+50-54,women,10 least deprived,2.32,2.44
+55-59,women,10 least deprived,2.32,2.43
+60-64,women,10 least deprived,2.31,2.42
+65-69,women,10 least deprived,2.3,2.41
+70-74,women,10 least deprived,2.29,2.4
+75-79,women,10 least deprived,2.27,2.38
+80-84,women,10 least deprived,2.26,2.37
+85-89,women,10 least deprived,2.26,2.37
+90-94,women,10 least deprived,2.27,2.38
+95-99,women,10 least deprived,2.28,2.39
