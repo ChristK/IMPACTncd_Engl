@@ -1,6 +1,7 @@
 iteration_n: 15
 iteration_n_final: 100
-clusternumber: 15 # explicit parallelisation
+clusternumber: 10 # explicit parallelisation
+clusternumber_export: 10 # NEW: number of clusters for export_summaries
 n_cpus: 1 # implicit parallelisation
 logs: no
 export_xps: yes
@@ -15,6 +16,7 @@ ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
 model_trends_in_redidual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
+avoid_appending_csv: yes #  Do not append on existing .csv. Rather write separately and join later. To bypass problems with Docker on windows
 maxlag: 10
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
@@ -27,7 +29,7 @@ simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real
+output_dir: /mnt/storage_fast/output/hf_real_csvtest
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 uncertainty: # Note that uncertainties are independent
   incidence:
