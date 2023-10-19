@@ -310,7 +310,7 @@ Simulation <-
           if (self$design$sim_prm$logs)
             private$time_mark("Start exporting summaries")
 
-          xps_dt <- foreach(
+          void <- foreach(
             i = seq_along(fl),
             .inorder = TRUE,
             .options.multicore = list(preschedule = FALSE),
@@ -341,7 +341,7 @@ Simulation <-
             private$time_mark("Start of single-core run")
 
           lapply(seq_along(fl), function(i) {
-            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("pid", "year"))
+            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("scenario", "pid", "year"))
             private$export_summaries_hlpr(lc, type = type)
             NULL
           })
@@ -735,7 +735,7 @@ Simulation <-
         )
       },
 
-      # export xps ----
+      # export_xps ----
       export_xps = function(sp, scenario_nam) {
         # NOTE no need to check validity of inputs here as it is only used
         # internally
@@ -1262,7 +1262,7 @@ Simulation <-
         }
       },
 
-      # Collect_files ----
+      # collect_files ----
       # Collect files written by mc_aggr or mc_aggr_mc in a folder and combine
       # them into one file
       collect_files = function(folder_name, pattern = NULL, to_mc_aggr = FALSE) {
