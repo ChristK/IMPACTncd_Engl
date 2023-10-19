@@ -807,7 +807,7 @@ void simcpp(DataFrame dt, const List l, const int mc)
         // reset flags for new simulants
         if (pid_mrk)
         {
-          dsmeta[j].incd.flag = VECT_ELEM(dsmeta[j].incd.prvl,i) > 0; // denotes that incd occurred
+          dsmeta[j].incd.flag = (dsmeta[j].incd.type == "Universal" || VECT_ELEM(dsmeta[j].incd.prvl,i) > 0) ? true : false; // denotes that incd occurred, always true for universal that doesn't have dsmeta[j].incd.prvl(i)
           dsmeta[j].mrtl.flag = false; // denotes cure
         }
 
