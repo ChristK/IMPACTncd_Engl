@@ -15,6 +15,7 @@ ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
 model_trends_in_redidual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
+avoid_appending_csv: no #  Do not append on existing .csv. Rather write separately and join later. To bypass problems with Docker on windows
 maxlag: 10
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
@@ -27,8 +28,8 @@ simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real_test
-synthpop_dir: /mnt/storage_fast/synthpop/hf_real_test
+output_dir: /mnt/storage_fast4/output/hf_real_elasticities
+synthpop_dir: /mnt/storage_fast4/synthpop/hf_real_elasticities
 uncertainty: # Note that uncertainties are independent
   incidence:
     upper: 0.05 # i.e. incd * ( 1 + 0.02)
