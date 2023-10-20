@@ -358,6 +358,58 @@ List simsmok_cessation(const IntegerVector& smok_status,
                       _["smok_dur"]= out_dur);
 }
 
+//' @export
+ // [[Rcpp::export]]
+ List simsmok_complete_cessation(const IntegerVector& smok_status,
+                        const IntegerVector& smok_quit_yrs,
+                        const IntegerVector& smok_dur,
+                        const LogicalVector& new_pid,
+                        const IntegerVector& year,
+                        const int policy_first_year)
+ {
+   // id should be sorted by year
+   const int n = smok_status.size();
+   IntegerVector out_status = clone(smok_status);
+   IntegerVector out_quit_yrs = clone(smok_quit_yrs);
+   IntegerVector out_dur = clone(smok_dur);
+   bool marker = false;
+   int nrow = 0;
+
+   for (int i = 0; i < n; i++)
+   {
+     if (year[i] < policy_first_year) continue; // skip years before policy
+
+     if (!new_pid[i]) // if not a new simulant
+     {
+       if (out_status[i] == 4)
+       {
+         out_status[i] = 3;
+         out_quit_yrs[i] = 1;
+         out_dur[i] = out_dur[i-1];
+       }
+       if (out_status[i] = 3)
+       {
+         {
+           out_quit_yrs[i] = out_quit_yrs[i-1] + 1;
+           out_dur[i] = out_dur[i-1];
+         }
+       }
+     }
+     else // if new pid
+     {
+       if (out_status[i] == 4)
+       {
+         out_status[i] = 3;
+         out_quit_yrs[i] = 1;
+         out_dur[i] = smok_dur[i] - 1;
+       }
+     }
+   }
+   return List::create(_["smok_status"]= out_status,
+                       _["smok_quit_yrs"]= out_quit_yrs,
+                       _["smok_dur"]= out_dur);
+ }
+
 
 // ex smokers are turning into smokers. Used in structural smoking when smoking
 // is increasing.
