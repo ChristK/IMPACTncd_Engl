@@ -281,6 +281,27 @@ void simsmok_cig_sc(DataFrame& df, const IntegerVector& row_sel) {
 }
 
 //' @export
+ // [[Rcpp::export]]
+ void simsmok_complete_cessation_cig(DataFrame& df) {
+
+   //access the df columns
+   IntegerVector smok_status     = df["smok_status_curr_xps"];
+   IntegerVector smok_cig        = df["smok_cig_curr_xps"];
+   LogicalVector new_pid         = df["pid_mrk"];
+
+   // id should be sorted by year
+   const int n = df.nrows();
+
+   for (int i = 0; i < n; i++)
+   {
+     if (!new_pid[i]) // if not a new simulant
+     { // if smok_status[i] == 3 then previous year was either 3 or 4. In both cases smog_cig should carry forward
+       if (smok_status[i] == 3) smok_cig[i] = smok_cig[i-1];
+     }
+   }
+ }
+
+//' @export
 // [[Rcpp::export]]
 List simsmok_cessation(const IntegerVector& smok_status,
                        const IntegerVector& smok_quit_yrs,
