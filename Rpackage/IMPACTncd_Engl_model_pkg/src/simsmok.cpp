@@ -408,7 +408,7 @@ List simsmok_cessation(const IntegerVector& smok_status,
          out_quit_yrs[i] = 1;
          out_dur[i] = out_dur[i-1];
        }
-       if (out_status[i] = 3)
+       if (out_status[i] == 3)
        {
          {
            out_quit_yrs[i] = out_quit_yrs[i-1] + 1;
