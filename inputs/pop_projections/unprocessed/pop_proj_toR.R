@@ -3,7 +3,7 @@ library(data.table)
 library(fst)
 library(ungroup)
 
-# Nationial ----
+# National ----
 pop <- as.data.table(read_excel("inputs/pop_projections/unprocessed/enpppopendata2020.xls",
                                 sheet = "Population"))
 setnames(pop, tolower(names(pop)))
