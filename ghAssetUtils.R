@@ -1,12 +1,12 @@
 # temporary fix: R.utils::reassignInPackage() used to inject our revised functions (see below) into the [piggyback] package, prior to their expected adoption by the piggyback team
 if (!require(R.utils)) {
-  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings=FALSE, recursive=TRUE)
-  install.packages("R.utils",lib=Sys.getenv("R_LIBS_USER"),repos="https://cran.rstudio.com/")
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  install.packages("R.utils", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
   library(R.utils)
 }
 if (!require(yaml)) {
-  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings=FALSE, recursive=TRUE)
-  install.packages("yaml",lib=Sys.getenv("R_LIBS_USER"),repos="https://cran.rstudio.com/")
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  install.packages("yaml", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
   library(yaml)
 }
 
@@ -14,53 +14,56 @@ if (!require(yaml)) {
 #' @param sPath: string initial path.
 #' @param bRidStartSlash: bool remove slash at start of path
 #' @return string possibly modified path.
-TrimSlashes<- function(sPath,bRidStartSlash=TRUE) {
-	if(bRidStartSlash && substr(sPath,1,1)=='/')
-		sPath<- substr(sPath,2,nchar(sPath))
-	if(substr(sPath,nchar(sPath),nchar(sPath))=='/')
-		sPath<- substr(sPath,1,nchar(sPath)-1)
-	return(sPath)
+TrimSlashes <- function(sPath, bRidStartSlash = TRUE) {
+  if (bRidStartSlash && substr(sPath, 1, 1) == "/") {
+    sPath <- substr(sPath, 2, nchar(sPath))
+  }
+  if (substr(sPath, nchar(sPath), nchar(sPath)) == "/") {
+    sPath <- substr(sPath, 1, nchar(sPath) - 1)
+  }
+  return(sPath)
 }
 
 #' @description Helper to create descriptive list of HTTP headers from the given response object.
 #' @param httpResponse HTTP response object as provided by [httr] package.
 #' @return String giving each header's name and value as: <name1>=<value1>; <name2>=<value2>; ...
-HttpHeaderNamesAndValues<- function(httpResponse)
-{
-	sHeaders<-""
-	iIndex=1
-	while(iIndex<length(httpResponse$headers)) {
-		sHeaders<- paste0(sHeaders,attr(httpResponse$headers[iIndex],"name"),"=",httpResponse$headers[[iIndex]],"; ")
-		iIndex<- iIndex+1
-	}
-	return(sHeaders)
+HttpHeaderNamesAndValues <- function(httpResponse) {
+  sHeaders <- ""
+  iIndex <- 1
+  while (iIndex < length(httpResponse$headers)) {
+    sHeaders <- paste0(sHeaders, attr(httpResponse$headers[iIndex], "name"), "=", httpResponse$headers[[iIndex]], "; ")
+    iIndex <- iIndex + 1
+  }
+  return(sHeaders)
 }
 
 #' @description Stop if get HTTP response indicating missing file or unexcepted file size.
 #' @param lsHttpResponses List of HTTP response objects, each provided by [httr] package.
 #' @param bUploadedFiles boolean, files have been uploaded.
-StopOnHttpFailure<- function(lsHttpResponses,bUploadedFiles)
-{
-	for(httpResponse in lsHttpResponses)
-	{
-		if(is.null(httpResponse))next # is NULL when logic decides not to proceed with upload
+StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
+  for (httpResponse in lsHttpResponses)
+  {
+    if (is.null(httpResponse)) next # is NULL when logic decides not to proceed with upload
 
-		# test: failure error code
-		if(httpResponse$status_code!=200 & httpResponse$status_code!=201)
-			stop(paste("Error: unexpected HTTP",httpResponse$status_code," status for asset",str(httpResponse$content),"with headers",HttpHeaderNamesAndValues(httpResponse) ))
+    # test: failure error code
+    if (httpResponse$status_code != 200 & httpResponse$status_code != 201) {
+      stop(paste("Error: unexpected HTTP", httpResponse$status_code, " status for asset", str(httpResponse$content), "with headers", HttpHeaderNamesAndValues(httpResponse)))
+    }
 
-		if(!bUploadedFiles)
-		{
-			# test: unexpected file size
-			sFileNamePath<- httpResponse$content[1]
-			iFileSizeOnDisk<- as.numeric(file.info(sFileNamePath)$size)
-			iFileSizeFromGitHub<- as.numeric(httpResponse$headers$`content-length`)
-			if(iFileSizeOnDisk!=iFileSizeFromGitHub)
-				stop(paste("Error: asset",sFileNamePath,
-					"has unexpected file size (",iFileSizeOnDisk," (disk),",
-					iFileSizeFromGitHub," (Github)) with headers",HttpHeaderNamesAndValues(httpResponse) ))
-		}
-	}
+    if (!bUploadedFiles) {
+      # test: unexpected file size
+      sFileNamePath <- httpResponse$content[1]
+      iFileSizeOnDisk <- as.numeric(file.info(sFileNamePath)$size)
+      iFileSizeFromGitHub <- as.numeric(httpResponse$headers$`content-length`)
+      if (iFileSizeOnDisk != iFileSizeFromGitHub) {
+        stop(paste(
+          "Error: asset", sFileNamePath,
+          "has unexpected file size (", iFileSizeOnDisk, " (disk),",
+          iFileSizeFromGitHub, " (Github)) with headers", HttpHeaderNamesAndValues(httpResponse)
+        ))
+      }
+    }
+  }
 }
 
 #' @description Get GitHub asset route data from YAML AssetConfigFile or command-line variables.
@@ -84,45 +87,48 @@ StopOnHttpFailure<- function(lsHttpResponses,bUploadedFiles)
 #' @param sToken string (in|out param): GitHub personal access token (PAT).
 #' @param sAssetConfigFilePath string (optional): path to ghAssetConfig.yaml file - provided for interactive calls (RStudio).
 #' @param sGitHubAssetRouteId string (optional): ID designating asset route in asset config.yaml file - provided for interactive calls (RStudio).
-GetGitHubAssetRouteInfo<- function(sId,sRepo,sTag,sUploadSrcDirPath,sDeployToRootDirPath,bOverwriteFilesOnDeploy,iTestWithFirstNAssets,sToken=NULL,sAssetConfigFilePath=NULL,sGitHubAssetRouteId=NULL)
-{
-	# expect an asset config file and route ID, either from an function- or command-line argument
-	if(is.null(sAssetConfigFilePath) & is.null(sGitHubAssetRouteId))
-	{
-		lsCommandArgs<- commandArgs(TRUE)
-		iNumCmdArgs<- length(lsCommandArgs)
-	}
-	else iNumCmdArgs<-0
+GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath, bOverwriteFilesOnDeploy, iTestWithFirstNAssets, sToken = NULL, sAssetConfigFilePath = NULL, sGitHubAssetRouteId = NULL) {
+  # expect an asset config file and route ID, either from an function- or command-line argument
+  if (is.null(sAssetConfigFilePath) & is.null(sGitHubAssetRouteId)) {
+    lsCommandArgs <- commandArgs(TRUE)
+    iNumCmdArgs <- length(lsCommandArgs)
+  } else {
+    iNumCmdArgs <- 0
+  }
 
-	# load asset config settings
-	if(iNumCmdArgs>0) {
-		sAssetConfigFilePath<- lsCommandArgs[1]
-		iNumCmdArgs<- iNumCmdArgs-1
-	}
-	else if(is.null(sAssetConfigFilePath))
-		sAssetConfigFilePath<- file.path(getwd(),"auxil/ghAssetConfig.yaml")
-	if(!file.exists(sAssetConfigFilePath))
-		stop(paste0("Failed finding GitHub asset config file: ",sAssetConfigFilePath))
-	gitHubAssetRoutes<- yaml::read_yaml(sAssetConfigFilePath)
+  # load asset config settings
+  if (iNumCmdArgs > 0) {
+    sAssetConfigFilePath <- lsCommandArgs[1]
+    iNumCmdArgs <- iNumCmdArgs - 1
+  } else if (is.null(sAssetConfigFilePath)) {
+    sAssetConfigFilePath <- file.path(getwd(), "auxil/ghAssetConfig.yaml")
+  }
+  if (!file.exists(sAssetConfigFilePath)) {
+    stop(paste0("Failed finding GitHub asset config file: ", sAssetConfigFilePath))
+  }
+  gitHubAssetRoutes <- yaml::read_yaml(sAssetConfigFilePath)
 
-	# find desired asset route ID
-	if(iNumCmdArgs>0) {
-		sGitHubAssetRouteId<- lsCommandArgs[2]
-		iNumCmdArgs<- iNumCmdArgs-1
-	}
-	else if(is.null(sGitHubAssetRouteId))
-		sGitHubAssetRouteId<- Sys.info()[["user"]] # username as fallback
+  # find desired asset route ID
+  if (iNumCmdArgs > 0) {
+    sGitHubAssetRouteId <- lsCommandArgs[2]
+    iNumCmdArgs <- iNumCmdArgs - 1
+  } else if (is.null(sGitHubAssetRouteId)) {
+    sGitHubAssetRouteId <- Sys.info()[["user"]]
+  } # username as fallback
 
-	# get GitHub access token
-	if(iNumCmdArgs>0) {
-		sGitHubToken<- lsCommandArgs[3]
-		iNumCmdArgs<- iNumCmdArgs-1
-	}
-	else if(is.null(sToken))sGitHubToken<- as.character(gh::gh_token()) # use token set in environmental variable (if given)
-	else sGitHubToken<- sToken
+  # get GitHub access token
+  if (iNumCmdArgs > 0) {
+    sGitHubToken <- lsCommandArgs[3]
+    iNumCmdArgs <- iNumCmdArgs - 1
+  } else if (is.null(sToken)) {
+    sGitHubToken <- as.character(gh::gh_token())
+  } # use token set in environmental variable (if given)
+  else {
+    sGitHubToken <- sToken
+  }
 
-	if(iNumCmdArgs>0) # quit - as didn't expect additional variables
-		stop("Execute from the console:
+  if (iNumCmdArgs > 0) { # quit - as didn't expect additional variables
+    stop("Execute from the console:
 					Rscript <scriptR> [<AssetFilePathName> [<GitHubAssetRouteId> [<GitHubToken>]]]
 				or alternatively, may execute directly within R or RStudio:
 					source(\"<scriptR>\")
@@ -135,33 +141,37 @@ GetGitHubAssetRouteInfo<- function(sId,sRepo,sTag,sUploadSrcDirPath,sDeployToRoo
 						if omitted, seeks ID matching Sys.info()[['user']] name. If <AssetFilePathName> also omitted, assumes running from console.
 					<GitHubToken> is a GitHub personal access token (PAT);
 						if omitted, seeks token from gh::gh_token().")
+  }
 
-	# get desired asset route's properties
-	gitHubAssetRouteFinal<- NULL
-	for(gitHubAssetRoute in gitHubAssetRoutes$gitHubAssetRoutes) {
-		if(gitHubAssetRoute$id==sGitHubAssetRouteId) {
-			gitHubAssetRouteFinal<- gitHubAssetRoute
+  # get desired asset route's properties
+  gitHubAssetRouteFinal <- NULL
+  for (gitHubAssetRoute in gitHubAssetRoutes$gitHubAssetRoutes) {
+    if (gitHubAssetRoute$id == sGitHubAssetRouteId) {
+      gitHubAssetRouteFinal <- gitHubAssetRoute
 
-			if(sGitHubToken=="") { # no access token given previously
-				sGitHubToken<- gitHubAssetRouteFinal$personalAccessToken
-				if(is.null(sGitHubToken))warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
+      if (sGitHubToken == "") { # no access token given previously
+        sGitHubToken <- gitHubAssetRouteFinal$personalAccessToken
+        if (is.null(sGitHubToken)) warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
 					May set PAT on command-line or in asset config file [personalAccessToken] variable.")
-			}
+      }
 
-			#NOTE: is.null(gitHubAssetRouteFinal$someVarible)) will find missing or empty fields
-			eval.parent(substitute(sId<- sGitHubAssetRouteId))
-			eval.parent(substitute(sRepo<- gitHubAssetRouteFinal$repo))
-			eval.parent(substitute(sTag<- gitHubAssetRouteFinal$tag))
-			eval.parent(substitute(sToken<- sGitHubToken))
-			eval.parent(substitute(sUploadSrcDirPath<- gitHubAssetRouteFinal$uploadSrcDirectory))
-			eval.parent(substitute(sDeployToRootDirPath<- gitHubAssetRouteFinal$deployToRootDirectory))
-			eval.parent(substitute(bOverwriteFilesOnDeploy<- if(gitHubAssetRouteFinal$overwriteFilesOnDeploy=="1") TRUE else FALSE))
-			eval.parent(substitute(iTestWithFirstNAssets<- if(is.null(gitHubAssetRouteFinal$testWithFirstNAssets)) 0 else
-				as.integer(gitHubAssetRouteFinal$testWithFirstNAssets) ))
-			return(0)
-		}
-	}
-	stop(paste0("Failed finding GitHub asset route data for id=[",sGitHubAssetRouteId,"] in config file [",sAssetConfigFilePath,"]"))
+      # NOTE: is.null(gitHubAssetRouteFinal$someVarible)) will find missing or empty fields
+      eval.parent(substitute(sId <- sGitHubAssetRouteId))
+      eval.parent(substitute(sRepo <- gitHubAssetRouteFinal$repo))
+      eval.parent(substitute(sTag <- gitHubAssetRouteFinal$tag))
+      eval.parent(substitute(sToken <- sGitHubToken))
+      eval.parent(substitute(sUploadSrcDirPath <- gitHubAssetRouteFinal$uploadSrcDirectory))
+      eval.parent(substitute(sDeployToRootDirPath <- gitHubAssetRouteFinal$deployToRootDirectory))
+      eval.parent(substitute(bOverwriteFilesOnDeploy <- if (gitHubAssetRouteFinal$overwriteFilesOnDeploy == "1") TRUE else FALSE))
+      eval.parent(substitute(iTestWithFirstNAssets <- if (is.null(gitHubAssetRouteFinal$testWithFirstNAssets)) {
+        0
+      } else {
+        as.integer(gitHubAssetRouteFinal$testWithFirstNAssets)
+      }))
+      return(0)
+    }
+  }
+  stop(paste0("Failed finding GitHub asset route data for id=[", sGitHubAssetRouteId, "] in config file [", sAssetConfigFilePath, "]"))
 }
 
 ####################################################################################
@@ -191,21 +201,20 @@ GetGitHubAssetRouteInfo<- function(sId,sRepo,sTag,sUploadSrcDirPath,sDeployToRoo
 #' \dontrun{
 #' # Needs your real token to run
 #'
-#' readr::write_tsv(mtcars,"mtcars.tsv.xz")
+#' readr::write_tsv(mtcars, "mtcars.tsv.xz")
 #' pb_upload("mtcars.tsv.xz", "cboettig/piggyback-tests")
 #' }
 #' @export
 #'
 pb_upload_liverpool <- function(file,
-                      repo = guess_repo(),
-                      tag = "latest",
-                      name = NULL,
-                      overwrite = "use_timestamps",
-                      use_timestamps = NULL,
-                      show_progress = getOption("piggyback.verbose", default = interactive()),
-                      .token = gh::gh_token(),
-                      dir = NULL) {
-
+                                repo = guess_repo(),
+                                tag = "latest",
+                                name = NULL,
+                                overwrite = "use_timestamps",
+                                use_timestamps = NULL,
+                                show_progress = getOption("piggyback.verbose", default = interactive()),
+                                .token = gh::gh_token(),
+                                dir = NULL) {
   stopifnot(
     is.character(repo),
     is.character(tag),
@@ -215,18 +224,18 @@ pb_upload_liverpool <- function(file,
 
   releases <- pb_releases(repo, .token)
 
-  if(tag == "latest" && length(releases$tag_name) > 0 && !"latest" %in% releases$tag_name) {
-    if(getOption("piggyback.verbose", default = interactive())){
+  if (tag == "latest" && length(releases$tag_name) > 0 && !"latest" %in% releases$tag_name) {
+    if (getOption("piggyback.verbose", default = interactive())) {
       cli::cli_alert_info("Uploading to latest release: {.val {releases$tag_name[[1]]}}.")
     }
     tag <- releases$tag_name[[1]]
   }
 
-  if(!tag %in% releases$tag_name && !interactive()) {
+  if (!tag %in% releases$tag_name && !interactive()) {
     cli::cli_abort("Release {.val {tag}} not found in {.val {repo}}. No upload performed.")
   }
 
-  if(!tag %in% releases$tag_name) {
+  if (!tag %in% releases$tag_name) {
     cli::cli_alert_warning("Release {.val {tag}} not found in {.val {repo}}.")
 
     run <- utils::menu(
@@ -234,25 +243,28 @@ pb_upload_liverpool <- function(file,
       title = glue::glue("Would you like to create a new release now?")
     )
 
-    if(run == 2) return(invisible(NULL))
-    if(run == 1) pb_new_release(repo = repo, tag = tag, .token = .token)
+    if (run == 2) {
+      return(invisible(NULL))
+    }
+    if (run == 1) pb_new_release(repo = repo, tag = tag, .token = .token)
   }
 
   ## start fresh
   memoise::forget(pb_info)
 
-  out <- lapply(seq_along(file), function(iFileIndex)
+  out <- lapply(seq_along(file), function(iFileIndex) {
     pb_upload_file(
       file[iFileIndex],
       repo,
       tag,
-      if(is.null(name)) NULL else name[iFileIndex],
+      if (is.null(name)) NULL else name[iFileIndex],
       overwrite,
       use_timestamps,
       show_progress,
       .token,
       dir
-    ))
+    )
+  })
 
   ## break cache when done
   memoise::forget(pb_info)
@@ -260,16 +272,15 @@ pb_upload_liverpool <- function(file,
 }
 
 pb_upload_file_liverpool <- function(file,
-                           repo = guess_repo(),
-                           tag = "latest",
-                           name = NULL,
-                           overwrite = "use_timestamps",
-                           use_timestamps = NULL,
-                           show_progress = getOption("piggyback.verbose", default = interactive()),
-                           .token = gh::gh_token(),
-                           dir = NULL) {
-
-  file_path <- do.call(file.path, compact(list(dir,file)))
+                                     repo = guess_repo(),
+                                     tag = "latest",
+                                     name = NULL,
+                                     overwrite = "use_timestamps",
+                                     use_timestamps = NULL,
+                                     show_progress = getOption("piggyback.verbose", default = interactive()),
+                                     .token = gh::gh_token(),
+                                     dir = NULL) {
+  file_path <- do.call(file.path, compact(list(dir, file)))
 
   ## Uses NULL as default dir, drops it with compact, then
   ## does the file.path call with what's left
@@ -283,22 +294,22 @@ pb_upload_file_liverpool <- function(file,
     return(NULL)
   }
 
-  if(!is.null(use_timestamps)){
+  if (!is.null(use_timestamps)) {
     cli::cli_warn("{.code use_timestamps} argument is deprecated, please set {.code overwrite = 'use_timestamps'} instead")
   }
 
   ## Yeah, having two separate arguments was clearly a mistake!
   ## Code has been partially refactored now so that user just
   ## sets `overwrite` and we handle the twisted logic internally here:
-  use_timestamps <- switch (as.character(overwrite),
-                            "TRUE" = FALSE,
-                            "FALSE" = FALSE,
-                            "use_timestamps" = TRUE
+  use_timestamps <- switch(as.character(overwrite),
+    "TRUE" = FALSE,
+    "FALSE" = FALSE,
+    "use_timestamps" = TRUE
   )
-  overwrite <- switch (as.character(overwrite),
-                       "TRUE" = TRUE,
-                       "FALSE" = FALSE,
-                       "use_timestamps" = TRUE
+  overwrite <- switch(as.character(overwrite),
+    "TRUE" = TRUE,
+    "FALSE" = FALSE,
+    "use_timestamps" = TRUE
   )
 
   progress <- httr::progress("up")
@@ -329,10 +340,10 @@ pb_upload_file_liverpool <- function(file,
     if (overwrite) {
       ## If we find matching id, Delete file from release.
       gh::gh("DELETE /repos/:owner/:repo/releases/assets/:id",
-             owner = df$owner[[1]],
-             repo = df$repo[[1]],
-             id = df$id[i],
-             .token = .token
+        owner = df$owner[[1]],
+        repo = df$repo[[1]],
+        id = df$id[i],
+        .token = .token
       )
     } else {
       cli::cli_warn("Skipping upload of {.file {df$file_name[i]}} as file exists on GitHub and {.code overwrite = FALSE}")
@@ -342,7 +353,7 @@ pb_upload_file_liverpool <- function(file,
 
   if (show_progress) cli::cli_alert_info("Uploading {.file {name}} ...")
 
-  releases <- pb_releases(repo = repo,.token=.token)
+  releases <- pb_releases(repo = repo, .token = .token)
   upload_url <- releases$upload_url[releases$tag_name == tag]
 
   r <- httr::RETRY(
@@ -355,10 +366,12 @@ pb_upload_file_liverpool <- function(file,
     terminate_on = c(400, 401, 403, 404, 422)
   )
 
-  if(show_progress) httr::warn_for_status(r)
+  if (show_progress) httr::warn_for_status(r)
 
   ## Release info changed, so break cache
-  try({memoise::forget(pb_info)})
+  try({
+    memoise::forget(pb_info)
+  })
   invisible(r)
 }
 
@@ -377,28 +390,29 @@ pb_upload_file_liverpool <- function(file,
 #'
 #' @export
 #' @examples \dontrun{
-#'  ## Download a specific file.
-#'  ## (dest can be omitted when run inside and R project)
-#'  piggyback::pb_download("iris.tsv.gz",
-#'                         repo = "cboettig/piggyback-tests",
-#'                         dest = tempdir())
+#' ## Download a specific file.
+#' ## (dest can be omitted when run inside and R project)
+#' piggyback::pb_download("iris.tsv.gz",
+#'   repo = "cboettig/piggyback-tests",
+#'   dest = tempdir()
+#' )
 #' }
 #' \dontrun{
-#'  ## Download all files
-#'  piggyback::pb_download(repo = "cboettig/piggyback-tests",
-#'                         dest = tempdir())
-#'
+#' ## Download all files
+#' piggyback::pb_download(
+#'   repo = "cboettig/piggyback-tests",
+#'   dest = tempdir()
+#' )
 #' }
 pb_download_liverpool <- function(file = NULL,
-                        dest = ".",
-                        repo = guess_repo(),
-                        tag = "latest",
-                        overwrite = TRUE,
-                        ignore = "manifest.json",
-                        use_timestamps = TRUE,
-                        show_progress = getOption("piggyback.verbose", default = interactive()),
-                        .token = gh::gh_token()) {
-
+                                  dest = ".",
+                                  repo = guess_repo(),
+                                  tag = "latest",
+                                  overwrite = TRUE,
+                                  ignore = "manifest.json",
+                                  use_timestamps = TRUE,
+                                  show_progress = getOption("piggyback.verbose", default = interactive()),
+                                  .token = gh::gh_token()) {
   progress <- httr::progress("down")
 
   if (!show_progress) progress <- NULL
@@ -406,7 +420,7 @@ pb_download_liverpool <- function(file = NULL,
   df <- pb_info(repo, tag, .token)
 
   ## drop failed upload states from list
-  df <- df[df$state != "starter",]
+  df <- df[df$state != "starter", ]
 
   if (!is.null(file)) {
     i <- which(df$file_name %in% file)
@@ -431,18 +445,20 @@ pb_download_liverpool <- function(file = NULL,
     dest <- file.path(dest, df$file_name[i])
   }
   # dest should now be of length df
-  if(nrow(df)!=length(file)) {
-		iMissingFileIndices<- which( !(file %in% df$file_name))
-		stop("Error: following files requested for download, yet not available on Github:\n",
-			paste(file[iMissingFileIndices],collapse=";"))
+  if (nrow(df) != length(file)) {
+    iMissingFileIndices <- which(!(file %in% df$file_name))
+    stop(
+      "Error: following files requested for download, yet not available on Github:\n",
+      paste(file[iMissingFileIndices], collapse = ";")
+    )
   }
-	# GitHub and local files listed in different sequence; need to carefully match destination namepath by given filename
-	iGitHubFileRow<- 1
-	while(iGitHubFileRow<=nrow(df)) {
-		iRequestedFileIndex<- which(file %in% df[iGitHubFileRow,c('file_name')])
-		df[iGitHubFileRow,c('dest')]<- dest[iRequestedFileIndex]
-		iGitHubFileRow<- iGitHubFileRow+1
-	}
+  # GitHub and local files listed in different sequence; need to carefully match destination namepath by given filename
+  iGitHubFileRow <- 1
+  while (iGitHubFileRow <= nrow(df)) {
+    iRequestedFileIndex <- which(file %in% df[iGitHubFileRow, c("file_name")])
+    df[iGitHubFileRow, c("dest")] <- dest[iRequestedFileIndex]
+    iGitHubFileRow <- iGitHubFileRow + 1
+  }
 
 
   if (use_timestamps) {
@@ -457,20 +473,21 @@ pb_download_liverpool <- function(file = NULL,
     }
   }
 
-  resp <- lapply(seq_along(df$id), function(i)
+  resp <- lapply(seq_along(df$id), function(i) {
     gh_download_asset(df$owner[[1]],
-                      df$repo[[1]],
-                      id = df$id[i],
-                      destfile = df$dest[i],
-                      overwrite = overwrite,
-                      .token = .token,
-                      progress = progress
-    ))
+      df$repo[[1]],
+      id = df$id[i],
+      destfile = df$dest[i],
+      overwrite = overwrite,
+      .token = .token,
+      progress = progress
+    )
+  })
   return(invisible(resp))
 }
 
 ####################################################################################
 
-reassignInPackage("pb_upload", pkgName="piggyback", pb_upload_liverpool)
-reassignInPackage("pb_upload_file", pkgName="piggyback", pb_upload_file_liverpool)
-reassignInPackage("pb_download", pkgName="piggyback", pb_download_liverpool)
+reassignInPackage("pb_upload", pkgName = "piggyback", pb_upload_liverpool)
+reassignInPackage("pb_upload_file", pkgName = "piggyback", pb_upload_file_liverpool)
+reassignInPackage("pb_download", pkgName = "piggyback", pb_download_liverpool)
