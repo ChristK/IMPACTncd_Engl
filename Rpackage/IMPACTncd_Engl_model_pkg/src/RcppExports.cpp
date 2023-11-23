@@ -776,6 +776,16 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// simsmok_complete_cessation_cig
+void simsmok_complete_cessation_cig(DataFrame& df);
+RcppExport SEXP _IMPACTncdEngl_simsmok_complete_cessation_cig(SEXP dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< DataFrame& >::type df(dfSEXP);
+    simsmok_complete_cessation_cig(df);
+    return R_NilValue;
+END_RCPP
+}
 // simsmok_cessation
 List simsmok_cessation(const IntegerVector& smok_status, const IntegerVector& smok_quit_yrs, const IntegerVector& smok_dur, const IntegerVector& sex, const IntegerVector& qimd, const LogicalVector& new_pid, const IntegerVector& hc_eff, const NumericVector& relapse_rn, const NumericMatrix& pr_relapse, const int& relapse_cutoff);
 RcppExport SEXP _IMPACTncdEngl_simsmok_cessation(SEXP smok_statusSEXP, SEXP smok_quit_yrsSEXP, SEXP smok_durSEXP, SEXP sexSEXP, SEXP qimdSEXP, SEXP new_pidSEXP, SEXP hc_effSEXP, SEXP relapse_rnSEXP, SEXP pr_relapseSEXP, SEXP relapse_cutoffSEXP) {
@@ -793,6 +803,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const NumericMatrix& >::type pr_relapse(pr_relapseSEXP);
     Rcpp::traits::input_parameter< const int& >::type relapse_cutoff(relapse_cutoffSEXP);
     rcpp_result_gen = Rcpp::wrap(simsmok_cessation(smok_status, smok_quit_yrs, smok_dur, sex, qimd, new_pid, hc_eff, relapse_rn, pr_relapse, relapse_cutoff));
+    return rcpp_result_gen;
+END_RCPP
+}
+// simsmok_complete_cessation
+List simsmok_complete_cessation(const IntegerVector& smok_status, const IntegerVector& smok_quit_yrs, const IntegerVector& smok_dur, const LogicalVector& new_pid, const IntegerVector& year, const int policy_first_year);
+RcppExport SEXP _IMPACTncdEngl_simsmok_complete_cessation(SEXP smok_statusSEXP, SEXP smok_quit_yrsSEXP, SEXP smok_durSEXP, SEXP new_pidSEXP, SEXP yearSEXP, SEXP policy_first_yearSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type smok_status(smok_statusSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type smok_quit_yrs(smok_quit_yrsSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type smok_dur(smok_durSEXP);
+    Rcpp::traits::input_parameter< const LogicalVector& >::type new_pid(new_pidSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type year(yearSEXP);
+    Rcpp::traits::input_parameter< const int >::type policy_first_year(policy_first_yearSEXP);
+    rcpp_result_gen = Rcpp::wrap(simsmok_complete_cessation(smok_status, smok_quit_yrs, smok_dur, new_pid, year, policy_first_year));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -908,7 +934,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_IMPACTncdEngl_simsmok_postcalibration", (DL_FUNC) &_IMPACTncdEngl_simsmok_postcalibration, 1},
     {"_IMPACTncdEngl_simsmok_cig", (DL_FUNC) &_IMPACTncdEngl_simsmok_cig, 1},
     {"_IMPACTncdEngl_simsmok_cig_sc", (DL_FUNC) &_IMPACTncdEngl_simsmok_cig_sc, 2},
+    {"_IMPACTncdEngl_simsmok_complete_cessation_cig", (DL_FUNC) &_IMPACTncdEngl_simsmok_complete_cessation_cig, 1},
     {"_IMPACTncdEngl_simsmok_cessation", (DL_FUNC) &_IMPACTncdEngl_simsmok_cessation, 10},
+    {"_IMPACTncdEngl_simsmok_complete_cessation", (DL_FUNC) &_IMPACTncdEngl_simsmok_complete_cessation, 6},
     {"_IMPACTncdEngl_simsmok_policy_impact_incr", (DL_FUNC) &_IMPACTncdEngl_simsmok_policy_impact_incr, 5},
     {"_IMPACTncdEngl_simsmok_policy_impact_decr", (DL_FUNC) &_IMPACTncdEngl_simsmok_policy_impact_decr, 6},
     {"_IMPACTncdEngl_wtd_ADstat", (DL_FUNC) &_IMPACTncdEngl_wtd_ADstat, 4},
