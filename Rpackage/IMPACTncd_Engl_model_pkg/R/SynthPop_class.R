@@ -199,20 +199,27 @@ SynthPop <-
       #'   scenario to the current scenario for the common person-years.
       #' @return The invisible self for chaining.
       update_pop_weights = function(scenario_nam = "sc0") {
-
+        strata <- c("year", "age", "sex")
+        if (private$design$sim_prm$calibrate_to_pop_projections_by_LAD) {
+          strata <- c(strata, "LAD17CD")
+        }
 
         if (scenario_nam == "sc0" && !"wt" %in% names(self$pop)) { # baseline
-          self$pop[, tmp := sum(wt_immrtl), keyby = .(year, age, sex)]
+          self$pop[, pops := sum(wt_immrtl), by = (strata)] # pops is now the ONS pop proj divided by the synthpop chunks n_synthpop_aggregation
           set(self$pop, NULL, "wt", 0)
-          self$pop[!is.na(all_cause_mrtl), wt := wt_immrtl * tmp / sum(wt_immrtl),
-                   by = .(year, age, sex)]
+          self$pop[!is.na(all_cause_mrtl), wt := wt_immrtl * pops / sum(wt_immrtl),
+                   by = (strata)]
 
-          self$pop[, tmp := NULL]
+          self$pop[, pops := NULL]
         } else if (scenario_nam != "sc0" && !"wt" %in% names(self$pop)) {
-          # For policy scenarios.
-          x <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
+          # For policy scenarios
+          if (private$design$sim_prm$avoid_appending_csv) {
+            fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/",  self$mc_aggr, "_", self$mc, "_lifecourse.csv"))
+          } else {
+            fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
+          }
 
-          t0 <- fread(x, select = list(integer = c("pid", "year"), character = "scenario", numeric = "wt"),
+          t0 <- fread(fnam, select = list(integer = c("pid", "year"), character = "scenario", numeric = "wt"),
                       key = c("scenario", "pid", "year"))[scenario == "sc0", ] # wt for sc0
           self$pop[t0, on = c("pid", "year"), wt := i.wt]
           self$pop[is.na(all_cause_mrtl), wt := 0]
@@ -610,7 +617,8 @@ SynthPop <-
             qimd = i.qimd,
             dimd = i.dimd,
             sha = i.SHA11NM,
-            CCG17CDH = CCG17CDH
+            # CCG17CDH = i.CCG17CDH,
+            LAD17CD = i.LAD17CD # needed for calibration of weights to pop if design$sim_prm$calibrate_to_pop_projections_by_LAD: yes
           )]
 
           return(invisible(dt))
@@ -779,6 +787,7 @@ SynthPop <-
 
       # Special deep copy for data.table. Use POP$clone(deep = TRUE) to
       # dispatch. Otherwise a reference is created
+      # deep_clone ----
       deep_clone = function(name, value) {
         if ("data.table" %in% class(value)) {
           data.table::copy(value)
@@ -793,22 +802,26 @@ SynthPop <-
 
 
       # get all unique LSOAs included in locality vector
+      # get_unique_LSOAs ----
       get_unique_LSOAs = function(design_) {
         indx_hlp <-
           read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst",
-                   as.data.table = TRUE, columns = c("LSOA11CD", "LAD17NM", "RGN11NM"))
+                   as.data.table = TRUE, columns = c("LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM"))
 
         if ("England" %in% design_$sim_prm$locality) {
           lsoas <- indx_hlp[, unique(LSOA11CD)] # national
         } else {
           lsoas <-
-            indx_hlp[LAD17NM %in% design_$sim_prm$locality |
-                       RGN11NM %in% design_$sim_prm$locality, unique(LSOA11CD)]
+            indx_hlp[LSOA11CD %in% design_$sim_prm$locality |
+                     LAD17NM %in% design_$sim_prm$locality |
+                     RGN11NM %in% design_$sim_prm$locality |
+                     ICB22NM %in% design_$sim_prm$locality, unique(LSOA11CD)]
         }
         return(sort(lsoas))
       },
 
       # get all unique LADs included in locality vector.
+      # get_unique_LADs ----
       get_unique_LADs = function(design_) {
         indx_hlp <-
           read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst",
@@ -828,6 +841,7 @@ SynthPop <-
       # for synthpop creation and define the uniqueness of the object. I.e. if
       # these parameters are different the synthpop has to have different
       # filename and vice-versa
+      # get_unique_characteristics ----
       get_unique_characteristics = function(design_) {
         design_$sim_prm[c(
           "n",
@@ -845,6 +859,7 @@ SynthPop <-
       },
 
       # gen synthpop unique checksum for the given set of inputs
+      # gen_checksum ----
       gen_checksum =
         function(design_) {
           # get a md5 checksum based on function arguments
@@ -859,7 +874,8 @@ SynthPop <-
           return(locality_years_age_id)
         },
 
-      # gen synthpop filename for the given set of inputs
+      # gen_synthpop_filename ----
+      # for the given set of inputs
       gen_synthpop_filename =
         function(mc_,
                  checksum_,
@@ -890,6 +906,7 @@ SynthPop <-
           )
         },
 
+      # del_incomplete ----
       del_incomplete = function(filename_) {
         if (file.exists(filename_$metafile) &&
             (!file.exists(filename_$synthpop)
@@ -898,6 +915,7 @@ SynthPop <-
         }
       },
 
+      # gen_synthpop ----
       gen_synthpop = # returns NULL. Writes synthpop on disk
         function(mc_,
                  filename_,
@@ -1661,16 +1679,7 @@ SynthPop <-
 
             # Prune & write synthpop to disk ----
             # del rn as they are reproducible
-            nam <- c("LSOA11CD",
-                     # "LAD11CD",
-                     # "LAD11NM",
-                     # "tds_quintile",
-                     # "imd",
-                     # "sha", # NEEDED for social scenarios
-                     # "pid_mrk",
-                     "CCG17CDH"
-                     )
-            dt[, (nam) := NULL]
+            dt[, ("LSOA11CD") := NULL]
 
             if ("age100" %in% names(dt)) {
               dt[, age := NULL]
@@ -1689,6 +1698,7 @@ SynthPop <-
 
 
       # Load a synthpop file from disk in full or in chunks.
+      #  get_synthpop ----
       get_synthpop =
         function(exclude_cols = c()) {
           mm_synthpop <- metadata_fst(private$filename$synthpop)
@@ -1718,7 +1728,8 @@ SynthPop <-
           dt[, pid_mrk := mk_new_simulant_markers(pid)] # TODO Do I need this?
 
           # generate population weights
-          private$gen_pop_weights(dt, private$design)
+          private$gen_pop_weights(dt)
+
           dt[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]
           set(dt, NULL, "all_cause_mrtl", 0L)
           set(dt, NULL, "cms_score", 0) # CMS score of diagnosed conditions
@@ -1748,17 +1759,27 @@ SynthPop <-
       # all the synthpops belong to the same aggregation to reach the total pop.
       # NOTE Wt are still incomplete because they assume everyone remains alive.
       # So baseline population underestimated as clearly some die
-      gen_pop_weights = function(dt, design) {
+      # gen_pop_weights ----
+      gen_pop_weights = function(dt) {
         tt <-
           read_fst("./inputs/pop_projections/lad17_proj.fst", as.data.table = TRUE)
         lads <- private$get_unique_LADs(design)
+        strata <- c("year", "age", "sex")
+        if (private$design$sim_prm$calibrate_to_pop_projections_by_LAD) {
+          strata <- c(strata, "LAD17CD")
+        }
+        minage <- private$design$sim_prm$ageL - private$design$sim_prm$maxlag
+        minyear <- private$design$sim_prm$init_year - private$design$sim_prm$maxlag
+        maxyear <- private$design$sim_prm$init_year + private$design$sim_prm$sim_horizon_fromGUI
+
         tt <- tt[LAD17CD %in% lads &
-                   between(age, min(dt$age), max(dt$age)) &
-                   between(year, min(dt$year), max(dt$year)),
-                 .(pops = sum(pops)), keyby = .(year, age, sex)]
-        dt[, wt_immrtl := .N, by = .(year, age, sex)]
+                   between(age, minage, private$design$sim_prm$ageH) &
+                   between(year, minyear, maxyear),
+                 .(pops = sum(pops)), keyby = (strata)]
+
+        dt[, wt_immrtl := .N, by = (strata)]
         absorb_dt(dt, tt)
-        dt[, wt_immrtl := pops / (wt_immrtl * design$sim_prm$n_synthpop_aggregation)]
+        dt[, wt_immrtl := pops / (wt_immrtl * private$design$sim_prm$n_synthpop_aggregation)]
         dt[, pops := NULL]
 
         invisible(dt)
