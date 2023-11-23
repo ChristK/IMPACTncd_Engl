@@ -12,8 +12,8 @@
 #include <Rcpp.h>
 #ifdef __linux__
 #include <execinfo.h> // backtrace, backtrace_symbols
-#endif#
-include "NBI_distribution.h"
+#endif
+#include "NBI_distribution.h"
 #include "aux_functions.h"
 
 using namespace Rcpp;
@@ -491,8 +491,8 @@ inline void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int i, int j, dou
 	 {
 		// if lag > 0 look back. For diseases depending on self, lag = 0 and
 		// that triggers the use of the .incd.flag
-		if (dsmeta[j].incd.influenced_by.lag[k] > 0 && VECT_ELEM(dsmeta[j].incd.influenced_by.disease_prvl[k],i - dsmeta[j].incd.influenced_by.lag[k]) > 0 || 
-			dsmeta[j].incd.influenced_by.lag[k] == 0 && dsmeta[j].incd.flag)
+		if ((dsmeta[j].incd.influenced_by.lag[k] > 0 && VECT_ELEM(dsmeta[j].incd.influenced_by.disease_prvl[k],i - dsmeta[j].incd.influenced_by.lag[k]) > 0) || 
+			(dsmeta[j].incd.influenced_by.lag[k] == 0 && dsmeta[j].incd.flag))
 		{
 		  mltp *= VECT_ELEM(dsmeta[j].incd.influenced_by.mltp[k],i); // no lag here
 		}
