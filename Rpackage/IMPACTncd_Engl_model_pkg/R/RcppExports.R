@@ -256,8 +256,18 @@ simsmok_cig_sc <- function(df, row_sel) {
 }
 
 #' @export
+simsmok_complete_cessation_cig <- function(df) {
+    invisible(.Call('_IMPACTncdEngl_simsmok_complete_cessation_cig', PACKAGE = 'IMPACTncdEngl', df))
+}
+
+#' @export
 simsmok_cessation <- function(smok_status, smok_quit_yrs, smok_dur, sex, qimd, new_pid, hc_eff, relapse_rn, pr_relapse, relapse_cutoff) {
     .Call('_IMPACTncdEngl_simsmok_cessation', PACKAGE = 'IMPACTncdEngl', smok_status, smok_quit_yrs, smok_dur, sex, qimd, new_pid, hc_eff, relapse_rn, pr_relapse, relapse_cutoff)
+}
+
+#' @export
+simsmok_complete_cessation <- function(smok_status, smok_quit_yrs, smok_dur, new_pid, year, policy_first_year) {
+    .Call('_IMPACTncdEngl_simsmok_complete_cessation', PACKAGE = 'IMPACTncdEngl', smok_status, smok_quit_yrs, smok_dur, new_pid, year, policy_first_year)
 }
 
 #' @export
