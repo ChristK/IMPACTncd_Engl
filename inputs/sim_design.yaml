@@ -1,3 +1,4 @@
+locality: England # See cols "LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM" ./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst for area names
 iteration_n: 15
 iteration_n_final: 100
 clusternumber: 10 # explicit parallelisation
@@ -25,6 +26,7 @@ bpmed_adherence: 0.9
 decision_aid: 0.8
 stochastic: yes
 kismet: yes
+calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population projections if no. Calibrate to populationprojections by Local Authority District if yes. For smaller than national localities it is forced to yes and the user setting is ignored
 simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence

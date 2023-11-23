@@ -59,6 +59,7 @@ Design <-
         # Validation
         stopifnot(
           c(
+            "locality"              ,
             "iteration_n"           ,
             "iteration_n_final"     ,
             "clusternumber"         ,
@@ -108,7 +109,9 @@ Design <-
         sim_prm$national_qimd       <- TRUE
         sim_prm$init_year_fromGUI   <- sim_prm$init_year
         sim_prm$sim_horizon_fromGUI <- sim_prm$sim_horizon_max
-        sim_prm$locality            <- "England"
+
+        # Force LAD population proj if smaller localities
+        if (!"England" %in% sim_prm$locality) sim_prm$alibrate_to_pop_projections_by_LAD <- TRUE
 
         # Create synthpop_dir_ if it doesn't exists
         sim_prm$output_dir <-
