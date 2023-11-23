@@ -10,8 +10,9 @@
 #include <minimal_int_set.h>
 #include <dqrng.h>
 #include <Rcpp.h>
+#ifdef __linux__
 #include <execinfo.h> // backtrace, backtrace_symbols
-#include "NBI_distribution.h"
+#endif#include "NBI_distribution.h"
 #include "aux_functions.h"
 
 using namespace Rcpp;
@@ -143,6 +144,7 @@ simul_meta get_simul_meta(const List l, DataFrame dt)
 	}
 }*/
 
+#ifdef __linux__
 string GetStackTrace(void) {
 	const int maxNumStackCalls= 1024;
 	void *stackAddresses[maxNumStackCalls];
@@ -159,6 +161,12 @@ string GetStackTrace(void) {
 		return stackTrace;
 	}
 }
+
+#elif _WIN32
+string GetStackTrace(void) {
+	return string("[No stack trace available on Windows].");
+}
+#endif
 
 IntegerVector::Proxy VectElem(IntegerVector &v,int index) {
 	try { return v(index); }
