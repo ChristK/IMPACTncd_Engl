@@ -12,7 +12,8 @@
 #include <Rcpp.h>
 #ifdef __linux__
 #include <execinfo.h> // backtrace, backtrace_symbols
-#endif#include "NBI_distribution.h"
+#endif#
+include "NBI_distribution.h"
 #include "aux_functions.h"
 
 using namespace Rcpp;
