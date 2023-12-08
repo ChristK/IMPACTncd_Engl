@@ -205,19 +205,19 @@ SynthPop <-
         }
 
         if (scenario_nam == "sc0" && !"wt" %in% names(self$pop)) { # baseline
-          self$pop[, pops := sum(wt_immrtl), by = (strata)] # pops is now the ONS pop proj divided by the synthpop chunks n_synthpop_aggregation
+          self$pop[, pops := sum(wt_immrtl), by = eval(strata)] # pops is now the ONS pop proj divided by the synthpop chunks n_synthpop_aggregation
           set(self$pop, NULL, "wt", 0)
           self$pop[!is.na(all_cause_mrtl), wt := wt_immrtl * pops / sum(wt_immrtl),
-                   by = (strata)]
+                   by = eval(strata)]
 
           self$pop[, pops := NULL]
         } else if (scenario_nam != "sc0" && !"wt" %in% names(self$pop)) {
           # For policy scenarios
-          if (private$design$sim_prm$avoid_appending_csv) {
-            fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/",  self$mc_aggr, "_", self$mc, "_lifecourse.csv"))
-          } else {
-            fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
-          }
+          # if (private$design$sim_prm$avoid_appending_csv) {
+          #   fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/",  self$mc_aggr, "_", self$mc, "_lifecourse.csv"))
+          # } else {
+          fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
+          # }
 
           t0 <- fread(fnam, select = list(integer = c("pid", "year"), character = "scenario", numeric = "wt"),
                       key = c("scenario", "pid", "year"))[scenario == "sc0", ] # wt for sc0
@@ -1775,9 +1775,9 @@ SynthPop <-
         tt <- tt[LAD17CD %in% lads &
                    between(age, minage, private$design$sim_prm$ageH) &
                    between(year, minyear, maxyear),
-                 .(pops = sum(pops)), keyby = (strata)]
+                 .(pops = sum(pops)), keyby = eval(strata)]
 
-        dt[, wt_immrtl := .N, by = (strata)]
+        dt[, wt_immrtl := .N, by = eval(strata)]
         absorb_dt(dt, tt)
         dt[, wt_immrtl := pops / (wt_immrtl * private$design$sim_prm$n_synthpop_aggregation)]
         dt[, pops := NULL]
