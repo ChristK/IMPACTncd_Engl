@@ -12,7 +12,7 @@
 # - shinydashboard
 # - shinyBS
 # - bsplus # from https://ijlyttle.github.io/bsplus/index.html
-# - shinythemes
+- shinythemes
 # - shinyjs
 # - shinyWidgets # http://shinyapps.dreamrs.fr/shinyWidgets/
 # - DT
@@ -31,8 +31,8 @@
 - ggthemes
 - R.utils
 - data.table
-# - gamlss, # only necessary when fitting the models
+- gamlss # only necessary when fitting the models
 # - gamlss.tr, # only necessary when fitting the models
-# - mc2d, # only necessary for generating fixed_mc
+- mc2d # only necessary for generating fixed_mc
 # - mc2d, # for rpert()
 # - shinydashboardPlus
