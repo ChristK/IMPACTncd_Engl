@@ -183,11 +183,11 @@ SynthPop <-
       #' @param design_ A design object with the simulation parameters.
       #' @return The invisible self for chaining.
 
-      update_design = function(design_ = design) {
+      update_design = function(design_) {
         if (!inherits(design, "Design"))
           stop("Argument design_ needs to be a Design object.")
 
-        private$design <- design
+        private$design <- design_
         invisible(self)
       },
 
@@ -1763,7 +1763,7 @@ SynthPop <-
       gen_pop_weights = function(dt) {
         tt <-
           read_fst("./inputs/pop_projections/lad17_proj.fst", as.data.table = TRUE)
-        lads <- private$get_unique_LADs(design)
+        lads <- private$get_unique_LADs(private$design)
         strata <- c("year", "age", "sex")
         if (private$design$sim_prm$calibrate_to_pop_projections_by_LAD) {
           strata <- c(strata, "LAD17CD")
