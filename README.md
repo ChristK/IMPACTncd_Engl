@@ -43,63 +43,164 @@ The IMPACTncd_Engl model is written primarily in, and so requires installation o
 
 ## Installation
 
-IMPACTncd_Engl is installed directly from GitHub, after which a model-specific configuration is set. With multiple configurations, different policy scenarios may be tested on the same server. The following notes describe installation and execution of a test model:
+IMPACTncd_Engl is installed directly from GitHub, after which a model-specific configuration is set. With multiple configurations, different policy scenarios may be tested on the same server. 
 
-1. create a folder in which to install your IMPACTncd_Engl distribution and change the current directory to this folder, e.g. from a Linux terminal:
+Here is how to install it in Windows:
 
-	```
-	$ mkdir IMPACTncdEngl
-	$ cd IMPACTncdEngl
-	```
-  
-2. install the IMPACTncd_Engl repository ('repo') from GitHub. As IMPACTncd_Engl is a publicly visible repo, no GitHub account is needed to access the source code or other repo assets:
+### To install R, RStudio, and Rtools on Windows
+- The installation procedure outlined here pertains to versions R 4.3.2, RStudio, RTools 4.3, and Git 2.43.0. 
+- The installation process for R and RStudio has exhibited notable consistency throughout the years.
 
-	```$ git clone https://github.com/ChristK/IMPACTncd_Engl.git```
+#### Installing R
 
-	The above installs the most recent IMPACTncd_Engl development version. If a particular earlier version is required, perhaps a 
-	specific release ('tag') or code change ('commit'), select this now with:
-	
-	```$ git checkout <release-or-commit-id>```	
-	
-	where `<release-or-commit-id>` is a particular release or commit ID; `git tag` or `git log` will show a complete list of tag or commit options. After examining this earlier version, return to the most recent code with:
-	
-	```$ git checkout main```	
-	
-3. now to install certain large data files, stored as GitHub repo *assets*. A config file `auxil/ghAssetConfig.yaml` holds details which ease asset installation. In here, set [`id`] to a suitable name for this particular IMPACTncd_Engl simulation, and [`uploadSrcDirectory`] and [`deployToRootDirectory`] to a desired target IMPACTncd_Engl folder path/name. Download the first five assets with (from a Linux terminal):
+1. We need to first install R navigate to [CRAN](https://cran.rstudio.com/)
+2. Installing R first click Download R for Windows.
 
-	```
-	$ Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation-id>
-	```
-	
-	or, on Windows:
-	
-	```
-	<R-installation-directory>\bin\Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation-id>
-	```  
-	
-	where `<R-installation-directory>` is likely to be something like `C:\Program Files\R\R-4.2.0`, `<simulation-id>` is your name (from `auxil/ghAssetConfig.yaml`) for this IMPACTncd_Engl simulation. Alternatively, if wanting to avoid the Linux terminal, assets may be downloaded from within RStudio as follows:
-	
-	```
-	setwd("<path-to-your-IMPACTncd_Engl-distribution>")
-	source("gh_deploy.R")
-	DeployGitHubAssets(sAssetConfigFilePath="auxil/ghAssetConfig.yaml",sGitHubAssetRouteId="<simulation-id>")
-	```
-	
-	where `<path-to-your-IMPACTncd_Engl-distribution>` is the directory in which the IMPACTncd_Engl simulation has been installed, something like `C:/.../IMPACTncdEngl/IMPACTncd_Engl` on Windows.
+3. Once you click it click on install R for the first time.
 
-4. after this, the first five assets in `auxil/filindx.csv` should have downloaded:
+4. Now click on Download R-4.3.2 for Windows
 
-	```
-	inputs/pop_estimates_lsoa/LSOA_1st_April_population_estimates.fst
-	inputs/pop_estimates_lsoa/LSOA_mid_year_population_estimates.fst
-	simulation/parf/PARF_af_9dceba2c7567c3e48a443acdffbe19d8.fst
-	simulation/parf/PARF_andep_33c23b1449ddd6fb61bad0aa8cfe135c.fst
-	simulation/parf/PARF_asthma_5ba32a1a5d21f638e4ab8afda42befc3.fst
-	```
+5. Double click on the downloaded .exe file which is the setup file, Click Yes (accept defaults)
 
-5. if the last step was successful, the full set of 631 assets listed in `auxil/filindx.csv` (as of 2023-03-27) should now be downloaded. First edit `auxil/ghAssetConfig.yaml` and comment-out the [`testWithFirstNAssets`] line. Now save `ghAssetConfig.yaml` and re-run the above step 3.
+6. Select the language needed, I have chosen here English, the default one
 
-6. finally, a model and configuration is set. The model defines the *baseline* and *what-if* scenarios, while the configuration specifies other computational and model settings, e.g. output directories, parallelisation, population and disease parameters (see the **Model design and execution** section below). Using the default model, set the below configuration changes:
+7. Select all default features, Click Next 
+
+8. Click Next again to install using default settings and default location, you can also browse to another folder if required
+
+
+9. Now click Next  to install the following components
+
+10. Check No  for default startup options and click Next 
+
+11. Click Next to select the start Menu folder (accept default)
+
+12. Check on whichever options you need and click on Next
+
+13. Wait for the installation process
+
+14. Once completed this following window will show up, Click Finish
+
+
+#### Installing R Studio
+
+1. Navigate to [RStudio](https://posit.co/download/rstudio-desktop/) and click on DOWNLOAD RSTUDIO DESKTOP FOR WINDOWS, once installed, double click on the .exe file downloaded, Click Yes
+
+2. Click Next here to start installation of RStudio (accept defaults)
+
+3. Select a location to store RStudio and its files, or use the defaults, Click Next
+
+4. Click Install
+
+5. Wait for the installation process
+
+6. Click Finish
+
+7. To check the correct installation of R and RStudio, go to start menu and type RStudio
+
+8. If you see the next window check the one you installed and Click OK
+
+9. Once RStudio is open you will see this window
+
+10. Now type `Sys.info()` in RStudio console and check addition of two numbers to check if R is installed properly and compiling codes
+
+
+#### Installing RTools
+
+1. Navigate to [RTools](https://cran.r-project.org/bin/windows/Rtools/), click on RTools4.3 and once downloaded, double click on the .exe file
+
+2. [Read Me](https://cran.r-project.org/bin/windows/Rtools/rtools43/rtools.html) (Please read this carefully <5 minutes read)
+
+3. Click Yes (accept defaults)
+
+4. Select a location to store Rtools and its files, or use the defaults, Click Next 
+
+5. Click Next
+
+6. Click Install 
+
+7. Wait for the installation process
+
+8. Click Finish 
+
+9. To check correct installation of Rtools, install the package devtools using the command in RStudio console `install.packages(“devtools”)` and to load the library installed use `library(devtools)` and finally type  `find_rtools()` if it says TRUE then Rtools has been installed correctly
+
+### Create a GitHub account and Install Git in your system
+
+#### Installing Git
+
+1. To use github in your system you need to have git installed in your system. Navigate to [Git](https://git-scm.com/downloads) and click on Download for Windows
+
+2. After you click the link you will be directed to another page - click on Click here to download
+
+3. After the file is downloaded, double click on it and this window opens, click Yes, click on all default options after this step
+
+4. Click Next 
+
+5. Click Next 
+
+6. Click Next
+
+7. Click Next 
+
+8. Click Next 
+
+9. Click Next
+
+10. Click Next
+
+11. Select Windows` default console window and Click Next
+
+12. Click Next
+
+13. Click Next
+
+14. Click Next
+
+15. Click Install and wait for sometime
+
+16. After the installation, it shows a window, click Finish, to check the correct installation, add paths of R and git on your system. 
+
+17. Type Environment variables in search bar of your Windows system, click on Environment Variables
+
+17. Click on New  and then add the variable name PATH and the value as where *R4.3.2->bin->Rscript.exe* is stored in your system, eg : *C:\Program Files\R-4.3.2\bin* (version may be different). In the same way, add PATH for Git as well with value as *C:\Program Files\Git\bin*, click Apply
+
+18. To check R and Git work on command prompt or console, go to the search bar in Windows, type cmd and then click on command prompt / terminal. Once it opens, type `git` and it should show the following result
+
+19. Also for the R to run on terminal type `Rscript` in terminal and you should be able to see this
+
+
+#### Opening a Github account
+
+1. Navigate to [GitHub sign up](https://github.com/signup), Add your email ID, password, and username
+
+2. Select Continue and select Continue for Free 
+3. After this we will need a Personal Access Token (like a password) to use github resources. To create a PAT follow these steps in RStudio console [(reference)](https://happygitwithr.com/https-pat): 
+ - In RStudio console, typing `usethis::create_github_token()`, will open this [link](https://github.com/settings/tokens) -> Generate new token  
+ - the usethis approach takes you to a pre-filled form where we have pre-selected some recommended scopes, which you can look over and adjust before clicking “Generate token”. At the time of writing, the usethis - recommended scopes are “repo”, “user”, “gist”, and “workflow”
+ - add Note and Expiration (best practice to keep it as 30 days)
+
+ - store your PAT in a secure, long-term system for storing secrets, like 1Password or LastPass or store for a few minutes by copying on clipboard
+ - call an R function to store your credentials : `gitcreds::gitcreds_set()`; and when prompted paste the PAT there
+
+ - You can check the uploaded PAT using `gitcreds::gircreds_get()`
+ - You are going to be re-generating and restoring your PAT on a schedule dictated by its expiration period. By default, once per month.
+ - When the PAT expires, return to the GitHub token and click on its Note. At this point, you can optionally adjust scopes and then click “Regenerate token”. You can optionally modify its Expiration and then click “Regenerate token” (again). As before, copy the PAT to the clipboard, call `gitcreds::gitcreds_set()`, and paste!
+ - In Linux this PAT is stored temporarily and hence when installing assets we recommend setting your Linux PAT using `gitcreds::gitcreds_set()` 
+
+#### Installing IMPACTncd
+
+1. Once your github account is created you can Fork (copy) any repository you want. IMPACTncd England is here: https://github.com/ChristK/IMPACTncd_Engl. The Fork button is on the top right-hand side of the page
+
+2. Click Fork and then accept the defaults, add in a description if you like, and click Create Fork
+3. Now go to your own repository which you forked and then select Code, this will show a link which can be used to install / download the package in your system for local use. Copy this link
+
+4. In terminal, Type git clone https://github.com/your_username/IMPACTncd_Engl.git (the link you copied) 
+5. To install certain large data files, stored as GitHub repo *assets*. A config file `auxil/ghAssetConfig.yaml` holds details which ease asset installation. Open the file `auxil/ghAssetConfig.yaml` and change uploadSrcDirectory and deployToRootDirectory to some path in your system eg : *D:/IMPACTncd_Engl* OR *C:/IMPACTncdEngl/IMPACTncd_Engl* (both can be the same). Rename the id to any simulation_id you want.
+6. Then in the terminal type `Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation_id>`. For this step to run without interruption a strong internet connection / bandwidth is required
+7. Then in the terminal run global.R using `Rscript global.R` this will install remaining packages required for the microsimulation.
+
+8. finally, a model and configuration is set. The model defines the *baseline* and *what-if* scenarios, while the configuration specifies other computational and model settings, e.g. output directories, parallelisation, population and disease parameters (see the **Model design and execution** section below). Using the default model, set the below configuration changes:
 
 	a. in `auxil/simulation.R`, set the current `run(1:200,` command (lines 16 and 132), which describe a number of repetitions, to something appropriate - perhaps `run(1:2,` for testing.
 	
@@ -109,7 +210,7 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 		* the [`validation`] value so inactive, i.e. `validation: no`.
 		* the [`clusternumber`] parameter to an appropriate number of cores on which to run the model in parallel, e.g. perhaps only 2-4 cores for either a personal laptop or if running on a shared server. The default 15 cores will impact other users using the same shared server.
 		
-7. the model is now ready for execution; see the execution notes in the following **Model design and execution** section.
+9. the model is now ready for execution; see the execution notes in the following **Model design and execution** section.
 
 ## Model design and execution
 
