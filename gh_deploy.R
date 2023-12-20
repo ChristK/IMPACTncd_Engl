@@ -1,12 +1,19 @@
+setOptions_for_repo <- function() {
+  chooseCRANmirror(ind = 1)
+  repos <- getOption("repos")
+}
+setOptions_for_repo()
+
 if (!require(piggyback)) {
-    dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
-    install.packages("piggyback", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
-    library(piggyback)
+  if (!nzchar(system.file(package = "pak"))) install.packages("pak")
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  pak::pkg_install("piggyback", lib = Sys.getenv("R_LIBS_USER"))
+  library(piggyback)
 }
 if (!require(data.table)) {
-    dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
-    install.packages("data.table", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
-    library(data.table)
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  pak::pkg_install("data.table", lib = Sys.getenv("R_LIBS_USER"))
+  library(data.table)
 }
 
 source("ghAssetUtils.R")
