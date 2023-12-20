@@ -299,7 +299,7 @@ Here is how to install it in Windows:
 
 
 4. In terminal, Type git clone https://github.com/your_username/IMPACTncd_Engl.git (the link you copied) 
-5. To install certain large data files, stored as GitHub repo *assets*. A config file `auxil/ghAssetConfig.yaml` holds details which ease asset installation. Open the file `auxil/ghAssetConfig.yaml` and change uploadSrcDirectory and deployToRootDirectory (both can be the same) to some path in your system eg : *D:/IMPACTncd_Engl* OR *C:/IMPACTncdEngl/IMPACTncd_Engl* using forward slashes. Rename the id to any simulation_id you want.
+5. To install certain large data files, stored as GitHub repo *assets*. A config file `auxil/ghAssetConfig.yaml` holds details which ease asset installation. Open the file `auxil/ghAssetConfig.yaml` and change uploadSrcDirectory and deployToRootDirectory (both should be the same) to some path in your system eg : *D:/IMPACTncd_Engl* OR *C:/IMPACTncdEngl/IMPACTncd_Engl*, this path should be the root directory of where your .proj file is stored as these are absolute paths. Rename the id to any simulation_id you want.
 6. Then in the terminal type `Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation_id>`. For this step to run without interruption a strong internet connection / bandwidth is required
 7. Then in the terminal run global.R using `Rscript global.R` this will install remaining packages required for the microsimulation.
 
