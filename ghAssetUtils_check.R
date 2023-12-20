@@ -83,18 +83,30 @@ StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
 #' @param sUploadSrcDirPath string (out param): source directory path to scan for uploading assets to GitHub.
 #' @param sDeployToRootDirPath string (out param): deployment directory path for downloading assets from GitHub.
 #' @param bOverwriteFilesOnDeploy bool (out param): overwrite files during deployment.
+#' @param iTestWithFirstNAssets int (out param): only download first [iTestWithFirstNAssets] assets (for testing).
 #' @param sToken string (in|out param): GitHub personal access token (PAT).
+#' @param sAssetConfigFilePath string (optional): path to ghAssetConfig.yaml file - provided for interactive calls (RStudio).
 #' @param sGitHubAssetRouteId string (optional): ID designating asset route in asset config.yaml file - provided for interactive calls (RStudio).
-GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath,
-                                    bOverwriteFilesOnDeploy, sToken = NULL,
-                                    sGitHubAssetRouteId = NULL) {
+GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath, bOverwriteFilesOnDeploy, iTestWithFirstNAssets, sToken = NULL, sAssetConfigFilePath = NULL, sGitHubAssetRouteId = NULL) {
   # expect an asset config file and route ID, either from an function- or command-line argument
-  if (is.null(sGitHubAssetRouteId)) {
+  if (is.null(sAssetConfigFilePath) & is.null(sGitHubAssetRouteId)) {
     lsCommandArgs <- commandArgs(TRUE)
     iNumCmdArgs <- length(lsCommandArgs)
   } else {
     iNumCmdArgs <- 0
   }
+
+  # load asset config settings
+  if (iNumCmdArgs > 0) {
+    sAssetConfigFilePath <- lsCommandArgs[1]
+    iNumCmdArgs <- iNumCmdArgs - 1
+  } else if (is.null(sAssetConfigFilePath)) {
+    sAssetConfigFilePath <- file.path(getwd(), "auxil/ghAssetConfig.yaml")
+  }
+  if (!file.exists(sAssetConfigFilePath)) {
+    stop(paste0("Failed finding GitHub asset config file: ", sAssetConfigFilePath))
+  }
+  gitHubAssetRoutes <- yaml::read_yaml(sAssetConfigFilePath)
 
   # find desired asset route ID
   if (iNumCmdArgs > 0) {
@@ -117,41 +129,49 @@ GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeploy
 
   if (iNumCmdArgs > 0) { # quit - as didn't expect additional variables
     stop("Execute from the console:
-					Rscript <scriptR> [<GitHubAssetRouteId> [<GitHubToken>]]
+					Rscript <scriptR> [<AssetFilePathName> [<GitHubAssetRouteId> [<GitHubToken>]]]
 				or alternatively, may execute directly within R or RStudio:
 					source(\"<scriptR>\")
-					UploadGitHubAssets(sGitHubAssetRouteId=<GitHubAssetRouteId>,sToken=<GitHubToken>)
+					UploadGitHubAssets(sAssetConfigFilePath=<AssetFilePathName>,
+						sGitHubAssetRouteId=<GitHubAssetRouteId>,sToken=<GitHubToken>)
 				where in the above, <scriptR> is the R script name, either gh_deploy.R or gh_upload.R,
-					<GitHubAssetRouteId> is an asset route's [id];
-						if omitted, seeks ID matching Sys.info()[['user']] name.
+					<AssetFilePathName> is an optional asset config file's path and name;
+						if omitted, tries the default ./auxil/ghAssetConfig.yaml.
+					<GitHubAssetRouteId> is an asset route's [id] within <AssetFilePathName>;
+						if omitted, seeks ID matching Sys.info()[['user']] name. If <AssetFilePathName> also omitted, assumes running from console.
 					<GitHubToken> is a GitHub personal access token (PAT);
 						if omitted, seeks token from gh::gh_token().")
   }
 
   # get desired asset route's properties
-  gitHubAssetRouteFinal <- list(
-    id = sGitHubAssetRouteId,
-    repo = sRepo,
-    tag = sTag,
-    personalAccessToken = sGitHubToken,
-    uploadSrcDirectory = sUploadSrcDirPath,
-    deployToRootDirectory = sDeployToRootDirPath,
-    overwriteFilesOnDeploy = bOverwriteFilesOnDeploy
-  )
-  if (sGitHubToken == "") { # no access token given previously
-    sGitHubToken <- gitHubAssetRouteFinal$personalAccessToken
-    if (is.null(sGitHubToken)) warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
+  gitHubAssetRouteFinal <- NULL
+  for (gitHubAssetRoute in gitHubAssetRoutes$gitHubAssetRoutes) {
+    if (gitHubAssetRoute$id == sGitHubAssetRouteId) {
+      gitHubAssetRouteFinal <- gitHubAssetRoute
+
+      if (sGitHubToken == "") { # no access token given previously
+        sGitHubToken <- gitHubAssetRouteFinal$personalAccessToken
+        if (is.null(sGitHubToken)) warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
 					May set PAT on command-line or in asset config file [personalAccessToken] variable.")
+      }
+
+      # NOTE: is.null(gitHubAssetRouteFinal$someVarible)) will find missing or empty fields
+      eval.parent(substitute(sId <- sGitHubAssetRouteId))
+      eval.parent(substitute(sRepo <- gitHubAssetRouteFinal$repo))
+      eval.parent(substitute(sTag <- gitHubAssetRouteFinal$tag))
+      eval.parent(substitute(sToken <- sGitHubToken))
+      eval.parent(substitute(sUploadSrcDirPath <- gitHubAssetRouteFinal$uploadSrcDirectory))
+      eval.parent(substitute(sDeployToRootDirPath <- gitHubAssetRouteFinal$deployToRootDirectory))
+      eval.parent(substitute(bOverwriteFilesOnDeploy <- if (gitHubAssetRouteFinal$overwriteFilesOnDeploy == "1") TRUE else FALSE))
+      eval.parent(substitute(iTestWithFirstNAssets <- if (is.null(gitHubAssetRouteFinal$testWithFirstNAssets)) {
+        0
+      } else {
+        as.integer(gitHubAssetRouteFinal$testWithFirstNAssets)
+      }))
+      return(0)
+    }
   }
-  eval.parent(substitute(sId <- sGitHubAssetRouteId))
-  eval.parent(substitute(sRepo <- gitHubAssetRouteFinal$repo))
-  eval.parent(substitute(sTag <- gitHubAssetRouteFinal$tag))
-  eval.parent(substitute(sToken <- sGitHubToken))
-  eval.parent(substitute(sUploadSrcDirPath <- gitHubAssetRouteFinal$uploadSrcDirectory))
-  eval.parent(substitute(sDeployToRootDirPath <- gitHubAssetRouteFinal$deployToRootDirectory))
-  eval.parent(substitute(bOverwriteFilesOnDeploy <- if (gitHubAssetRouteFinal$overwriteFilesOnDeploy == "1") TRUE else FALSE))
-  return(0)
-  stop(paste0("Failed finding GitHub asset route data for id=[", sGitHubAssetRouteId, "]"))
+  stop(paste0("Failed finding GitHub asset route data for id=[", sGitHubAssetRouteId, "] in config file [", sAssetConfigFilePath, "]"))
 }
 
 ####################################################################################
@@ -282,14 +302,14 @@ pb_upload_file_liverpool <- function(file,
   ## Code has been partially refactored now so that user just
   ## sets `overwrite` and we handle the twisted logic internally here:
   use_timestamps <- switch(as.character(overwrite),
-    "TRUE" = FALSE,
-    "FALSE" = FALSE,
-    "use_timestamps" = TRUE
+                           "TRUE" = FALSE,
+                           "FALSE" = FALSE,
+                           "use_timestamps" = TRUE
   )
   overwrite <- switch(as.character(overwrite),
-    "TRUE" = TRUE,
-    "FALSE" = FALSE,
-    "use_timestamps" = TRUE
+                      "TRUE" = TRUE,
+                      "FALSE" = FALSE,
+                      "use_timestamps" = TRUE
   )
 
   progress <- httr::progress("up")
@@ -320,10 +340,10 @@ pb_upload_file_liverpool <- function(file,
     if (overwrite) {
       ## If we find matching id, Delete file from release.
       gh::gh("DELETE /repos/:owner/:repo/releases/assets/:id",
-        owner = df$owner[[1]],
-        repo = df$repo[[1]],
-        id = df$id[i],
-        .token = .token
+             owner = df$owner[[1]],
+             repo = df$repo[[1]],
+             id = df$id[i],
+             .token = .token
       )
     } else {
       cli::cli_warn("Skipping upload of {.file {df$file_name[i]}} as file exists on GitHub and {.code overwrite = FALSE}")
@@ -455,12 +475,12 @@ pb_download_liverpool <- function(file = NULL,
 
   resp <- lapply(seq_along(df$id), function(i) {
     gh_download_asset(df$owner[[1]],
-      df$repo[[1]],
-      id = df$id[i],
-      destfile = df$dest[i],
-      overwrite = overwrite,
-      .token = .token,
-      progress = progress
+                      df$repo[[1]],
+                      id = df$id[i],
+                      destfile = df$dest[i],
+                      overwrite = overwrite,
+                      .token = .token,
+                      progress = progress
     )
   })
   return(invisible(resp))
