@@ -550,6 +550,17 @@ Simulation <-
         unlist(sapply(self$diseases, function(x) x$meta$diagnosis$mm_wt))
       },
 
+      # allow_universal_output_folder_access ----
+
+      #' @description Make output folder available to all users (Linux specific).
+      #' @return The invisible self for chaining.
+      allow_universal_output_folder_access = function() {
+        if (Sys.info()["sysname"] == "Linux") system2("chmod", paste0("ugo+rwx ", self$design$sim_prm$output_dir)) else
+          message("This function is only available in Linux.")
+        invisible(self)
+      },
+      
+
       # print ----
 
       #' @description Prints the simulation object metadata.
