@@ -36,37 +36,42 @@ source("ghAssetUtils.R")
 #' @param sAssetConfigFilePath string (optional): path to ghAssetConfig.yaml file - provided for interactive calls (RStudio).
 #' @param sGitHubAssetRouteId string (optional): ID designating asset route in asset config.yaml file - provided for interactive calls (RStudio).
 #' @param sToken string (optional): GitHub personal access token (PAT).
-DeployGitHubAssets <- function(sAssetConfigFilePath = NULL, sGitHubAssetRouteId = NULL, sToken = NULL) {
+DeployGitHubAssets <- function(sToken = NULL,
+                               sGitHubAssetRouteId = NULL, sId = NULL, sRepo = NULL,
+                               sTag = NULL, sUploadSrcDirPath = NULL,
+                               sDeployToRootDirPath = NULL, bOverwriteFilesOnDeploy = T) {
     # get GitHub asset route data
-    GetGitHubAssetRouteInfo(sId, sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath, bOverwriteFilesOnDeploy,
-        iTestWithFirstNAssets,
-        sToken = sToken, sAssetConfigFilePath = sAssetConfigFilePath, sGitHubAssetRouteId = sGitHubAssetRouteId
-    )
+    GetGitHubAssetRouteInfo(sId = sId, sRepo = sRepo, sTag = sTag,
+                            sUploadSrcDirPath = sUploadSrcDirPath,
+                            sDeployToRootDirPath = sDeployToRootDirPath,
+                            bOverwriteFilesOnDeploy, sToken = sToken,
+                            sGitHubAssetRouteId = sGitHubAssetRouteId)
     sDeployToRootDirPath <- TrimSlashes(sDeployToRootDirPath, bRidStartSlash = FALSE)
-
     # get table which maps SANITISED to ORIGINAL filenames
-    sanitisedToOriginalFilePaths <- fread(file.path(sDeployToRootDirPath, "/auxil/filindx.csv"), key = "orig_file")
-    if (iTestWithFirstNAssets != 0) { # if testing, only use first N assets
-        sanitisedToOriginalFilePaths <- sanitisedToOriginalFilePaths[1:iTestWithFirstNAssets, ]
-    }
-
+    sanitisedToOriginalFilePaths <- fread(file.path(sDeployToRootDirPath,
+                                                    "/auxil/filindx.csv"),
+                                          key = "orig_file")
     # create sub-directories below root directory
     subDirectoryPaths <- sapply(sanitisedToOriginalFilePaths$rel_dir, TrimSlashes)
-    sapply(file.path(sDeployToRootDirPath, unique(subDirectoryPaths)), dir.create, showWarnings = FALSE, recursive = TRUE)
-
+    sapply(file.path(sDeployToRootDirPath, unique(subDirectoryPaths)),
+           dir.create, showWarnings = FALSE, recursive = TRUE)
     # download each Github asset into appropriate sub-directory
-    # OLD: finalAssetPaths<- file.path(sDeployToRootDirPath,subDirectoryPaths,sanitisedToOriginalFilePaths$orig_file)
+    # OLD: finalAssetPaths<- file.path(sDeployToRootDirPath,subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file)
     lsHttpResponses <- piggyback::pb_download(
         file = sanitisedToOriginalFilePaths$sanit_file,
-        dest = file.path(sDeployToRootDirPath, subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file),
-        repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy, use_timestamps = FALSE, .token = sToken
-    )
+        dest = file.path(sDeployToRootDirPath, subDirectoryPaths,
+                         sanitisedToOriginalFilePaths$orig_file),
+        repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
+        use_timestamps = FALSE, .token = sToken)
     # 1. WARNING! confusing pb_download() behaviour: 'dest=' *directory* required for single asset; destination *filenames* required for multiple assets.
     # 2. piggyback:: prefix necessary to use R.utils::reassignInPackage() injected code modification.
     StopOnHttpFailure(lsHttpResponses, FALSE)
-
     # OLD: restore original filename
     # file.rename(finalAssetPaths, file.path(sDeployToRootDirPath,subDirectoryPaths,sanitisedToOriginalFilePaths$orig_file))
 }
 
-if (sys.nframe() == 0) DeployGitHubAssets() # execute with defaults if run from topmost frame (under Rscript)
+# if (sys.nframe() == 0) DeployGitHubAssets() # execute with defaults if run from topmost frame (under Rscript)
+DeployGitHubAssets(sGitHubAssetRouteId = NULL, sId = "arucheck", sRepo = "ChristK/IMPACTncd_Engl",
+                   sTag = "v0.0.5", sUploadSrcDirPath = "D:/Dropbox/ILKConsultancy/IMPACTncd_Engl",
+                   sDeployToRootDirPath = "D:/Dropbox/ILKConsultancy/IMPACTncd_Engl",
+                   bOverwriteFilesOnDeploy = 1)
