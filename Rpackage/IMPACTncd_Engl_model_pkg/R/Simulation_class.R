@@ -628,6 +628,7 @@ Simulation <-
         # })
 
         l <- private$mk_scenario_init(sp, scenario_nam)
+        if (!identical(key(sp$pop), c("pid", "year"))) stop("synthpop key is not as expected")
         simcpp(sp$pop, l, sp$mc)
         # it doesn't matter if mc or mc_aggr is used in the above, because it is
         # only used for the RNG stream and the pid are different in each mc_aggr
