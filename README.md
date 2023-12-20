@@ -54,30 +54,54 @@ Here is how to install it in Windows:
 #### Installing R
 
 1. We need to first install R navigate to [CRAN](https://cran.rstudio.com/)
-2. Installing R first click Download R for Windows.
+2. Installing R first click Download R for Windows
 
-3. Once you click it click on install R for the first time.
+![](img/R_1.jpeg)
+
+3. Once you click it click on install R for the first time
+
+![](img/R_2.jpeg)
 
 4. Now click on Download R-4.3.2 for Windows
 
+![](img/R_3.jpeg)
+
 5. Double click on the downloaded .exe file which is the setup file, Click Yes (accept defaults)
+
+![](img/R_4.jpeg)
 
 6. Select the language needed, I have chosen here English, the default one
 
+![](img/R_5.jpeg)
+
+
 7. Select all default features, Click Next 
+
+![](img/R_6.jpeg)
 
 8. Click Next again to install using default settings and default location, you can also browse to another folder if required
 
+![](img/R_7.jpeg)
 
 9. Now click Next  to install the following components
 
+![](img/R_8.jpeg)
+
 10. Check No  for default startup options and click Next 
+
+![](img/R_9.jpeg)
 
 11. Click Next to select the start Menu folder (accept default)
 
+![](img/R_10.jpeg)
+
 12. Check on whichever options you need and click on Next
 
+![](img/R_11.jpeg)
+
 13. Wait for the installation process
+
+![](img/R_12.jpeg)
 
 14. Once completed this following window will show up, Click Finish
 
@@ -86,44 +110,79 @@ Here is how to install it in Windows:
 
 1. Navigate to [RStudio](https://posit.co/download/rstudio-desktop/) and click on DOWNLOAD RSTUDIO DESKTOP FOR WINDOWS, once installed, double click on the .exe file downloaded, Click Yes
 
+![](img/RStudio_1.jpeg)
+
 2. Click Next here to start installation of RStudio (accept defaults)
+
+![](img/RStudio_2.jpeg)
 
 3. Select a location to store RStudio and its files, or use the defaults, Click Next
 
+![](img/RStudio_3.jpeg)
+
 4. Click Install
+
+![](img/RStudio_4.jpeg)
 
 5. Wait for the installation process
 
+![](img/RStudio_5.jpeg)
+
 6. Click Finish
+
+![](img/RStudio_6.jpeg)
 
 7. To check the correct installation of R and RStudio, go to start menu and type RStudio
 
+![](img/RStudio_7.jpeg)
+
 8. If you see the next window check the one you installed and Click OK
+
+![](img/RStudio_8.jpeg)
 
 9. Once RStudio is open you will see this window
 
-10. Now type `Sys.info()` in RStudio console and check addition of two numbers to check if R is installed properly and compiling codes
+![](img/RStudio_9.jpeg)
+
+10. Now check `2+3` in the RStudio console to check if R is installed properly and compiling codes
 
 
 #### Installing RTools
 
 1. Navigate to [RTools](https://cran.r-project.org/bin/windows/Rtools/), click on RTools4.3 and once downloaded, double click on the .exe file
 
+![](img/Rtools_1.jpeg)
+
 2. [Read Me](https://cran.r-project.org/bin/windows/Rtools/rtools43/rtools.html) (Please read this carefully <5 minutes read)
 
 3. Click Yes (accept defaults)
 
+![](img/Rtools_2.jpeg)
+
 4. Select a location to store Rtools and its files, or use the defaults, Click Next 
+
+![](img/Rtools_3.jpeg)
 
 5. Click Next
 
+![](img/Rtools_4.jpeg)
+
 6. Click Install 
+
+![](img/Rtools_5.jpeg)
 
 7. Wait for the installation process
 
+![](img/Rtools_6.jpeg)
+
 8. Click Finish 
 
+![](img/Rtools_7.jpeg)
+
 9. To check correct installation of Rtools, install the package devtools using the command in RStudio console `install.packages(“devtools”)` and to load the library installed use `library(devtools)` and finally type  `find_rtools()` if it says TRUE then Rtools has been installed correctly
+
+![](img/Rtools_8.jpeg)
+
 
 ### Create a GitHub account and Install Git in your system
 
@@ -131,60 +190,98 @@ Here is how to install it in Windows:
 
 1. To use github in your system you need to have git installed in your system. Navigate to [Git](https://git-scm.com/downloads) and click on Download for Windows
 
+![](img/Git_1.jpeg)
+
 2. After you click the link you will be directed to another page - click on Click here to download
+
+![](img/Git_2.jpeg)
 
 3. After the file is downloaded, double click on it and this window opens, click Yes, click on all default options after this step
 
+![](img/Git_3.jpeg)
+
 4. Click Next 
+
+![](img/Git_4.jpeg)
 
 5. Click Next 
 
+![](img/Git_5.jpeg)
+
 6. Click Next
+
+![](img/Git_6.jpeg)
 
 7. Click Next 
 
+![](img/Git_7.jpeg)
+
 8. Click Next 
+
+![](img/Git_8.jpeg)
 
 9. Click Next
 
+![](img/Git_9.jpeg)
+
 10. Click Next
+
+![](img/Git_10.jpeg)
 
 11. Select Windows` default console window and Click Next
 
+![](img/Git_11.jpeg)
+
 12. Click Next
+
+![](img/Git_12.jpeg)
 
 13. Click Next
 
+![](img/Git_13.jpeg)
+
 14. Click Next
+
+![](img/Git_14.jpeg)
 
 15. Click Install and wait for sometime
 
-16. After the installation, it shows a window, click Finish, to check the correct installation, add paths of R and git on your system. 
+![](img/Git_15.jpeg)
+
+16. After the installation, it shows a window, click Finish, to check the correct installation, add paths of R and git on your system
 
 17. Type Environment variables in search bar of your Windows system, click on Environment Variables
 
-17. Click on New  and then add the variable name PATH and the value as where *R4.3.2->bin->Rscript.exe* is stored in your system, eg : *C:\Program Files\R-4.3.2\bin* (version may be different). In the same way, add PATH for Git as well with value as *C:\Program Files\Git\bin*, click Apply
+![](img/Git_16.jpeg)
 
-18. To check R and Git work on command prompt or console, go to the search bar in Windows, type cmd and then click on command prompt / terminal. Once it opens, type `git` and it should show the following result
+18. Click on New  and then add the variable name PATH and the value as where *R4.3.2->bin->Rscript.exe* is stored in your system, eg : *C:\Program Files\R-4.3.2\bin* (version may be different). In the same way, add PATH for Git as well with value as *C:\Program Files\Git\bin*, click Apply
 
-19. Also for the R to run on terminal type `Rscript` in terminal and you should be able to see this
+![](img/Git_17.jpeg)
+
+19. To check R and Git work on command prompt or console, go to the search bar in Windows, type cmd and then click on command prompt / terminal. Once it opens, type `git` and it should show the following result
+
+![](img/Git_18.jpeg)
+
+20. Also for the R to run on terminal type `Rscript` in terminal and you should be able to see this
+
+![](img/Git_19.jpeg)
 
 
 #### Opening a Github account
 
 1. Navigate to [GitHub sign up](https://github.com/signup), Add your email ID, password, and username
-
+![](img/Github_2.jpeg)
 2. Select Continue and select Continue for Free 
 3. After this we will need a Personal Access Token (like a password) to use github resources. To create a PAT follow these steps in RStudio console [(reference)](https://happygitwithr.com/https-pat): 
- - In RStudio console, typing `usethis::create_github_token()`, will open this [link](https://github.com/settings/tokens) -> Generate new token  
- - the usethis approach takes you to a pre-filled form where we have pre-selected some recommended scopes, which you can look over and adjust before clicking “Generate token”. At the time of writing, the usethis - recommended scopes are “repo”, “user”, “gist”, and “workflow”
- - add Note and Expiration (best practice to keep it as 30 days)
-
- - store your PAT in a secure, long-term system for storing secrets, like 1Password or LastPass or store for a few minutes by copying on clipboard
- - call an R function to store your credentials : `gitcreds::gitcreds_set()`; and when prompted paste the PAT there
-
- - You can check the uploaded PAT using `gitcreds::gircreds_get()`
- - You are going to be re-generating and restoring your PAT on a schedule dictated by its expiration period. By default, once per month.
+  - In RStudio console, typing `usethis::create_github_token()`, will open this [link](https://github.com/settings/tokens) -> Generate new token  
+    ![](img/Github_5.jpeg)
+  - the usethis approach takes you to a pre-filled form where we have pre-selected some recommended scopes, which you can look over and adjust before clicking “Generate token”. At the time of writing, the usethis - recommended scopes are “repo”, “user”, “gist”, and “workflow”
+  - add Note and Expiration (best practice to keep it as 30 days)
+  - store your PAT in a secure, long-term system for storing secrets, like 1Password or LastPass or store for a few minutes by copying on clipboard
+  - call an R function to store your credentials : `gitcreds::gitcreds_set()`; and when prompted paste the PAT there
+ ![](img/Github_6.jpeg)
+  - You can check the uploaded PAT using `gitcreds::gircreds_get()`
+  - You are going to be re-generating and restoring your PAT on a schedule dictated by its expiration period. By default, once per month.
  - When the PAT expires, return to the GitHub token and click on its Note. At this point, you can optionally adjust scopes and then click “Regenerate token”. You can optionally modify its Expiration and then click “Regenerate token” (again). As before, copy the PAT to the clipboard, call `gitcreds::gitcreds_set()`, and paste!
  - In Linux this PAT is stored temporarily and hence when installing assets we recommend setting your Linux PAT using `gitcreds::gitcreds_set()` 
 
@@ -193,10 +290,16 @@ Here is how to install it in Windows:
 1. Once your github account is created you can Fork (copy) any repository you want. IMPACTncd England is here: https://github.com/ChristK/IMPACTncd_Engl. The Fork button is on the top right-hand side of the page
 
 2. Click Fork and then accept the defaults, add in a description if you like, and click Create Fork
+
+![](img/Github_3.jpeg)
+
 3. Now go to your own repository which you forked and then select Code, this will show a link which can be used to install / download the package in your system for local use. Copy this link
 
+![](img/Github_4.jpeg)
+
+
 4. In terminal, Type git clone https://github.com/your_username/IMPACTncd_Engl.git (the link you copied) 
-5. To install certain large data files, stored as GitHub repo *assets*. A config file `auxil/ghAssetConfig.yaml` holds details which ease asset installation. Open the file `auxil/ghAssetConfig.yaml` and change uploadSrcDirectory and deployToRootDirectory to some path in your system eg : *D:/IMPACTncd_Engl* OR *C:/IMPACTncdEngl/IMPACTncd_Engl* (both can be the same). Rename the id to any simulation_id you want.
+5. To install certain large data files, stored as GitHub repo *assets*. A config file `auxil/ghAssetConfig.yaml` holds details which ease asset installation. Open the file `auxil/ghAssetConfig.yaml` and change uploadSrcDirectory and deployToRootDirectory (both can be the same) to some path in your system eg : *D:/IMPACTncd_Engl* OR *C:/IMPACTncdEngl/IMPACTncd_Engl*. Rename the id to any simulation_id you want.
 6. Then in the terminal type `Rscript gh_deploy.R auxil/ghAssetConfig.yaml <simulation_id>`. For this step to run without interruption a strong internet connection / bandwidth is required
 7. Then in the terminal run global.R using `Rscript global.R` this will install remaining packages required for the microsimulation.
 
