@@ -2,6 +2,8 @@ source("./global.R")
 
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
+# IMPACTncd$update_output_path("/mnt/storage_fast/output/test")
+# IMPACTncd$update_synthpop_path("/mnt/storage_fast/synthpop/test")
 # g <- IMPACTncd$get_causal_structure(print_plot = TRUE)
 # g <- IMPACTncd$get_causal_structure(processed = FALSE, print_plot = TRUE, focus = "chd")
 
@@ -17,6 +19,7 @@ IMPACTncd$
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 # source("./auxil/CPRD_sim_validation_plots.R")
+
 
 scenario_fn_primary_prevention <- function(sp) {
 
