@@ -125,7 +125,7 @@ POP$get_filename()
 \subsection{Method \code{update_design()}}{
 Updates the Design object that is stored in the SynthPop object.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SynthPop$update_design(design_ = design)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SynthPop$update_design(design_)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
