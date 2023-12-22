@@ -67,24 +67,6 @@ Simulation <-
         )
 
 
-        # Create folders if don't exist
-        # TODO write hlp function and use lapply
-        message("Creating output subfolders.")
-			private$create_new_folder(self$design$sim_prm$output_dir,self$design$sim_prm$logs)
-			private$create_new_folder(private$output_dir("summaries/"),self$design$sim_prm$logs)
-			private$create_new_folder(private$output_dir("tables/"),self$design$sim_prm$logs)
-			private$create_new_folder(private$output_dir("plots/"),self$design$sim_prm$logs)
-			private$create_new_folder(private$output_dir("lifecourse/"),self$design$sim_prm$logs)
-			if(self$design$sim_prm$export_PARF)
-				private$create_new_folder(private$output_dir("parf/"),self$design$sim_prm$logs)
-			if(self$design$sim_prm$export_xps)
-				private$create_new_folder(private$output_dir("xps/"),self$design$sim_prm$logs)
-			if (self$design$sim_prm$logs)
-				private$create_new_folder(private$output_dir("logs/"),self$design$sim_prm$logs)
-
-        # NOTE code below is duplicated in Synthpop class. This is intentional
-		  private$create_new_folder(self$design$sim_prm$synthpop_dir,self$design$sim_prm$logs)
-
         message("Loading exposures.")
         # RR Create a named list of Exposure objects for the files in
         # ./inputs/RR
@@ -168,7 +150,33 @@ Simulation <-
             min(mc) * self$design$sim_prm$n_synthpop_aggregation -
               self$design$sim_prm$n_synthpop_aggregation + 1L
           ):(max(mc) * self$design$sim_prm$n_synthpop_aggregation)
+       
+        # Create folders if don't exist
+        # TODO write hlp function and use lapply
+        if (file.exists(self$design$sim_prm$output_dir) && file.access(self$design$sim_prm$output_dir, mode = 2) == -1L)
+         stop("You don't have write access to the output folder. Please change the permissions or the path.")
 
+        message("Creating output subfolders.")
+        private$create_new_folder(self$design$sim_prm$output_dir, self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("summaries/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("tables/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("plots/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("lifecourse/"), self$design$sim_prm$logs)
+        if (self$design$sim_prm$export_PARF) {
+          private$create_new_folder(private$output_dir("parf/"), self$design$sim_prm$logs)
+        }
+        if (self$design$sim_prm$export_xps) {
+          private$create_new_folder(private$output_dir("xps/"), self$design$sim_prm$logs)
+        }
+        if (self$design$sim_prm$logs) {
+          private$create_new_folder(private$output_dir("logs/"), self$design$sim_prm$logs)
+        }
+
+        if (file.exists(self$design$sim_prm$synthpop_dir) && file.access(self$design$sim_prm$synthpop_dir, mode = 2) == -1L)
+         stop("You don't have write access to the synthpop folder. Please change the permissions or the path.")
+
+        # NOTE code below is duplicated in Synthpop class. This is intentional
+        private$create_new_folder(self$design$sim_prm$synthpop_dir, self$design$sim_prm$logs)
 
 
         if (any(file.exists( # TODO fix when lifecourse is not saved
@@ -502,14 +510,25 @@ Simulation <-
 
         if (dir.exists(self$design$sim_prm$output_dir)) {
 
-        fl <- list.files(self$design$sim_prm$output_dir, full.names = TRUE,
-                         recursive = TRUE)
+          # Check for safety that folders /lifecourse, /tables, /plots, and /summaries exist to avoid accidental deletes of other folders
+          if (dir.exists(file.path(self$design$sim_prm$output_dir, "lifecourse")) &&
+            dir.exists(file.path(self$design$sim_prm$output_dir, "summaries")) &&
+            dir.exists(file.path(self$design$sim_prm$output_dir, "tables")) &&
+            dir.exists(file.path(self$design$sim_prm$output_dir, "plots"))) {
+          
+            fl <- list.files(self$design$sim_prm$output_dir,
+              full.names = TRUE,
+              recursive = TRUE
+            )
+            file.remove(fl)
 
-        file.remove(fl)
-
-        if (length(fl) > 0 && self$design$sim_prm$logs)
-          message("Output files deleted.")
-        } else {
+            if (length(fl) > 0 && self$design$sim_prm$logs) {
+              message("Output files deleted.")
+            }
+          } else {
+            message("Output folder doesn't contain the expected subfolders. Please check the output folder path.")
+          }
+        } else { # If output folder doesn't exist
           message("Output folder doesn't exist.")
         }
 
@@ -549,6 +568,39 @@ Simulation <-
       get_mm_weights = function() {
         unlist(sapply(self$diseases, function(x) x$meta$diagnosis$mm_wt))
       },
+
+      # allow_universal_output_folder_access ----
+
+      #' @description Make output folder available to all users (Linux specific).
+      #' @return The invisible self for chaining.
+      allow_universal_output_folder_access = function() {
+        if (Sys.info()["sysname"] == "Linux") system2("chmod", paste0("ugo+rwx ", self$design$sim_prm$output_dir)) else
+          message("This function is only available in Linux.")
+        invisible(self)
+      },
+      
+      # update_output_path ----
+
+      #' @description Updates the output path.
+      #' @param new_path A string with the new output path (absolute).
+      #' @return The invisible self for chaining.
+      update_output_path = function(new_path) {
+        if (!is.character(new_path)) stop("new_path needs to be a string.")
+        self$design$sim_prm$output_dir <- new_path
+        invisible(self)
+      },
+
+      # update_synthpop_path ----
+
+      #' @description Updates the synthpop path.
+      #' @param new_path A string with the new synthpop path (absolute).
+      #' @return The invisible self for chaining.
+      update_synthpop_path = function(new_path) {
+        if (!is.character(new_path)) stop("new_path needs to be a string.")
+        self$design$sim_prm$synthpop_dir <- new_path
+        invisible(self)
+      },
+
 
       # print ----
 
@@ -628,6 +680,7 @@ Simulation <-
         # })
 
         l <- private$mk_scenario_init(sp, scenario_nam)
+        if (!identical(key(sp$pop), c("pid", "year"))) stop("synthpop key is not as expected")
         simcpp(sp$pop, l, sp$mc)
         # it doesn't matter if mc or mc_aggr is used in the above, because it is
         # only used for the RNG stream and the pid are different in each mc_aggr

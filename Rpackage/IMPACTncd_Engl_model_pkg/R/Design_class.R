@@ -111,7 +111,7 @@ Design <-
         sim_prm$sim_horizon_fromGUI <- sim_prm$sim_horizon_max
 
         # Force LAD population proj if smaller localities
-        if (!"England" %in% sim_prm$locality) sim_prm$alibrate_to_pop_projections_by_LAD <- TRUE
+        if (!"England" %in% sim_prm$locality) sim_prm$calibrate_to_pop_projections_by_LAD <- TRUE
 
         # Create synthpop_dir_ if it doesn't exists
         sim_prm$output_dir <-
