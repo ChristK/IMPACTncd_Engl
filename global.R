@@ -30,7 +30,7 @@ setOptions_for_repo()
 cat("Initialising IMPACTncd_Engl model...\n\n")
 if (!nzchar(system.file(package = "CKutils"))) {
   if (!nzchar(system.file(package = "pak"))) install.packages("pak")
-  pak::pkg_install("ChristK/CKutils", upgrade = FALSE)
+  pak::pkg_install("ChristK/CKutils", upgrade = FALSE, ask = FALSE)
   # force = T
 }
 
@@ -69,7 +69,8 @@ InstallIMPACTncdPackage<- function(sIMPACTncdPackageDirPath)
                          pattern=".o$|.dll&|.so&", recursive = TRUE,
                          full.names = TRUE))
   pak::local_install(sIMPACTncdPackageDirPath,
-                     upgrade = FALSE)
+                     upgrade = FALSE,
+                     ask = FALSE)
   # build_vignettes = T, force = T
 }
 
