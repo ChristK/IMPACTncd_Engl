@@ -1,3 +1,9 @@
+setOptions_for_repo <- function() {
+  chooseCRANmirror(ind = 1)
+  repos <- getOption("repos")
+}
+setOptions_for_repo()
+
 # temporary fix: R.utils::reassignInPackage() used to inject our revised functions (see below) into the [piggyback] package, prior to their expected adoption by the piggyback team
 if (!require(R.utils)) {
   dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
@@ -77,36 +83,21 @@ StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
 #' 			<GitHubToken> is a GitHub personal access token (PAT);
 #' 				if omitted, seeks token from gh::gh_token().
 #' or, source('gh_deploy.R') # loads <AssetFilePathName> via IMPACTncd_Engl/auxil/ghAssetConfig.yaml.
-#' @param sId string (out param): asset route ID.
 #' @param sRepo string (out param): GitHub repository name.
 #' @param sTag string (out param): GitHub repository tag.
+#' @param iTestWithFirstNAssets int (out param): only download first [iTestWithFirstNAssets] assets (for testing).
 #' @param sUploadSrcDirPath string (out param): source directory path to scan for uploading assets to GitHub.
 #' @param sDeployToRootDirPath string (out param): deployment directory path for downloading assets from GitHub.
 #' @param bOverwriteFilesOnDeploy bool (out param): overwrite files during deployment.
 #' @param sToken string (in|out param): GitHub personal access token (PAT).
-#' @param sGitHubAssetRouteId string (optional): ID designating asset route in asset config.yaml file - provided for interactive calls (RStudio).
-GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath,
+GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath,
                                     bOverwriteFilesOnDeploy, sToken = NULL,
-                                    sGitHubAssetRouteId = NULL) {
-  # expect an asset config file and route ID, either from an function- or command-line argument
-  if (is.null(sGitHubAssetRouteId)) {
-    lsCommandArgs <- commandArgs(TRUE)
-    iNumCmdArgs <- length(lsCommandArgs)
-  } else {
-    iNumCmdArgs <- 0
-  }
-
-  # find desired asset route ID
-  if (iNumCmdArgs > 0) {
-    sGitHubAssetRouteId <- lsCommandArgs[2]
-    iNumCmdArgs <- iNumCmdArgs - 1
-  } else if (is.null(sGitHubAssetRouteId)) {
-    sGitHubAssetRouteId <- Sys.info()[["user"]]
-  } # username as fallback
-
+                                    iTestWithFirstNAssets) {
+  lsCommandArgs <- commandArgs(TRUE)
+  iNumCmdArgs <- length(lsCommandArgs)
   # get GitHub access token
   if (iNumCmdArgs > 0) {
-    sGitHubToken <- lsCommandArgs[3]
+    sGitHubToken <- lsCommandArgs[1]
     iNumCmdArgs <- iNumCmdArgs - 1
   } else if (is.null(sToken)) {
     sGitHubToken <- as.character(gh::gh_token())
@@ -114,23 +105,20 @@ GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeploy
   else {
     sGitHubToken <- sToken
   }
-
-  if (iNumCmdArgs > 0) { # quit - as didn't expect additional variables
+    if (iNumCmdArgs > 0) { # quit - as didn't expect additional variables
     stop("Execute from the console:
 					Rscript <scriptR> [<GitHubAssetRouteId> [<GitHubToken>]]
 				or alternatively, may execute directly within R or RStudio:
 					source(\"<scriptR>\")
-					UploadGitHubAssets(sGitHubAssetRouteId=<GitHubAssetRouteId>,sToken=<GitHubToken>)
+					UploadGitHubAssets(sToken=<GitHubToken>)
 				where in the above, <scriptR> is the R script name, either gh_deploy.R or gh_upload.R,
 					<GitHubAssetRouteId> is an asset route's [id];
 						if omitted, seeks ID matching Sys.info()[['user']] name.
 					<GitHubToken> is a GitHub personal access token (PAT);
 						if omitted, seeks token from gh::gh_token().")
   }
-
   # get desired asset route's properties
   gitHubAssetRouteFinal <- list(
-    id = sGitHubAssetRouteId,
     repo = sRepo,
     tag = sTag,
     personalAccessToken = sGitHubToken,
@@ -143,15 +131,19 @@ GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeploy
     if (is.null(sGitHubToken)) warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
 					May set PAT on command-line or in asset config file [personalAccessToken] variable.")
   }
-  eval.parent(substitute(sId <- sGitHubAssetRouteId))
   eval.parent(substitute(sRepo <- gitHubAssetRouteFinal$repo))
   eval.parent(substitute(sTag <- gitHubAssetRouteFinal$tag))
   eval.parent(substitute(sToken <- sGitHubToken))
   eval.parent(substitute(sUploadSrcDirPath <- gitHubAssetRouteFinal$uploadSrcDirectory))
   eval.parent(substitute(sDeployToRootDirPath <- gitHubAssetRouteFinal$deployToRootDirectory))
   eval.parent(substitute(bOverwriteFilesOnDeploy <- if (gitHubAssetRouteFinal$overwriteFilesOnDeploy == "1") TRUE else FALSE))
+  eval.parent(substitute(iTestWithFirstNAssets <- if (is.null(gitHubAssetRouteFinal$testWithFirstNAssets)) {
+    0
+  } else {
+    as.integer(gitHubAssetRouteFinal$testWithFirstNAssets)
+  }))
   return(0)
-  stop(paste0("Failed finding GitHub asset route data for id=[", sGitHubAssetRouteId, "]"))
+  stop(paste0("Failed finding GitHub asset route data"))
 }
 
 ####################################################################################
