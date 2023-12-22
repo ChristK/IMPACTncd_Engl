@@ -12,21 +12,23 @@ LazyData: true
 NeedsCompilation: yes
 Byte-Compile: yes
 Roxygen: list(markdown = TRUE, r6 = TRUE)
-Imports: Rcpp (>= 1.0.2),
-         data.table (>= 1.14.0),
-         fst (>= 0.9.0),
-         dqrng,
-         CKutils, 
-         gamlss,
-         cowplot,
-         mc2d,
-         digest,
-         R6,
-         yaml,
-         shinythemes,
-         foreach,
-         BH,
-         igraph
+Imports: 
+    Rcpp (>= 1.0.2),
+    data.table (>= 1.14.0),
+    fst (>= 0.9.0),
+    dqrng,
+    CKutils,
+    gamlss,
+    cowplot,
+    mc2d,
+    digest,
+    R6,
+    yaml,
+    shinythemes,
+    foreach,
+    BH,
+    igraph,
+    gh
 Suggests: 
     knitr,
     rmarkdown,
