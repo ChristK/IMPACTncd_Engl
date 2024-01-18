@@ -20,7 +20,17 @@
 ## Boston, MA 02110-1301 USA.
 
 
-
+#' Convert Factor to Integer
+#'
+#' This function converts a factor variable to an integer vector. If the `byref` parameter
+#' is set to `FALSE` (default), a new object is created; otherwise, the conversion is done in-place.
+#'
+#' @param x A factor variable to be converted to an integer vector.
+#' @param byref Logical. If TRUE, the conversion is done in-place; if FALSE, a new object is created.
+#'
+#' @return An integer vector obtained by converting the factor variable to integers.
+#'
+#' @export
 fct_to_int <- function(x, byref = FALSE) {
   # converts factor to integer
   if (!byref) x <- copy(x)
@@ -29,6 +39,21 @@ fct_to_int <- function(x, byref = FALSE) {
   x
 }
 
+#' Adjust Integer or Factor Columns to Start from 1
+#'
+#' This function adjusts integer or factor columns in a data frame to start from 1.
+#' It is particularly useful when working with tables and joining operations that
+#' involve integer or factor keys starting from a value other than 1.
+#'
+#' @param tbl A data frame containing the columns to be adjusted.
+#' @param on A character vector specifying the column names in the data frame to be adjusted.
+#' @param i An integer specifying the index of the column to be adjusted within the 'on' vector.
+#' @param min_lookup A list containing the minimum values for adjustment corresponding to each column in 'on'.
+#' @param cardinality A list containing the cardinality of each column in 'on'.
+#'
+#' @return A vector representing the adjusted column starting from 1.
+#'
+#' @export
 # ensure integers start from 1 in lookup_tbl
 starts_from_1 <- function(tbl, on, i, min_lookup, cardinality) {
   minx <- min_lookup[[i]]
@@ -58,6 +83,21 @@ starts_from_1 <- function(tbl, on, i, min_lookup, cardinality) {
 # lookup_tbl = CJ(b=1:4, a = factor(letters[1:4]))[, c:=rep(1:4, 4)]
 # tbl = data.table(b=0:5, a = factor(letters[1:4]))
 
+#' Perform Table Lookup and Merge
+#'
+#' This function performs a table lookup operation between two data.tables, allowing
+#' for merging of columns based on common keys. The lookup is conducted on factors
+#' or integers that start from 1 and increase by 1.
+#'
+#' @param tbl The main data.table on which the lookup operation is performed.
+#' @param lookup_tbl The data.table used for lookup operations.
+#' @param merge Logical. If TRUE, the function merges the lookup results into the main data.table.
+#' @param exclude_col A character vector specifying columns to be excluded from the lookup operation.
+#' @param check_lookup_tbl_validity Logical. If TRUE, the function checks the validity of the lookup_tbl.
+#'
+#' @return If merge is TRUE, the main data.table with the lookup results; otherwise, a data.table
+#' containing only the lookup results.
+#'
 #' @export
 lookup_dt <- function(tbl,
   lookup_tbl,
@@ -147,7 +187,17 @@ lookup_dt <- function(tbl,
   }
 }
 
-
+#' Check Validity of Lookup Table
+#'
+#' This function checks the validity of a lookup table, ensuring that it meets the required conditions
+#' for key columns. It verifies that key columns are unique, of type integer or factor, and contain
+#' the necessary integer values between min and max for integer keys.
+#'
+#' @param lookup_tbl The data.table representing the lookup table.
+#' @param keycols A character vector specifying the key columns in the lookup table.
+#'
+#' @return TRUE if the lookup table is valid; otherwise, an error is raised.
+#'
 #' @export
 is_valid_lookup_tbl <- function(lookup_tbl, keycols) {
   if (!is.data.table(lookup_tbl)) stop("lookup_tbl should be a data.table.")

@@ -1748,8 +1748,17 @@ Disease <-
       parf = data.table(NULL),
       rr = list(), # holds the list of relevant RR
 
-      # Special deep copy for data.table. Use POP$clone(deep = TRUE) to
+		  # deep_clone ----
+		  # Special deep copy for data.table. Use POP$clone(deep = TRUE) to
       # dispatch. Otherwise a reference is created
+		  # @param name Character, the name of the object.
+		  # @param value The object to be cloned.
+		  #
+		  # @return A deep clone of the input object.
+		  #
+		  # @description
+		  # The `deep_clone` function is designed to create a duplicate of an object, taking into account the special characteristics of certain object types. If the input object is of class "data.table," the function uses the `copy` function from the data.table package to perform a deep copy. For objects of class "R6," the function utilizes the `clone` method to ensure a proper duplication. For other object types, a shallow copy is returned.
+		  #
       deep_clone = function(name, value) {
         if ("data.table" %in% class(value)) {
           data.table::copy(value)
@@ -1762,12 +1771,21 @@ Disease <-
         }
       },
 
+		  # get_xps_dependency_tree ----
       # helper function to get the tree of dependencies to exposures
       # x is a disease name string i.e. x = "other_ca"
       # diseases_ is a list of disease objects
       # TODO test that if (!i %in% out$ds)) allows interdependency (i.e. chd
       # causes t2dm and t2dm causes chd). Current approach will lead to an
       # infinite loop
+		  # @param x Character, the name of the disease for which the dependency tree is generated. Defaults to the name of the calling object.
+		  # @param dssl List, disease specification list.
+		  #
+		  # @return A data.table representing the dependency tree, including exposure columns, lag periods, and associated diseases.
+		  #
+		  # @description
+		  # The `get_xps_dependency_tree` function traverses the disease specification list of an exposure model to construct a dependency tree for a given disease. The tree includes information about the related diseases, their lag periods, and the specific exposure columns influenced by each disease. The result is returned as a data.table.
+		  #
       get_xps_dependency_tree = function(x = self$name, dssl = diseases_) {
         tr <- sapply(dssl[[x]]$get_rr(), `[[`, "name")
         if (length(tr) == 0L) {
@@ -1798,6 +1816,16 @@ Disease <-
       },
 
       # gen_sp_forPARF ----
+		  # @param mc_ Numeric, the Monte Carlo iteration index.
+		  # @param ff Data.table, the input data.table containing individual-level information.
+		  # @param design_ List, the design parameters for the simulation.
+		  # @param diseases_ List, the disease specification list.
+		  #
+		  # @return A data.table containing starting points for the PARF model.
+		  #
+		  # @description
+		  # The `gen_sp_forPARF` function generates starting points for the Population Attributable Risk Factor (PARF) model. It incorporates exposure data, correlation matrices, and other parameters to create initial conditions for the simulation. The function uses various exposure tables, distribution functions, and dependency trees to generate exposure levels for different risk factors. The resulting data.table includes initial conditions for variables such as active days, MET, fruit consumption, vegetable consumption, smoking status, BMI, blood pressure, cholesterol levels, statin medication, and more.
+		  #
       gen_sp_forPARF =
         function(mc_, ff, design_, diseases_) {
 
@@ -2255,13 +2283,14 @@ Disease <-
           invisible(ff)
         },
 
-	# Fix given path so relative to current work directory.
-	# @param sGivenPath string file path, perhaps from another computer with
-	#   different root directories, e.g.
-	#   /other/server/IMPACTncd_Engl/a/b/c/file.fst
-	# @return string file path relevant for this PC's working dir, e.g.
-	#   /this/PC/IMPACTncd_Engl_v2/a/b/c/file.fst
-	FixPathSoRelativeWorkDir= function(sGivenPath) {
+		  # FixPathSoRelativeWorkDir ----
+		  # Fix given path so relative to current work directory.
+	    # @param sGivenPath string file path, perhaps from another computer with
+	    #   different root directories, e.g.
+	    #   /other/server/IMPACTncd_Engl/a/b/c/file.fst
+	    # @return string file path relevant for this PC's working dir, e.g.
+	    #   /this/PC/IMPACTncd_Engl_v2/a/b/c/file.fst
+	    FixPathSoRelativeWorkDir= function(sGivenPath) {
 		#return(sGivenPath)
 		sProjectTopDir= "IMPACTncd_Engl/"
 		iPatternPos<- regexpr(pattern=sProjectTopDir,sGivenPath)[1]
@@ -2273,13 +2302,14 @@ Disease <-
 		}
 	},
 
-	# Create or update snapshot of disease-related source files, as necessary.
-	# Snapshot is updated on finding either no snapshot file, or added/deleted/changed source files.
-	# Snapshot used subsequentially to detect source file changes, allowing dependent files to be updated.
-	# @param bParfSnapshot bool, consider only PARF source files: '<diseaseName>_ftlt*.fst' and '<diseaseName>_incd*.fst'.
-	# @param fnOnSnapshotChange function, action taken on snapshot update.
-	# @return bool, a snapshot update occurred.
- UpdateDiseaseSnapshotIfInvalid = function(bParfSnapshot, fnOnSnapshotChange) {
+	    # UpdateDiseaseSnapshotIfInvalid ----
+	    # Create or update snapshot of disease-related source files, as necessary.
+	    # Snapshot is updated on finding either no snapshot file, or added/deleted/changed source files.
+	    # Snapshot used subsequentially to detect source file changes, allowing dependent files to be updated.
+	    # @param bParfSnapshot bool, consider only PARF source files: '<diseaseName>_ftlt*.fst' and '<diseaseName>_incd*.fst'.
+	    # @param fnOnSnapshotChange function, action taken on snapshot update.
+	    # @return bool, a snapshot update occurred.
+      UpdateDiseaseSnapshotIfInvalid = function(bParfSnapshot, fnOnSnapshotChange) {
    sSnapshotFilePath <- file.path(
      private$sDiseaseBurdenDirPath,
      paste0(".", self$name, "_file_snapshot", if (bParfSnapshot) "_parf" else "", ".qs")
@@ -2310,9 +2340,18 @@ Disease <-
    }
  },
 
- # from https://stackoverflow.com/questions/14324096/setting-seed-locally-not-globally-in-r
- # changes the seed temporarily
- with_random = function(expr, seed) {
+      # with_random ----
+      # from https://stackoverflow.com/questions/14324096/setting-seed-locally-not-globally-in-r
+      # changes the seed temporarily
+      # @param expr An R expression to be executed with the fixed random seed.
+      # @param seed Numeric, the random seed to be set before executing the expression.
+      #
+      # @return The result of evaluating the provided expression with the fixed random seed.
+      #
+      # @description
+      # The `with_random` function sets a fixed random seed, executes the provided expression, and then restores the original random seed. This ensures that the same random sequence is used during the execution of the expression, promoting reproducibility in situations involving random number generation.
+      #
+      with_random = function(expr, seed) {
    old <- .Random.seed # Assumes one exists. Make sure it does
    on.exit({
      .Random.seed <<- old
