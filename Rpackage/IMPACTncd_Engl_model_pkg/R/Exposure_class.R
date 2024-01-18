@@ -50,6 +50,7 @@ Exposure <-
       notes = NA_character_,
 
 
+      # initialize ----
       #' @description Reads exposure parameter from file and creates a new exposure object..
       #' @param sRelativeRiskByPopulationSubsetForExposureFilePath string, path to .csvy file detailing relative risk (RR) by population subset (age, sex, maybe decile 'Index of Multiple Deprivation' DIMD) for a specific exposure. File header may contain other exposure parameters.
       #' @param design A design object with the simulation parameters.
@@ -269,7 +270,7 @@ Exposure <-
         invisible(self)
       },
 
-
+      # gen_stochastic_effect ----
       #' @description Generates and write to disk the stochastic effect.
       #' @param design_ A design object with the simulation parameters.
       #' @param overwrite If TRUE overwrite the files. Else if files exist they
@@ -335,7 +336,7 @@ Exposure <-
         invisible(self)
       },
 
-
+      # del_stochastic_effect ----
       #' @description Deletes the stochastic effect file and index from disk.
       #' @param invert If TRUE keeps the  file with the current checksum and deletes
       #'   all other files for this exposure~outcome.
@@ -362,7 +363,7 @@ Exposure <-
         invisible(self)
       },
 
-
+      # get_rr ----
       #' @description Get relative risks from disk.
       #' @param mc An integer that signifies the Monte Carlo iteration.
       #' @param design_ A design object with the simulation parameters.
@@ -433,6 +434,7 @@ Exposure <-
           out[]
         },
 
+      # clear_cache ----
       #' @description Clear the cache for get_rr.
       #' @return The `Exposure` object.
       clear_cache = function() {
@@ -443,7 +445,7 @@ Exposure <-
         invisible(self)
       },
 
-
+      # xps_to_rr ----
       #' @description Apply the RR in a new column in sp$pop based on the
       #'   exposure level. I the case of smok_quit_yrs it modifies the risk of
       #'   smok_cig or packyrs and no new column is created.
@@ -525,6 +527,7 @@ Exposure <-
         return(invisible(self))
       },
 
+      # validate_rr ----
       #' @description Get relative risks from disk.
       #' @return A plot with the input and stochastic relative risks.
       validate_rr =
@@ -560,7 +563,7 @@ Exposure <-
           #   col = private$input_rr$sex)
       },
 
-
+      # get_input_rr ----
       #' @description Get original input relative risks by age and sex.
       #' @return A copied data.table with the original relative risks.
       get_input_rr = function() {
@@ -572,18 +575,18 @@ Exposure <-
         out
         },
 
-
+      # get_metadata ----
       #' @description Get original metadata.
       #' @return A list with the original metadata.
       get_metadata = function() {private$metadata},
 
-
+      # get_seed ----
       #' @description Get seed for RNG.
       #' @return A seed for the RNG that is produced by the digest of exposure
       #'   name and outcome.
       get_seed = function() {private$seed},
 
-
+      # write_xps_tmplte_file ----
       #' @description Writes a template exposure file to disk.
       #' @param file_path Path including file name and .csvy extension to write the
       #'   file with placeholder exposure parameters.
@@ -610,7 +613,7 @@ Exposure <-
           invisible(self)
         },
 
-
+      # convert_from_old_format ----
       #' @description Convert the old format .csv to the new format .csvy.
       #' @param old_file Path to the old format .csv file with the RR.
       #' @param metadata List with the metadata information.
@@ -696,6 +699,7 @@ Exposure <-
           invisible(self)
         },
 
+      # get_lag ----
       #' @description Get exposure lag.
       #' @param mc_ A vector of Monte Carlo iterations. If missing or 0 return median (= mean).
       #' @return An integer vector with exposure~disease lag.
@@ -707,6 +711,7 @@ Exposure <-
         }
       },
 
+      # get_ideal_xps_lvl ----
       #' @description Get ideal exposure level.
       #' @param mc_ A vector of Monte Carlo iterations. If missing or 0 return
       #'   the user input lag.
@@ -719,11 +724,12 @@ Exposure <-
         }
       },
 
+      # get_name ----
       #' @description Get name of the object.
       #' @return An string.
       get_name = function() {private$suffix},
 
-
+      # print ----
       #' @description Print the simulation parameters.
       #' @return The `Exposure` object.
       print = function() {
@@ -758,6 +764,14 @@ Exposure <-
        nam_rr = NA,
        chksum = NA,
 
+       # write_xps_prm_file ----
+       # @param dt A data table containing synthetic population data.
+       # @param metadata A list or data structure containing metadata information.
+       # @param file_path The path to the file where the exposure parameter file will be written.
+       #
+       # @details
+       # The function creates an exposure file by combining metadata and synthetic population data, writes it to the specified file path, and appends the data using the fwrite function.
+       #
        write_xps_prm_file = function(dt, metadata, file_path) {
          y <- paste0("---\n", yaml::as.yaml(metadata), "---\n")
          con <- textConnection(y)
@@ -769,6 +783,16 @@ Exposure <-
          fwrite(x = dt, file = file_path, append = TRUE, col.names = TRUE)
        },
 
+       # stochRRtabl ----
+       # @param m Central estimate of the relative risk.
+       # @param ci Confidence interval of the relative risk.
+       # @param distribution The distribution type to use for stochastic calculation, either "lognormal" or "normal".
+       #
+       # @return A stochastic relative risk value.
+       #
+       # @details
+       # The function calculates stochastic relative risks by sampling from a specified distribution (lognormal or normal) using the central estimate and confidence interval.
+       #
        stochRRtabl = # need to run by id
          function(m, ci, distribution = c("lognormal", "normal")) {
            distribution <- match.arg(distribution)
@@ -785,6 +809,19 @@ Exposure <-
            return(rr)
          },
 
+       # generate_rr_l ----
+       # @param dt A data table containing age-grouped information.
+       # @param tt A data table containing age information in years.
+       # @param mc_max Maximum number of Monte Carlo iteration
+       # @param smooth Logical, indicating whether smoothing should be applied to the relative risks.
+       # @param do_checks Logical, indicating whether to perform additional checks on the generated relative risks.
+       # @param ... Additional arguments to be passed to the loess smoothing function.
+       #
+       # @return A data table with generated relative risks based on linear interpolation and optional smoothing.
+       #
+       # @details
+       # The function combines linear interpolation for intermediate exposure levels with optional smoothing to generate relative risks. It also performs checks and constraints on the generated values.
+       #
        generate_rr_l =
          function(dt, tt, mc_max, smooth, do_checks = FALSE, ...) {
            # dt -> agegrouped, tt -> age in years
@@ -868,7 +905,16 @@ Exposure <-
          dt
        },
 
+       # ci_from_p_forratio ----
        # calculate 95% CI of a ratio from a p value
+       # @param mean_rr Mean relative risk.
+       # @param p p-value.
+       #
+       # @return A list containing the lower and upper bounds of the confidence interval.
+       #
+       # @details
+       # The function computes the confidence interval for a ratio using a mean relative risk and a p-value.
+       #
        ci_from_p_forratio = function(mean_rr, p) {
          z <- -0.862 + sqrt(0.743 - 2.404 * log(p))
          est <- log(mean_rr)
@@ -879,8 +925,6 @@ Exposure <-
          ci$upper_ci <- exp(est + dnm * se)
          ci
        }
-
-
 
     ) # end of private
   )

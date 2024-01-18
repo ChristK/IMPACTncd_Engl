@@ -20,6 +20,18 @@
 ## Boston, MA 02110-1301 USA.
 
 # loosely based on nsRFA::ADbootstrap.test
+#' Weighted Anderson-Darling Test
+#'
+#' @description This function performs a weighted Anderson-Darling test to assess whether two samples
+#' come from the same distribution. The test is based on the weighted Anderson-Darling statistic.
+#'
+#' @param x A numeric vector representing the values of the first sample.
+#' @param cod A vector indicating the group membership for each observation in the sample.
+#' @param wt A numeric vector of weights corresponding to each observation in the sample.
+#' @param Nsim Number of simulations for estimating the p-value (default is 500).
+#'
+#' @return A numeric vector containing the weighted Anderson-Darling statistic and the p-value.
+
 #' @export
 wtd_ADtest <- function(x, cod, wt, Nsim = 500) {
   dt1 <- data.table(x1 = x, cod1 = cod, wt1 = wt)
