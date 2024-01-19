@@ -18,6 +18,24 @@ sSummariesSubDirPath <- file.path(simulationParameters$output_dir,"summaries/")
 sTablesSubDirPath <- file.path(simulationParameters$output_dir,"tables/")
 output_dir <- simulationParameters$output_dir
 
+
+#' Summarize and Generate Tables from Model Outputs
+#'
+#' This function summarizes model outputs and generates tables based on specified parameters.
+#'
+#' @param what Vector specifying the type of summary to generate. Options include:
+#'   \code{"prvl", "prvl_change", "incd", "incd_change", "ftlt", "ftlt_change", "mrtl", "mrtl_change",
+#'   "cms_score", "cms_score_change", "cms_score_age", "cms_score_age_change", "cms_count",
+#'   "cms_count_change", "pop"}.
+#' @param type Vector specifying the type of model outputs. Options include: \code{"ons", "esp"}.
+#' @param strata List specifying the strata variables to include in the summaries.
+#' @param output_dir Character string specifying the output directory for generated tables.
+#' @param prbl Numeric vector specifying quantiles for which to calculate summaries.
+#' @param baseline_year Integer specifying the baseline year for change summaries.
+#'
+#' @return NULL. The function generates and saves summary tables in the specified output directory.
+#'
+#' @export
 tbl_smmrs <- function(
     what = c("prvl", "prvl_change", "incd", "incd_change",
              "ftlt", "ftlt_change", "mrtl", "mrtl_change",
@@ -302,7 +320,7 @@ tbl_smmrs("pop", "ons", list(
 # d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "ftlt_rate_")))
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"fatality by year (age-sex-dimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/fatality by year (age-sex-dimd standardised).csv"))
 
 # tt <- fread(paste0(sSummariesSubDirPath,"prvl_scaled_up.csv.gz")
 # )[, `:=` (year = year + 2000L,
@@ -319,7 +337,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "pop_size_")))
 # d[, disease := NULL]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"pop size by year-agegroup-sex-dimd.csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/pop size by year-agegroup-sex-dimd.csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
@@ -329,7 +347,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "pop_size_")))
 # d[, disease := NULL]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"pop size by year-agegroup-sex.csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/pop size by year-agegroup-sex.csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
@@ -339,7 +357,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "pop_size_")))
 # d[, disease := NULL]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"pop size by year-sex.csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/pop size by year-sex.csv"))
 
 # outstrata <- c("mc", "year", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
@@ -349,7 +367,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "pop_size_")))
 # d[, disease := NULL]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"pop size by year.csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/pop size by year.csv"))
 
 # Prvl change with 2019 baseline ----
 
@@ -364,7 +382,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence change by year (not standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence change by year (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
@@ -377,7 +395,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence change by year-sex (not standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence change by year-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
@@ -390,7 +408,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence change by year-dimd (not standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence change by year-dimd (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
@@ -403,7 +421,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence change by year-agegroup-sex.csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence change by year-agegroup-sex.csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
@@ -416,7 +434,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence change by year-agegroup-sex-dimd.csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence change by year-agegroup-sex-dimd.csv"))
 
 
 # Prvl standardised----
@@ -433,7 +451,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence by year (age-sex-dimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence by year (age-sex-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
@@ -444,7 +462,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence by year-sex (age-dimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence by year-sex (age-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
@@ -455,7 +473,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence by year-dimd (age-sex standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence by year-dimd (age-sex standardised).csv"))
 
 
 # Prvl change with 2019 baseline age standardised----
@@ -471,7 +489,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence change by year (age-sex-dimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence change by year (age-sex-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
@@ -484,7 +502,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence change by year-sex (age-dimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence change by year-sex (age-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_prvl$|^popsize$"), keyby = eval(outstrata)
@@ -497,7 +515,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "prvl_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"prevalence change by year-dimd (age-sex standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/prevalence change by year-dimd (age-sex standardised).csv"))
 
 
 
@@ -515,7 +533,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"incidence by year (not standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/incidence by year (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_incd$|^popsize$"), keyby = eval(outstrata)
@@ -526,7 +544,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"incidence by year-sex (not standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/incidence by year-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_incd$|^popsize$"), keyby = eval(outstrata)
@@ -537,7 +555,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"incidence by year-dimd (not standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/incidence by year-dimd (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_incd$|^popsize$"), keyby = eval(outstrata)
@@ -548,7 +566,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"incidence by year-agegroup-sex.csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/incidence by year-agegroup-sex.csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_incd$|^popsize$"), keyby = eval(outstrata)
@@ -559,7 +577,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"incidence by year-agegroup-sex-dimd.csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/incidence by year-agegroup-sex-dimd.csv"))
 
 # Incd standardised----
 
@@ -575,7 +593,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"incidence by year (age-sex-dimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/incidence by year (age-sex-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_incd$|^popsize$"), keyby = eval(outstrata)
@@ -586,7 +604,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"incidence by year-sex (age-dimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/incidence by year-sex (age-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # d <- tt[, lapply(.SD, sum), .SDcols = patterns("_incd$|^popsize$"), keyby = eval(outstrata)
@@ -597,7 +615,7 @@ tbl_smmrs("pop", "ons", list(
 # setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "incd_rate_")))
 # d <- d[disease != "popsize"]
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"incidence by year-dimd (age-sex standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/incidence by year-dimd (age-sex standardised).csv"))
 
 
 
@@ -612,7 +630,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(all_cause_mrtl, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mrtl_rate_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mortality by year (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mortality by year (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # e <- tt[, lapply(.SD, sum), .SDcols = patterns("_mrtl$|^popsize$"), keyby = eval(outstrata)
@@ -621,7 +639,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(all_cause_mrtl, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mrtl_rate_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mortality by year-sex (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mortality by year-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # e <- tt[, lapply(.SD, sum), .SDcols = patterns("_mrtl$|^popsize$"), keyby = eval(outstrata)
@@ -630,7 +648,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(all_cause_mrtl, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mrtl_rate_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mortality by year-dimd (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mortality by year-dimd (not standardised).csv"))
 
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
@@ -640,7 +658,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(all_cause_mrtl, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mrtl_rate_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mortality by year-agegroup-sex.csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mortality by year-agegroup-sex.csv"))
 
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
@@ -650,7 +668,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(all_cause_mrtl, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mrtl_rate_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mortality by year-agegroup-sex-dimd.csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mortality by year-agegroup-sex-dimd.csv"))
 
 
 # # Mrtl standardised ----
@@ -664,7 +682,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(all_cause_mrtl, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mrtl_rate_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mortality by year (age-sex-dimd standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mortality by year (age-sex-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # e <- tt[, lapply(.SD, sum), .SDcols = patterns("_mrtl$|^popsize$"), keyby = eval(outstrata)
@@ -673,7 +691,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(all_cause_mrtl, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mrtl_rate_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mortality by year-sex (age-dimd standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mortality by year-sex (age-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # e <- tt[, lapply(.SD, sum), .SDcols = patterns("_mrtl$|^popsize$"), keyby = eval(outstrata)
@@ -682,7 +700,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(all_cause_mrtl, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mrtl_rate_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mortality by year-dimd (age-sex standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mortality by year-dimd (age-sex standardised).csv"))
 
 
 
@@ -696,7 +714,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score by year (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score by year (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -704,7 +722,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score by year-sex (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score by year-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -712,7 +730,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score by year-agegroup-sex (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score by year-agegroup-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -720,7 +738,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score by year-agegroup-sex-dimd (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score by year-agegroup-sex-dimd (not standardised).csv"))
 
 # # Mean CMS change with 2019 baseline not standardised ----
 # tt <- fread(paste0(sSummariesSubDirPath,"cms_score_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
@@ -734,7 +752,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score change by year (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score change by year (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "sex", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -744,7 +762,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score change by year-sex (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score change by year-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -754,7 +772,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score change by year-agegroup-sex (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score change by year-agegroup-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -764,7 +782,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score change by year-agegroup-sex-dimd (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score change by year-agegroup-sex-dimd (not standardised).csv"))
 
 # # Mean CMS standardised ----
 # tt <- fread(paste0(sSummariesSubDirPath,"cms_score_esp.csv.gz"))[, `:=` (year = year + 2000L,
@@ -776,7 +794,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score by year (age-sex-dimd standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score by year (age-sex-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -784,7 +802,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score by year-dimd (age-sex standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score by year-dimd (age-sex standardised).csv"))
 
 
 # # Mean CMS change wih 2019 as baseline standardised ----
@@ -799,7 +817,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score change by year (age-sex-dimd standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score change by year (age-sex-dimd standardised).csv"))
 
 # outstrata <- c("mc", "year", "dimd", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -809,7 +827,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score change by year-dimd (age-sex standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score change by year-dimd (age-sex standardised).csv"))
 
 
 
@@ -828,7 +846,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score by year-age-sex (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score by year-age-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "age", "sex", "dimd", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -836,7 +854,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score by year-age-sex-dimd (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score by year-age-sex-dimd (not standardised).csv"))
 
 # # Mean CMS by age change with 2019 baseline not standardised ----
 # tt <- fread(paste0(sSummariesSubDirPath,"cms_score_by_age_scaled_up.csv.gz")
@@ -853,7 +871,7 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score change by year-age-sex (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score change by year-age-sex (not standardised).csv"))
 
 # outstrata <- c("mc", "year", "age", "sex", "dimd", "scenario")
 # e <- tt[, .("mean_cms_score" = weighted.mean(cms_score, popsize)),
@@ -863,10 +881,10 @@ tbl_smmrs("pop", "ons", list(
 # e <- e[, as.list(fquantile(mean_cms_score, prbl)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(e, c(setdiff(outstrata, "mc"), percent(prbl, prefix = "mean_cms_score_")))
 # setkeyv(e, setdiff(outstrata, "mc"))
-# fwrite(e, paste0(sTablesSubDirPath,"mean CMS score change by year-age-sex-dimd (not standardised).csv"))
+# fwrite(e, paste0(sTablesSubDirPath,"/mean CMS score change by year-age-sex-dimd (not standardised).csv"))
 
 # All-cause mortality by disease not standardised----
-tt <- fread(paste0(sSummariesSubDirPath,"all_cause_mrtl_by_dis_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
+tt <- fread(paste0(sSummariesSubDirPath,"/all_cause_mrtl_by_dis_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
 
 outstrata <- c("mc", "year", "scenario")
@@ -880,7 +898,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year (not standardised).csv"))
 
 outstrata <- c("mc", "year", "sex", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
@@ -893,7 +911,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-sex (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-sex (not standardised).csv"))
 
 
 
@@ -908,7 +926,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-agegrp (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-agegrp (not standardised).csv"))
 
 
 outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
@@ -922,7 +940,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-agegroup-sex (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-agegroup-sex (not standardised).csv"))
 
 outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
@@ -935,12 +953,12 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-agegroup-sex-dimd (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-agegroup-sex-dimd (not standardised).csv"))
 
 # All-cause mortality by disease not standardised pop denominator----
-tt <- fread(paste0(sSummariesSubDirPath,"all_cause_mrtl_by_dis_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
+tt <- fread(paste0(sSummariesSubDirPath,"/all_cause_mrtl_by_dis_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
-pp <- fread(paste0(sSummariesSubDirPath,"prvl_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
+pp <- fread(paste0(sSummariesSubDirPath,"/prvl_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
 
 outstrata <- c("mc", "year", "scenario")
@@ -954,7 +972,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year popdenom (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year popdenom (not standardised).csv"))
 
 outstrata <- c("mc", "year", "sex", "scenario")
 cases <- pp[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
@@ -967,7 +985,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-sex popdenom (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-sex popdenom (not standardised).csv"))
 
 outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
 cases <- pp[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
@@ -980,7 +998,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-agegroup-sex popdenom (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-agegroup-sex popdenom (not standardised).csv"))
 
 outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
 cases <- pp[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
@@ -993,12 +1011,12 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-agegroup-sex-dimd popdenom (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-agegroup-sex-dimd popdenom (not standardised).csv"))
 
 rm(pp)
 
 # All-cause mortality by disease standardised----
-tt <- fread(paste0(sSummariesSubDirPath,"all_cause_mrtl_by_dis_esp.csv.gz"))[, `:=` (year = year + 2000L,
+tt <- fread(paste0(sSummariesSubDirPath,"/all_cause_mrtl_by_dis_esp.csv.gz"))[, `:=` (year = year + 2000L,
           dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
 
 outstrata <- c("mc", "year", "scenario")
@@ -1012,7 +1030,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year (age-sex-dimd standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year (age-sex-dimd standardised).csv"))
 
 outstrata <- c("mc", "year", "sex", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
@@ -1025,7 +1043,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-sex (age-dimd standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-sex (age-dimd standardised).csv"))
 
 outstrata <- c("mc", "year", "dimd", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
@@ -1038,7 +1056,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-dimd (age-sex standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-dimd (age-sex standardised).csv"))
 
 outstrata <- c("mc", "year", "sex", "dimd", "scenario")
 d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
@@ -1051,14 +1069,14 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "disease", percent(prbl, prefix = "all_cause_mrtl_by_disease_rate_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"all-cause mrtl by disease-year-sex-dimd (age standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/all-cause mrtl by disease-year-sex-dimd (age standardised).csv"))
 rm(cases)
 
 
 # Disease characteristics non standardised ----
-tt <- fread(paste0(sSummariesSubDirPath,"dis_characteristics_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
-          dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")),
-          mean_cms_count_cms1st_cont = as.numeric(mean_cms_count_cms1st_cont))]
+tt <- fread(paste0(sSummariesSubDirPath,"/dis_characteristics_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
+                                                                                         dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")),
+                                                                                         mean_cms_count_cms1st_cont = as.numeric(mean_cms_count_cms1st_cont))]
 d1 <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^cases_")]
 d1 <- melt(d1, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
 d1 <- unique(d1, by = c("mc", "year", "scenario", "sex", "dimd", "variable"))
@@ -1084,7 +1102,7 @@ d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
 d[, variable := NULL]
 setkeyv(d, c(setdiff(outstrata, "mc"), "disease", "type"))
 setcolorder(d)
-fwrite(d, paste0(sTablesSubDirPath,"disease characteristics by year (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/disease characteristics by year (not standardised).csv"))
 
 outstrata <- c("mc", "year", "sex", "scenario")
 d <- tt[, weighted.mean(value, cases, na.rm = TRUE), keyby = c(outstrata, "variable")]
@@ -1101,7 +1119,7 @@ d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
 d[, variable := NULL]
 setkeyv(d, c(setdiff(outstrata, "mc"), "disease", "type"))
 setcolorder(d)
-fwrite(d, paste0(sTablesSubDirPath,"disease characteristics by year-sex (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/disease characteristics by year-sex (not standardised).csv"))
 
 outstrata <- c("mc", "year", "dimd", "scenario")
 d <- tt[, weighted.mean(value, cases, na.rm = TRUE), keyby = c(outstrata, "variable")]
@@ -1118,7 +1136,7 @@ d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
 d[, variable := NULL]
 setkeyv(d, c(setdiff(outstrata, "mc"), "disease", "type"))
 setcolorder(d)
-fwrite(d, paste0(sTablesSubDirPath,"disease characteristics by year-dimd (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/disease characteristics by year-dimd (not standardised).csv"))
 
 outstrata <- c("mc", "year", "sex", "dimd", "scenario")
 d <- tt[, weighted.mean(value, cases, na.rm = TRUE), keyby = c(outstrata, "variable")]
@@ -1135,7 +1153,7 @@ d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
 d[, variable := NULL]
 setkeyv(d, c(setdiff(outstrata, "mc"), "disease", "type"))
 setcolorder(d)
-fwrite(d, paste0(sTablesSubDirPath,"disease characteristics by year-sex-dimd (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/disease characteristics by year-sex-dimd (not standardised).csv"))
 
 rm(d, tt)
 
@@ -1153,7 +1171,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"exposures by year-agegroup-sex-qimd (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/exposures by year-agegroup-sex-qimd (not standardised).csv"))
 
 outstrata <- c("mc", "year", "scenario")
 d <- xps_tab[sex == "All" & agegrp20 == "All" & qimd == "All"] # This should depend on outstrata
@@ -1164,7 +1182,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"exposures by year (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/exposures by year (not standardised).csv"))
 
 outstrata <- c("mc", "year", "agegrp20", "scenario")
 d <- xps_tab[sex == "All" & agegrp20 != "All" & qimd == "All"] # This should depend on outstrata
@@ -1174,7 +1192,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"exposures by year-agegroup (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/exposures by year-agegroup (not standardised).csv"))
 
 outstrata <- c("mc", "year", "agegrp20", "sex", "scenario")
 d <- xps_tab[sex != "All" & agegrp20 != "All" & qimd == "All"] # This should depend on outstrata
@@ -1184,7 +1202,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"exposures by year-agegroup-sex (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/exposures by year-agegroup-sex (not standardised).csv"))
 
 outstrata <- c("mc", "year", "qimd", "scenario")
 d <- xps_tab[sex == "All" & agegrp20 == "All" & qimd != "All"] # This should depend on outstrata
@@ -1194,7 +1212,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath,"exposures by year-qimd (not standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath,"/exposures by year-qimd (not standardised).csv"))
 
 # XPS standardised ----
 xps_tab <- fread(file.path(simulationParameters$output_dir, "xps/xps_esp.csv.gz"))
@@ -1209,7 +1227,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath, "exposures by year-sex-qimd (age standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath, "/exposures by year-sex-qimd (age standardised).csv"))
 
 outstrata <- c("mc", "year", "scenario")
 d <- xps_tab[sex == "All" & qimd == "All"] # This should depend on outstrata
@@ -1220,7 +1238,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath, "exposures by year (age-sex-qimd standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath, "/exposures by year (age-sex-qimd standardised).csv"))
 
 outstrata <- c("mc", "year", "sex", "scenario")
 d <- xps_tab[sex != "All" & qimd == "All"] # This should depend on outstrata
@@ -1230,7 +1248,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath, "exposures by year-sex (age-qimd standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath, "/exposures by year-sex (age-qimd standardised).csv"))
 
 outstrata <- c("mc", "year", "qimd", "scenario")
 d <- xps_tab[sex == "All" & qimd != "All"] # This should depend on outstrata
@@ -1240,7 +1258,7 @@ setkey(d, "variable")
 d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 setkeyv(d, setdiff(outstrata, "mc"))
-fwrite(d, paste0(sTablesSubDirPath, "exposures by year-qimd (age-sex standardised).csv"))
+fwrite(d, paste0(sTablesSubDirPath, "/exposures by year-qimd (age-sex standardised).csv"))
 #
 # # European standardised population 2013 (esp) weights
 # xps_tab <- fread(file.path(simulationParameters$output_dir,"xps/xps5.csv.gz"))
@@ -1281,7 +1299,7 @@ fwrite(d, paste0(sTablesSubDirPath, "exposures by year-qimd (age-sex standardise
 # d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"exposures by year (age-sex-qimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/exposures by year (age-sex-qimd standardised).csv"))
 #
 # outstrata <- c("mc", "year", "sex", "scenario")
 # d <- xps_tab[, lapply(.SD, weighted.mean, wt_esp), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)
@@ -1291,7 +1309,7 @@ fwrite(d, paste0(sTablesSubDirPath, "exposures by year-qimd (age-sex standardise
 # d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"exposures by year-sex (age-qimd standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/exposures by year-sex (age-qimd standardised).csv"))
 #
 # outstrata <- c("mc", "year", "qimd", "scenario")
 # d <- xps_tab[, lapply(.SD, weighted.mean, wt_esp), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)
@@ -1300,7 +1318,7 @@ fwrite(d, paste0(sTablesSubDirPath, "exposures by year-qimd (age-sex standardise
 # d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"exposures by year-qimd (age-sex standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/exposures by year-qimd (age-sex standardised).csv"))
 #
 # outstrata <- c("mc", "year", "sex", "qimd", "scenario")
 # d <- xps_tab[, lapply(.SD, weighted.mean, wt_esp), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)
@@ -1310,7 +1328,7 @@ fwrite(d, paste0(sTablesSubDirPath, "exposures by year-qimd (age-sex standardise
 # d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata, "mc"))]
 # setnames(d, c(setdiff(outstrata, "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
 # setkeyv(d, setdiff(outstrata, "mc"))
-# fwrite(d, paste0(sTablesSubDirPath,"exposures by year-sex-qimd (age standardised).csv"))
+# fwrite(d, paste0(sTablesSubDirPath,"/exposures by year-sex-qimd (age standardised).csv"))
 
 
 
@@ -1346,13 +1364,15 @@ fwrite(d, paste0(sTablesSubDirPath, "exposures by year-qimd (age-sex standardise
 #                                               epilepsy_prvl, andep_prvl, psychosis_prvl, constipation_prvl)])
 # View(lc[cmsmm0_prvl == 1 & first_dis == "", ])
 
+# N based iteration
+slifecourseSubDirPath <- file.path(simulationParameters$output_dir,"lifecourse/")
 
 library(data.table)
 ans <- data.table()
 strata <- c("year", "age", "sex")
-for (i in 1:100) {
+for (i in 1:2) {
         print(i)
-lc <- fread(paste0("/mnt/storage_fast/output/hf_real/lifecourse/", i,"_lifecourse.csv.gz"), key = c("pid", "year"))[scenario == "sc0"]
+lc <- fread(paste0(slifecourseSubDirPath, "/", i,"_lifecourse.csv.gz"), key = c("pid", "year"))[scenario == "sc0"]
 t1 <- lc[copd_prvl == 1L, .(incd = sum(wt)),  keyby = strata]
 t2 <- lc[copd_prvl > 0L, .(prvl = sum(wt)), keyby = strata]
 t3 <- lc[all_cause_mrtl > 0, .(mrtl = sum(wt)), keyby = strata]
@@ -1373,9 +1393,9 @@ ans <- rbind(ans, out)
 }
 
 ans2 <- ans[, lapply(.SD, median), keyby = strata, .SDcols = -"mc"]
-fwrite(ans2, "/mnt/storage_fast/output/hf_real/tables/copd epi by year,age,sex.csv")
+fwrite(ans2, paste0(sTablesSubDirPath, "/copd epi by year,age,sex.csv"))
 
 
 ans2 <- ans[, lapply(.SD, sum), keyby = .(year, age, mc), .SDcols = -"sex"]
 ans2 <- ans2[, lapply(.SD, median), keyby = .(year, age), .SDcols = -"mc"]
-fwrite(ans2, "/mnt/storage_fast/output/hf_real/tables/copd epi by year,age.csv")
+fwrite(ans2, paste0(sTablesSubDirPath, "/copd epi by year,age.csv"))
