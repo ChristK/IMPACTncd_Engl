@@ -19,7 +19,7 @@
 ## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ## Boston, MA 02110-1301 USA.
 
-
+# fct_to_int ----
 #' Convert Factor to Integer
 #'
 #' This function converts a factor variable to an integer vector. If the `byref` parameter
@@ -39,6 +39,7 @@ fct_to_int <- function(x, byref = FALSE) {
   x
 }
 
+# starts_from_1 ----
 #' Adjust Integer or Factor Columns to Start from 1
 #'
 #' This function adjusts integer or factor columns in a data frame to start from 1.
@@ -83,6 +84,7 @@ starts_from_1 <- function(tbl, on, i, min_lookup, cardinality) {
 # lookup_tbl = CJ(b=1:4, a = factor(letters[1:4]))[, c:=rep(1:4, 4)]
 # tbl = data.table(b=0:5, a = factor(letters[1:4]))
 
+# lookup_dt ----
 #' Perform Table Lookup and Merge
 #'
 #' This function performs a table lookup operation between two data.tables, allowing
@@ -187,6 +189,7 @@ lookup_dt <- function(tbl,
   }
 }
 
+# is_valid_lookup_tbl ----
 #' Check Validity of Lookup Table
 #'
 #' This function checks the validity of a lookup table, ensuring that it meets the required conditions
