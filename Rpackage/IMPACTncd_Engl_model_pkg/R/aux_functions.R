@@ -28,8 +28,8 @@
 }
 
 # fwrite_safe ----
-# Ensures that when fwrite appends file colnames of file to be written, match
-# those already in the file
+#' Ensures that when fwrite appends file colnames of file to be written, match
+#' those already in the file
 #' @description This function writes a data table to a file with safe appending. It checks if the file already exists and, if appending is enabled, aligns column names and appends the data while preserving existing columns.
 #'
 #' @param x A data table to be written to the file.
@@ -89,7 +89,7 @@ fwrite_safe <- function(x,
 # }
 
 # inflate ----
-# Inflate Values Based on Percentage Rate, Year, and Baseline Year
+#' Inflate Values Based on Percentage Rate, Year, and Baseline Year
 #' @description
 #' This function inflates values based on a given percentage rate, year, and baseline year. It calculates the inflated value using the formula: \code{x * (1 + percentage_rate / 100) ^ (year - baseline_year)}.
 #'
@@ -107,7 +107,7 @@ inflate <- function(x, percentage_rate, year, baseline_year) {
 # inflate(1000, 3, 2011:2020, 2013)
 
 # deflate ----
-# Deflate Values Based on Percentage Rate, Year, and Baseline Year
+#' Deflate Values Based on Percentage Rate, Year, and Baseline Year
 #' @description
 #' This function deflates values based on a given percentage rate, year, and baseline year. It calculates the deflated value using the formula: \code{x * (1 - percentage_rate / 100) ^ (year - baseline_year)}.
 #'
@@ -127,7 +127,7 @@ deflate <- function(x, percentage_rate, year, baseline_year) {
 # plot_cor ----
 # Necessary aux functions
 # plots mean x by y stratified by z
-# Plot Weighted Correlation Between Two Variables
+#' Plot Weighted Correlation Between Two Variables
 #' @description
 #' This function generates a scatter plot with a weighted correlation line between two variables based on provided data.
 #'
@@ -159,7 +159,7 @@ plot_cor <- function(x, y, z, wt, dt) {
 }
 
 # distr_best_fit ----
-# helper func for gamlss::fitDistr
+#' helper func for gamlss::fitDistr
 #' @description
 #' This function fits distribution parameters using the Generalized Additive Model for Location, Scale, and Shape (GAMLSS). It can perform fitting based on either minimum prediction global deviance (if \code{pred} is \code{TRUE}) or Bayesian Information Criterion (BIC) for model selection.
 #'
@@ -217,7 +217,7 @@ distr_best_fit <-
   }
 
 # distr_validation ----
-# Distribution Validation Diagnostics
+#' Distribution Validation Diagnostics
 #' @description
 #' This function performs distribution validation diagnostics based on a fitted distribution model. It generates validation plots and diagnostic information to assess the goodness of fit.
 #'
@@ -261,7 +261,7 @@ distr_validation <-
   }
 
 # centile_predictAll ----
-# Predict Centiles from a GAMLSS Model for Multiple Observations
+#' Predict Centiles from a GAMLSS Model for Multiple Observations
 #' @description
 #' This function predicts centiles from a Generalized Additive Model for Location, Scale, and Shape (GAMLSS) model for multiple observations.
 #'
@@ -284,7 +284,7 @@ centile_predictAll <-
   }
 
 # mean_predictAll ----
-# Predict Mean Values from a GAMLSS Model for Multiple Observations
+#' Predict Mean Values from a GAMLSS Model for Multiple Observations
 #' @description
 #' This function predicts mean values from a Generalized Additive Model for Location, Scale, and Shape (GAMLSS) model for multiple observations.
 #'
@@ -309,7 +309,7 @@ mean_predictAll <- function(gamlss_model, orig_data, newdata) {
 }
 
 # plot_synthpop_val ----
-# Plot Synthpop Validation Density and Cumulative Density Functions
+#' Plot Synthpop Validation Density and Cumulative Density Functions
 #' @description
 #' This function generates and saves density and cumulative density function plots for synthpop validation based on the provided data.
 #'
@@ -399,7 +399,7 @@ plot_synthpop_val <-
   }
 
 # validate_gamlss_tbl ----
-# Validate GAMLSS Model against Observed Data in a Data Table
+#' Validate GAMLSS Model against Observed Data in a Data Table
 #' @description
 #' This function validates a Generalized Additive Model for Location, Scale, and Shape (GAMLSS) model against observed data in a data table. It generates simulated data from the GAMLSS model and combines it with the observed data for comparison.
 #'
@@ -443,7 +443,7 @@ validate_gamlss_tbl <-
 # z[, do.call("qBI", .SD), .SDcols = c("p", nam_param)]
 
 # shift_bypid ----
-# Shift Values by PID (Participant ID) for Integer, Logical, or Numeric Vectors
+#' Shift Values by PID (Participant ID) for Integer, Logical, or Numeric Vectors
 #' @description
 #' This function shifts values by participant ID (PID) for integer, logical, or numeric vectors. It can handle different data types and supports shifting by a specified lag.
 #'
@@ -472,7 +472,7 @@ shift_bypid <-
 # get_ons_mrtl ----
 # get observed mortality from ONS data
 # mortality_by_agegrp20_for_validation.fst; mortality_by_agegrp5_for_validation.fst;
-# Get ONS (Office for National Statistics) Mortality Data
+#' Get ONS (Office for National Statistics) Mortality Data
 #' @description
 #' This function retrieves mortality data from the Office for National Statistics (ONS) for a specified disease, type, and age group width.
 #'
@@ -522,7 +522,7 @@ get_ons_mrtl <-
 # get_ons_incd ----
 # get observed cancer incidence from ONS data
 # cancer_incd_by_agegrp5_for_validation.fst; cancer_incd_by_agegrp5_for_validation.fst;
-# Get ONS (Office for National Statistics) Cancer Incidence Data
+#' Get ONS (Office for National Statistics) Cancer Incidence Data
 #' @description
 #' This function retrieves cancer incidence data from the Office for National Statistics (ONS) for a specified disease, type, and age group width.
 #'
@@ -571,7 +571,7 @@ get_ons_incd <-
 
 # get_causal_paths ----
 # Extract causal pathways from RR list
-# Get Causal Paths from Relative Risks
+#' Get Causal Paths from Relative Risks
 #' @description
 #' This function extracts causal paths from a list of relative risks (RR) for exposures and outcomes. It generates a data table, lists exposures and outcomes by outcome and by exposure, and creates a matrix showing the counts of each exposure-outcome pair.
 #'
@@ -600,7 +600,7 @@ get_causal_paths <- function(RR) {
 
 # get_lifetable_all ----
 # functions - get_disease_epi_mc; qunif;
-# Get Life Table Data for All-Cause or Disease-Specific Mortality Projections
+#' Get Life Table Data for All-Cause or Disease-Specific Mortality Projections
 #' @description
 #' This function retrieves life table data for all-cause or disease-specific mortality projections based on a Monte Carlo iteration.
 #'
@@ -706,7 +706,7 @@ get_lifetable_all <-
 # "men", plot(year, qx_mc)]
 
 # generate_pop_adj_for_mrtl ----
-# Get population estimates adjusted for mortality
+#' Get population estimates adjusted for mortality
 #' @description
 #' This function generates population adjustments for mortality projections based on a Monte Carlo iteration and life table data.
 #'
@@ -756,7 +756,7 @@ generate_pop_adj_for_mrtl <-
 # design$sim_horizon) & between(age, design$ageL, design$ageH), .N]
 
 # generate_rns ----
-# Generate Random Numbers for Monte Carlo iteration
+#' Generate Random Numbers for Monte Carlo iteration
 #' @description
 #' This function generates random numbers for a Monte Carlo iteration using the dqRNG package. It sets the seed based on the simulation run and updates specified columns in the input data table with random numbers.
 #'
@@ -780,8 +780,7 @@ generate_rns <- function(mc, dt, colnams) {
 }
 
 # generate_corr_unifs ----
-# Given a correlation matrix (Pearson), produces a matrix of
-# correlated uniforms
+#' Given a correlation matrix (Pearson), produces a matrix of correlated uniforms
 #' @description
 #' This function generates correlated uniform random variables based on a given correlation matrix using the dqrnorm and pnorm functions.
 #'
@@ -827,7 +826,7 @@ generate_corr_unifs <- function(n, M) {
 }
 
 # generate_eq5d_decr ----
-# Estimate health utility decreaments
+#' Estimate health utility decreaments
 #' @description
 #' This function generates EQ-5D utility values based on Sullivan et al. 2011, considering decrements for various health conditions.
 #'
@@ -986,7 +985,7 @@ generate_eq5d_decr <- function(dt) {
 
 # get_healthcare_costs ----
 # files - healthcare_costs_indx.fst; healthcare_costs_l.fst;
-# Get Healthcare Costs
+#' Get Healthcare Costs
 #' @description
 #' This function retrieves healthcare costs for various diseases and conditions from pre-saved data based on Monte Carlo iteration (mc).
 #'
@@ -1028,7 +1027,7 @@ get_healthcare_costs <- function(mc) {
 }
 
 # generate_healthcare_costs ----
-# Generate Healthcare Costs
+#' Generate Healthcare Costs
 #' @description
 #' This function generates healthcare costs based on specified costs for various health conditions.
 #'
@@ -1065,7 +1064,7 @@ generate_healthcare_costs <- function(dt, mc) {
 
 # get_socialcare_costs ----
 # files - socialcare_costs_indx.fst; socialcare_costs_l.fst; socialcare_costs_added_diseases_indx.fst; socialcare_costs_added_diseases_l.fst;
-# Get Social Care Costs
+#' Get Social Care Costs
 #' @description
 #' This function retrieves social care costs for various conditions and added diseases from pre-saved data based on Monte Carlo iteration (mc).
 #'
@@ -1100,7 +1099,7 @@ get_socialcare_costs <- function(mc) {
 }
 
 # generate_socialcare_costs ----
-# Generate Social Care Costs
+#' Generate Social Care Costs
 #' @description
 #' This function generates social care costs based on input data and Monte Carlo iteration (mc).
 #'
@@ -1129,7 +1128,7 @@ generate_socialcare_costs <- function(dt, mc) {
 
 # get_productivity_costs ----
 # files - productivity_costs_indx.fst; productivity_costs_l.fst;
-# Get Productivity Costs
+#' Get Productivity Costs
 #' @description
 #' This function retrieves productivity costs based on Monte Carlo iteration (mc).
 #'
@@ -1153,7 +1152,7 @@ get_productivity_costs <- function(mc) {
 }
 
 # generate_productivity_costs ----
-# Generate Productivity Costs
+#' Generate Productivity Costs
 #' @description
 #' This function calculates productivity costs based on the input data and Monte Carlo (MC) iteration.
 #'
@@ -1181,7 +1180,7 @@ generate_productivity_costs <- function(dt, mc) {
 
 # get_informal_care_costs ----
 # files - informal_care_costs_indx.fst; informal_care_costs_l.fst;
-# Get Informal Care Costs
+#' Get Informal Care Costs
 #' @description
 #' This function retrieves informal care costs based on Monte Carlo (MC) iteration.
 #'
@@ -1205,7 +1204,7 @@ get_informal_care_costs <- function(mc) {
 }
 
 # generate_informal_care_costs ----
-# Generate Informal Care Costs
+#' Generate Informal Care Costs
 #' @description
 #' This function calculates informal care costs based on the input data and Monte Carlo (MC) iteration.
 #'
@@ -1232,7 +1231,7 @@ generate_informal_care_costs <- function(dt, mc) {
 }
 
 # generate_health_econ ----
-# Generate Health Economic Data
+#' Generate Health Economic Data
 #' @description
 #' This function generates health economic data by incorporating various components such as EQ-5D decrement,
 #' healthcare costs, social care costs, productivity costs, and informal care costs into the input data.
@@ -1258,7 +1257,7 @@ generate_health_econ <- function(dt, mc) {
 }
 
 # set_eligible ----
-# Set Eligibility in the Simulation
+#' Set Eligibility in the Simulation
 #' @description
 #' This function sets the eligibility of individuals in a simulation based on specified scenario parameters.
 #'
@@ -1335,7 +1334,7 @@ set_eligible <- function(scenario_parms, dt, hlp, env = parent.frame()) {
 # prop_if(eligible_sc1 == 1), keyby = age]
 
 # set_invitees ----
-# Set Invitees in the Simulation
+#' Set Invitees in the Simulation
 #' @description
 #' This function sets the invitees and associated invitation costs in a simulation based on specified scenario parameters.
 #'
@@ -1548,7 +1547,7 @@ set_invitees <- function(scenario_parms, dt, hlp, env = parent.frame()) {
 
 # set_attendees ----
 # functions - fromGUI_uptake_table_agegrps;
-# Set Attendees in the Simulation
+#' Set Attendees in the Simulation
 #' @description
 #' This function sets the attendees and associated attendance costs in a simulation based on specified scenario parameters.
 #'
@@ -1632,7 +1631,7 @@ set_attendees <- function(scenario_parms, dt, scenario_nam, parameters_dt,
 
 # set_px ----
 # functions - absorb_dt; hc_effect;
-# Set Medication Prescriptions in the Simulation
+#' Set Medication Prescriptions in the Simulation
 #' @description
 #' This function sets medication prescriptions (statins and antihypertensive medications) in a simulation based on specified scenario parameters.
 #'
@@ -1773,7 +1772,7 @@ set_px <- function(scenario_parms, dt, mc, design_) {
 
 # set_lifestyle ----
 # functions - simsmok_cessation; hc_effect;
-# Set Lifestyle Interventions in the Simulation
+#' Set Lifestyle Interventions in the Simulation
 #' @description
 #' This function sets lifestyle interventions in a simulation based on specified scenario parameters.
 #'
@@ -1895,7 +1894,7 @@ set_lifestyle <-
 
 # set_structural ----
 # functions - sample_int_expj; simsmok_policy_impact_incr;
-# Set Structural Changes in the Simulation
+#' Set Structural Changes in the Simulation
 #' @description
 #' This function sets structural changes in a simulation based on specified scenario parameters.
 #'
@@ -2077,7 +2076,7 @@ set_structural <-
 # set_social ----
 # functions - simsmok_sc; my_qZABNB; my_pZISICHEL; my_qZISICHEL; my_pDEL; my_qDEL;
 # my_pBCPEo; my_qBCPEo; get_causal_paths;
-# Set Social Characteristics in the Simulation
+#' Set Social Characteristics in the Simulation
 #' @description
 #' This function sets social characteristics based on scenario parameters, data table, and design.
 #'
@@ -2500,7 +2499,7 @@ set_social <- function(scenario_parms, dt, design) {
 }
 
 # run_scenario ----
-# Run a simulation
+#' Run a simulation
 #' @description
 #' This function runs a simulation for the specified scenario name using the Monte Carlo method.
 #'
@@ -2617,7 +2616,7 @@ run_scenario <-
   }
 
 # output_dir ----
-# Generate Output Directory Path
+#' Generate Output Directory Path
 #' @description
 #' This function generates the path to the output directory by combining the simulation parameter's output directory
 #' and the provided suffix (if any).
@@ -2635,7 +2634,7 @@ output_dir <- function(x = "") {
   file.path(design$sim_prm$output_dir, x)
 }
 
-
+#' Function for Linux
 #' @return A named numeric vector with five non-negative elements `1min`,
 #'   `5min`, and `15min` average CPU utilisation, used RAM, and available RAM.
 #' The first values represent estimates of the CPU load during the last
