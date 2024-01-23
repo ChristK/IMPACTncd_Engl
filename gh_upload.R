@@ -21,15 +21,23 @@ source("ghAssetUtils.R")
 #' 		UploadGitHubAssets(sToken=<GitHubToken>)
 #' 	where in the above, <GitHubToken> is a GitHub personal access token (PAT);
 #' 		if omitted, seeks token from gh::gh_token().
-#' @param sToken string (optional): GitHub personal access token (PAT).
-#' @param iTestWithFirstNAssets int (out param): only download first [iTestWithFirstNAssets] assets (for testing).
-
-UploadGitHubAssets <- function(sToken = NULL, iTestWithFirstNAssets = 0) { # consider as a Simulation class method
+#' @param sToken GitHub personal access token (default: NULL).
+#' @param sRepo GitHub repository (default: NULL).
+#' @param sTag GitHub tag or release (default: NULL).
+#' @param sDeployToRootDirPath Path to the root directory for deployment (default: NULL).
+#' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: FALSE).
+#' @param sUploadSrcDirPath Path to the source directory for upload (default: NULL).
+#'
+#' @return None
+UploadGitHubAssets <- function(sToken = NULL, iTestWithFirstNAssets = 0,
+                               sTag = NULL, sUploadSrcDirPath = NULL,
+                               sDeployToRootDirPath = NULL,
+                               bOverwriteFilesOnDeploy) { # consider as a Simulation class method
   # set the GitHub repo
   sRepo <- "ChristK/IMPACTncd_Engl"
   # get GitHub asset route data
   GetGitHubAssetRouteInfo(sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath,
-                          bOverwriteFilesOnDeploy, Token = sToken)
+                          bOverwriteFilesOnDeploy, sToken, iTestWithFirstNAssets)
   sUploadSrcDirPath <- TrimSlashes(sUploadSrcDirPath, bRidStartSlash = FALSE)
   # pb_new_release(sRepo, sTag) # Only need to run the first time a github repo is created
   # pb_release_delete(sRepo, sTag)
@@ -69,9 +77,11 @@ UploadGitHubAssets <- function(sToken = NULL, iTestWithFirstNAssets = 0) { # con
 }
 
 if (sys.nframe() == 0) {
-    UploadGitHubAssets()
+    UploadGitHubAssets(sTag = "v0.0.5", bOverwriteFilesOnDeploy = 0,
+                       sDeployToRootDirPath = "D:/Dropbox/ILKConsultancy/IMPACTncd_Engl",
+                       sUploadSrcDirPath = "D:/Dropbox/ILKConsultancy/IMPACTncd_Engl",
+                       sToken = gh_token())
     #        sAssetConfigFilePath = "./auxil/ghAssetConfig.yaml",
     #       sGitHubAssetRouteId = "local_Chris_IMPACTncd_Engl_0.0.4"
     #  )
 } # execute with defaults if run from topmost frame (under Rscript)
-# cahnged as the function `GetGitHubAssetRouteInfo` is changed now due to discarding use of .yaml file

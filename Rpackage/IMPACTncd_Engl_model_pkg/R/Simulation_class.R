@@ -126,7 +126,69 @@ Simulation <-
         invisible(self)
       },
 
+      # UploadGitHubAssets ----
+      # Upload GitHub assets
+      #' @description Scan a specified directory for large asset files and upload these to GitHub.
+      #' @param sToken GitHub personal access token (default: NULL).
+      #' @param sRepo GitHub repository (default: NULL).
+      #' @param sTag GitHub tag or release (default: NULL).
+      #' @param sDeployToRootDirPath Path to the root directory for deployment (default: NULL).
+      #' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: FALSE).
+      #' @param sUploadSrcDirPath Path to the source directory for upload (default: NULL).
+      #' @param iTestWithFirstNAssets Number of assets to upload as a test
+      #'
+      #' @return Invisible self for chaining
+      #' @export
+      UploadGitHubAssets = function(sToken = NULL, iTestWithFirstNAssets = 0,
+                                     sTag = NULL, sUploadSrcDirPath = NULL,
+                                     sDeployToRootDirPath = NULL,
+                                     bOverwriteFilesOnDeploy) { # consider as a Simulation class method
+        # set the GitHub repo
+        sRepo <- "ChristK/IMPACTncd_Engl"
+        # get GitHub asset route data
+        GetGitHubAssetRouteInfo(sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath,
+                                bOverwriteFilesOnDeploy, sToken, iTestWithFirstNAssets)
+        sUploadSrcDirPath <- TrimSlashes(sUploadSrcDirPath, bRidStartSlash = FALSE)
+        # pb_new_release(sRepo, sTag) # Only need to run the first time a github repo is created
+        # pb_release_delete(sRepo, sTag)
+        # find local assets, excluding secure_data, "*tmp.qs", and "*parf/PARF_*.qs" files.
+        lsLocalAssetPathNames <- list.files(sUploadSrcDirPath, pattern = ".fst$|.xls$|.xlsx$|.qs$",
+                                            all.files = TRUE, full.names = TRUE, recursive = TRUE)
+        lsLocalAssetPathNames <- grep("secure_data", lsLocalAssetPathNames, value = TRUE, invert = TRUE)
+        # NOTE currently no necessary files ar .qs. For future proof I add them above
+        # and exclude the below
+        lsLocalAssetPathNames <- grep("tmp.qs$", lsLocalAssetPathNames, value = TRUE, invert = TRUE)
+        lsLocalAssetPathNames <- grep("/simulation/parf/PARF_.*\\.qs$", lsLocalAssetPathNames, value = TRUE, invert = TRUE)
+        lsLocalAssetPathNames <- grep("/DELETEME/", lsLocalAssetPathNames, value = TRUE, invert = TRUE)
+
+        # write table with original and *unique sanitised* file names and directories
+        lsSanitisedFileNames <- gsub("[^[:alnum:]&&^\\.]", ".", basename(lsLocalAssetPathNames)) # replace all not (alphanumeric or '.') with .
+        lsSanitisedFileNames <- sub("^[.]", "default.", lsSanitisedFileNames)
+        dtOriginalAndSanitisedFilePathNames <- data.table(
+          orig_file = basename(lsLocalAssetPathNames),
+          sanit_file = lsSanitisedFileNames, abs_dir = dirname(lsLocalAssetPathNames),
+          rel_dir = gsub(sUploadSrcDirPath, "", dirname(lsLocalAssetPathNames)), key = "orig_file"
+        ) # rel_dir to keep initial slash
+        # print(nrow(dtOriginalAndSanitisedFilePathNames))
+        # return(0)
+        if (any(duplicated(dtOriginalAndSanitisedFilePathNames$sanit_file))) stop("Duplicated filenames found")
+        if (iTestWithFirstNAssets != 0) {
+          dtOriginalAndSanitisedFilePathNames <- dtOriginalAndSanitisedFilePathNames[1:iTestWithFirstNAssets, ]
+        }
+        fwrite(dtOriginalAndSanitisedFilePathNames, "./auxil/filindx.csv")
+
+        lsSrcFilePath <- file.path(dtOriginalAndSanitisedFilePathNames$abs_dir, dtOriginalAndSanitisedFilePathNames$orig_file)
+        lsHttpResponses <- piggyback::pb_upload(lsSrcFilePath,
+                                                repo = sRepo, tag = sTag, name = dtOriginalAndSanitisedFilePathNames$sanit_file,
+                                                .token = sToken, use_timestamps = FALSE, overwrite = TRUE
+        ) # piggyback:: prefix necessary to use R.utils::reassignInPackage() injected code modification
+
+        StopOnHttpFailure(lsHttpResponses, TRUE)
+        invisible(self)
+      },
+
       # DeployGitHubAssets ----
+      # Download GitHub Assets
       #' @description This function downloads assets from a GitHub repository and organizes them
       #' in a specified directory structure.
       #'
@@ -137,7 +199,7 @@ Simulation <-
       #' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: FALSE).
       #' @param sUploadSrcDirPath Path to the source directory for upload (default: NULL).
       #'
-      #' @return None
+      #' @return Invisible self for chaining
       #' @export
       DeployGitHubAssets = function(sToken = NULL, sRepo = NULL, sTag = NULL,
                                      sDeployToRootDirPath = NULL,
@@ -830,6 +892,7 @@ Simulation <-
       # to_cpp()
 
       # mk_scenario_init ----
+      # functions - ⁠carry_forward_inc;
       # Create initialization parameters for a simulation scenario.
       # @param sp A SynthPop object.
       # @param scenario_name A character string specifying the name of the scenario.
