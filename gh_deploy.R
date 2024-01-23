@@ -11,9 +11,6 @@ if (!require(data.table)) {
 }
 
 source("ghAssetUtils.R")
-# gh `usethis::use_package("gh")`; devtools::document(); added this to DESCRIPTION in IMPACTncd_Engl_model_pkg
-# https://stackoverflow.com/questions/70098615/how-to-properly-include-dependencies-in-the-description-file-of-r-package
-# https://stackoverflow.com/questions/57618769/how-to-automatically-load-functions-into-namespace-of-an-r-package
 #' @description Deploy large GitHub asset files into their relevant locations.
 #' 	Additional data is held in an asset config YAML file. BACKGROUND: Standard GitHub repositories do not allow large files exceeding 100 MB (as of 22-08-05); however, such files ('assets'), each up to 2 GB in size, may be attached separately to the repository.
 #' 	May either execute from the console:
@@ -72,10 +69,6 @@ DeployGitHubAssets <- function(sToken = NULL, sRepo = NULL, sTag = NULL,
 
 # if (sys.nframe() == 0) DeployGitHubAssets() # execute with defaults if run from topmost frame (under Rscript)
 DeployGitHubAssets(sTag = "v0.0.5", bOverwriteFilesOnDeploy = 1,
-                   sDeployToRootDirPath = "D:\\Dropbox\\ILKConsultancy\\IMPACTncd_Engl",
-                   sUploadSrcDirPath = "D:\\Dropbox\\ILKConsultancy\\IMPACTncd_Engl",
-                   sToken = "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")
-
-# change path for windows in deploy used double slashes
-# pak usage to push to user lib (if updated skip it)
-# add this to simulation class
+                   sDeployToRootDirPath = "D:/Dropbox/ILKConsultancy/IMPACTncd_Engl",
+                   sUploadSrcDirPath = "D:/Dropbox/ILKConsultancy/IMPACTncd_Engl",
+                   sToken = gh_token())
