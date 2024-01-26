@@ -1,3 +1,8 @@
+sTag: 'v0.0.5'
+bOverwriteFilesOnDeploy: 0 # i - T and 0 or any other no - F change it and add it in sim_design.yaml
+sDeployToRootDirPath: D:/Dropbox/ILKConsultancy/IMPACTncd_Engl # ARU changed
+sUploadSrcDirPath: D:/Dropbox/ILKConsultancy/IMPACTncd_Engl # ARU changed
+sToken: ~ # NULL
 locality: England # See cols "LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM" ./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst for area names
 iteration_n: 15
 iteration_n_final: 100

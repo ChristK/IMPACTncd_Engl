@@ -66,7 +66,14 @@ Simulation <-
           reset_after_fork = NULL
         )
 
-
+        deployArgs <- list(
+          sTag = self$design$sim_prm$sTag,
+          bOverwriteFilesOnDeploy = self$design$sim_prm$bOverwriteFilesOnDeploy,
+          sDeployToRootDirPath = self$design$sim_prm$sDeployToRootDirPath,
+          sUploadSrcDirPath = self$design$sim_prm$sUploadSrcDirPath,
+          sToken = self$design$sim_prm$sToken
+        )
+        self$DeployGitHubAssets(deployArgs)
         message("Loading exposures.")
         # RR Create a named list of Exposure objects for the files in
         # ./inputs/RR
@@ -198,13 +205,16 @@ Simulation <-
       #' @param sDeployToRootDirPath Path to the root directory for deployment (default: NULL).
       #' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: FALSE).
       #' @param sUploadSrcDirPath Path to the source directory for upload (default: NULL).
+      #' @param args a list of the above specified parameters
       #'
       #' @return Invisible self for chaining
       #' @export
-      DeployGitHubAssets = function(sToken = NULL, sRepo = NULL, sTag = NULL,
-                                     sDeployToRootDirPath = NULL,
-                                     bOverwriteFilesOnDeploy,
-                                     sUploadSrcDirPath = NULL) {
+      DeployGitHubAssets = function(args = NULL) {
+        sTag <- ifelse(is.null(args$sTag), NULL, args$sTag)
+        bOverwriteFilesOnDeploy <- ifelse(is.null(args$bOverwriteFilesOnDeploy), NULL, args$bOverwriteFilesOnDeploy)
+        sDeployToRootDirPath <- ifelse(is.null(args$sDeployToRootDirPath), NULL, args$sDeployToRootDirPath)
+        sUploadSrcDirPath <- ifelse(is.null(args$sUploadSrcDirPath), NULL, args$sUploadSrcDirPath)
+        sToken <- ifelse(is.null(args$sToken), gh::gh_token(), args$sToken)
         # Added repo information here as the function here is more accessible than `GetGitHubAssetRouteInfo` and required for pb_download as well
         # set the GitHub repo
         sRepo <- "ChristK/IMPACTncd_Engl"
