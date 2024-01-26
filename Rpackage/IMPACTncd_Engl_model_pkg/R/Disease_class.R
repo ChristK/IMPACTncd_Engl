@@ -2352,15 +2352,12 @@ Disease <-
       # The `with_random` function sets a fixed random seed, executes the provided expression, and then restores the original random seed. This ensures that the same random sequence is used during the execution of the expression, promoting reproducibility in situations involving random number generation.
       #
       with_random = function(expr, seed) {
-        if (!exists(.Random.seed)) set.seed()
-        else {
-          old <- .Random.seed # Assumes one exists. Make sure it does
-          on.exit({
-            .Random.seed <<- old
-          })
-          set.seed(seed)
-          expr
-        }
+        old <- .Random.seed # Assumes one exists. Make sure it does
+        on.exit({
+          .Random.seed <<- old
+        })
+        set.seed(seed)
+        expr
       }
 
     ) # end of private

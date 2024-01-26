@@ -60,6 +60,11 @@ Design <-
         # Validation
         stopifnot(
           c(
+            "sTag"                   ,
+            "bOverwriteFilesOnDeploy",
+            "sDeployToRootDirPath"  ,
+            "sUploadSrcDirPath"     ,
+            "sToken"                ,
             "locality"              ,
             "iteration_n"           ,
             "iteration_n_final"     ,

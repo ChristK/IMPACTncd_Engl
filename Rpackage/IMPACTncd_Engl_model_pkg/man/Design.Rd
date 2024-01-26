@@ -5,6 +5,7 @@
 \title{R6 Class representing a simulation design}
 \description{
 A design has a sim_prm list that holds the simulation parameters.
+This R6 class represents a simulation design with associated parameters and methods.
 }
 \details{
 To be completed...
