@@ -13,6 +13,7 @@ if (!require(data.table)) {
 source("ghAssetUtils.R")
 source("global.R")
 
+
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
 scenario_fn_primary_prevention   <- function(sp) NULL
@@ -25,10 +26,6 @@ scenario_fn_secondary_prevention <- function(sp) NULL
 #                      sToken = gh_token())
 
 IMPACTncd$
-  DeployGitHubAssets(sTag = "v0.0.5", bOverwriteFilesOnDeploy = 0,
-                     sDeployToRootDirPath = "D:/Dropbox/ILKConsultancy/IMPACTncd_Engl",
-                     sUploadSrcDirPath = "D:/Dropbox/ILKConsultancy/IMPACTncd_Engl",
-                     sToken = gh_token())$
   del_logs()$
   del_outputs()$
   run(1:2, multicore = FALSE, "sc0")
