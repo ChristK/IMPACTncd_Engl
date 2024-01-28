@@ -222,7 +222,7 @@ Simulation <-
         GetGitHubAssetRouteInfo(sRepo = sRepo, sTag = sTag, iTestWithFirstNAssets,
                                 sDeployToRootDirPath = sDeployToRootDirPath,
                                 sUploadSrcDirPath = sUploadSrcDirPath,
-                                bOverwriteFilesOnDeploy = T, sToken = sToken)
+                                bOverwriteFilesOnDeploy = bOverwriteFilesOnDeploy, sToken = sToken)
         sDeployToRootDirPath <- TrimSlashes(sDeployToRootDirPath, bRidStartSlash = FALSE)
         # get table which maps SANITISED to ORIGINAL filenames
         sanitisedToOriginalFilePaths <- fread(file.path(sDeployToRootDirPath,
