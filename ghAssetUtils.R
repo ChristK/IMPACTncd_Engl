@@ -136,7 +136,7 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
   eval.parent(substitute(sToken <- sGitHubToken))
   eval.parent(substitute(sUploadSrcDirPath <- gitHubAssetRouteFinal$uploadSrcDirectory))
   eval.parent(substitute(sDeployToRootDirPath <- gitHubAssetRouteFinal$deployToRootDirectory))
-  eval.parent(substitute(bOverwriteFilesOnDeploy <- if (gitHubAssetRouteFinal$overwriteFilesOnDeploy == "1") TRUE else FALSE))
+  eval.parent(substitute(bOverwriteFilesOnDeploy <- gitHubAssetRouteFinal$overwriteFilesOnDeploy))
   eval.parent(substitute(iTestWithFirstNAssets <- if (is.null(gitHubAssetRouteFinal$testWithFirstNAssets)) {
     0
   } else {
