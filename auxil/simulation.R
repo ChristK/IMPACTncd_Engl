@@ -15,7 +15,7 @@ scenario_fn_secondary_prevention <- function(sp) NULL
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(1:200, multicore = TRUE, "sc0")
+  run(1:10, multicore = TRUE, "sc0")
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 # source("./auxil/CPRD_sim_validation_plots.R")
@@ -132,10 +132,10 @@ scenario_fn_primary_prevention <- function(sp) {
 
 
 IMPACTncd$
-  run(1:200, multicore = TRUE, "sc1")$
+  run(1:10, multicore = TRUE, "sc1")$
   export_summaries(multicore = TRUE)
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 source("./auxil/process_out_for_HF.R")
-if(IMPACTncd$design$sim_prm$validation)source("./auxil/CPRD_sim_validation_plots_CK.R")
-# Bus error (core dumped)
+# if (IMPACTncd$design$sim_prm$validation) source("./auxil/CPRD_sim_validation_plots_CK.R")
+
