@@ -1,3 +1,24 @@
+## IMPACTncdEngl is an implementation of the IMPACTncd framework, developed by Chris
+## Kypridemos with contributions from Peter Crowther (Melandra Ltd), Maria
+## Guzman-Castillo, Amandine Robert, and Piotr Bandosz. This work has been
+## funded by NIHR  HTA Project: 16/165/01 - IMPACTncdEngl: Health Outcomes
+## Research Simulation Environment.  The views expressed are those of the
+## authors and not necessarily those of the NHS, the NIHR or the Department of
+## Health.
+##
+## Copyright (C) 2018-2020 University of Liverpool, Chris Kypridemos
+##
+## IMPACTncdEngl is free software; you can redistribute it and/or modify it under
+## the terms of the GNU General Public License as published by the Free Software
+## Foundation; either version 3 of the License, or (at your option) any later
+## version. This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+## FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+## details. You should have received a copy of the GNU General Public License
+## along with this program; if not, see <http://www.gnu.org/licenses/> or write
+## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+## Boston, MA 02110-1301 USA.
+
 setOptions_for_repo <- function() {
   chooseCRANmirror(ind = 1)
   repos <- getOption("repos")
@@ -15,7 +36,19 @@ if (!require(yaml)) {
   install.packages("yaml", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
   library(yaml)
 }
+if (!require(piggyback)) {
+  if (!nzchar(system.file(package = "pak"))) install.packages("pak")
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  pak::pkg_install("piggyback", lib = Sys.getenv("R_LIBS_USER"))
+  library(piggyback)
+}
+if (!require(data.table)) {
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  pak::pkg_install("data.table", lib = Sys.getenv("R_LIBS_USER"))
+  library(data.table)
+}
 
+#' Trim slashes
 #' @description Remove slashes from start and end of path.
 #' @param sPath: string initial path.
 #' @param bRidStartSlash: bool remove slash at start of path
@@ -30,9 +63,10 @@ TrimSlashes <- function(sPath, bRidStartSlash = TRUE) {
   return(sPath)
 }
 
+#' HTTP header names and values
 #' @description Helper to create descriptive list of HTTP headers from the given response object.
 #' @param httpResponse HTTP response object as provided by [httr] package.
-#' @return String giving each header's name and value as: <name1>=<value1>; <name2>=<value2>; ...
+#' @return String giving each header's name and value.
 HttpHeaderNamesAndValues <- function(httpResponse) {
   sHeaders <- ""
   iIndex <- 1
@@ -43,6 +77,7 @@ HttpHeaderNamesAndValues <- function(httpResponse) {
   return(sHeaders)
 }
 
+#' Stop on failure
 #' @description Stop if get HTTP response indicating missing file or unexcepted file size.
 #' @param lsHttpResponses List of HTTP response objects, each provided by [httr] package.
 #' @param bUploadedFiles boolean, files have been uploaded.
@@ -72,17 +107,8 @@ StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
   }
 }
 
-#' @description Get GitHub asset route data from YAML AssetConfigFile or command-line variables.
-#' Execution options:
-#' 	Rscript <source-file> [<AssetFilePathName> [<GitHubAssetRouteId> [<GitHubToken>]]]
-#' 		where <source-file> is the R script name,
-#' 			<AssetFilePathName> is an optional asset config file's path and name;
-#' 				if omitted, tries IMPACTncd_Engl/auxil/ghAssetConfig.yaml.
-#' 			<GitHubAssetRouteId> is an asset route's [id] within <AssetFilePathName>;
-#' 				if omitted, seeks ID from Sys.info()[['user']] name.
-#' 			<GitHubToken> is a GitHub personal access token (PAT);
-#' 				if omitted, seeks token from gh::gh_token().
-#' or, source('gh_deploy.R') # loads <AssetFilePathName> via IMPACTncd_Engl/auxil/ghAssetConfig.yaml.
+#' Find GitHub assets route information
+#' @description Get GitHub asset route data command-line variables.
 #' @param sRepo string (out param): GitHub repository name.
 #' @param sTag string (out param): GitHub repository tag.
 #' @param iTestWithFirstNAssets int (out param): only download first [iTestWithFirstNAssets] assets (for testing).
@@ -154,8 +180,6 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
 ####################################################################################
 
 #' Upload data to an existing release
-#'
-#' NOTE: you must first create a release if one does not already exists.
 #' @param file path to file to be uploaded
 #' @param repo Repository name in format "owner/repo". Defaults to `guess_repo()`.
 #' @param tag  tag for the GitHub release to which this data should be attached.
@@ -184,7 +208,8 @@ pb_upload_liverpool <- function(file,
                                 name = NULL,
                                 overwrite = "use_timestamps",
                                 use_timestamps = NULL,
-                                show_progress = getOption("piggyback.verbose", default = interactive()),
+                                show_progress = getOption("piggyback.verbose",
+                                                          default = interactive()),
                                 .token = gh::gh_token(),
                                 dir = NULL) {
   stopifnot(
@@ -348,7 +373,6 @@ pb_upload_file_liverpool <- function(file,
 }
 
 #' Download data from an existing release
-#'
 #' @param file name or vector of names of files to be downloaded. If `NULL`,
 #' all assets attached to the release will be downloaded.
 #' @param dest name of vector of names of where file should be downloaded.

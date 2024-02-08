@@ -1,18 +1,4 @@
-if (!require(piggyback)) {
-  if (!nzchar(system.file(package = "pak"))) install.packages("pak")
-  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
-  pak::pkg_install("piggyback", lib = Sys.getenv("R_LIBS_USER"))
-  library(piggyback)
-}
-if (!require(data.table)) {
-  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
-  pak::pkg_install("data.table", lib = Sys.getenv("R_LIBS_USER"))
-  library(data.table)
-}
-
-source("ghAssetUtils.R")
 source("global.R")
-
 
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
@@ -170,3 +156,8 @@ IMPACTncd$
 source("./auxil/process_out_for_HF.R")
 if(IMPACTncd$design$sim_prm$validation)source("./auxil/CPRD_sim_validation_plots_CK.R")
 # Bus error (core dumped)
+
+
+## file indx and what is already installed
+## IMPACTncd_Engl to be installed again and again for pak
+## Check in linux the global.R file as well

@@ -99,3 +99,15 @@ InstallIMPACTncdPackageOnChange<- function()
 #if(interactive())
 InstallIMPACTncdPackageOnChange()
 library(IMPACTncdEngl)
+
+####################################################################################
+## Fix: Added this to update .Random.seed / seed only for Windows.
+## Run these two lines shown below for the first time and then we clear the work
+## space using `rm(list = ls(all = TRUE))` after which we run these two lines again we get an error
+# source("global.R")
+# IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+## Error generated otherwise (without the code below): Error in get(".Random.seed", .GlobalEnv) :
+## object '.Random.seed' not found
+####################################################################################
+runif(1)
+
