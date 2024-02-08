@@ -159,5 +159,3 @@ if(IMPACTncd$design$sim_prm$validation)source("./auxil/CPRD_sim_validation_plots
 
 
 ## file indx and what is already installed
-## IMPACTncd_Engl to be installed again and again for pak
-## Check in linux the global.R file as well
