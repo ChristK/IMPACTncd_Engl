@@ -53,6 +53,7 @@ if (!require(data.table)) {
 #' @param sPath: string initial path.
 #' @param bRidStartSlash: bool remove slash at start of path
 #' @return string possibly modified path.
+#' @export
 TrimSlashes <- function(sPath, bRidStartSlash = TRUE) {
   if (bRidStartSlash && substr(sPath, 1, 1) == "/") {
     sPath <- substr(sPath, 2, nchar(sPath))
@@ -67,6 +68,7 @@ TrimSlashes <- function(sPath, bRidStartSlash = TRUE) {
 #' @description Helper to create descriptive list of HTTP headers from the given response object.
 #' @param httpResponse HTTP response object as provided by [httr] package.
 #' @return String giving each header's name and value.
+#' @export
 HttpHeaderNamesAndValues <- function(httpResponse) {
   sHeaders <- ""
   iIndex <- 1
@@ -77,10 +79,11 @@ HttpHeaderNamesAndValues <- function(httpResponse) {
   return(sHeaders)
 }
 
-#' Stop on failure
+#' Stop on HTTP failure
 #' @description Stop if get HTTP response indicating missing file or unexcepted file size.
 #' @param lsHttpResponses List of HTTP response objects, each provided by [httr] package.
 #' @param bUploadedFiles boolean, files have been uploaded.
+#' @export
 StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
   for (httpResponse in lsHttpResponses)
   {
@@ -116,6 +119,7 @@ StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
 #' @param sDeployToRootDirPath string (out param): deployment directory path for downloading assets from GitHub.
 #' @param bOverwriteFilesOnDeploy bool (out param): overwrite files during deployment.
 #' @param sToken string (in|out param): GitHub personal access token (PAT).
+#' @export
 GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath,
                                     bOverwriteFilesOnDeploy, sToken = NULL,
                                     iTestWithFirstNAssets) {
