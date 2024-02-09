@@ -7,10 +7,10 @@
 StopOnHttpFailure(lsHttpResponses, bUploadedFiles)
 }
 \arguments{
-\item{lsHttpResponses}{List of HTTP response objects, each provided by \link{httr} package.}
+\item{lsHttpResponses}{List of HTTP response objects, each provided by httr package.}
 
 \item{bUploadedFiles}{boolean, files have been uploaded.}
 }
 \description{
-Stop if get HTTP response indicating missing file or unexcepted file size.
+Stop if get HTTP response indicating missing file or unexpected file size.
 }

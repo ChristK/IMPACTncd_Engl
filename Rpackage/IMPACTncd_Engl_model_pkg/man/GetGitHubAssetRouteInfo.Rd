@@ -27,7 +27,7 @@ GetGitHubAssetRouteInfo(
 
 \item{sToken}{string (in|out param): GitHub personal access token (PAT).}
 
-\item{iTestWithFirstNAssets}{int (out param): only download first \link{iTestWithFirstNAssets} assets (for testing).}
+\item{iTestWithFirstNAssets}{int (out param): only download first number assets (for testing).}
 }
 \description{
 Get GitHub asset route data command-line variables.

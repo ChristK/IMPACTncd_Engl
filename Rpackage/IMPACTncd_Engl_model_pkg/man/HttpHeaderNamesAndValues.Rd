@@ -7,7 +7,7 @@
 HttpHeaderNamesAndValues(httpResponse)
 }
 \arguments{
-\item{httpResponse}{HTTP response object as provided by \link{httr} package.}
+\item{httpResponse}{HTTP response object as provided by httr package.}
 }
 \value{
 String giving each header's name and value.

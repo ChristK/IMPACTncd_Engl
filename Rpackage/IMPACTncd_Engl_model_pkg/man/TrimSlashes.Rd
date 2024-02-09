@@ -7,9 +7,9 @@
 TrimSlashes(sPath, bRidStartSlash = TRUE)
 }
 \arguments{
-\item{sPath:}{string initial path.}
+\item{sPath}{string initial path.}
 
-\item{bRidStartSlash:}{bool remove slash at start of path}
+\item{bRidStartSlash}{bool remove slash at start of path}
 }
 \value{
 string possibly modified path.
