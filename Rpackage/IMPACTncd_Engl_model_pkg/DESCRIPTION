@@ -24,11 +24,12 @@ Imports:
     digest,
     R6,
     yaml,
-    shinythemes,
     foreach,
-    BH,
     igraph,
-    gh
+    gh,
+    str,
+    chooseCRANmirror,
+    piggyback (>= 0.1.5)
 Suggests: 
     knitr,
     rmarkdown,

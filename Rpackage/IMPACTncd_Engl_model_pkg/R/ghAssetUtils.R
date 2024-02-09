@@ -50,8 +50,8 @@ if (!require(data.table)) {
 
 #' Trim slashes
 #' @description Remove slashes from start and end of path.
-#' @param sPath: string initial path.
-#' @param bRidStartSlash: bool remove slash at start of path
+#' @param sPath string initial path.
+#' @param bRidStartSlash bool remove slash at start of path
 #' @return string possibly modified path.
 #' @export
 TrimSlashes <- function(sPath, bRidStartSlash = TRUE) {
@@ -66,7 +66,7 @@ TrimSlashes <- function(sPath, bRidStartSlash = TRUE) {
 
 #' HTTP header names and values
 #' @description Helper to create descriptive list of HTTP headers from the given response object.
-#' @param httpResponse HTTP response object as provided by [httr] package.
+#' @param httpResponse HTTP response object as provided by httr package.
 #' @return String giving each header's name and value.
 #' @export
 HttpHeaderNamesAndValues <- function(httpResponse) {
@@ -80,8 +80,8 @@ HttpHeaderNamesAndValues <- function(httpResponse) {
 }
 
 #' Stop on HTTP failure
-#' @description Stop if get HTTP response indicating missing file or unexcepted file size.
-#' @param lsHttpResponses List of HTTP response objects, each provided by [httr] package.
+#' @description Stop if get HTTP response indicating missing file or unexpected file size.
+#' @param lsHttpResponses List of HTTP response objects, each provided by httr package.
 #' @param bUploadedFiles boolean, files have been uploaded.
 #' @export
 StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
@@ -114,7 +114,7 @@ StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
 #' @description Get GitHub asset route data command-line variables.
 #' @param sRepo string (out param): GitHub repository name.
 #' @param sTag string (out param): GitHub repository tag.
-#' @param iTestWithFirstNAssets int (out param): only download first [iTestWithFirstNAssets] assets (for testing).
+#' @param iTestWithFirstNAssets int (out param): only download first number assets (for testing).
 #' @param sUploadSrcDirPath string (out param): source directory path to scan for uploading assets to GitHub.
 #' @param sDeployToRootDirPath string (out param): deployment directory path for downloading assets from GitHub.
 #' @param bOverwriteFilesOnDeploy bool (out param): overwrite files during deployment.
@@ -241,7 +241,7 @@ pb_upload_liverpool <- function(file,
 
     run <- utils::menu(
       choices = c("Yes", "No"),
-      title = glue::glue("Would you like to create a new release now?")
+      title = paste0("Would you like to create a new release now?")
     )
 
     if (run == 2) {
@@ -488,6 +488,6 @@ pb_download_liverpool <- function(file = NULL,
 
 ####################################################################################
 
-reassignInPackage("pb_upload", pkgName = "piggyback", pb_upload_liverpool)
-reassignInPackage("pb_upload_file", pkgName = "piggyback", pb_upload_file_liverpool)
-reassignInPackage("pb_download", pkgName = "piggyback", pb_download_liverpool)
+# reassignInPackage("pb_upload", pkgName = "piggyback", pb_upload_liverpool)
+# reassignInPackage("pb_upload_file", pkgName = "piggyback", pb_upload_file_liverpool)
+# reassignInPackage("pb_download", pkgName = "piggyback", pb_download_liverpool)
