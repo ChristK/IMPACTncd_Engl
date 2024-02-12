@@ -215,40 +215,53 @@ Simulation <-
         sDeployToRootDirPath <- ifelse(is.null(args$sDeployToRootDirPath), NULL, args$sDeployToRootDirPath)
         sUploadSrcDirPath <- ifelse(is.null(args$sUploadSrcDirPath), NULL, args$sUploadSrcDirPath)
         sToken <- ifelse(is.null(args$sToken), gh::gh_token(), args$sToken)
-        # Added repo information here as the function here is more accessible than `GetGitHubAssetRouteInfo` and required for pb_download as well
-        # set the GitHub repo
         sRepo <- "ChristK/IMPACTncd_Engl"
-        # sUploadSrcDirPath only in `GetGitHubAssetRouteInfo` (as this function used for upload and deploy) removed from `DeployGitHubAssets`
+
         GetGitHubAssetRouteInfo(sRepo = sRepo, sTag = sTag, iTestWithFirstNAssets,
                                 sDeployToRootDirPath = sDeployToRootDirPath,
                                 sUploadSrcDirPath = sUploadSrcDirPath,
-                                bOverwriteFilesOnDeploy = bOverwriteFilesOnDeploy, sToken = sToken)
+                                bOverwriteFilesOnDeploy = bOverwriteFilesOnDeploy,
+                                sToken = sToken)
+
         sDeployToRootDirPath <- TrimSlashes(sDeployToRootDirPath, bRidStartSlash = FALSE)
-        # get table which maps SANITISED to ORIGINAL filenames
-        sanitisedToOriginalFilePaths <- fread(file.path(sDeployToRootDirPath,
-                                                        "/auxil/filindx.csv"),
-                                              key = "orig_file")
-        if (iTestWithFirstNAssets != 0) { # if testing, only use first N assets
+
+        sanitisedToOriginalFilePaths <- fread(file.path(sDeployToRootDirPath, "/auxil/filindx.csv"), key = "orig_file")
+
+        if (iTestWithFirstNAssets != 0) {
           sanitisedToOriginalFilePaths <- sanitisedToOriginalFilePaths[1:iTestWithFirstNAssets, ]
         }
-        # create sub-directories below root directory
+
         subDirectoryPaths <- sapply(sanitisedToOriginalFilePaths$rel_dir, TrimSlashes)
-        sapply(file.path(sDeployToRootDirPath, unique(subDirectoryPaths)),
-               dir.create, showWarnings = FALSE, recursive = TRUE)
-        # download each Github asset into appropriate sub-directory
-        # OLD: finalAssetPaths<- file.path(sDeployToRootDirPath,subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file)
-        lsHttpResponses <- piggyback::pb_download(
-          file = sanitisedToOriginalFilePaths$sanit_file,
-          dest = file.path(sDeployToRootDirPath, subDirectoryPaths,
-                           sanitisedToOriginalFilePaths$orig_file),
-          repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
-          use_timestamps = FALSE, .token = sToken)
-        # 1. WARNING! confusing pb_download() behaviour: 'dest=' *directory* required for single asset; destination *filenames* required for multiple assets.
-        # 2. piggyback:: prefix necessary to use R.utils::reassignInPackage() injected code modification.
-        StopOnHttpFailure(lsHttpResponses, FALSE)
-        # OLD: restore original filename
-        # file.rename(finalAssetPaths, file.path(sDeployToRootDirPath,subDirectoryPaths,sanitisedToOriginalFilePaths$orig_file))
-        invisible(self)
+
+        sapply(file.path(sDeployToRootDirPath, unique(subDirectoryPaths)), dir.create, showWarnings = FALSE, recursive = TRUE)
+
+        all_files <- file.path(sDeployToRootDirPath, subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file)
+
+        if (!all(sapply(all_files, file.exists))) {
+          missing_files <- sanitisedToOriginalFilePaths$sanit_file[!file.exists(all_files)]
+          missing_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% missing_files)]
+          missing_sub_dirs <- subDirectoryPaths[which(sanitisedToOriginalFilePaths$sanit_file %in% missing_files)]
+
+          lsHttpResponses <- piggyback::pb_download(
+            file = missing_files,
+            dest = file.path(sDeployToRootDirPath, missing_sub_dirs, missing_orig_files),
+            repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
+            use_timestamps = FALSE, .token = sToken)
+
+          StopOnHttpFailure(lsHttpResponses, FALSE)
+        } else {
+          if (bOverwriteFilesOnDeploy) {
+            lsHttpResponses <- piggyback::pb_download(
+              file = sanitisedToOriginalFilePaths$sanit_file,
+              dest = file.path(sDeployToRootDirPath, subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file),
+              repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
+              use_timestamps = FALSE, .token = sToken)
+
+            StopOnHttpFailure(lsHttpResponses, FALSE)
+          } else {
+            print("All assets are already downloaded.")
+          }
+        }
       },
 
       # run ----
@@ -258,7 +271,6 @@ Simulation <-
       #' @param multicore If TRUE run the simulation in parallel.
       #' @param scenario_nam A string for the scenario name (i.e. sc1)
       #' @return The invisible self for chaining.
-
       run = function(mc, multicore = TRUE, scenario_nam) {
 
         if (!is.integer(mc)) stop("mc need to be an integer")
