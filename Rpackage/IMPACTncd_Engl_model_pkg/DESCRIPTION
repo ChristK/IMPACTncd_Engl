@@ -19,6 +19,7 @@ Imports:
     dqrng,
     CKutils,
     gamlss,
+    BH,
     cowplot,
     mc2d,
     digest,
@@ -27,8 +28,6 @@ Imports:
     foreach,
     igraph,
     gh,
-    str,
-    chooseCRANmirror,
     piggyback (>= 0.1.5)
 Suggests: 
     knitr,

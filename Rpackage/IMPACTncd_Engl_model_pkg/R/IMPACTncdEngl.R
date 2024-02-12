@@ -28,7 +28,8 @@
 #
 #' @docType package
 #' @author Chris Kypridemos
-#' @import Rcpp R6 data.table CKutils piggyback stats utils chooseCRANmirror str
+#' @import Rcpp R6 data.table CKutils piggyback stats
+#' @importFrom utils chooseCRANmirror str
 #' @importFrom R6 R6Class
 #' @importFrom Rcpp evalCpp
 #' @importFrom fst read_fst
