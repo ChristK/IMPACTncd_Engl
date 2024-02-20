@@ -127,7 +127,6 @@ Design <-
         # Reorder the diseases so dependencies are always calculated first
         # (topological ordering). This is crucial for init_prevalence
         # first name the list and
-
         sim_prm$diseases <-
           setNames(sim_prm$diseases, sapply(sim_prm$diseases, function(x)
             x$name))
@@ -165,7 +164,6 @@ Design <-
         o <- topo_sort(g)
 
         # then reorder based on the topological ordering
-
         sim_prm$diseases <- sim_prm$diseases[order(match(names(sim_prm$diseases), names(o)))]
 
 

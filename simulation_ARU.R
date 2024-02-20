@@ -156,6 +156,3 @@ IMPACTncd$
 source("./auxil/process_out_for_HF.R")
 if(IMPACTncd$design$sim_prm$validation)source("./auxil/CPRD_sim_validation_plots_CK.R")
 # Bus error (core dumped)
-
-
-## file indx and what is already installed
