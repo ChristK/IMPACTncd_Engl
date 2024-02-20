@@ -25,17 +25,6 @@ setOptions_for_repo <- function() {
 }
 setOptions_for_repo()
 
-# temporary fix: R.utils::reassignInPackage() used to inject our revised functions (see below) into the [piggyback] package, prior to their expected adoption by the piggyback team
-if (!require(R.utils)) {
-  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
-  install.packages("R.utils", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
-  library(R.utils)
-}
-if (!require(yaml)) {
-  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
-  install.packages("yaml", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
-  library(yaml)
-}
 if (!require(piggyback)) {
   if (!nzchar(system.file(package = "pak"))) install.packages("pak")
   dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
@@ -46,6 +35,18 @@ if (!require(data.table)) {
   dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
   pak::pkg_install("data.table", lib = Sys.getenv("R_LIBS_USER"))
   library(data.table)
+}
+
+# temporary fix: R.utils::reassignInPackage() used to inject our revised functions (see below) into the [piggyback] package, prior to their expected adoption by the piggyback team
+if (!require(R.utils)) {
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  install.packages("R.utils", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
+  library(R.utils)
+}
+if (!require(yaml)) {
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  install.packages("yaml", lib = Sys.getenv("R_LIBS_USER"), repos = "https://cran.rstudio.com/")
+  library(yaml)
 }
 
 #' Trim slashes
@@ -79,7 +80,7 @@ HttpHeaderNamesAndValues <- function(httpResponse) {
   return(sHeaders)
 }
 
-#' Stop on HTTP failure
+#' Stop on failure
 #' @description Stop if get HTTP response indicating missing file or unexpected file size.
 #' @param lsHttpResponses List of HTTP response objects, each provided by httr package.
 #' @param bUploadedFiles boolean, files have been uploaded.
@@ -111,10 +112,10 @@ StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
 }
 
 #' Find GitHub assets route information
-#' @description Get GitHub asset route data command-line variables.
-#' @param sRepo string (out param): GitHub repository name.
-#' @param sTag string (out param): GitHub repository tag.
-#' @param iTestWithFirstNAssets int (out param): only download first number assets (for testing).
+#' @description Get GitHub asset route data from command-line variables.
+#' @param sRepo string (out param) GitHub repository name.
+#' @param sTag string (out param) GitHub repository tag.
+#' @param iTestWithFirstNAssets int (out param): only download first m assets (for testing).
 #' @param sUploadSrcDirPath string (out param): source directory path to scan for uploading assets to GitHub.
 #' @param sDeployToRootDirPath string (out param): deployment directory path for downloading assets from GitHub.
 #' @param bOverwriteFilesOnDeploy bool (out param): overwrite files during deployment.
@@ -184,6 +185,7 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
 ####################################################################################
 
 # Upload data to an existing release
+# NOTE: you must first create a release if one does not already exists.
 # @param file path to file to be uploaded
 # @param repo Repository name in format "owner/repo". Defaults to `guess_repo()`.
 # @param tag  tag for the GitHub release to which this data should be attached.
@@ -212,8 +214,7 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
 #                                 name = NULL,
 #                                 overwrite = "use_timestamps",
 #                                 use_timestamps = NULL,
-#                                 show_progress = getOption("piggyback.verbose",
-#                                                           default = interactive()),
+#                                 show_progress = getOption("piggyback.verbose", default = interactive()),
 #                                 .token = gh::gh_token(),
 #                                 dir = NULL) {
 #   stopifnot(
@@ -377,6 +378,7 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
 # }
 
 # Download data from an existing release
+#
 # @param file name or vector of names of files to be downloaded. If `NULL`,
 # all assets attached to the release will be downloaded.
 # @param dest name of vector of names of where file should be downloaded.
@@ -386,6 +388,7 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
 #  default `TRUE`.
 # @param ignore a list of files to ignore (if downloading "all" because
 #  `file=NULL`).
+# @inheritParams pb_upload
 #
 # @export
 # @examples \dontrun{
@@ -403,7 +406,6 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
 #   dest = tempdir()
 # )
 # }
-# @inheritParams pb_upload
 # pb_download_liverpool <- function(file = NULL,
 #                                   dest = ".",
 #                                   repo = guess_repo(),
@@ -485,7 +487,7 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
 #   })
 #   return(invisible(resp))
 # }
-#
+
 ####################################################################################
 
 # reassignInPackage("pb_upload", pkgName = "piggyback", pb_upload_liverpool)

@@ -2,6 +2,7 @@
 % Please edit documentation in R/IMPACTncdEngl.R
 \docType{package}
 \name{IMPACTncdEngl}
+\alias{-package}
 \alias{IMPACTncdEngl}
 \alias{.datatable.aware}
 \title{IMPACTncdEngl: A package with functions for the IMPACTncdEngl model.}

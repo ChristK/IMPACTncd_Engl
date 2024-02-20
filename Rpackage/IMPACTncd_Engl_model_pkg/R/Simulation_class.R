@@ -256,12 +256,12 @@ Simulation <-
               dest = file.path(sDeployToRootDirPath, subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file),
               repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
               use_timestamps = FALSE, .token = sToken)
-
             StopOnHttpFailure(lsHttpResponses, FALSE)
           } else {
             print("All assets are already downloaded.")
           }
         }
+       invisible(self)
       },
 
       # run ----
@@ -271,6 +271,7 @@ Simulation <-
       #' @param multicore If TRUE run the simulation in parallel.
       #' @param scenario_nam A string for the scenario name (i.e. sc1)
       #' @return The invisible self for chaining.
+
       run = function(mc, multicore = TRUE, scenario_nam) {
 
         if (!is.integer(mc)) stop("mc need to be an integer")
