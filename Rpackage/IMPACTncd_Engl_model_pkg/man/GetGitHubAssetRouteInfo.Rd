@@ -15,9 +15,9 @@ GetGitHubAssetRouteInfo(
 )
 }
 \arguments{
-\item{sRepo}{string (out param): GitHub repository name.}
+\item{sRepo}{string (out param) GitHub repository name.}
 
-\item{sTag}{string (out param): GitHub repository tag.}
+\item{sTag}{string (out param) GitHub repository tag.}
 
 \item{sUploadSrcDirPath}{string (out param): source directory path to scan for uploading assets to GitHub.}
 
@@ -27,8 +27,8 @@ GetGitHubAssetRouteInfo(
 
 \item{sToken}{string (in|out param): GitHub personal access token (PAT).}
 
-\item{iTestWithFirstNAssets}{int (out param): only download first number assets (for testing).}
+\item{iTestWithFirstNAssets}{int (out param): only download first m assets (for testing).}
 }
 \description{
-Get GitHub asset route data command-line variables.
+Get GitHub asset route data from command-line variables.
 }

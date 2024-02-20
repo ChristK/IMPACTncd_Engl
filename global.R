@@ -102,13 +102,12 @@ library(IMPACTncdEngl)
 
 ####################################################################################
 ## Fix: Added this to update .Random.seed / seed only for Windows.
-## Run these two lines shown below for the first time and then we clear the work
+## Run these two lines of code shown below for the first time and then we clear the work
 ## space using `rm(list = ls(all = TRUE))` after which we run these two lines again we get the error mentioned
-## so to reproduce it remove this line fo code `runif(1)`
+## so to reproduce it remove this line of code `runif(1)`
 # source("global.R")
 # IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 ## Error generated otherwise (without the code below): Error in get(".Random.seed", .GlobalEnv) :
 ## object '.Random.seed' not found
 ####################################################################################
 runif(1)
-

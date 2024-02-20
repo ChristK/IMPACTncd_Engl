@@ -2,7 +2,7 @@
 % Please edit documentation in R/ghAssetUtils.R
 \name{StopOnHttpFailure}
 \alias{StopOnHttpFailure}
-\title{Stop on HTTP failure}
+\title{Stop on failure}
 \usage{
 StopOnHttpFailure(lsHttpResponses, bUploadedFiles)
 }
