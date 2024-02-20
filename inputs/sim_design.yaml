@@ -1,5 +1,5 @@
 sTag: 'v0.0.5'
-bOverwriteFilesOnDeploy: FALSE # 1 - T and 0 or any other no - F change it and add it in sim_design.yaml
+bOverwriteFilesOnDeploy: FALSE # i - T and 0 or any other no - F change it and add it in sim_design.yaml
 sDeployToRootDirPath: D:/Dropbox/ILKConsultancy/IMPACTncd_Engl # ARU changed
 sUploadSrcDirPath: D:/Dropbox/ILKConsultancy/IMPACTncd_Engl # ARU changed
 sToken: ~ # NULL
