@@ -177,6 +177,9 @@ GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRoo
   stop(paste0("Failed finding GitHub asset route data"))
 }
 
+
+## This redefined functions are currently required for the package otherwise the files to be downloaded are not downloaded properly.
+
 ####################################################################################
 # Temporary fix: below revised [piggyback] package functions injected into this package,
 #  prior to the expected adoption of these functions by the piggyback team.
