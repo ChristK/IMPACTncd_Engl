@@ -1974,7 +1974,7 @@ Disease <-
             ff[, fruit_curr_xps :=
               my_qZISICHEL(rank_fruit,
                 mu, sigma, nu, tau,
-                n_cpu = design_$sim_prm$n_cpu
+                n_cpu = 1L
               ) * 80L] # g/d
             ff[, (col_nam) := NULL]
             ff[, rank_fruit := NULL]
@@ -1992,7 +1992,7 @@ Disease <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
             lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             ff[, veg_curr_xps :=
-              my_qDEL(rank_veg, mu, sigma, nu, n_cpu = design_$sim_prm$n_cpu) * 80L] # g/d
+              my_qDEL(rank_veg, mu, sigma, nu, n_cpu = 1L) * 80L] # g/d
             ff[, (col_nam) := NULL]
             ff[, rank_veg := NULL]
             ff[, year := year + lag]
@@ -2111,7 +2111,7 @@ Disease <-
                 sigma,
                 nu,
                 tau,
-                n_cpu = design_$sim_prm$n_cpu
+                n_cpu = 1L
               )
             ]
             ff[, (col_nam) := NULL]
@@ -2187,7 +2187,7 @@ Disease <-
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
             lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
-            ff[, bmi_curr_xps := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            ff[, bmi_curr_xps := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = 1L)]
             ff[, rank_bmi := NULL]
             ff[, (col_nam) := NULL]
             ff[, year := year + lag]
@@ -2208,7 +2208,7 @@ Disease <-
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
             lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
-            ff[, sbp_curr_xps := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            ff[, sbp_curr_xps := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = 1L)]
             ff[, rank_sbp := NULL]
             ff[, (col_nam) := NULL]
             ff[, year := year + lag]
@@ -2227,7 +2227,7 @@ Disease <-
             col_nam <-
               setdiff(names(tbl), intersect(names(ff), names(tbl)))
             lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
-            ff[, tchol_curr_xps := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            ff[, tchol_curr_xps := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = 1L)]
             ff[, rank_tchol := NULL]
             ff[, (col_nam) := NULL]
 
