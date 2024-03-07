@@ -127,9 +127,11 @@ in a specified directory structure.
 
 \item{\code{sDeployToRootDirPath}}{Path to the root directory for deployment (default: NULL).}
 
-\item{\code{bOverwriteFilesOnDeploy}}{Logical indicating whether to overwrite existing files on deployment (default: FALSE).}
+\item{\code{bOverwriteFilesOnDeploy}}{Logical indicating whether to overwrite existing files on deployment (default: NULL).}
 
 \item{\code{sUploadSrcDirPath}}{Path to the source directory for upload (default: NULL).}
+
+\item{\code{simulation_files_overwrite}}{Logical indication whether to overwrite simulation folder files (default: NULL).}
 }
 \if{html}{\out{</div>}}
 }
