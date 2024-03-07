@@ -60,6 +60,7 @@ Design <-
         # Validation
         stopifnot(
           c(
+            "simulation_files_overwrite",
             "sTag"                   ,
             "bOverwriteFilesOnDeploy",
             "sDeployToRootDirPath"  ,
