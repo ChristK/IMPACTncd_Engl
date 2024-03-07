@@ -1,3 +1,4 @@
+simulation_files_overwrite: FALSE
 sTag: 'v0.0.5'
 bOverwriteFilesOnDeploy: FALSE # i - T and 0 or any other no - F change it and add it in sim_design.yaml
 sDeployToRootDirPath: D:/GitHub/IMPACTncd_Engl # ARU changed

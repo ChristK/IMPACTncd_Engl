@@ -67,6 +67,7 @@ Simulation <-
         )
 
         deployArgs <- list(
+          simulation_files_overwrite = self$design$sim_prm$simulation_files_overwrite,
           sTag = self$design$sim_prm$sTag,
           bOverwriteFilesOnDeploy = self$design$sim_prm$bOverwriteFilesOnDeploy,
           sDeployToRootDirPath = self$design$sim_prm$sDeployToRootDirPath,
@@ -203,13 +204,15 @@ Simulation <-
       #' @param sRepo GitHub repository (default: NULL).
       #' @param sTag GitHub tag or release (default: NULL).
       #' @param sDeployToRootDirPath Path to the root directory for deployment (default: NULL).
-      #' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: FALSE).
+      #' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: NULL).
       #' @param sUploadSrcDirPath Path to the source directory for upload (default: NULL).
+      #' @param simulation_files_overwrite Logical indication whether to overwrite simulation folder files (default: NULL).
       #' @param args a list of the above specified parameters
       #'
       #' @return Invisible self for chaining
       #' @export
       DeployGitHubAssets = function(args = NULL) {
+        simulation_files_overwrite <- ifelse(is.null(args$simulation_files_overwrite), NULL, args$simulation_files_overwrite)
         sTag <- ifelse(is.null(args$sTag), NULL, args$sTag)
         bOverwriteFilesOnDeploy <- ifelse(is.null(args$bOverwriteFilesOnDeploy), NULL, args$bOverwriteFilesOnDeploy)
         sDeployToRootDirPath <- ifelse(is.null(args$sDeployToRootDirPath), NULL, args$sDeployToRootDirPath)
@@ -237,6 +240,23 @@ Simulation <-
 
         all_files <- file.path(sDeployToRootDirPath, subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file)
 
+        simulation_file_paths <- grepl("simulation/", subDirectoryPaths)
+        simulation_file_paths_non_NA <- !is.null(simulation_file_paths) && length(simulation_file_paths) > 0
+
+        if (simulation_file_paths_non_NA && simulation_files_overwrite) {
+          simulation_files <- sanitisedToOriginalFilePaths$sanit_file[simulation_file_paths]
+          simulation_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% simulation_files)]
+          simulation_sub_dirs <- subDirectoryPaths[which(sanitisedToOriginalFilePaths$sanit_file %in% simulation_files)]
+          lsHttpResponses <- piggyback::pb_download(
+            file = simulation_files,
+            dest = file.path(sDeployToRootDirPath, simulation_sub_dirs, simulation_orig_files),
+            repo = sRepo, tag = sTag, overwrite = TRUE,
+            use_timestamps = FALSE, .token = sToken)
+          StopOnHttpFailure(lsHttpResponses, FALSE)
+        } else {
+          print("Did not overwrite simulation asssets.")
+        }
+
         if (!all(sapply(all_files, file.exists))) {
           missing_files <- sanitisedToOriginalFilePaths$sanit_file[!file.exists(all_files)]
           missing_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% missing_files)]
@@ -258,10 +278,10 @@ Simulation <-
               use_timestamps = FALSE, .token = sToken)
             StopOnHttpFailure(lsHttpResponses, FALSE)
           } else {
-            print("All assets are already downloaded.")
+            print("The assets are downloaded.")
           }
         }
-       invisible(self)
+        invisible(self)
       },
 
       # run ----
