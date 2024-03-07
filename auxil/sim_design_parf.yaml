@@ -1,7 +1,6 @@
 iteration_n: 5
 iteration_n_final: 100
 clusternumber: 10 # explicit parallelisation
-n_cpus: 1 # implicit parallelisation
 logs: yes
 export_xps: no
 keep_lifecourse: yes
