@@ -243,7 +243,7 @@ Simulation <-
         simulation_file_paths <- grepl("simulation/", subDirectoryPaths)
         simulation_file_paths_non_NA <- !is.null(simulation_file_paths) && length(simulation_file_paths) > 0
 
-        if (simulation_file_paths_non_NA && simulation_files_overwrite) {
+        if (simulation_file_paths_non_NA && simulation_files_overwrite == "yes") {
           simulation_files <- sanitisedToOriginalFilePaths$sanit_file[simulation_file_paths]
           simulation_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% simulation_files)]
           simulation_sub_dirs <- subDirectoryPaths[which(sanitisedToOriginalFilePaths$sanit_file %in% simulation_files)]
