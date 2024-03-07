@@ -1,4 +1,4 @@
-source("./global.R")
+source("global.R")
 
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
