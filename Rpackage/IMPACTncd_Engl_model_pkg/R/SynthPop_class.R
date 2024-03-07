@@ -669,8 +669,8 @@ SynthPop <-
           .export = NULL,
           .noexport = NULL # c("time_mark")
         ) %dopar% {
-          data.table::setDTthreads(private$design$sim_prm$n_cpus)
-          fst::threads_fst(private$design$sim_prm$n_cpus)
+          # data.table::setDTthreads(private$design$sim_prm$n_cpus)
+          # fst::threads_fst(private$design$sim_prm$n_cpus)
           filename <-
             private$gen_synthpop_filename(mc_iter,
                                           private$checksum,
