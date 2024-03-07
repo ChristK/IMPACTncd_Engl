@@ -1597,7 +1597,7 @@ set_social <- function(scenario_parms, dt, design) {
                                   sigma,
                                   nu,
                                   tau,
-                                  n_cpu = design$sim_prm$n_cpu)]
+                                  n_cpu = 1L)]
 
       simsmok_cig_sc(dt, row_sel) # carry forward smok_cig if smok_status == 3
       dt[smok_cig_sc == 0L & smok_status_sc != "1", smok_cig_sc := 1L]
@@ -1645,7 +1645,7 @@ set_social <- function(scenario_parms, dt, design) {
                         sigma,
                         nu,
                         tau,
-                        n_cpu = design$sim_prm$n_cpu)]
+                        n_cpu = 1L)]
       # rn not uniformly distributed because it is discrete distr. That's expected
       # and without consequences.
 
@@ -1653,7 +1653,7 @@ set_social <- function(scenario_parms, dt, design) {
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, fruit_sc :=
            my_qZISICHEL(rank,
-                        mu, sigma, nu, tau, n_cpu = design$sim_prm$n_cpu) * 80L]  # g/d
+                        mu, sigma, nu, tau, n_cpu = 1L) * 80L]  # g/d
 
       lutbl <-
         read_fst("./inputs/exposure_distributions/vegpor_table.fst",
@@ -1661,13 +1661,13 @@ set_social <- function(scenario_parms, dt, design) {
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, rank :=
            my_pDEL(veg_curr_xps / 80,
-                   mu, sigma, nu, n_cpu = design$sim_prm$n_cpu)]
+                   mu, sigma, nu, n_cpu = 1L)]
 
       setnames(lutbl, "qimd", "qimd_sc")
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, veg_sc :=
            my_qDEL(rank,
-                   mu, sigma, nu, n_cpu = design$sim_prm$n_cpu) * 80L]  # g/d
+                   mu, sigma, nu, n_cpu = 1L) * 80L]  # g/d
     }
 
     # alcohol ----
@@ -1738,12 +1738,12 @@ set_social <- function(scenario_parms, dt, design) {
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, rank :=
            my_pBCPEo(bmi_curr_xps, mu, sigma, nu, tau,
-                     n_cpu = design$sim_prm$n_cpu)]
+                     n_cpu = 1L)]
 
       setnames(lutbl, "qimd", "qimd_sc")
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, bmi_sc :=
-           my_qBCPEo(rank, mu, sigma, nu, tau, n_cpu = design$sim_prm$n_cpu)]
+           my_qBCPEo(rank, mu, sigma, nu, tau, n_cpu = 1L)]
     }
 
     # sbp ----
@@ -1756,12 +1756,12 @@ set_social <- function(scenario_parms, dt, design) {
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, rank :=
            my_pBCPEo(sbp_curr_xps, mu, sigma, nu, tau,
-                     n_cpu = design$sim_prm$n_cpu)]
+                     n_cpu = 1L)]
 
       setnames(lutbl, "qimd", "qimd_sc")
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, sbp_sc :=
-           my_qBCPEo(rank, mu, sigma, nu, tau, n_cpu = design$sim_prm$n_cpu)]
+           my_qBCPEo(rank, mu, sigma, nu, tau, n_cpu = 1L)]
     }
 
     # tchol ----
@@ -1774,12 +1774,12 @@ set_social <- function(scenario_parms, dt, design) {
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, rank :=
            my_pBCT(tchol_curr_xps, mu, sigma, nu, tau,
-                   n_cpu = design$sim_prm$n_cpu)]
+                   n_cpu = 1L)]
 
       setnames(lutbl, "qimd", "qimd_sc")
       lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
       dt[row_sel, tchol_sc :=
-           my_qBCT(rank, mu, sigma, nu, tau, n_cpu = design$sim_prm$n_cpu)]
+           my_qBCT(rank, mu, sigma, nu, tau, n_cpu = 1L)]
 
       dt[, c("mu", "sigma", "nu", "tau", "rank") := NULL]
     }

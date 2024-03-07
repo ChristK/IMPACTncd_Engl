@@ -391,7 +391,6 @@ pb_upload_file_liverpool <- function(file,
 #'  default `TRUE`.
 #' @param ignore a list of files to ignore (if downloading "all" because
 #'  `file=NULL`).
-#' @inheritParams pb_upload
 #'
 #' @export
 #' @examples \dontrun{
@@ -409,6 +408,7 @@ pb_upload_file_liverpool <- function(file,
 #'   dest = tempdir()
 #' )
 #' }
+# @inheritParams pb_upload
 pb_download_liverpool <- function(file = NULL,
                                   dest = ".",
                                   repo = guess_repo(),
