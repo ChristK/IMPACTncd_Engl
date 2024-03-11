@@ -73,7 +73,8 @@ In the above, we use the chain syntax using $, which is equivalent to
 ```{r, run-another-simulation, eval = FALSE}
 IMPACTncd$del_logs()
 IMPACTncd$del_outputs()
-IMPACTncd$run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")  IMPACTncd$export_summaries(multicore = FALSE)
+IMPACTncd$run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")
+IMPACTncd$export_summaries(multicore = FALSE)
 ```
 
 Note in the arguments for the `run()`, we have selected the number of Monte Carlo iterations to be 2  (mc = 1:2). This is OK for a test run, but in reality, you would like to run at least 100 iterations (i.e. mc = 1:100) in production. If, at a later point, you would like to run 100 more iterations additionally, then you could do `IMPACTncd$run(mc = 101:200, multicore = FALSE, scenario_nam = "sc0")` without deleting the existing output (i.e. do not run `IMPACTncd$del_outputs()`). 
@@ -88,7 +89,7 @@ knitr::include_graphics("img/output_folder.jpg")
 
 #### How to remove IMPACTncd_Engl installed package 
 
-1. The first and foremost we need to permanently delete the files from the project folder of `IMPACTncd_Engl` which can be identified from in `inputs/sim_design.yaml` : `RootDirPath.` 
+1. First and foremost we need to permanently delete the files from the project folder of `IMPACTncd_Engl` which can be identified from in `inputs/sim_design.yaml` : `RootDirPath.` 
 2. Then we need to permanently delete the output and synthpop folder as mentioned in `inputs/sim_design.yaml` : `output_dir` and `synthpop_dir`. 
 3. Finally delete the `IMPACTncd_Engl` folder / package  from `R/library` and the file inside `_cache` folder in the `R/library`.  
 
