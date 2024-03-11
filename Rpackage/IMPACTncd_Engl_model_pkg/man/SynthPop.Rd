@@ -321,7 +321,7 @@ The invisible \code{SynthPop} object.
 \if{html}{\out{<a id="method-SynthPop-gen_synthpop_demog"></a>}}
 \if{latex}{\out{\hypertarget{method-SynthPop-gen_synthpop_demog}{}}}
 \subsection{Method \code{gen_synthpop_demog()}}{
-Generate synthpop sociodemographics, random sample of the population.
+Generate synthpop sociodemographics for a random sample of the population in the initial year.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SynthPop$gen_synthpop_demog(design_, month = "April")}\if{html}{\out{</div>}}
 }

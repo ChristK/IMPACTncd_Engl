@@ -36,5 +36,5 @@ LinkingTo: Rcpp,
            sitmo,
            BH,
            data.table
-RoxygenNote: 7.3.0
+RoxygenNote: 7.3.1
 VignetteBuilder: knitr

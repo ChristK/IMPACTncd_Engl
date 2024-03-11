@@ -72,6 +72,10 @@ lookup_dt(sp$pop, e, check_lookup_tbl_validity = design$sim_prm$logs)
 setnafill(sp$pop, "const", 1, cols = "mrtl_clbr")
 rm(e)
 
+# self <- sp$.__enclos_env__$self
+# private <- sp$.__enclos_env__$private
+# dt <- copy(sp$pop)
+
 # diseases$ckd$gen_parf(sp, design)
 
 # nn <- "chd"
@@ -523,3 +527,46 @@ f[year == 13, sum(mu)]
 f[, sum(pain_prvl == 1L), keyby = year]
 
 
+library(data.table)
+f1 <- fread("/mnt/storage_fast/output/hf_real1m/tables/pop size by year-agegrp-sex-dimd (not standardised).csv")
+f2 <- fread("/mnt/storage_fast/output/hf_real200000/tables/pop size by year-agegrp-sex-dimd (not standardised).csv")
+names(f1)
+f1[f2, on = c("scenario", "year", "agegrp", "sex", "dimd"), hist(`pop_size_50.0%`/`i.pop_size_50.0%`)]
+f1[, sum(`pop_size_50.0%`), keyby = year][, plot(year, V1)]
+
+f1 <- fread("/mnt/storage_fast/output/hf_real20000/tables/prevalence by year-agegrp-sex-dimd (not standardised).csv")
+f2 <- fread("/mnt/storage_fast/output/hf_real20000/tables/prevalence by year-agegrp-sex-dimd (not standardised).csv")
+names(f1)
+f1[f2, on = c("scenario", "year", "agegrp", "sex", "dimd", "disease"), hist(`prvl_rate_50.0%`/`i.prvl_rate_50.0%`)]
+
+
+
+
+
+
+
+
+tt <- read_fst("./inputs/pop_projections/national_proj.fst", as.data.table = TRUE)
+ttt <- read_fst("./inputs/pop_estimates_lsoa/national_pop_est.fst", as.data.table = TRUE)
+tt <- rbind(ttt, tt)
+tt[age > 99, age := 99L]
+tt <- tt[age >= 30L, .(pops = sum(pops)), keyby = .(year, age, sex)]
+
+f <- list.files("/mnt/storage_fast/HF_first_report/lifecourse", full.names = T)
+f <- paste0("/mnt/storage_fast/HF_first_report/lifecourse/", 121:200, "_lifecourse.csv.gz")
+x <- f[[100]]
+lapply(f, function(x) {
+    print(x)
+    l <- invisible(fread(x))
+    setnames(l, "wt", "wt_old")
+    l[, spop := .N, by = .(year, age, sex, scenario)] # these include dead
+    l[tt, on = c("year", "age", "sex"), pops := i.pops]
+    l[scenario == "sc0", wt := pops/spop]
+    # l[scenario == "sc0", uniqueN(wt), by = .(year, age, sex, scenario)][, table(V1)]
+    ttt <- l[scenario == "sc0", unique(wt), by = .(year, age, sex)]
+    l[ttt, on = c("year", "age", "sex"), wt := V1]
+    l[, c("spop", "pops") := NULL]
+    setkey(l, scenario, pid, year)
+    fwrite(l, x)
+    NULL
+})
