@@ -2,7 +2,7 @@
 % Please edit documentation in R/aux_functions.R
 \name{sysLoad}
 \alias{sysLoad}
-\title{Get the Recent System Load}
+\title{Function for Linux}
 \usage{
 sysLoad()
 }
@@ -12,11 +12,10 @@ A named numeric vector with five non-negative elements \verb{1min},
 The first values represent estimates of the CPU load during the last
 minute, the last five minutes, and the last fifteen minutes [1]. An idle
 system have values close to zero, and a heavily loaded system have values
-near one`. If they are unknown, missing values are returned. Only works for
-Linux systems.
+near one`.
 }
 \description{
-Get the Recent System Load
+Function for Linux
 }
 \details{
 This function works only Unix-like system with \file{/proc/loadavg}. It is

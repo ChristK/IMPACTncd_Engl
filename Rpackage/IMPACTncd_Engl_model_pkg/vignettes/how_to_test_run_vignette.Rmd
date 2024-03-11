@@ -1,0 +1,95 @@
+---
+title: "How to run a test of IMPACTncd_Engl"
+author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
+date: "11 March, 2024"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{How to run a test of IMPACTncd_Engl}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Two main files are used to run IMPACTncd_Engl: 
+
+- `simulation.R `- deploys assets, sets the parameters for the baseline and alternative scenarios, including number of iterations to be run. 
+
+- `sim_design.yaml` - sets the overall parameters for deploying assets in the local system, the simulation, including the location to store outputs, the characteristics and size of the synthetic population to be simulated, and some computing specifications (e.g. number of processors, compiling of files etc.)
+
+The steps to follow for running the simulation is as shown below -
+
+1. Open `simulation.R` run the `global.R` file using the code
+
+```{r, run-global-r, eval = FALSE}
+source("global.R")
+```
+
+2. To install certain large data files that are necessary for the simulation, stored as GitHub repo assets. A design file `inputs/sim_design.yaml` holds details that ease asset installation. Open `inputs/sim_design.yaml` with any text editor. There are a few parameters to check and/or change in the configuration of this file:
+
+- `locality` is the population you would like to simulate. The default is England, which will simulate a representative sample of the English population. Users can set this to subnational populations for Local Authorities, Integrated Care Boards, and Regions. Users can find the exact names to use for these localities in the file `./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst`   (column "LAD17NM" for Local Authorities, "RGN11NM" for Regions, and "ICB22NM" for Integrated Care Boards)
+- `clusternumber` is the number of processing cores used for parallelization in the simulation. As a rule of thumb, you need about 10 GB of free RAM per core. That is if you plan to utilise 8 cores, you need about 80Gb of free RAM in your system. For Windows, check - [Find out how many cores your processor has - Microsoft Support](https://support.microsoft.com/en-us/windows/find-out-how-many-cores-your-processor-has-3126ef99-0247-33b3-81fc-065e9fb0c35b#:~:text=Press%20Ctrl%20%2B%20Shift%20%2B%20Esc%20to,logical%20processors%20your%20PC%20has), for other systems, this link may be helpful [How Many Cores Do I Have?](https://www.hivelocity.net/kb/how-many-cores-do-i-have/#:~:text=While%20there%20are%20many%20methods,is%20using%20the%20lscpu%20command)
+- `clusternumber_export` number of processing cores used for parallelization for exporting summaries. Currently, exporting the summary files may use more memory than running the simulation, so this may need to be lower than `clusternumber`
+- `logs` type “yes” if you need to save logs (recommended for test runs). The logs are stored in the output folder, in the subfolder ‘logs’
+- `n` is the number of individuals we want to use in the simulation (for test runs, recommended > 1000 e.g., 1500)
+- `n_synthpop_aggregation` is the number of synthpops to aggregate together. This can be a smaller value for a test run eg - 2. The sample size for each simulation is n x n_synthpop_aggregation. Therefore, If you use n = 20,000 and n_synthpop_aggregation = 10, you will be simulating a cohort of 200,000 synthetic individuals (which is the default and suitable for most simulations)
+- `sim_horizon_max` is the final projection year for the simulation. Currently, this cannot be earlier than 2013 and later than 2043 due to the availability of exposure data informing the simulation and available ONS population projections
+- `output_dir` is the absolute path to the output folder, e.g., `D:/IMPACTncd_Engl/output/hf_real` for Windows or `/output/hf_real` for Linux. This folder can grow to hundreds of GB.  If the folder doesn't exist, it is created automatically during the simulation, and it can be in a different location outside the root folder of the model.
+- `synthpop_dir` is the absolute path to the synthpop folder, e.g. `D:/IMPACTncd_Engl/synthpop/hf_real` for Windows or `/synthpop/hf_real` for Linux. This is where the synthpop files are stored for efficiency after the first simulation run. This folder can grow to hundreds of GB. If the folder doesn't exist, it is created automatically during the simulation, and it can be in a different location outside the root folder of the model.
+- `sTag` is the version of the assets latest being v0.0.5 (as of March 2024)
+- `bOverwriteFilesOnDeploy` is an option to overwrite existing files, which will either be `no` or `yes` 
+- `RootDirectory` is an absolute path in your system, i.e., *C:/IMPACTncd_Engl* on Windows, or */IMPACTncd_Engl* on Linux. This path should be the root directory where the model will be deployed. You need at least 25 GB of free disk available
+- `sToken` should be the specific GitHub token for this project (ensure your system is protected as this token should be private) else we can keep it as NULL as this will use the token generated in the installation document [here](https://github.com/adithirgis/IMPACTncd_Engl?tab=readme-ov-file#opening-a-github-account).
+
+*All other parameters in the YAML file can be unchanged for day-to-day use and are only to be used by developers and advanced users.*
+
+If any of the `locality`, `n`, `n_synthpop_aggregation`, and `sim_horizon_max` parameters in this file are changed, it is recommended that you delete the existing output and synthpop folders and then run the code from here again.
+
+3. Once `inputs/sim_design.yaml` is configured and saved, we can run this using the code below, which creates an object of the Simulation class that holds the simulation environment for the simulation
+
+```{r, create-simulation-constructor, eval = FALSE}
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+```
+
+Note that you can have multiple yaml files with different configurations, and you can call them at will, depending on your needs.
+
+4. Now, we can run a baseline scenario for which we need to define  `scenario_fn_primary_prevention` and `scenario_fn_secondary_prevention` using the code below. The baseline scenario is a crucial step to run before starting to use different scenarios
+
+```{r, scenario-null, eval = FALSE}
+scenario_fn_primary_prevention   <- function(sp) NULL
+scenario_fn_secondary_prevention <- function(sp) NULL
+```
+
+5. To run a baseline scenario, run the following chunk of code, which deletes everything inside the existing output and log folders, runs a new baseline scenario from scratch and summarises the results of the simulation. 
+
+```{r, run-simulation, eval = FALSE}
+IMPACTncd$
+  del_logs()$
+  del_outputs()$
+  run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")$
+  export_summaries(multicore = FALSE)
+```
+
+In the above, we use the chain syntax using $, which is equivalent to
+
+```{r, run-another-simulation, eval = FALSE}
+IMPACTncd$del_logs()
+IMPACTncd$del_outputs()
+IMPACTncd$run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")
+IMPACTncd$export_summaries(multicore = FALSE)
+```
+
+Note in the arguments for the `run()`, we have selected the number of Monte Carlo iterations to be 2  (mc = 1:2). This is OK for a test run, but in reality, you would like to run at least 100 iterations (i.e. mc = 1:100) in production. If, at a later point, you would like to run 100 more iterations additionally, then you could do `IMPACTncd$run(mc = 101:200, multicore = FALSE, scenario_nam = "sc0")` without deleting the existing output (i.e. do not run `IMPACTncd$del_outputs()`). 
+
+We have also selected `multicore = FALS`E here so that parallel processing is not used. This slows down the simulation, but it requires substantially less computational resources. In production, you would most likely want to set this to `TRUE.` The third argument of the `run()` function defines the name of the baseline scenario as "sc0" here. Please do not change the name of the baseline scenario. Finally, the `export_summaries()` generates summary output files from the lifecourse files that are the raw simulation output. 
+
+6. After running the code we will have the folders created as shown below in the output/hf_real folder. A separate vignette will detail the output/hf_real folder contents.
+
+```{r, echo = FALSE, out.width = "50%", fig.cap = "output/hf_real structure folder structure"}
+knitr::include_graphics("img/output_folder.jpg")
+```
+
+#### How to remove IMPACTncd_Engl installed package 
+
+1. First and foremost we need to permanently delete the files from the project folder of `IMPACTncd_Engl` which can be identified from in `inputs/sim_design.yaml` : `RootDirPath.` 
+2. Then we need to permanently delete the output and synthpop folder as mentioned in `inputs/sim_design.yaml` : `output_dir` and `synthpop_dir`. 
+3. Finally delete the `IMPACTncd_Engl` folder / package  from `R/library` and the file inside `_cache` folder in the `R/library`.  
+

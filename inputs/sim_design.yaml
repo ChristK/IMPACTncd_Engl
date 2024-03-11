@@ -1,16 +1,15 @@
 locality: England # See cols "LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM" ./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst for area names
 clusternumber: 10 # explicit parallelisation
 clusternumber_export: 10 # NEW: number of clusters for export_summaries
-n_cpus: 1 # implicit parallelisation
 logs: no
 export_xps: yes
 keep_lifecourse: yes
 export_PARF: no
-'n': 20000 # number of individuals in simulation
-n_synthpop_aggregation: 10 # number of synthpops to aggregate together (avoid values above 20)
+'n': 200 # number of individuals in simulation # ARU changed
+n_synthpop_aggregation: 2 # number of synthpops to aggregate together (avoid values above 20) # ARU changed
 # n_primers: 10 # better be some multiple of n_synthpop_aggregation
 init_year_long: 2013 # 2008 to 2020 but be careful with max lags
-sim_horizon_max: 2043 # population projections do not support longer horizon
+sim_horizon_max: 2025 # population projections do not support longer horizon # ARU changed
 ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
@@ -28,8 +27,13 @@ calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population proj
 simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real
-synthpop_dir: /mnt/storage_fast/synthpop/hf_real
+output_dir: D:/GitHub/IMPACTncd_Engl/output/hf_real # ARU changed
+synthpop_dir: D:/GitHub/IMPACTncd_Engl/synthpop/hf_real # ARU changed
+simulation_files_overwrite: no # yes for overwrite
+sTag: 'v0.0.5'
+bOverwriteFilesOnDeploy: no # yes for overwrite
+RootDirPath: D:/GitHub/IMPACTncd_Engl # ARU changed
+sToken: ~ # NULL
 uncertainty: # Note that uncertainties are independent
   incidence:
     upper: 0.05 # i.e. incd * ( 1 + 0.02)

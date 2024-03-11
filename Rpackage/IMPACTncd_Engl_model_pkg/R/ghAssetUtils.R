@@ -1,3 +1,42 @@
+## IMPACTncdEngl is an implementation of the IMPACTncd framework, developed by Chris
+## Kypridemos with contributions from Peter Crowther (Melandra Ltd), Maria
+## Guzman-Castillo, Amandine Robert, and Piotr Bandosz. This work has been
+## funded by NIHR  HTA Project: 16/165/01 - IMPACTncdEngl: Health Outcomes
+## Research Simulation Environment.  The views expressed are those of the
+## authors and not necessarily those of the NHS, the NIHR or the Department of
+## Health.
+##
+## Copyright (C) 2018-2020 University of Liverpool, Chris Kypridemos
+##
+## IMPACTncdEngl is free software; you can redistribute it and/or modify it under
+## the terms of the GNU General Public License as published by the Free Software
+## Foundation; either version 3 of the License, or (at your option) any later
+## version. This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+## FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+## details. You should have received a copy of the GNU General Public License
+## along with this program; if not, see <http://www.gnu.org/licenses/> or write
+## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+## Boston, MA 02110-1301 USA.
+
+setOptions_for_repo <- function() {
+  chooseCRANmirror(ind = 1)
+  repos <- getOption("repos")
+}
+setOptions_for_repo()
+
+if (!require(piggyback)) {
+  if (!nzchar(system.file(package = "pak"))) install.packages("pak")
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  pak::pkg_install("piggyback", lib = Sys.getenv("R_LIBS_USER"))
+  library(piggyback)
+}
+if (!require(data.table)) {
+  dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
+  pak::pkg_install("data.table", lib = Sys.getenv("R_LIBS_USER"))
+  library(data.table)
+}
+
 # temporary fix: R.utils::reassignInPackage() used to inject our revised functions (see below) into the [piggyback] package, prior to their expected adoption by the piggyback team
 if (!require(R.utils)) {
   dir.create(path = Sys.getenv("R_LIBS_USER"), showWarnings = FALSE, recursive = TRUE)
@@ -10,10 +49,12 @@ if (!require(yaml)) {
   library(yaml)
 }
 
+#' Trim slashes
 #' @description Remove slashes from start and end of path.
-#' @param sPath: string initial path.
-#' @param bRidStartSlash: bool remove slash at start of path
+#' @param sPath string initial path.
+#' @param bRidStartSlash bool remove slash at start of path
 #' @return string possibly modified path.
+#' @export
 TrimSlashes <- function(sPath, bRidStartSlash = TRUE) {
   if (bRidStartSlash && substr(sPath, 1, 1) == "/") {
     sPath <- substr(sPath, 2, nchar(sPath))
@@ -24,9 +65,11 @@ TrimSlashes <- function(sPath, bRidStartSlash = TRUE) {
   return(sPath)
 }
 
+#' HTTP header names and values
 #' @description Helper to create descriptive list of HTTP headers from the given response object.
-#' @param httpResponse HTTP response object as provided by [httr] package.
-#' @return String giving each header's name and value as: <name1>=<value1>; <name2>=<value2>; ...
+#' @param httpResponse HTTP response object as provided by httr package.
+#' @return String giving each header's name and value.
+#' @export
 HttpHeaderNamesAndValues <- function(httpResponse) {
   sHeaders <- ""
   iIndex <- 1
@@ -37,9 +80,11 @@ HttpHeaderNamesAndValues <- function(httpResponse) {
   return(sHeaders)
 }
 
-#' @description Stop if get HTTP response indicating missing file or unexcepted file size.
-#' @param lsHttpResponses List of HTTP response objects, each provided by [httr] package.
+#' Stop on failure
+#' @description Stop if get HTTP response indicating missing file or unexpected file size.
+#' @param lsHttpResponses List of HTTP response objects, each provided by httr package.
 #' @param bUploadedFiles boolean, files have been uploaded.
+#' @export
 StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
   for (httpResponse in lsHttpResponses)
   {
@@ -66,59 +111,24 @@ StopOnHttpFailure <- function(lsHttpResponses, bUploadedFiles) {
   }
 }
 
-#' @description Get GitHub asset route data from YAML AssetConfigFile or command-line variables.
-#' Execution options:
-#' 	Rscript <source-file> [<AssetFilePathName> [<GitHubAssetRouteId> [<GitHubToken>]]]
-#' 		where <source-file> is the R script name,
-#' 			<AssetFilePathName> is an optional asset config file's path and name;
-#' 				if omitted, tries IMPACTncd_Engl/auxil/ghAssetConfig.yaml.
-#' 			<GitHubAssetRouteId> is an asset route's [id] within <AssetFilePathName>;
-#' 				if omitted, seeks ID from Sys.info()[['user']] name.
-#' 			<GitHubToken> is a GitHub personal access token (PAT);
-#' 				if omitted, seeks token from gh::gh_token().
-#' or, source('gh_deploy.R') # loads <AssetFilePathName> via IMPACTncd_Engl/auxil/ghAssetConfig.yaml.
-#' @param sId string (out param): asset route ID.
-#' @param sRepo string (out param): GitHub repository name.
-#' @param sTag string (out param): GitHub repository tag.
+#' Find GitHub assets route information
+#' @description Get GitHub asset route data from command-line variables.
+#' @param sRepo string (out param) GitHub repository name.
+#' @param sTag string (out param) GitHub repository tag.
+#' @param iTestWithFirstNAssets int (out param): only download first m assets (for testing).
 #' @param sUploadSrcDirPath string (out param): source directory path to scan for uploading assets to GitHub.
 #' @param sDeployToRootDirPath string (out param): deployment directory path for downloading assets from GitHub.
 #' @param bOverwriteFilesOnDeploy bool (out param): overwrite files during deployment.
-#' @param iTestWithFirstNAssets int (out param): only download first [iTestWithFirstNAssets] assets (for testing).
 #' @param sToken string (in|out param): GitHub personal access token (PAT).
-#' @param sAssetConfigFilePath string (optional): path to ghAssetConfig.yaml file - provided for interactive calls (RStudio).
-#' @param sGitHubAssetRouteId string (optional): ID designating asset route in asset config.yaml file - provided for interactive calls (RStudio).
-GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath, bOverwriteFilesOnDeploy, iTestWithFirstNAssets, sToken = NULL, sAssetConfigFilePath = NULL, sGitHubAssetRouteId = NULL) {
-  # expect an asset config file and route ID, either from an function- or command-line argument
-  if (is.null(sAssetConfigFilePath) & is.null(sGitHubAssetRouteId)) {
-    lsCommandArgs <- commandArgs(TRUE)
-    iNumCmdArgs <- length(lsCommandArgs)
-  } else {
-    iNumCmdArgs <- 0
-  }
-
-  # load asset config settings
-  if (iNumCmdArgs > 0) {
-    sAssetConfigFilePath <- lsCommandArgs[1]
-    iNumCmdArgs <- iNumCmdArgs - 1
-  } else if (is.null(sAssetConfigFilePath)) {
-    sAssetConfigFilePath <- file.path(getwd(), "auxil/ghAssetConfig.yaml")
-  }
-  if (!file.exists(sAssetConfigFilePath)) {
-    stop(paste0("Failed finding GitHub asset config file: ", sAssetConfigFilePath))
-  }
-  gitHubAssetRoutes <- yaml::read_yaml(sAssetConfigFilePath)
-
-  # find desired asset route ID
-  if (iNumCmdArgs > 0) {
-    sGitHubAssetRouteId <- lsCommandArgs[2]
-    iNumCmdArgs <- iNumCmdArgs - 1
-  } else if (is.null(sGitHubAssetRouteId)) {
-    sGitHubAssetRouteId <- Sys.info()[["user"]]
-  } # username as fallback
-
+#' @export
+GetGitHubAssetRouteInfo <- function(sRepo, sTag, sUploadSrcDirPath, sDeployToRootDirPath,
+                                    bOverwriteFilesOnDeploy, sToken = NULL,
+                                    iTestWithFirstNAssets) {
+  lsCommandArgs <- commandArgs(TRUE)
+  iNumCmdArgs <- length(lsCommandArgs)
   # get GitHub access token
   if (iNumCmdArgs > 0) {
-    sGitHubToken <- lsCommandArgs[3]
+    sGitHubToken <- lsCommandArgs[1]
     iNumCmdArgs <- iNumCmdArgs - 1
   } else if (is.null(sToken)) {
     sGitHubToken <- as.character(gh::gh_token())
@@ -126,53 +136,49 @@ GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeploy
   else {
     sGitHubToken <- sToken
   }
-
-  if (iNumCmdArgs > 0) { # quit - as didn't expect additional variables
+    if (iNumCmdArgs > 0) { # quit - as didn't expect additional variables
     stop("Execute from the console:
-					Rscript <scriptR> [<AssetFilePathName> [<GitHubAssetRouteId> [<GitHubToken>]]]
+					Rscript <scriptR> [<GitHubAssetRouteId> [<GitHubToken>]]
 				or alternatively, may execute directly within R or RStudio:
 					source(\"<scriptR>\")
-					UploadGitHubAssets(sAssetConfigFilePath=<AssetFilePathName>,
-						sGitHubAssetRouteId=<GitHubAssetRouteId>,sToken=<GitHubToken>)
+					UploadGitHubAssets(sToken=<GitHubToken>)
 				where in the above, <scriptR> is the R script name, either gh_deploy.R or gh_upload.R,
-					<AssetFilePathName> is an optional asset config file's path and name;
-						if omitted, tries the default ./auxil/ghAssetConfig.yaml.
-					<GitHubAssetRouteId> is an asset route's [id] within <AssetFilePathName>;
-						if omitted, seeks ID matching Sys.info()[['user']] name. If <AssetFilePathName> also omitted, assumes running from console.
+					<GitHubAssetRouteId> is an asset route's [id];
+						if omitted, seeks ID matching Sys.info()[['user']] name.
 					<GitHubToken> is a GitHub personal access token (PAT);
 						if omitted, seeks token from gh::gh_token().")
   }
-
   # get desired asset route's properties
-  gitHubAssetRouteFinal <- NULL
-  for (gitHubAssetRoute in gitHubAssetRoutes$gitHubAssetRoutes) {
-    if (gitHubAssetRoute$id == sGitHubAssetRouteId) {
-      gitHubAssetRouteFinal <- gitHubAssetRoute
-
-      if (sGitHubToken == "") { # no access token given previously
-        sGitHubToken <- gitHubAssetRouteFinal$personalAccessToken
-        if (is.null(sGitHubToken)) warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
+  gitHubAssetRouteFinal <- list(
+    repo = sRepo,
+    tag = sTag,
+    personalAccessToken = sGitHubToken,
+    uploadSrcDirectory = sUploadSrcDirPath,
+    deployToRootDirectory = sDeployToRootDirPath,
+    overwriteFilesOnDeploy = bOverwriteFilesOnDeploy
+  )
+  if (sGitHubToken == "") { # no access token given previously
+    sGitHubToken <- gitHubAssetRouteFinal$personalAccessToken
+    if (is.null(sGitHubToken)) warning("Failed reading GitHub personal access token (PAT) from GITHUB_PAT environmental variable.
 					May set PAT on command-line or in asset config file [personalAccessToken] variable.")
-      }
-
-      # NOTE: is.null(gitHubAssetRouteFinal$someVarible)) will find missing or empty fields
-      eval.parent(substitute(sId <- sGitHubAssetRouteId))
-      eval.parent(substitute(sRepo <- gitHubAssetRouteFinal$repo))
-      eval.parent(substitute(sTag <- gitHubAssetRouteFinal$tag))
-      eval.parent(substitute(sToken <- sGitHubToken))
-      eval.parent(substitute(sUploadSrcDirPath <- gitHubAssetRouteFinal$uploadSrcDirectory))
-      eval.parent(substitute(sDeployToRootDirPath <- gitHubAssetRouteFinal$deployToRootDirectory))
-      eval.parent(substitute(bOverwriteFilesOnDeploy <- if (gitHubAssetRouteFinal$overwriteFilesOnDeploy == "1") TRUE else FALSE))
-      eval.parent(substitute(iTestWithFirstNAssets <- if (is.null(gitHubAssetRouteFinal$testWithFirstNAssets)) {
-        0
-      } else {
-        as.integer(gitHubAssetRouteFinal$testWithFirstNAssets)
-      }))
-      return(0)
-    }
   }
-  stop(paste0("Failed finding GitHub asset route data for id=[", sGitHubAssetRouteId, "] in config file [", sAssetConfigFilePath, "]"))
+  eval.parent(substitute(sRepo <- gitHubAssetRouteFinal$repo))
+  eval.parent(substitute(sTag <- gitHubAssetRouteFinal$tag))
+  eval.parent(substitute(sToken <- sGitHubToken))
+  eval.parent(substitute(sUploadSrcDirPath <- gitHubAssetRouteFinal$uploadSrcDirectory))
+  eval.parent(substitute(sDeployToRootDirPath <- gitHubAssetRouteFinal$deployToRootDirectory))
+  eval.parent(substitute(bOverwriteFilesOnDeploy <- if (gitHubAssetRouteFinal$overwriteFilesOnDeploy == "yes") TRUE else FALSE))
+  eval.parent(substitute(iTestWithFirstNAssets <- if (is.null(gitHubAssetRouteFinal$testWithFirstNAssets)) {
+    0
+  } else {
+    as.integer(gitHubAssetRouteFinal$testWithFirstNAssets)
+  }))
+  return(0)
+  stop(paste0("Failed finding GitHub asset route data"))
 }
+
+
+## This redefined functions are currently required for the package otherwise the files to be downloaded are not downloaded properly.
 
 ####################################################################################
 # Temporary fix: below revised [piggyback] package functions injected into this package,
@@ -182,7 +188,6 @@ GetGitHubAssetRouteInfo <- function(sId, sRepo, sTag, sUploadSrcDirPath, sDeploy
 ####################################################################################
 
 #' Upload data to an existing release
-#'
 #' NOTE: you must first create a release if one does not already exists.
 #' @param file path to file to be uploaded
 #' @param repo Repository name in format "owner/repo". Defaults to `guess_repo()`.
@@ -240,7 +245,7 @@ pb_upload_liverpool <- function(file,
 
     run <- utils::menu(
       choices = c("Yes", "No"),
-      title = glue::glue("Would you like to create a new release now?")
+      title = paste0("Would you like to create a new release now?")
     )
 
     if (run == 2) {
@@ -386,7 +391,6 @@ pb_upload_file_liverpool <- function(file,
 #'  default `TRUE`.
 #' @param ignore a list of files to ignore (if downloading "all" because
 #'  `file=NULL`).
-#' @inheritParams pb_upload
 #'
 #' @export
 #' @examples \dontrun{
@@ -404,6 +408,7 @@ pb_upload_file_liverpool <- function(file,
 #'   dest = tempdir()
 #' )
 #' }
+# @inheritParams pb_upload
 pb_download_liverpool <- function(file = NULL,
                                   dest = ".",
                                   repo = guess_repo(),

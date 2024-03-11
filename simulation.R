@@ -1,4 +1,4 @@
-source("./global.R")
+source("global.R")
 
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
@@ -11,7 +11,8 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
 scenario_fn_primary_prevention   <- function(sp) NULL
 scenario_fn_secondary_prevention <- function(sp) NULL
-
+# multicore - F
+# baseline
 IMPACTncd$
   del_logs()$
   del_outputs()$
@@ -20,7 +21,28 @@ IMPACTncd$
 # IMPACTncd$export_summaries(multicore = TRUE)
 # source("./auxil/CPRD_sim_validation_plots.R")
 
-
+#' Apply Primary Prevention Strategies to Simulate Health Improvements
+#'
+#' This function models the impact of primary prevention strategies on various
+#' risk factors in a population over time. It adjusts BMI, systolic blood
+#' pressure, cholesterol, alcohol consumption, fruit and vegetable intake,
+#' physical activity, smoking prevalence, smoking consumption, and passive
+#' smoking prevalence based on specified changes.
+#'
+#' @details
+#' The major risk factors included in our model in three cases have “healthy”
+#' ranges according to government guidelines, body mass index (BMI), systolic
+#' blood pressure and cholesterol.
+#'
+#' @param sp A data frame containing population information.
+#' @param change A numeric value indicating the magnitude of health improvement.
+#' A positive value means health improvement. Do not set to 0.
+#' @param sc_year An integer specifying the year when the change starts.
+#'
+#' @return The input data frame `sp` with modified risk factors based on the
+#' specified primary prevention strategies.
+#'
+#' @export
 scenario_fn_primary_prevention <- function(sp) {
 
   # The major risk factors included in our model in three cases have “healthy”
