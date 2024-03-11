@@ -679,8 +679,8 @@ SynthPop <-
           .export = NULL,
           .noexport = NULL # c("time_mark")
         ) %dopar% {
-          data.table::setDTthreads(private$design$sim_prm$n_cpus)
-          fst::threads_fst(private$design$sim_prm$n_cpus)
+          # data.table::setDTthreads(private$design$sim_prm$n_cpus)
+          # fst::threads_fst(private$design$sim_prm$n_cpus)
           filename <-
             private$gen_synthpop_filename(mc_iter,
                                           private$checksum,
@@ -798,6 +798,16 @@ SynthPop <-
       # Special deep copy for data.table. Use POP$clone(deep = TRUE) to
       # dispatch. Otherwise a reference is created
       # deep_clone ----
+      # @param name The name associated with the object.
+      # @param value The object to be cloned.
+      #
+      # @return A deep clone of the input object.
+      #
+      # @details
+      # The function uses methods for cloning based on the class of the input object.
+      # It performs a deep copy for data.table objects using the `data.table::copy` function,
+      # and for R6 objects, it utilizes the `clone` method. For other classes, a shallow copy is returned.
+      #
       deep_clone = function(name, value) {
         if ("data.table" %in% class(value)) {
           data.table::copy(value)
@@ -810,9 +820,17 @@ SynthPop <-
         }
       },
 
-
       # get all unique LSOAs included in locality vector
       # get_unique_LSOAs ----
+      # @param design_ The design object containing simulation parameters and locality information.
+      #
+      # @return A sorted vector of unique LSOA codes.
+      #
+      # @details
+      # The function reads an index file containing LSOA information and extracts unique LSOAs based on the
+      # specified locality criteria in the design object. If "England" is included in the locality criteria,
+      # it returns all LSOAs at the national level; otherwise, it filters LSOAs based on the specified locality criteria.
+      #
       get_unique_LSOAs = function(design_) {
         indx_hlp <-
           read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst",
@@ -832,6 +850,15 @@ SynthPop <-
 
       # get all unique LADs included in locality vector.
       # get_unique_LADs ----
+      # @param design_ The design object containing simulation parameters and locality information.
+      #
+      # @return A sorted vector of unique LAD codes.
+      #
+      # @details
+      # The function reads an index file containing LAD information and extracts unique LADs based on the
+      # specified locality criteria in the design object. If "England" is included in the locality criteria,
+      # it returns all LADs at the national level; otherwise, it filters LADs based on the specified locality criteria.
+      #
       get_unique_LADs = function(design_) {
         indx_hlp <-
           read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst",
@@ -870,6 +897,24 @@ SynthPop <-
 
       # gen synthpop unique checksum for the given set of inputs
       # gen_checksum ----
+      # @param design_ The design object containing simulation parameters.
+      #
+      # @return A data frame containing unique simulation characteristics.
+      #
+      # @details
+      # The function extracts specific simulation characteristics from the design parameters, including:
+      # - n: Number of simulations
+      # - sim_horizon_max: Maximum simulation horizon
+      # - init_year_long: Initial year for long simulations
+      # - maxlag: Maximum lag for time-dependent covariates
+      # - smoking_relapse_limit: Smoking relapse limit
+      # - ageL: Lower age limit
+      # - ageH: Upper age limit
+      # - jumpiness: Jumpiness parameter
+      # - simsmok_calibration: Calibration parameter for simsmok model
+      # - statin_adherence: Adherence parameter for statin medication
+      # - bpmed_adherence: Adherence parameter for blood pressure medication
+      #
       gen_checksum =
         function(design_) {
           # get a md5 checksum based on function arguments
@@ -886,6 +931,16 @@ SynthPop <-
 
       # gen_synthpop_filename ----
       # for the given set of inputs
+      # @param mc_ The Monte Carlo iteration.
+      # @param checksum_ The checksum used for file identification.
+      # @param design_ The design object containing simulation parameters and file directory information.
+      #
+      # @return A list containing the paths to the synthpop data file ("synthpop") and its metafile ("metafile").
+      #
+      # @details
+      # The function constructs filenames based on the specified parameters including the Monte Carlo iteration,
+      # checksum, and the directory specified in the design object. The resulting paths are normalized using `normalizePath`.
+      #
       gen_synthpop_filename =
         function(mc_,
                  checksum_,
@@ -917,6 +972,12 @@ SynthPop <-
         },
 
       # del_incomplete ----
+      # @param filename_ A list containing the paths to the synthpop data file ("synthpop") and its metafile ("metafile").
+      #
+      # @details
+      # The function checks if the metafile exists and the synthpop file does not exist. If these conditions are met,
+      # it deletes both files using \code{sapply(filename_, file.remove)}.
+      #
       del_incomplete = function(filename_) {
         if (file.exists(filename_$metafile) &&
             (!file.exists(filename_$synthpop)
@@ -926,6 +987,7 @@ SynthPop <-
       },
 
       # gen_synthpop ----
+      # @details TODO
       gen_synthpop = # returns NULL. Writes synthpop on disk
         function(mc_,
                  filename_,
@@ -1205,7 +1267,7 @@ SynthPop <-
             lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, fruit :=
                  my_qZISICHEL(rank_fruit,
-                              mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu) * 80L]  # g/d
+                              mu, sigma, nu, tau, n_cpu = 1L) * 80L]  # g/d
             dt[, (col_nam) := NULL]
             dt[, rank_fruit := NULL]
 
@@ -1218,7 +1280,7 @@ SynthPop <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
             dt[, veg :=
-                 my_qDEL(rank_veg, mu, sigma, nu, n_cpu = design_$sim_prm$n_cpu) * 80L]  # g/d
+                 my_qDEL(rank_veg, mu, sigma, nu, n_cpu = 1L) * 80L]  # g/d
             dt[, (col_nam) := NULL]
             dt[, rank_veg := NULL]
 
@@ -1501,7 +1563,7 @@ SynthPop <-
                                      sigma,
                                      nu,
                                      tau,
-                                     n_cpu = design_$sim_prm$n_cpu)]
+                                     n_cpu = 1L)]
             dt[, (col_nam) := NULL]
 
             simsmok_cig(dt) # carry forward smok_cig if smok_status == 3
@@ -1560,7 +1622,7 @@ SynthPop <-
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
-            dt[, bmi := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            dt[, bmi := my_qBCPEo(rank_bmi, mu, sigma, nu, tau, n_cpu = 1L)]
             dt[, rank_bmi := NULL]
             dt[, (col_nam) := NULL]
 
@@ -1573,7 +1635,7 @@ SynthPop <-
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
-            dt[, sbp := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            dt[, sbp := my_qBCPEo(rank_sbp, mu, sigma, nu, tau, n_cpu = 1L)]
             dt[, rank_sbp := NULL]
             dt[, (col_nam) := NULL]
 
@@ -1606,7 +1668,7 @@ SynthPop <-
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
-            dt[, tchol := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = design_$sim_prm$n_cpu)]
+            dt[, tchol := my_qBCT(rank_tchol, mu, sigma, nu, tau, n_cpu = 1L)]
             dt[, rank_tchol := NULL]
             dt[, (col_nam) := NULL]
 
@@ -1709,6 +1771,13 @@ SynthPop <-
 
       # Load a synthpop file from disk in full or in chunks.
       #  get_synthpop ----
+      # @param exclude_cols A vector specifying columns to be excluded from the synthetic population data.
+      #
+      # @return An invisible data table containing the processed synthetic population data.
+      #
+      # @details
+      # The function reads synthetic population data stored in an fst file, filters the data based on the specified criteria, ensures uniqueness of individual identifiers (pid), generates population weights, and makes additional adjustments to the data.
+      #
       get_synthpop =
         function(exclude_cols = c()) {
           mm_synthpop <- metadata_fst(private$filename$synthpop)
@@ -1770,6 +1839,14 @@ SynthPop <-
       # NOTE Wt are still incomplete because they assume everyone remains alive.
       # So baseline population underestimated as clearly some die
       # gen_pop_weights ----
+
+      # Generate Population Weights
+      #
+      # @return An invisible modified data table with the added "wt_immrtl" column representing population weights.
+      #
+      # @details
+      # The function reads population projections data from an fst file, filters the data based on specified criteria, calculates population weights, and applies them to the synthetic population data.
+      #
       gen_pop_weights = function() {
         tt <-
           read_fst("./inputs/pop_projections/lad17_proj.fst", as.data.table = TRUE)

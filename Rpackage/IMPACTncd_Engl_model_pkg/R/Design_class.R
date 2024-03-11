@@ -24,6 +24,7 @@
 #'
 #' @description
 #' A design has a sim_prm list that holds the simulation parameters.
+#' This R6 class represents a simulation design with associated parameters and methods.
 #'
 #' @details
 #' To be completed...
@@ -59,9 +60,13 @@ Design <-
         # Validation
         stopifnot(
           c(
+            "simulation_files_overwrite",
+            "sTag"                   ,
+            "bOverwriteFilesOnDeploy",
+            "RootDirPath"  ,
+            "sToken"                ,
             "locality"              ,
             "clusternumber"         ,
-            "n_cpus"                ,
             "logs"                  ,
             "scenarios"             ,
             "cols_for_output"       ,
@@ -90,7 +95,6 @@ Design <-
             "n_synthpop_aggregation"
           ) %in% names(sim_prm),
 
-          any(sim_prm$clusternumber == 1L, sim_prm$n_cpus == 1L),
           sapply(sim_prm, function(x)
             if (is.numeric(x))
               x >= 0
@@ -190,7 +194,6 @@ Design <-
         }
         self$sim_prm$iteration_n            <- GUI_prm$iteration_n_gui
         self$sim_prm$iteration_n_final      <- GUI_prm$iteration_n_final_gui
-        self$sim_prm$n_cpus                 <- GUI_prm$n_cpus_gui
         self$sim_prm$n                      <- GUI_prm$n_gui
         self$sim_prm$n_synthpop_aggregation <- GUI_prm$n_synthpop_aggregation_gui
         self$sim_prm$n_primers              <- GUI_prm$n_primers_gui

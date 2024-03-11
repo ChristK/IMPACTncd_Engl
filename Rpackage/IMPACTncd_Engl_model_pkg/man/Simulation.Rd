@@ -26,6 +26,7 @@ To be completed...
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-Simulation-new}{\code{Simulation$new()}}
+\item \href{#method-Simulation-DeployGitHubAssets}{\code{Simulation$DeployGitHubAssets()}}
 \item \href{#method-Simulation-run}{\code{Simulation$run()}}
 \item \href{#method-Simulation-export_summaries}{\code{Simulation$export_summaries()}}
 \item \href{#method-Simulation-get_causal_structure}{\code{Simulation$get_causal_structure()}}
@@ -61,6 +62,39 @@ Create a new simulation object.
 }
 \subsection{Returns}{
 A new \code{Simulation} object.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-DeployGitHubAssets"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-DeployGitHubAssets}{}}}
+\subsection{Method \code{DeployGitHubAssets()}}{
+This function downloads assets from a GitHub repository and organizes them
+in a specified directory structure.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$DeployGitHubAssets(args = NULL)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{args}}{a list of the above specified parameters}
+
+\item{\code{sToken}}{GitHub personal access token (default: NULL).}
+
+\item{\code{sRepo}}{GitHub repository (default: NULL).}
+
+\item{\code{sTag}}{GitHub tag or release (default: NULL).}
+
+\item{\code{bOverwriteFilesOnDeploy}}{Logical indicating whether to overwrite existing files on deployment (default: NULL).}
+
+\item{\code{RootDirPath}}{Path to the source directory for upload or deploy (default: NULL).}
+
+\item{\code{simulation_files_overwrite}}{Logical indication whether to overwrite simulation folder files (default: NULL).}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+Invisible self for chaining
 }
 }
 \if{html}{\out{<hr>}}
