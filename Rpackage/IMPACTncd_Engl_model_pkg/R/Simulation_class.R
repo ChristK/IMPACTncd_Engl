@@ -70,8 +70,7 @@ Simulation <-
           simulation_files_overwrite = self$design$sim_prm$simulation_files_overwrite,
           sTag = self$design$sim_prm$sTag,
           bOverwriteFilesOnDeploy = self$design$sim_prm$bOverwriteFilesOnDeploy,
-          sDeployToRootDirPath = self$design$sim_prm$sDeployToRootDirPath,
-          sUploadSrcDirPath = self$design$sim_prm$sUploadSrcDirPath,
+          RootDirPath = self$design$sim_prm$RootDirPath,
           sToken = self$design$sim_prm$sToken
         )
         self$DeployGitHubAssets(deployArgs)
@@ -142,9 +141,8 @@ Simulation <-
       #' @param sToken GitHub personal access token (default: NULL).
       #' @param sRepo GitHub repository (default: NULL).
       #' @param sTag GitHub tag or release (default: NULL).
-      #' @param sDeployToRootDirPath Path to the root directory for deployment (default: NULL).
       #' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: NULL).
-      #' @param sUploadSrcDirPath Path to the source directory for upload (default: NULL).
+      #' @param RootDirPath Path to the source directory for upload or deploy (default: NULL).
       #' @param simulation_files_overwrite Logical indication whether to overwrite simulation folder files (default: NULL).
       #' @param args a list of the above specified parameters
       #'
@@ -154,8 +152,8 @@ Simulation <-
         simulation_files_overwrite <- ifelse(is.null(args$simulation_files_overwrite), NULL, args$simulation_files_overwrite)
         sTag <- ifelse(is.null(args$sTag), NULL, args$sTag)
         bOverwriteFilesOnDeploy <- ifelse(is.null(args$bOverwriteFilesOnDeploy), NULL, args$bOverwriteFilesOnDeploy)
-        sDeployToRootDirPath <- ifelse(is.null(args$sDeployToRootDirPath), NULL, args$sDeployToRootDirPath)
-        sUploadSrcDirPath <- ifelse(is.null(args$sUploadSrcDirPath), NULL, args$sUploadSrcDirPath)
+        sDeployToRootDirPath <- ifelse(is.null(args$RootDirPath), NULL, args$RootDirPath)
+        sUploadSrcDirPath <- ifelse(is.null(args$RootDirPath), NULL, args$RootDirPath)
         sToken <- ifelse(is.null(args$sToken), gh::gh_token(), args$sToken)
         sRepo <- "ChristK/IMPACTncd_Engl"
         bOverwriteFilesOnDeploy <- ifelse(bOverwriteFilesOnDeploy == "yes", T, F)
