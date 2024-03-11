@@ -88,10 +88,11 @@ InstallIMPACTncdPackageOnChange<- function()
           nzchar(IMPACTncdPackageSnapshot$changed) ) )
   {
     # re/install IMPACTncd_Engl package and update snapshot
-    sIMPACTncdPackageDirPath<- "./Rpackage/IMPACTncd_Engl_model_pkg/"
+    sIMPACTncdPackageDirPath <- "./Rpackage/IMPACTncd_Engl_model_pkg/"
     InstallIMPACTncdPackage(sIMPACTncdPackageDirPath)
     if(!is.null(IMPACTncdPackageSnapshot))file.remove(sIMPACTncdPackageSnapshotFilePath)
-    IMPACTncdPackageSnapshot<- fileSnapshot(sIMPACTncdPackageDirPath,timestamp=NULL,md5sum=TRUE,recursive=TRUE)
+    IMPACTncdPackageSnapshot <- fileSnapshot(sIMPACTncdPackageDirPath, timestamp = NULL,
+                                             md5sum = TRUE, recursive = TRUE)
     qsave(IMPACTncdPackageSnapshot,sIMPACTncdPackageSnapshotFilePath)
   }
 }
