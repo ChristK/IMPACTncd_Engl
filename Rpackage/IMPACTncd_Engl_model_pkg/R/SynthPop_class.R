@@ -204,26 +204,34 @@ SynthPop <-
           strata <- c(strata, "LAD17CD")
         }
 
-        if (scenario_nam == "sc0" && !"wt" %in% names(self$pop)) { # baseline
-          self$pop[, pops := sum(wt_immrtl), by = eval(strata)] # pops is now the ONS pop proj divided by the synthpop chunks n_synthpop_aggregation
-          set(self$pop, NULL, "wt", 0)
-          self$pop[!is.na(all_cause_mrtl), wt := wt_immrtl * pops / sum(wt_immrtl),
-                   by = eval(strata)]
+        if (scenario_nam == "sc0" & !"wt" %in% names(self$pop)) { # baseline
+        tt <- private$gen_pop_weights()
+        self$pop[all_cause_mrtl >= 0, wt := .N, by = strata]
+        absorb_dt(self$pop, tt)
+        self$pop[, wt := pops / (wt * private$design$sim_prm$n_synthpop_aggregation)]
+        self$pop[is.na(all_cause_mrtl), wt := 0]
 
-          self$pop[, pops := NULL]
-        } else if (scenario_nam != "sc0" && !"wt" %in% names(self$pop)) {
+        # Fix for missing pop segments when calibrate_to_pop_projections_by_LAD == TRUE
+        # ensure that the weights sum to the total  population for each year
+        tt <- tt[, sum(pops), keyby = .(year)]
+        ttt <- self$pop[, sum(wt, na.rm = TRUE), keyby = .(year)]
+        tt[ttt, on = "year", correction := V1/(i.V1 * private$design$sim_prm$n_synthpop_aggregation)]
+        self$pop[tt, on = "year", wt := correction * wt]
+        self$pop[, pops := NULL]
+        } else if (scenario_nam != "sc0" & !"wt" %in% names(self$pop)) {
+
           # For policy scenarios
-          # if (private$design$sim_prm$avoid_appending_csv) {
-          #   fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/",  self$mc_aggr, "_", self$mc, "_lifecourse.csv"))
-          # } else {
           fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
-          # }
 
-          t0 <- fread(fnam, select = list(integer = c("pid", "year"), character = "scenario", numeric = "wt"),
-                      key = c("scenario", "pid", "year"))[scenario == "sc0", ] # wt for sc0
-          self$pop[t0, on = c("pid", "year"), wt := i.wt]
-          self$pop[is.na(all_cause_mrtl), wt := 0]
-          self$pop[is.na(wt), wt := wt_immrtl]
+          t0 <- fread(fnam, select = list(integer = c("pid", "year"), factor = c("scenario"), numeric = "wt"),
+                      key = c("scenario", "pid", "year"))[scenario == "sc0", ][, scenario := NULL] # wt for sc0
+        absorb_dt(self$pop, t0)
+        # for simulants that are not in the baseline scenario carry over their
+        # last wt. No need to be by pid because the beginning of lifecourses are
+        # similar to all scenarios
+        setnafill(self$pop, type = "locf", cols = "wt")
+        self$pop[is.na(all_cause_mrtl), wt := 0]
+        
         } else {
           stop("The baseline scenario need to be named 'sc0' and simulated first, before any policy scenarios.") # TODO more informative message
         }
@@ -492,7 +500,7 @@ SynthPop <-
 
       # gen_synthpop_demog ----
       #' @description
-      #' Generate synthpop sociodemographics, random sample of the population.
+      #' Generate synthpop sociodemographics for a random sample of the population in the initial year.
       #' @param design_ A Design object,
       #' @param month April or July are accepted. Use July for mid-year
       #'   population estimates.
@@ -508,8 +516,9 @@ SynthPop <-
             file <- "./inputs/pop_estimates_lsoa/LSOA_mid_year_population_estimates.fst"
           }
           dt_meta <- metadata_fst(file)
-          stopifnot("Population size file need to be keyed by year" =
-                      identical("year", dt_meta$keys[1]))
+          if (!identical("year", dt_meta$keys[1])) {
+            stop("Population size file need to be keyed by year")
+          }
           file_indx <- read_fst(file, as.data.table = TRUE, columns = "year"
           )[, .(from = min(.I), to = max(.I)), keyby = "year"][year == design_$sim_prm$init_year]
           dt <-
@@ -535,7 +544,8 @@ SynthPop <-
           # load ethnicity proportions by lsoa
           file <- "./inputs/pop_estimates_lsoa/ethn2011_pct.fst"
           dt_meta <- metadata_fst(file)
-          stopifnot("Ethnicity file need to be keyed by LSOA" = identical("LSOA11CD", dt_meta$keys[1]))
+          if (!identical("LSOA11CD", dt_meta$keys[1])) 
+            stop("Ethnicity file need to be keyed by LSOA")
           file_indx <- read_fst(file, as.data.table = TRUE, columns = "LSOA11CD"
           )[, .(from = min(.I), to = max(.I)), keyby = "LSOA11CD"][LSOA11CD %in% lsoas_, .("from" = min(from), "to" = max(to))]
           ethn <- read_fst(
@@ -575,8 +585,8 @@ SynthPop <-
 
           # Generate the cohorts of 30 year old to enter every year
           # as sim progress these will become 30 yo
-          # no population growth here as I will calibrate to dt
-          # projections and it fluctuates at +-2% anyways.
+          # no population growth here as I will calibrate to pop
+          # projections and it fluctuates at +-2% anyways (for age == 30).
 
           # tt1 <-
           #   read_fst(
@@ -1728,7 +1738,7 @@ SynthPop <-
           dt[, pid_mrk := mk_new_simulant_markers(pid)] # TODO Do I need this?
 
           # generate population weights
-          private$gen_pop_weights(dt)
+          # private$gen_pop_weights(dt)
 
           dt[, smok_packyrs_curr_xps := as.integer(round(smok_cig_curr_xps * smok_dur_curr_xps / 20))]
           set(dt, NULL, "all_cause_mrtl", 0L)
@@ -1760,7 +1770,7 @@ SynthPop <-
       # NOTE Wt are still incomplete because they assume everyone remains alive.
       # So baseline population underestimated as clearly some die
       # gen_pop_weights ----
-      gen_pop_weights = function(dt) {
+      gen_pop_weights = function() {
         tt <-
           read_fst("./inputs/pop_projections/lad17_proj.fst", as.data.table = TRUE)
         lads <- private$get_unique_LADs(private$design)
@@ -1775,14 +1785,53 @@ SynthPop <-
         tt <- tt[LAD17CD %in% lads &
                    between(age, minage, private$design$sim_prm$ageH) &
                    between(year, minyear, maxyear),
-                 .(pops = sum(pops)), keyby = eval(strata)]
+                 .(pops = sum(pops)), keyby = strata]
+        
+        # WiP (based on the fact that in minyear the synthpop size is private$design$sim_prm$n by design. 
+        # Also in init_year the synthpop size is private$design$sim_prm$n by design for ages between ageL an ageH.)
+        # tt <- tt[LAD17CD %in% lads &
+        #    between(age, private$design$sim_prm$ageL, private$design$sim_prm$ageH) &
+        #    between(year, private$design$sim_prm$init_year, maxyear),
+        #  .(pops = sum(pops)), keyby = strata] # Note ages < ageL and years before init_year are not included
+        # absorb_dt(tt, tt[year == private$design$sim_prm$init_year, .(pops_init_year = sum(pops)), keyby = eval(strata[strata != "year"])])
+        # tt[, wt := (tt[year == private$design$sim_prm$init_year, sum(pops)]/ private$design$sim_prm$n) * pops / pops_init_year]
 
-        dt[, wt_immrtl := .N, by = eval(strata)]
-        absorb_dt(dt, tt)
-        dt[, wt_immrtl := pops / (wt_immrtl * private$design$sim_prm$n_synthpop_aggregation)]
-        dt[, pops := NULL]
+        # The expectation of population size in the sample, 'expected_sample_pops' is
+        # tt[, expected_sample_pops := private$design$sim_prm$n * pops / pops_init_year]
+        # Note that some pops = 0 when calibrate_to_pop_projections_by_LAD == TRUE
+        # ttt <- sp$pop[between(age, private$design$sim_prm$ageL, private$design$sim_prm$ageH) &
+        #    between(year, private$design$sim_prm$init_year, maxyear),
+        #     .N, keyby = strata]
+        # absorb_dt(ttt, tt)
+        # ttt[, sum(wt * N), keyby = year]
+        # # So the weight 'wt' for the expected population is 
+        # tt[, wt := pops / expected_sample_pops]
+        # tt[, sum(wt), keyby = year]
 
-        invisible(dt)
+        # sp$pop[, c("pops", "wt", "annual_pops", "mpops") := NULL]
+        # absorb_dt(sp$pop, tt)
+
+        # sp$pop[between(age, private$design$sim_prm$ageL, private$design$sim_prm$ageH) &
+        #    between(year, private$design$sim_prm$init_year, maxyear),
+        #     .(unique(annual_pops), sum(wt, T), sum(wt_immrtl, T)), keyby = year]
+
+        # WiP2
+        # sp$pop[, c("pops", "wt", "annual_pops", "mpops") := NULL]
+        # tt[, `:=` (wt = pops / sum(pops), annual_pops = sum(pops)), by = year]
+        # absorb_dt(sp$pop, tt)
+        # sp$pop[, mpops := (wt * unique(annual_pops) / sum(wt)) / private$design$sim_prm$n_synthpop_aggregation, by = year] # mpops are the new weights
+        # sp$pop[, .(unique(annual_pops), sum(mpops), sum(wt_immrtl)), by = year]
+        # sp$pop[, summary(mpops/mpops2)]
+        # setnames(sp$pop, "mpops", "mpops2")
+        # sp$pop[, mpops2 := NULL]
+        # ttt <- sp$pop[, .N, keyby = strata]
+        # absorb_dt(tt, ttt)
+        # setnafill(tt, "c", 0L, cols = "N")
+        # tt[, wt_immrtl := pops / (N * private$design$sim_prm$n_synthpop_aggregation)]
+
+
+
+        invisible(tt)
       }
     )
   )
