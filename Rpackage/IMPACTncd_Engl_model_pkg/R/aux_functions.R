@@ -27,8 +27,18 @@
   library.dynam.unload("IMPACTncdEngl", libpath)
 }
 
-# Ensures that when fwrite appends file colnames of file to be written, match
-# those already in the file
+# fwrite_safe ----
+#' Ensures that when fwrite appends file colnames of file to be written, match
+#' those already in the file
+#' @description This function writes a data table to a file with safe appending. It checks if the file already exists and, if appending is enabled, aligns column names and appends the data while preserving existing columns.
+#'
+#' @param x A data table to be written to the file.
+#' @param file A character string specifying the file path to write the data table to.
+#' @param append Logical, indicating whether to append to an existing file if it exists. Default is \code{TRUE}.
+#' @param ... Additional arguments passed to the \code{\link[data.table]{fwrite}} function.
+#'
+#' @return None (invisibly returns the result of \code{\link[data.table]{fwrite}}).
+#'
 #' @export
 fwrite_safe <- function(x,
                         file = "",
@@ -78,20 +88,57 @@ fwrite_safe <- function(x,
 #
 # }
 
-
+# inflate ----
+#' Inflate Values Based on Percentage Rate, Year, and Baseline Year
+#' @description
+#' This function inflates values based on a given percentage rate, year, and baseline year. It calculates the inflated value using the formula: \code{x * (1 + percentage_rate / 100) ^ (year - baseline_year)}.
+#'
+#' @param x A numeric vector or matrix containing the values to be inflated.
+#' @param percentage_rate A numeric value indicating the percentage rate for inflation.
+#' @param year The target year for inflation.
+#' @param baseline_year The baseline year to calculate the inflation from.
+#'
+#' @return A numeric vector or matrix containing the inflated values.
+#'
 #' @export
 inflate <- function(x, percentage_rate, year, baseline_year) {
   x * (1 + percentage_rate / 100) ^ (year - baseline_year)
 }
 # inflate(1000, 3, 2011:2020, 2013)
 
+# deflate ----
+#' Deflate Values Based on Percentage Rate, Year, and Baseline Year
+#' @description
+#' This function deflates values based on a given percentage rate, year, and baseline year. It calculates the deflated value using the formula: \code{x * (1 - percentage_rate / 100) ^ (year - baseline_year)}.
+#'
+#' @param x A numeric vector or matrix containing the values to be deflated.
+#' @param percentage_rate A numeric value indicating the percentage rate for deflation.
+#' @param year The target year for deflation.
+#' @param baseline_year The baseline year to calculate the deflation from.
+#'
+#' @return A numeric vector or matrix containing the deflated values.
+#'
 #' @export
 deflate <- function(x, percentage_rate, year, baseline_year) {
   x * (1 - percentage_rate / 100) ^ (year - baseline_year)
 }
 
+
+# plot_cor ----
 # Necessary aux functions
 # plots mean x by y stratified by z
+#' Plot Weighted Correlation Between Two Variables
+#' @description
+#' This function generates a scatter plot with a weighted correlation line between two variables based on provided data.
+#'
+#' @param x A character string specifying the variable for the x-axis.
+#' @param y A character string specifying the variable for the y-axis.
+#' @param z A character string specifying the variable used for faceting the plot.
+#' @param wt A character string specifying the variable used for weighting the correlation.
+#' @param dt A data table containing the variables specified by \code{x}, \code{y}, \code{z}, and \code{wt}.
+#'
+#' @return A plot object representing the scatter plot with a weighted correlation line.
+#'
 #' @export
 plot_cor <- function(x, y, z, wt, dt) {
   xlab  <- toupper(x)
@@ -111,7 +158,22 @@ plot_cor <- function(x, y, z, wt, dt) {
   )]
 }
 
-# helper func for gamlss::fitDistr
+# distr_best_fit ----
+#' helper func for gamlss::fitDistr
+#' @description
+#' This function fits distribution parameters using the Generalized Additive Model for Location, Scale, and Shape (GAMLSS). It can perform fitting based on either minimum prediction global deviance (if \code{pred} is \code{TRUE}) or Bayesian Information Criterion (BIC) for model selection.
+#'
+#' @param dt A data table containing the variables specified by \code{var} and \code{wt}.
+#' @param var A character string specifying the variable for which distribution parameters are to be fit.
+#' @param wt A character string specifying the variable used for weighting the distribution fit.
+#' @param distr_family A character string specifying the distribution family to fit (e.g., "GA" for Gamma).
+#' @param distr_extra Additional parameters for the distribution family. Defaults to \code{NULL}.
+#' @param pred Logical, indicating whether to perform fitting based on minimum prediction global deviance. Default is \code{FALSE}.
+#' @param seed An optional seed for reproducibility when \code{pred} is \code{TRUE}.
+#' @param trace Logical, indicating whether to print trace information during fitting. Default is \code{TRUE}.
+#'
+#' @return A fitted distribution object based on GAMLSS.
+#'
 #' @export
 distr_best_fit <-
   function(dt,
@@ -154,6 +216,19 @@ distr_best_fit <-
     marg_distr
   }
 
+# distr_validation ----
+#' Distribution Validation Diagnostics
+#' @description
+#' This function performs distribution validation diagnostics based on a fitted distribution model. It generates validation plots and diagnostic information to assess the goodness of fit.
+#'
+#' @param marg_distr A fitted distribution object obtained from the \code{distr_best_fit} function.
+#' @param dt A data table containing the variables used in the fitting process.
+#' @param title A character string specifying the title for the validation plots.
+#' @param discrete Logical, indicating whether the variable is discrete. Default is \code{FALSE}.
+#' @param smooth A numeric value specifying the smoothing parameter for the validation plots. Default is \code{0.35}.
+#'
+#' @return A list containing validation plots and diagnostic information.
+#'
 #' @export
 distr_validation <-
   function(marg_distr,
@@ -185,6 +260,18 @@ distr_validation <-
     out
   }
 
+# centile_predictAll ----
+#' Predict Centiles from a GAMLSS Model for Multiple Observations
+#' @description
+#' This function predicts centiles from a Generalized Additive Model for Location, Scale, and Shape (GAMLSS) model for multiple observations.
+#'
+#' @param gamlss_model A GAMLSS model object created using the \code{gamlss} package.
+#' @param orig_data The original data used to fit the GAMLSS model.
+#' @param newdata The new data for which centiles are to be predicted.
+#' @param cent A numeric value specifying the centile to predict. Default is \code{0.5} (median).
+#'
+#' @return A numeric vector containing the predicted centiles for each observation in \code{newdata}.
+#'
 #' @export
 centile_predictAll <-
   function(gamlss_model, orig_data, newdata, cent = 0.5) {
@@ -196,6 +283,17 @@ centile_predictAll <-
     return(out)
   }
 
+# mean_predictAll ----
+#' Predict Mean Values from a GAMLSS Model for Multiple Observations
+#' @description
+#' This function predicts mean values from a Generalized Additive Model for Location, Scale, and Shape (GAMLSS) model for multiple observations.
+#'
+#' @param gamlss_model A GAMLSS model object created using the \code{gamlss} package.
+#' @param orig_data The original data used to fit the GAMLSS model.
+#' @param newdata The new data for which predictions are to be made.
+#'
+#' @return A numeric vector containing the predicted mean values for each observation in \code{newdata}.
+#'
 #' @export
 mean_predictAll <- function(gamlss_model, orig_data, newdata) {
   stopifnot("gamlss" %in% class(gamlss_model))
@@ -210,6 +308,22 @@ mean_predictAll <- function(gamlss_model, orig_data, newdata) {
   return(out)
 }
 
+# plot_synthpop_val ----
+#' Plot Synthpop Validation Density and Cumulative Density Functions
+#' @description
+#' This function generates and saves density and cumulative density function plots for synthpop validation based on the provided data.
+#'
+#' @param dt A data table containing the variables specified by \code{x}, \code{grp}, and \code{wt}.
+#' @param x A variable to be plotted on the x-axis.
+#' @param grp A grouping variable for faceting the plots.
+#' @param wt A variable used for weighting the plots.
+#' @param title A character string specifying the title for the plots.
+#' @param x_label A character string specifying the label for the x-axis.
+#' @param standardised_to_grp A logical vector indicating whether to standardize weights within each group. Default is \code{c(FALSE, TRUE)}.
+#' @param print_to_screen A logical vector indicating whether to print the plots to the screen. Default is \code{c(FALSE, TRUE)}.
+#'
+#' @return None (saves density and cumulative density function plots to specified directory).
+#'
 #' @export
 plot_synthpop_val <-
   function(dt,
@@ -284,6 +398,19 @@ plot_synthpop_val <-
     )
   }
 
+# validate_gamlss_tbl ----
+#' Validate GAMLSS Model against Observed Data in a Data Table
+#' @description
+#' This function validates a Generalized Additive Model for Location, Scale, and Shape (GAMLSS) model against observed data in a data table. It generates simulated data from the GAMLSS model and combines it with the observed data for comparison.
+#'
+#' @param dt A data table containing the observed data.
+#' @param gamlss_tbl A data table containing the GAMLSS model parameters.
+#' @param mc An integer specifying the number of Monte Carlo iteration for data validation. Default is 10.
+#' @param colname A character string specifying the column name for the distributional parameter in the output.
+#' @param distr_nam A character string specifying the distribution name to be used in the validation.
+#'
+#' @return A data table containing both observed and simulated data for model validation.
+#'
 #' @export
 validate_gamlss_tbl <-
   function(dt,
@@ -315,6 +442,18 @@ validate_gamlss_tbl <-
 # z[, .SD, .SDcols = c("p", nam_param)]
 # z[, do.call("qBI", .SD), .SDcols = c("p", nam_param)]
 
+# shift_bypid ----
+#' Shift Values by PID (Participant ID) for Integer, Logical, or Numeric Vectors
+#' @description
+#' This function shifts values by participant ID (PID) for integer, logical, or numeric vectors. It can handle different data types and supports shifting by a specified lag.
+#'
+#' @param x A vector of integers, logicals, or numerics to be shifted.
+#' @param lag An integer specifying the lag for shifting values. A positive lag indicates shifting forward, and a negative lag indicates shifting backward.
+#' @param id A vector representing participant IDs associated with each observation in \code{x}.
+#' @param replace A value to replace shifted values beyond vector boundaries. Default is \code{NA}.
+#'
+#' @return A vector with values shifted by the specified lag for each participant ID.
+#'
 #' @export
 shift_bypid <-
   function(x, lag, id, replace = NA) {
@@ -330,7 +469,19 @@ shift_bypid <-
   }
 
 
+# get_ons_mrtl ----
 # get observed mortality from ONS data
+# mortality_by_agegrp20_for_validation.fst; mortality_by_agegrp5_for_validation.fst;
+#' Get ONS (Office for National Statistics) Mortality Data
+#' @description
+#' This function retrieves mortality data from the Office for National Statistics (ONS) for a specified disease, type, and age group width.
+#'
+#' @param disease A character string specifying the disease for which mortality data is requested.
+#' @param type A character vector specifying the type of mortality data to retrieve. Options are "rate" for mortality rates and "absolute" for absolute mortality counts. Default is "rate".
+#' @param agegrp_width An integer vector specifying the width of age groups in years. Options are 5 or 20. Default is 5.
+#'
+#' @return A data table containing mortality data for the specified disease, type, and age group width.
+#'
 #' @export
 get_ons_mrtl <-
   function(disease,
@@ -368,7 +519,19 @@ get_ons_mrtl <-
   }
 # get_ons_mrtl("chd", "rate", 20)
 
+# get_ons_incd ----
 # get observed cancer incidence from ONS data
+# cancer_incd_by_agegrp5_for_validation.fst; cancer_incd_by_agegrp5_for_validation.fst;
+#' Get ONS (Office for National Statistics) Cancer Incidence Data
+#' @description
+#' This function retrieves cancer incidence data from the Office for National Statistics (ONS) for a specified disease, type, and age group width.
+#'
+#' @param disease A character string specifying the cancer type for which incidence data is requested.
+#' @param type A character vector specifying the type of incidence data to retrieve. Options are "rate" for incidence rates and "absolute" for absolute incidence counts.
+#' @param agegrp_width An integer specifying the width of age groups in years. Options are 5 or 20. Default is 20.
+#'
+#' @return A data table containing cancer incidence data for the specified disease, type, and age group width.
+#'
 #' @export
 get_ons_incd <-
   function(disease,
@@ -406,158 +569,18 @@ get_ons_incd <-
   }
 
 
-# Extract causal pathways from RR list
-get_causal_paths <- function(RR) {
-  exposures <- sapply(RR, `[[`, "name", USE.NAMES = FALSE)
-  # tobacco_lung_ca RR is a function and handled separately
-  exposures <- c(exposures, "tobacco")
-  outcomes <- sapply(RR, `[[`, "outcome", USE.NAMES = FALSE)
-  outcomes <- c(outcomes, "lung_ca")
-
-  out <- list()
-  out$dt <- data.table(exposures, outcomes, key = "exposures")
-  out$by_outcome <- unstack(out$dt, exposures ~ outcomes)
-  out$by_xps <- unstack(out$dt, outcomes ~ exposures)
-  out$matrix <- as.matrix(table(exposures, outcomes))
-  out
-}
-
-# causal_paths <- get_causal_paths(RR)
-# causal_paths$by_outcome$chd
-
-get_lifetable_all <-
-  function(mc, disease, design, type = c("qx", "mx")) {
-    if (disease %in% c("allcause", "nonmodelled")) {
-      disease2 <- "chd"
-    } else {
-      disease2 <- disease
-    }
-    prb <-
-      get_disease_epi_mc(mc,
-                         disease = disease2,
-                         "fatality",
-                         "p",
-                         stochastic = design$stochastic)
-    # NOTE fatality column is poorly named. It is a probability which is
-    # correlated with incidence & prevalence
-    colnam <- c("year", "age", "sex", "qimd", "disease",
-                paste0(
-                  type,
-                  c(
-                    "_total",
-                    "_total_1",
-                    "_total_99",
-                    "_total_10",
-                    "_total_20",
-                    "_total_30",
-                    "_total_40",
-                    "_total_60",
-                    "_total_70",
-                    "_total_80",
-                    "_total_90"
-                  )
-                ))
-    disease_ <- disease
-    indx <-
-      read_fst("./inputs/exposure_distributions/mortality_projections_indx.fst",
-               as.data.table = TRUE)[disease == disease_]
-
-    lifetable_all <-
-      read_fst(
-        "./inputs/exposure_distributions/mortality_projections.fst",
-        colnam,
-        from = indx$from,
-        to = indx$to,
-        as.data.table = TRUE
-      )[between(year,
-                design$init_year,
-                design$init_year + design$sim_horizon_max) &
-          between(age, design$ageL, design$ageH)]
-    if (design$stochastic) {
-      absorb_dt(lifetable_all, prb)
-      setnames(lifetable_all, colnam, gsub(paste0("^", type, "_"), "", colnam))
-
-      lifetable_all[fatality < 0.1, qx_mc :=
-                      qunif(normalise(c(fatality, 0, 0.1))[1],
-                            total_1, total_10)]
-      lifetable_all[between(fatality, 0.1, 0.2), qx_mc :=
-                      qunif(normalise(c(fatality, 0.1, 0.2))[1],
-                            total_10, total_20)]
-      lifetable_all[between(fatality, 0.2, 0.3), qx_mc :=
-                      qunif(normalise(c(fatality, 0.2, 0.3))[1],
-                            total_20, total_30)]
-      lifetable_all[between(fatality, 0.3, 0.4), qx_mc :=
-                      qunif(normalise(c(fatality, 0.3, 0.4))[1],
-                            total_30, total_40)]
-      lifetable_all[between(fatality, 0.4, 0.5), qx_mc :=
-                      qunif(normalise(c(fatality, 0.4, 0.5))[1],
-                            total_40, total)]
-      lifetable_all[between(fatality, 0.5, 0.6), qx_mc :=
-                      qunif(normalise(c(fatality, 0.5, 0.6))[1],
-                            total, total_60)]
-      lifetable_all[between(fatality, 0.6, 0.7), qx_mc :=
-                      qunif(normalise(c(fatality, 0.6, 0.7))[1],
-                            total_60, total_70)]
-      lifetable_all[between(fatality, 0.7, 0.8), qx_mc :=
-                      qunif(normalise(c(fatality, 0.7, 0.8))[1],
-                            total_70, total_80)]
-      lifetable_all[between(fatality, 0.8, 0.9), qx_mc :=
-                      qunif(normalise(c(fatality, 0.8, 0.9))[1],
-                            total_80, total_90)]
-      lifetable_all[between(fatality, 0.9, 1), qx_mc :=
-                      qunif(normalise(c(fatality, 0.9, 1))[1],
-                            total_90, total_99)]
-      lifetable_all[fatality == 0.5, qx_mc := total]
-      return(lifetable_all[, .(year, age, sex, qimd, qx_mc)])
-    } else {
-      setnames(lifetable_all, paste0(type, "_total"), "qx_mc")
-      return(lifetable_all[, .(year, age, sex, qimd, qx_mc)])
-    }
-  }
-
-# get_lifetable_all(4, "chd", design, "qx")[age == 60 & qimd == "3" & sex ==
-# "men", plot(year, qx_mc)]
-
-
-# Get population estimates adjusted for mortality
-generate_pop_adj_for_mrtl <-
-  function(mc, dt, design, update_dt = FALSE) {
-    tt <- get_lifetable_all(mc = mc, "allcause", design = design, "qx")
-    orig_pops <-
-      pops <-
-      dt[, .(N = as.numeric(.N)), keyby = .(year, age, sex, qimd)]
-    absorb_dt(pops, tt)
-
-    out <- data.table()
-
-    ttt <-
-      pops[year == design$init_year &
-             between(age, design$ageL, design$ageH)][, N_adj := as.numeric(N)]
-    out <- rbind(out, ttt)
-    for (i in seq_along(unique(pops$year))) {
-      ttt1 <- # + 1 here correct, not + i
-        copy(ttt)[, `:=`(year = year + 1L, age = age + 1L)]
-      ttt <-
-        pops[year == design$init_year + i &
-               between(age, design$ageL, design$ageH)]
-      ttt[ttt1, on = c("age", "sex", "qimd"), N := i.N_adj]
-      ttt[, N_adj := N * (1 - qx_mc)]
-      out <- rbind(out, ttt)
-    }
-    out[orig_pops, N := i.N, on = c("year", "age", "sex", "qimd")]
-    if (update_dt) {
-      dt[out, on = c("year", "age", "sex", "qimd"), pops_adj := N_adj]
-      message("dt was updated.")
-    }
-    out[, qx_mc := NULL]
-    out[]
-  }
-# generate_pop_adj_for_mrtl(mc, dt, design, TRUE)
-#
-# dt[is.na(pops_adj) & between(year, design$init_year, design$init_year +
-# design$sim_horizon) & between(age, design$ageL, design$ageH), .N]
-
-
+# generate_rns ----
+#' Generate Random Numbers for Monte Carlo iteration
+#' @description
+#' This function generates random numbers for a Monte Carlo iteration using the dqRNG package. It sets the seed based on the simulation run and updates specified columns in the input data table with random numbers.
+#'
+#' @param mc A numeric value representing the Monte Carlo iteration run.
+#' @param dt A data table containing the columns to be updated with random numbers.
+#' @param colnams A character vector specifying the names of columns to be updated with random numbers.
+#'
+#' @return The input data table with specified columns updated with random numbers.
+#'
+#' @export
 generate_rns <- function(mc, dt, colnams) {
   dqRNGkind("pcg64") # dqRNGkind("Xoroshiro128+") ~10% faster
   SEED <- 4719349L # sample(1e7, 1)
@@ -570,10 +593,16 @@ generate_rns <- function(mc, dt, colnams) {
   invisible(dt)
 }
 
-
-# Given a correlation matrix (Pearson), produces a matrix of
-# correlated uniforms
-
+# generate_corr_unifs ----
+#' Given a correlation matrix (Pearson), produces a matrix of correlated uniforms
+#' @description
+#' This function generates correlated uniform random variables based on a given correlation matrix using the dqrnorm and pnorm functions.
+#'
+#' @param n The number of samples to generate.
+#' @param M The correlation matrix.
+#'
+#' @return A matrix of correlated uniform random variables.
+#'
 #' @export
 generate_corr_unifs <- function(n, M) {
   # generate normals, check correlations
@@ -611,1530 +640,32 @@ generate_corr_unifs <- function(n, M) {
 }
 
 
-# Estimate health utility decreaments
-#' @export
-generate_eq5d_decr <- function(dt) {
-  # From Sullivan et al. 2011
-  # TODO add copd and cancers
-  utility_pop_norms <-
-    c(
-      0.922,
-      0.922,
-      0.922,
-      0.922,
-      0.922,
-      0.922,
-      0.922,
-      0.914,
-      0.914,
-      0.914,
-      0.914,
-      0.914,
-      0.914,
-      0.914,
-      0.914,
-      0.914,
-      0.914,
-      0.888,
-      0.888,
-      0.888,
-      0.888,
-      0.888,
-      0.888,
-      0.888,
-      0.888,
-      0.888,
-      0.888,
-      0.854,
-      0.854,
-      0.854,
-      0.854,
-      0.854,
-      0.854,
-      0.854,
-      0.854,
-      0.854,
-      0.854,
-      0.814,
-      0.814,
-      0.814,
-      0.814,
-      0.814,
-      0.814,
-      0.814,
-      0.814,
-      0.814,
-      0.814,
-      0.775,
-      0.775,
-      0.775,
-      0.775,
-      0.775,
-      0.775,
-      0.775,
-      0.775,
-      0.775,
-      0.775,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706,
-      0.706
-    )
-  utility_income    <-
-    c(0.012572, 0.038783, 0.0396568, 0.0396568, 0.0408501)
-  utility_education <-
-    c(0.0060444,
-      0.0056836,
-      0.0028418,
-      0.0028418,
-      0.0028418,
-      0.0056836,
-      0)
-  utility_ncc       <-
-    c(0,
-      0,
-      -0.0528,
-      -0.0415,
-      -0.0203,
-      0.0083,
-      0.04087,
-      0.06687,
-      0.11589,
-      0.13444,
-      0.18361)
-
-  new_ncc <-
-    fclamp_int(
-      dt$ncc + (dt$htn_prvl > 0L) + (dt$af_prvl > 0L) +
-        (dt$t2dm_prvl > 0L) +  (dt$chd_prvl > 0L) +
-        (dt$stroke_prvl > 0L) + (dt$poststroke_dementia_prvl > 0L) +
-        (dt$copd_prvl > 0L) + (dt$lung_ca_prvl > 0L) +
-        (dt$colon_ca_prvl > 0L) + (dt$breast_ca_prvl > 0L),
-      0L,
-      10L
-    )
-
-
-  out <-
-    utility_pop_norms[dt$age - 17L] + utility_income[dt$income] +
-    utility_education[dt$education] +
-    0.0010046 * (dt$sex == "men") +
-    utility_ncc[new_ncc + 1L] - 0.0460 * (dt$htn_prvl > 0L) -
-    0.0384 * (dt$af_prvl > 0L) - 0.0714 * (dt$t2dm_prvl > 0L) -
-    0.0679 * (dt$chd_prvl > 0L) - 0.0578 * (dt$stroke_prvl > 0L) -
-    0.0957 * (dt$copd_prvl > 0L) - 0.1192427 * (dt$lung_ca_prvl > 0L) -
-    0.0673908 * (dt$colon_ca_prvl > 0L) - 0.0194279 * (dt$breast_ca_prvl > 0L) -
-    0.2165659 * (dt$poststroke_dementia_prvl > 0L)
-
-  # half eq5d for year of death
-  out <-
-    out / ((dt$all_cause_mrtl > 0) + 1L) # out/1 for alive and out/2 for dead
-
-  clamp(out, 0, 1, TRUE)
-  dt[, eq5d := out]
-}
-# generate_eq5d_decr(output)
-# output[, summary(eq5d)]
-
-get_healthcare_costs <- function(mc) {
-  if (mc < 1L | mc > 1000L) stop("mc need to be between 1 and 1000")
-  out <- list()
-  tt <- read_fst("./simulation/health_econ/healthcare_costs_indx.fst",
-    from = mc, to = mc,
-    as.data.table = TRUE)
-  tt <- read_fst("./simulation/health_econ/healthcare_costs_l.fst",
-    from = tt$from, to = tt$to,
-    columns = c("disease", "years_since_diagnosis", "healthcare_cost"),
-    as.data.table = TRUE)
-  out$lung_ca_costs_young <- tt[disease == "lung_ca_18_64", c(0, healthcare_cost)] # (first element is for prevalence 0)
-  out$lung_ca_costs_old <- tt[disease == "lung_ca_65+", c(0, healthcare_cost)]
-  out$colon_ca_costs_young <- tt[disease == "colon_ca_18_64", c(0, healthcare_cost)]
-  out$colon_ca_costs_old <- tt[disease == "colon_ca_65+", c(0, healthcare_cost)]
-  out$breast_ca_costs_young <- tt[disease == "breast_ca_18_64", c(0, healthcare_cost)]
-  out$breast_ca_costs_old <- tt[disease == "breast_ca_65+", c(0, healthcare_cost)]
-  out$other <- tt[disease == "other", healthcare_cost]
-  out$htn <- tt[disease == "hypertension", healthcare_cost]
-  out$af <- tt[disease == "atrial_fibrillation", healthcare_cost]
-  out$t2dm <- tt[disease == "t2dm", healthcare_cost]
-  out$chd <- tt[disease == "chd", healthcare_cost]
-  out$stroke_y1 <- tt[disease %in% c("stroke_acute_event", "stroke_first_year"),
-    sum(healthcare_cost)]
-  out$stroke_posty1 <- tt[disease == "stroke_year_2+", healthcare_cost]
-  out$poststroke_dementia <- tt[disease == "dementia", healthcare_cost]
-  out$copd <- tt[disease == "copd", healthcare_cost]
-  out
-}
-
-generate_healthcare_costs <- function(dt, mc) {
-  costs <- get_healthcare_costs(mc)
-
-  out <- costs$other + costs$htn * (dt$htn_prvl > 0L) +
-    costs$t2dm * (dt$t2dm_prvl > 0L) + costs$chd * (dt$chd_prvl > 0L) +
-    costs$stroke_y1 * (dt$stroke_prvl == 1L) +
-    costs$stroke_posty1 * (dt$stroke_prvl > 1L) +
-    costs$copd * (dt$copd_prvl > 0L) + costs$af * (dt$af_prvl > 0L) +
-    costs$lung_ca_costs_young[1L + dt$lung_ca_prvl] * (dt$age < 65) +
-    costs$lung_ca_costs_old[1L + dt$lung_ca_prvl] * (dt$age >= 65) +
-    costs$colon_ca_costs_young[1L + dt$colon_ca_prvl] * (dt$age < 65) +
-    costs$colon_ca_costs_old[1L + dt$colon_ca_prvl] * (dt$age >= 65) +
-    costs$breast_ca_costs_young[1L + dt$breast_ca_prvl] * (dt$age < 65) +
-    costs$breast_ca_costs_old[1L + dt$breast_ca_prvl] * (dt$age >= 65) +
-    costs$poststroke_dementia * (dt$poststroke_dementia_prvl > 0L)
-
-  # half cost for year of death
-  out <-
-    out / ((dt$all_cause_mrtl > 0) + 1L) # out/1 for alive and out/2 for dead
-  dt[, healthcare_cost := out]
-}
-
-
-get_socialcare_costs <- function(mc) {
-  if (mc < 1L | mc > 1000L) stop("mc need to be between 1 and 1000")
-  out <- list()
-  tt <- read_fst("./simulation/health_econ/socialcare_costs_indx.fst",
-    from = mc, to = mc,
-    as.data.table = TRUE)
-  out$socialcare_cost <- read_fst("./simulation/health_econ/socialcare_costs_l.fst",
-    from = tt$from, to = tt$to,
-    columns = c("socialcare_cost"),
-    as.data.table = FALSE)$socialcare_cost
-  tt <- read_fst("./simulation/health_econ/socialcare_costs_added_diseases_indx.fst",
-    from = mc, to = mc,
-    as.data.table = TRUE)
-  tt <- read_fst("./simulation/health_econ/socialcare_costs_added_diseases_l.fst",
-    from = tt$from, to = tt$to,
-    columns = c("disease", "socialcare_cost"),
-    as.data.table = TRUE)
-  out$socialcare_cost_stroke <- tt[disease == "stroke", socialcare_cost]
-  out$socialcare_cost_poststroke_dementia <- tt[disease == "poststroke_dementia", socialcare_cost]
-  out
-}
-
-generate_socialcare_costs <- function(dt, mc) {
-  costs <- get_socialcare_costs(mc)
-  # for ages 18 to 100. Hence, age - 17L
-  out <-
-    costs$socialcare_cost[dt$age - 17L] + costs$socialcare_cost_stroke * (dt$stroke_prvl > 0L) +
-    costs$socialcare_cost_poststroke_dementia * (dt$poststroke_dementia_prvl > 0L)
-
-  # half cost for year of death
-  out <-
-    out / ((dt$all_cause_mrtl > 0) + 1L) # out/1 for alive and out/2 for dead
-  dt[, socialcare_cost := out]
-  dt
-}
-
-get_productivity_costs <- function(mc) {
-  if (mc < 1L | mc > 1000L) stop("mc need to be between 1 and 1000")
-  tt <- read_fst("./simulation/health_econ/productivity_costs_indx.fst",
-    from = mc, to = mc,
-    as.data.table = TRUE)
-  read_fst("./simulation/health_econ/productivity_costs_l.fst",
-    from = tt$from, to = tt$to,
-    columns = c("age", "sex", "eq5d_r", "productivity_cost"),
-    as.data.table = TRUE)
-}
-
-generate_productivity_costs <- function(dt, mc) {
-  tt <- get_productivity_costs(mc)
-  tt[, eq5d_r := as.integer(100L * eq5d_r)]
-  dt[, eq5d_r := as.integer(100L * round(eq5d / 0.05) * 0.05)]
-  absorb_dt(dt, tt)
-  # half cost for year of death
-  dt[all_cause_mrtl > 0, productivity_cost := productivity_cost / 2]
-  dt[, eq5d_r := NULL]
-  dt
-}
-
-
-get_informal_care_costs <- function(mc) {
-  if (mc < 1L | mc > 1000L) stop("mc need to be between 1 and 1000")
-  tt <- read_fst("./simulation/health_econ/informal_care_costs_indx.fst",
-    from = mc, to = mc,
-    as.data.table = TRUE)
-  read_fst("./simulation/health_econ/informal_care_costs_l.fst",
-    from = tt$from, to = tt$to,
-    columns = c("age", "sex", "eq5d_r", "informal_care_cost"),
-    as.data.table = TRUE)
-}
-
-generate_informal_care_costs <- function(dt, mc) {
-  tt <- get_informal_care_costs(mc)
-  tt[, eq5d_r := as.integer(100L * eq5d_r)]
-  dt[, eq5d_r := as.integer(100 * round(eq5d / 0.05) * 0.05)]
-  absorb_dt(dt, tt)
-  # half cost for year of death
-  dt[all_cause_mrtl > 0, informal_care_cost := informal_care_cost / 2]
-  dt[, eq5d_r := NULL]
-  dt
-}
-
-generate_health_econ <- function(dt, mc) {
-  generate_eq5d_decr(dt)
-  generate_healthcare_costs(dt, mc)
-  generate_socialcare_costs(dt, mc)
-  generate_productivity_costs(dt, mc)
-  generate_informal_care_costs(dt, mc)
-  invisible(dt)
-}
-
-#' @export
-set_eligible <- function(scenario_parms, dt, hlp, env = parent.frame()) {
-  colnam <- "eligible_sc"
-  if (scenario_parms$sc_ens_is && colnam %in% names(dt)) {
-    env$hlp$previous_elig <- clamp(hlp$previous_elig + dt$eligible_sc)
-  }
-
-  set(dt, NULL, colnam, 0L)
-  if (!scenario_parms$sc_eligib_noone) {
-    if (!scenario_parms$sc_ens_parallel_is) {
-      # if not parallel ensemble (following works OK with serial)
-      dt[between(year,
-                 scenario_parms$sc_init_year - 2000L,
-                 scenario_parms$sc_last_year - 2000L) &
-           between(age,
-                   scenario_parms$sc_eligib_age[[1]],
-                   scenario_parms$sc_eligib_age[[2]]) &
-           dead == FALSE &
-           # statin_px_curr_xps == 0L &
-           # af_dgn == 0L &
-           htn_dgn < fifelse(scenario_parms$sc_eligib_htn, Inf, 1L) &
-           t2dm_dgn < fifelse(scenario_parms$sc_eligib_diab, Inf, 1L) &
-           # ckd_prvl_curr_xps <= 3L &
-           # ra_prvl == 0L &
-           chd_dgn == 0L &
-           stroke_dgn == 0L,
-         (colnam) := 1L]
-    } else { # if parallel ensemble
-      dt[between(year,
-                 scenario_parms$sc_init_year - 2000L,
-                 scenario_parms$sc_last_year - 2000L) &
-           between(age,
-                   scenario_parms$sc_eligib_age[[1]],
-                   scenario_parms$sc_eligib_age[[2]]) &
-           dead == FALSE &
-           # statin_px_curr_xps == 0L &
-           # af_dgn == 0L &
-           htn_dgn < fifelse(scenario_parms$sc_eligib_htn, Inf, 1) &
-           t2dm_dgn < fifelse(scenario_parms$sc_eligib_diab, Inf, 1L) &
-           # ckd_prvl_curr_xps <= 3L &
-           # ra_prvl == 0L &
-           chd_dgn == 0L &
-           stroke_dgn == 0L &
-           pid %in% hlp$sc_alloc[[scenario_parms$sc_name]],
-         (colnam) := 1L]
-    }
-  }
-  invisible(dt)
-  # dt[year == 20 &
-  #      between(age, scenario_parms$sc_eligib_age[[1]],
-  # scenario_parms$sc_eligib_age[[2]]), prop_if(eligible_sc1 == 1)]
-}
-# set_eligible("sc2", POP, parameters_dt) POP[between(year, 18, 35) &
-# between(age, 40, 74) & dead == FALSE, prop_if(eligible_sc1 == 1)] Around 70%
-# of the population should be eligible. From
-# https://www.healthcheck.nhs.uk/commissioners-and-providers/data/total-eligible-population/
-# POP[between(year, 18, 35) & between(age, 40, 74) & dead == FALSE, 1 -
-# prop_if(eligible_sc1 == 1), keyby = age]
-
-#' @export
-set_invitees <- function(scenario_parms, dt, hlp, env = parent.frame()) {
-  colnam <- "invitees_sc"
-  colnam_cost <- "invitation_cost_sc"
-  elig_colnam <- "eligible_sc"
-  if (scenario_parms$sc_ens_is && colnam %in% names(dt)) {
-      env$hlp$previous_invitees <- clamp(hlp$previous_invitees + dt$invitees_sc)
-  }
-  set(dt, NULL, colnam, 0L)
-
-  # TODO find better approach
-
-  if (scenario_parms$sc_invit_detailed) {
-    tt1 <- data.table(
-      year = (scenario_parms$sc_init_year:scenario_parms$sc_last_year) - 2000L,
-      qimd = "1 most deprived",
-      mu = scenario_parms$sc_invit_qimd1,
-      freq = scenario_parms$sc_eligib_freq
-    )
-    # for serial ensembles take into account previous scenarios
-    if (scenario_parms$sc_ens_serial_is) {
-      tt1 <- rbind(hlp$invit_tbl1, tt1)
-      env$hlp$invit_tbl1 <- copy(tt1)
-    }
-    elig <- vector("numeric", nrow(tt1))
-    for (i in seq_len(nrow(tt1))) {
-      if (i == 1L)
-        elig[i] <- 1 - 0
-      if (between(i, 2, tt1[i, freq]))
-        elig[i] <- clamp(elig[i - 1L] - tt1[i, mu])
-      if (i > tt1[i, freq])
-        elig[i] <-
-          clamp(elig[i - 1L] - tt1[i - 1, mu] + tt1[i - tt1[i, freq], mu])
-    }
-    tt1[, mu := clamp(mu / elig)]
-    tt1[is.na(mu), mu := 0] # i.e. for freq 5 and prb 0.25
-
-    tt2 <-
-      data.table(
-        year = (scenario_parms$sc_init_year:scenario_parms$sc_last_year) - 2000L,
-        qimd = "2",
-        mu = scenario_parms$sc_invit_qimd2,
-        freq = scenario_parms$sc_eligib_freq
-      )
-    if (scenario_parms$sc_ens_serial_is) {
-      tt2 <- rbind(hlp$invit_tbl2, tt2)
-      env$hlp$invit_tbl2 <- copy(tt2)
-    }
-    elig <- vector("numeric", nrow(tt2))
-    for (i in seq_len(nrow(tt2))) {
-      if (i == 1L)
-        elig[i] <- 1 - 0
-      if (between(i, 2, tt2[i, freq]))
-        elig[i] <- clamp(elig[i - 1L] - tt2[i, mu])
-      if (i > tt2[i, freq])
-        elig[i] <-
-          clamp(elig[i - 1L] - tt2[i - 1, mu] + tt2[i - tt2[i, freq], mu])
-    }
-    tt2[, mu := clamp(mu / elig)]
-    tt2[is.na(mu), mu := 0] # i.e. for freq 5 and prb 0.25
-
-    tt3 <-
-      data.table(
-        year = (scenario_parms$sc_init_year:scenario_parms$sc_last_year) - 2000L,
-        qimd = "3",
-        mu = scenario_parms$sc_invit_qimd3,
-        freq = scenario_parms$sc_eligib_freq
-      )
-    if (scenario_parms$sc_ens_serial_is) {
-      tt3 <- rbind(hlp$invit_tbl3, tt3)
-      env$hlp$invit_tbl3 <- copy(tt3)
-    }
-    elig <- vector("numeric", nrow(tt3))
-    for (i in seq_len(nrow(tt3))) {
-      if (i == 1L)
-        elig[i] <- 1 - 0
-      if (between(i, 2, tt3[i, freq]))
-        elig[i] <- clamp(elig[i - 1L] - tt3[i, mu])
-      if (i > tt3[i, freq])
-        elig[i] <-
-          clamp(elig[i - 1L] - tt3[i - 1, mu] + tt3[i - tt3[i, freq], mu])
-    }
-    tt3[, mu := clamp(mu / elig)]
-    tt3[is.na(mu), mu := 0] # i.e. for freq 5 and prb 0.25
-
-    tt4 <-
-      data.table(
-        year = (scenario_parms$sc_init_year:scenario_parms$sc_last_year) - 2000L,
-        qimd = "4",
-        mu = scenario_parms$sc_invit_qimd4,
-        freq = scenario_parms$sc_eligib_freq
-      )
-    if (scenario_parms$sc_ens_serial_is) {
-      tt4 <- rbind(hlp$invit_tbl4, tt4)
-      env$hlp$invit_tbl4 <- copy(tt4)
-    }
-    elig <- vector("numeric", nrow(tt4))
-    for (i in seq_len(nrow(tt4))) {
-      if (i == 1L)
-        elig[i] <- 1 - 0
-      if (between(i, 2, tt4[i, freq]))
-        elig[i] <- clamp(elig[i - 1L] - tt4[i, mu])
-      if (i > tt4[i, freq])
-        elig[i] <-
-          clamp(elig[i - 1L] - tt4[i - 1, mu] + tt4[i - tt4[i, freq], mu])
-    }
-    tt4[, mu := clamp(mu / elig)]
-    tt4[is.na(mu), mu := 0] # i.e. for freq 5 and prb 0.25
-
-    tt5 <-
-      data.table(
-        year = (scenario_parms$sc_init_year:scenario_parms$sc_last_year) - 2000L,
-        qimd = "5 least deprived",
-        mu = scenario_parms$sc_invit_qimd5,
-        freq = scenario_parms$sc_eligib_freq
-      )
-    if (scenario_parms$sc_ens_serial_is) {
-      tt5 <- rbind(hlp$invit_tbl5, tt5)
-      env$hlp$invit_tbl5 <- copy(tt5)
-    }
-    elig <- vector("numeric", nrow(tt5))
-    for (i in seq_len(nrow(tt5))) {
-      if (i == 1L)
-        elig[i] <- 1 - 0
-      if (between(i, 2, tt5[i, freq]))
-        elig[i] <- clamp(elig[i - 1L] - tt5[i, mu])
-      if (i > tt5[i, freq])
-        elig[i] <-
-          clamp(elig[i - 1L] - tt5[i - 1, mu] + tt5[i - tt5[i, freq], mu])
-    }
-    tt5[, mu := clamp(mu / elig)]
-    tt5[is.na(mu), mu := 0] # i.e. for freq 5 and prb 0.25
-
-    tt <- rbind(tt1, tt2, tt3, tt4, tt5)
-    tt <- tt[between(year, scenario_parms$sc_init_year - 2000L, scenario_parms$sc_last_year - 2000L)]
-
-    ttcost <-
-      data.table(
-        V1 = 1L,
-        V2 = c("1 most deprived", "2", "3", "4", "5 least deprived"),
-        V3 = c(
-          scenario_parms$sc_invit_qimd1_cost,
-          scenario_parms$sc_invit_qimd2_cost,
-          scenario_parms$sc_invit_qimd3_cost,
-          scenario_parms$sc_invit_qimd4_cost,
-          scenario_parms$sc_invit_qimd5_cost
-        )
-      )
-    setnames(ttcost, c(colnam, "qimd", colnam_cost))
-
-  } else { # if not detailed invites (input not by qimd)
-    # The method below is robust in changes of mu and/or freq to define
-    # probability of being invited given that eligible population is reduced the
-    # more you invite for a check
-    tt <- data.table(
-      year = (scenario_parms$sc_init_year:scenario_parms$sc_last_year) - 2000L,
-      mu = scenario_parms$sc_invit_qimdall,
-      freq = scenario_parms$sc_eligib_freq
-    )
-    # for serial ensembles take into account previous scenarios
-    if (scenario_parms$sc_ens_serial_is) {
-      tt <- rbind(hlp$invit_tbl, tt)
-      env$hlp$invit_tbl <- copy(tt)
-    }
-
-    elig <- vector("numeric", nrow(tt))
-    for (i in seq_len(nrow(tt))) {
-      if (i == 1L)
-        elig[i] <- 1 - 0
-      if (between(i, 2, tt[i, freq]))
-        elig[i] <- clamp(elig[i - 1L] - tt[i, mu])
-      if (i > tt[i, freq])
-        elig[i] <-
-          clamp(elig[i - 1L] - tt[i - 1, mu] + tt[i - tt[i, freq], mu])
-    }
-    tt[, mu := clamp(mu / elig)]
-    tt[is.na(mu), mu := 0] # i.e. for freq 5 and prb 0.25
-    tt <- tt[between(year, scenario_parms$sc_init_year - 2000L, scenario_parms$sc_last_year - 2000L)]
-
-    ttcost <- data.table(1L, scenario_parms$sc_invit_qimdall_cost)
-    setnames(ttcost, c(colnam, colnam_cost))
-  }
-
-  absorb_dt(dt, tt)
-  setnafill(dt, "c", 0, cols = c("mu", "freq"))
-  dt[, (colnam) :=
-      identify_invitees(eligible_sc, hlp$previous_invitees, mu, freq, pid_mrk)]
-  dt[, c("mu", "freq") := NULL]
-  absorb_dt(dt, ttcost, on = setdiff(names(ttcost), colnam_cost))
-  setnafill(dt, "c", 0, cols = colnam_cost)
-  invisible(dt)
-  # dt[ eligible_sc1 == 1L &
-  #      between(age, scenario_parms$sc_eligib_age[[1]], scenario_parms$sc_eligib_age[[2]]),
-  #      prop_if(invitees_sc1== 1), keyby = year]
-
-}
-# set_invitees("sc2", POP, parameters_dt)
-
-#' @export
-set_attendees <- function(scenario_parms, dt, scenario_nam, parameters_dt,
-  design, hlp, env = parent.frame()) {
-  colnam       <- "attendees_sc"
-  colnam_cost  <- "attendees_cost_sc"
-  invit_colnam <- "invitees_sc"
-  if (scenario_parms$sc_ens_is && colnam %in% names(dt)) {
-    env$hlp$previous_attendees <- clamp(hlp$previous_attendees + dt$attendees_sc)
-  }
-  set(dt, NULL, colnam_cost, 0)
-
-
-  if (scenario_parms$sc_uptake_detailed) {
-    agegrp <- fromGUI_uptake_table_agegrps(scenario_nam = scenario_nam,
-                                           parameters_dt = parameters_dt)
-    absorb_dt(dt, agegrp)
-    dt[, "Qrisk2_cat" := Qrisk2(.SD,
-                                scenario_parms$sc_qrisk_ignore_bmi,
-                                scenario_parms$sc_qrisk_ignore_sbp,
-                                scenario_parms$sc_qrisk_ignore_tchol)$Qrisk2_cat]
-    if (scenario_parms$sc_uptake_structural0s) { # if structural 0s
-      absorb_dt(dt, scenario_parms$sc_uptake)
-      setnafill(dt, "c", 0, cols = "uptake_wt")
-      dt[, c("Qrisk2_cat", "agegrp10") := NULL]
-      tt <- sort(dt[invitees_sc == 1L & uptake_wt > 0,
-                    sample_int_expj(.N, as.integer(round(scenario_parms$sc_uptake_all * .N)),
-                                    uptake_wt)])
-      tt <-
-        dt[invitees_sc == 1L &
-             uptake_wt > 0, .(year, pid)][tt, ][, (colnam) := 1L]
-      absorb_dt(dt, tt, on = c("pid", "year"))
-    } else { # if no structural 0s
-      # Abuse of the rule of 3
-      absorb_dt(dt, scenario_parms$sc_uptake[uptake_wt == 0,
-                                uptake_wt := 0.5 * 3 /
-                                  dt[year == scenario_parms$sc_init_year - 2000L &
-                                       invitees_sc == 1L,
-                                     sum(wt) *
-                                       design$sim_prm$n_synthpop_aggregation]])
-      setnafill(dt, "c", 0, cols = "uptake_wt")
-      dt[, c("Qrisk2_cat", "agegrp10") := NULL]
-
-      tt <- sort(dt[invitees_sc == 1L,
-                    sample_int_expj(.N, as.integer(round(scenario_parms$sc_uptake_all * .N)),
-                                    uptake_wt)])
-      tt <-
-        dt[invitees_sc == 1L, .(year, pid)][tt, ][, (colnam) := 1L]
-      absorb_dt(dt, tt, on = c("pid", "year"))
-    }
-  } else {
-    set(dt, NULL, "uptake_wt", scenario_parms$sc_uptake_all)
-    dt[invitees_sc == 1L, (colnam) := rbinom(.N, 1, uptake_wt)]
-  }
-
-  setnafill(dt, "c", 0, cols = colnam)
-  dt[attendees_sc == 1L, (colnam_cost) := scenario_parms$sc_uptake_all_cost]
-  dt[, uptake_wt := NULL]
-  invisible(dt)
-
-  # dt[ invitees_sc1 == 1L & between(age, scenario_parms$sc_eligib_age[[1]],
-  # scenario_parms$sc_eligib_age[[2]]), prop_if(attendees_sc1== 1), keyby = year]
-}
-
-#' @export
-set_px <- function(scenario_parms, dt, mc, design_) {
-  dt[, "Qrisk2_cat" := Qrisk2(.SD, FALSE, FALSE, FALSE)$Qrisk2_cat]
-  atte_colnam <- "attendees_sc"
-
-  # for statins
-  colnam     <- "statin_px_sc"
-  colnam_bio <- "tchol_sc"
-
-  if (scenario_parms$sc_px_detailed) {
-    absorb_dt(dt, scenario_parms$sc_px_statins_wt)
-
-    # Below assumes people on statin_px_curr_xps but undertreated will titrate
-    # statin treatment.
-
-    # Adjusted prb where the denominator changed from all attendees to those
-    # eligible for statins
-    tt <- dt[attendees_sc == 1L,
-             clamp(scenario_parms$sc_px_statins / prop_if(tchol_curr_xps >= 5))]
-
-
-    tt <- sort(dt[attendees_sc == 1L & tchol_curr_xps >= 5,
-                  sample_int_expj(.N, as.integer(round(tt * .N)),
-                                  px_statins_wt)])
-    # rows that will have statin px
-    tt <-
-      dt[attendees_sc == 1L & tchol_curr_xps >= 5,
-         .(year, pid)][tt, ][, (colnam) := 1L]
-    absorb_dt(dt, tt, on = c("pid", "year"))
-  } else {
-    tt <- dt[attendees_sc == 1L,
-             clamp(scenario_parms$sc_px_statins / prop_if(tchol_curr_xps >= 5 &
-                                               Qrisk2_cat != "low"))]
-
-    set(dt, NULL, "px_statins_wt", tt)
-    dt[attendees_sc == 1L &
-         tchol_curr_xps >= 5 & Qrisk2_cat != "low",
-       (colnam) := rbinom(.N, 1L, px_statins_wt)]
-  }
-  setnafill(dt, "c", 0, cols = colnam)
-  dt[, (colnam) := hc_effect(statin_px_sc, 0.9749866, pid_mrk)]
-
-  # 0.9749866 comes from the following study in Wales.
-  # King W, Lacey A, White J, Farewell D, Dunstan F, Fone D. Socioeconomic
-  # inequality in medication persistence in primary and secondary prevention of
-  # coronary heart disease – A population-wide electronic cohort study. PLOS ONE
-  # 2018;13:e0194081.
-  # from 33228 individuals px a statin in Wales for primary prevention, 5378 had
-  # discontinued it within 7 years without socioeconomic gradient statin <-
-  # c(0.96, (33228 - 5378)/33228) year <- c(0.1, 7) m1 <- glm(statin~ -1 + year,
-  # family = gaussian(link = "log")) exp(m1$coefficients) x <- predict(m1,
-  # newdata = data.table(year = 0:7), type = "re") shift(x, -1)/x plot(0:70,
-  # predict(m1, newdata = data.table(year = 0:70), type = "re"), ylim = c(0, 1))
-  # Every year 0.9749866 of those taking statin continue next year
-
-
-  # estimate tchol change atorvastatin effect from Law MR, et al. Quantifying
-  # effect of statins on low density lipoprotein cholesterol, ischaemic heart
-  # disease, and stroke: systematic review and meta-analysis. BMJ 2003;326:1423.
-  # table 2. 43% (0.3958 - 0.46875) reduction of ldl. to convert to tc, tc/ldl =
-  # 0.27/0.36 from Edwards JE, et al. Statins in hypercholesterolaemia: A
-  # dose-specific meta-analysis of lipid changes in randomised, double blind
-  # trials. BMC Family Practice 2003;4:18.
-
-  atorv_eff <- RR$statins_tchol$get_rr(mc, design_, drop = TRUE)
-
-  # adherence <- rpert(1e6, 0.5, 0.9, 1, 8)
-  # proportion of prescribed dose taken
-  # or to avoid dependency for rpert
-  # adherence <- rBE(1e6, 0.9, 0.2) # proportion of prescribed dose taken
-
-  if (!colnam_bio %in% names(dt)) dt[, (colnam_bio) := tchol_curr_xps]
-  dt[statin_px_sc == 1L &
-       # statin_px_curr_xps == 0L & # Assume GP titrates treatment
-       year >= scenario_parms$sc_init_year - 2000L,
-     (colnam_bio) := tchol_curr_xps * (1 - atorv_eff * statin_adherence)]
-
-  # for bpmed
-  colnam     <- "bpmed_px_sc"
-  colnam_bio <- "sbp_sc"
-
-  if (scenario_parms$sc_px_detailed) {
-    absorb_dt(dt, scenario_parms$sc_px_antihtn_wt)
-
-    # Adjusted prb where the denominator changed from all attendees to those
-    # eligible for bpmed
-    tt <- dt[attendees_sc == 1L,
-             clamp(scenario_parms$sc_px_antihtn / prop_if(sbp_curr_xps >= 135))]
-
-    tt <- sort(dt[attendees_sc == 1L & sbp_curr_xps >= 135,
-                  sample_int_expj(.N, as.integer(round(tt * .N)),
-                                  px_antihtn_wt)])
-    tt <-
-      dt[attendees_sc == 1L & sbp_curr_xps >= 135,
-         .(year, pid)][tt, ][, (colnam) := 1L]
-    absorb_dt(dt, tt, on = c("pid", "year"))
-  } else {
-    tt <- dt[attendees_sc == 1L,
-             clamp(scenario_parms$sc_px_antihtn / prop_if(sbp_curr_xps >= 135))]
-
-    set(dt, NULL, "px_antihtn_wt", tt)
-    dt[attendees_sc == 1L & sbp_curr_xps >= 135,
-       (colnam) := rbinom(.N, 1L, px_antihtn_wt)]
-  }
-  setnafill(dt, "c", 0, cols = colnam)
-  dt[, (colnam) := hc_effect(bpmed_px_sc, 0.9749866, pid_mrk)]
-  # assume same prb as statins
-
-  # Estimate sbp change
-  if (!colnam_bio %in% names(dt)) dt[, (colnam_bio) := sbp_curr_xps]
-  dt[bpmed_px_sc == 1L &
-       # bpmed_curr_xps == 0L & # Assume GP titrates treatment
-       year >= scenario_parms$sc_init_year - 2000L,
-     (colnam_bio) := sbp_curr_xps - clamp((sbp_curr_xps - 135) *
-         bpmed_adherence, 0, 1e3)]
-  # Assume that antihtn medication can potentially achieve sbp 135 for all. Not
-  # 110 to account for residual risk
-
-  dt[, c("Qrisk2_cat", "px_statins_wt", "px_antihtn_wt") := NULL]
-
-  invisible(dt)
-}
-
-#' @export
-set_lifestyle <-
-  function(scenario_parms, dt, design) {
-    atte_colnam <- "attendees_sc"
-
-    # PA ----
-    colnam      <- "active_days_sc"
-    colnam_cost <- "active_days_cost_sc"
-    if (!"hc_eff_pa" %in% names(dt))      set(dt, NULL, "hc_eff_pa", 0L)
-    if (!colnam %in% names(dt))        dt[, (colnam) := active_days_curr_xps]
-    if (!colnam_cost %in% names(dt))   set(dt, NULL, colnam_cost, 0)
-    dt[attendees_sc == 1L, hc_eff_pa := rbinom(.N, 1, scenario_parms$sc_ls_papct)]
-    dt[hc_eff_pa == 1L & year >= scenario_parms$sc_init_year - 2000L,
-       (colnam_cost) := scenario_parms$sc_ls_pa_cost_ind]
-    # Cost only the year of referral
-    dt[,
-      hc_eff_pa := hc_effect(hc_eff_pa, (1 - scenario_parms$sc_ls_attrition), pid_mrk)]
-    dt[hc_eff_pa == 1L, (colnam) :=
-         as.integer(round(clamp(active_days_sc + scenario_parms$sc_ls_papincr, 0, 7)))]
-
-    # Weight management ----
-    colnam      <- "bmi_sc"
-    colnam_cost <- "bmi_cost_sc"
-    if (!"hc_eff_wm" %in% names(dt)) set(dt, NULL, "hc_eff_wm", 0L)
-    if (!colnam %in% names(dt))      dt[, (colnam) := bmi_curr_xps]
-    if (!colnam_cost %in% names(dt)) set(dt, NULL, colnam_cost, 0)
-    dt[attendees_sc == 1L &
-         bmi_curr_xps > 30, hc_eff_wm := rbinom(.N, 1, scenario_parms$sc_ls_wghtpct)]
-    dt[hc_eff_wm == 1L  & year >= scenario_parms$sc_init_year - 2000L,
-       (colnam_cost) := scenario_parms$sc_ls_wghtloss_cost_ind]
-    # Cost only the year of referral
-    dt[,
-      hc_eff_wm := hc_effect(hc_eff_wm,
-        (1 - scenario_parms$sc_ls_attrition), pid_mrk)]
-    dt[hc_eff_wm == 1L, (colnam) := bmi_sc * (1 - scenario_parms$sc_ls_wghtreduc)]
-
-    # Alcohol ----
-    colnam      <- "alcohol_sc"
-    colnam_cost <- "alcohol_cost_sc"
-    if (!"hc_eff_al" %in% names(dt)) set(dt, NULL, "hc_eff_al", 0L)
-    if (!colnam %in% names(dt))      dt[, (colnam) := alcohol_curr_xps]
-    if (!colnam_cost %in% names(dt)) set(dt, NULL, colnam_cost, 0)
-    dt[attendees_sc == 1L &
-         alcohol_curr_xps >= 16, hc_eff_al := rbinom(.N, 1, scenario_parms$sc_ls_alcoholpct)]
-    dt[hc_eff_al == 1L & year >= scenario_parms$sc_init_year - 2000L,
-       (colnam_cost) := scenario_parms$sc_ls_alcoholreduc_cost_ind]
-    # Cost only the year of referral
-    dt[,
-       hc_eff_al := hc_effect(hc_eff_al, (1 - scenario_parms$sc_ls_attrition), pid_mrk)]
-    dt[hc_eff_al == 1L, (colnam) :=
-         as.integer(round(alcohol_sc * (1 - scenario_parms$sc_ls_alcoholreduc)))]
-
-
-    # Smoking cessation ----
-    colnam_status   <- "smok_status_sc"
-    colnam_quit_yrs <- "smok_quit_yrs_sc"
-    colnam_dur      <- "smok_dur_sc"
-    colnam_cig      <- "smok_cig_sc"
-    colnam_cost     <- "smoking_cost_sc"
-    if (!"hc_eff_sm" %in% names(dt))     set(dt, NULL, "hc_eff_sm", 0L)
-    if (!colnam_status %in% names(dt))   dt[, (colnam_status) := smok_status_curr_xps]
-    if (!colnam_quit_yrs %in% names(dt)) dt[, (colnam_quit_yrs) := smok_quit_yrs_curr_xps]
-    if (!colnam_dur %in% names(dt))      dt[, (colnam_dur) := smok_dur_curr_xps]
-    if (!colnam_cig %in% names(dt))      dt[, (colnam_cig) := smok_cig_curr_xps]
-    if (!colnam_cost %in% names(dt)) set(dt, NULL, colnam_cost, 0)
-    dt[attendees_sc == 1L & smok_status_curr_xps == "4",
-       hc_eff_sm := rbinom(.N, 1, scenario_parms$sc_ls_smkcess)]
-    dt[hc_eff_sm == 1L  & year >= scenario_parms$sc_init_year - 2000L,
-       (colnam_cost) := scenario_parms$sc_ls_smkcess_cost_ind]
-    # Cost only the year of referral
-
-    # Handle smok_relapse probabilities
-    tbl <-
-      read_fst("./inputs/exposure_distributions/smok_relapse_table.fst",
-               as.data.table = TRUE)
-    tbl <- dcast(tbl, sex + qimd ~ smok_quit_yrs, value.var = "pr")
-    nam <- tbl[, paste0(sex, " ", qimd)]
-    tbl <- as.matrix(tbl[, mget(paste0(1:15))], rownames = nam)
-
-    dt[,
-       (c(colnam_status, colnam_quit_yrs, colnam_dur)) :=
-         simsmok_cessation(
-           smok_status_sc,
-           smok_quit_yrs_sc,
-           smok_dur_sc,
-           sex,
-           qimd,
-           pid_mrk,
-           hc_eff_sm,
-           dqrunif(.N),
-           tbl,
-           design$sim_prm$smoking_relapse_limit
-         )]
-
-    dt[, smok_status_sc := factor(smok_status_sc)]
-    # needed for QRisk and QDrisk
-    dt[, smoke_cat_sc := 0L]
-    dt[smok_status_sc == "3", smoke_cat_sc := 1L]
-    dt[smok_status_sc == "4", smoke_cat_sc := 3L]
-    dt[smok_status_sc == "4" & smok_cig_sc < 10L, smoke_cat_sc := 2L]
-    dt[smok_status_sc == "4" & smok_cig_sc > 19L, smoke_cat_sc := 4L]
-
-    invisible(dt)
-  }
-
-#' @export
-set_structural <-
-  function(scenario_parms, dt, design) {
-    if (any(scenario_parms[grepl("^sc_str_", names(scenario_parms))] != 0)) {
-      row_sel <-
-        dt[between(year,
-          scenario_parms$sc_init_year - 2000L,
-          scenario_parms$sc_last_year - 2000L) &
-            dead == FALSE, which = TRUE]
-    }
-
-    # smoking ----
-    if (scenario_parms$sc_str_smk_change != 0) {
-      if (!"smok_status_sc" %in% names(dt))
-        set(dt, NULL, "smok_status_sc", dt$smok_status_curr_xps)
-      if (!"smok_quit_yrs_sc" %in% names(dt))
-        set(dt, NULL, "smok_quit_yrs_sc", dt$smok_quit_yrs_curr_xps)
-      if (!"smok_dur_sc" %in% names(dt))
-        set(dt, NULL, "smok_dur_sc", dt$smok_dur_curr_xps)
-      if (!"smok_cig_sc" %in% names(dt))
-        set(dt, NULL, "smok_cig_sc", dt$smok_cig_curr_xps)
-
-
-      if (scenario_parms$sc_str_smk_change < 0) {
-
-        dt[between(year, scenario_parms$sc_init_year - 2000L,
-                   scenario_parms$sc_last_year - 2000L) &
-             dead == FALSE & smok_status_sc == "4",
-           hc_eff := rbinom(.N, 1, -scenario_parms$sc_str_smk_change)]
-
-        dt[, (c("smok_status_sc", "smok_quit_yrs_sc", "smok_dur_sc", "smok_cig_sc")) :=
-             simsmok_policy_impact_decr(
-               smok_status_sc,
-               smok_quit_yrs_sc,
-               smok_dur_sc,
-               smok_cig_sc,
-               pid_mrk,
-               hc_eff
-               )]
-      }
-
-      if (scenario_parms$sc_str_smk_change > 0) {
-        # calculate policy effect with those quit smoking recently be more
-        # likely to relapse
-        tt <- dt[between(year, scenario_parms$sc_init_year - 2000L,
-                   scenario_parms$sc_last_year - 2000L) &
-             dead == FALSE, .("ex"   = sum(smok_status_sc == "3"),
-                              "curr" = sum(smok_status_sc == "4")), keyby = year]
-        tt[, impacted := round(curr * scenario_parms$sc_str_smk_change)]
-
-        # Make change to add up every year (for Vincy's SCC abstract)
-        # tt[, impacted := round(curr * scenario_parms$sc_str_smk_change *
-        #     (year - min(year) + 1L))]
-
-        dt[tt, `:=`(impacted = i.impacted,
-                    ex = i.ex), on = "year"]
-        dt[between(year, scenario_parms$sc_init_year - 2000L,
-                   scenario_parms$sc_last_year - 2000L) &
-             dead == FALSE & smok_status_sc == "3",
-           rid := 1:.N, by = year]
-        dt[, hc_eff := 0L]
-        tt <- dt[between(year,
-                         scenario_parms$sc_init_year - 2000L,
-                         scenario_parms$sc_last_year - 2000L) &
-                   dead == FALSE & smok_status_sc == "3",
-                 .(rid = sample_int_expj(first(ex), first(impacted),
-                                         (smok_quit_yrs_sc + 1) ^
-                                           -1)),
-                 keyby = year]
-        dt[tt, hc_eff := 1L, on = .(year, rid)]
-        dt[, c("impacted", "ex", "rid") := NULL]
-
-        dt[, (c("smok_status_sc", "smok_quit_yrs_sc", "smok_dur_sc")) :=
-             simsmok_policy_impact_incr(
-               smok_status_sc,
-               smok_quit_yrs_sc,
-               smok_dur_sc,
-               pid_mrk,
-               hc_eff
-             )]
-      }
-
-      dt[, smok_status_sc := factor(smok_status_sc)]
-      # needed for QRisk and QDrisk
-      dt[, smoke_cat_sc := 0L]
-      dt[smok_status_sc == "3", smoke_cat_sc := 1L]
-      dt[smok_status_sc == "4", smoke_cat_sc := 3L]
-      dt[smok_status_sc == "4" & smok_cig_sc < 10L, smoke_cat_sc := 2L]
-      dt[smok_status_sc == "4" & smok_cig_sc > 19L, smoke_cat_sc := 4L]
-
-      dt[, hc_eff := NULL]
-}
-
-    # fv ----
-    if (scenario_parms$sc_str_fv_change != 0) {
-      if (!"fruit_sc" %in% names(dt))
-        set(dt, NULL, "fruit_sc", dt$fruit_curr_xps)
-      if (!"veg_sc" %in% names(dt))
-        set(dt, NULL, "veg_sc", dt$veg_curr_xps)
-      dt[row_sel,
-         `:=`(
-           fruit_sc = as.integer(round(fruit_sc * (
-             1 + scenario_parms$sc_str_fv_change
-           ))),
-           veg_sc = as.integer(round(veg_sc * (
-             1 + scenario_parms$sc_str_fv_change
-           ))))]
-    }
-
-    # alcohol ----
-    if (scenario_parms$sc_str_alcohol_change != 0) {
-      if (!"alcohol_sc" %in% names(dt))
-        set(dt, NULL, "alcohol_sc", dt$alcohol_curr_xps)
-      dt[row_sel,
-         `:=`(
-           alcohol_sc = as.integer(round(alcohol_sc * (
-             1 + scenario_parms$sc_str_alcohol_change
-           )))
-           )]
-    }
-
-    # active_days ----
-    if (scenario_parms$sc_str_pa_change != 0) {
-      if (!"active_days_sc" %in% names(dt))
-        set(dt, NULL, "active_days_sc", dt$active_days_curr_xps)
-      dt[row_sel,
-         `:=`(active_days_sc = active_days_sc + scenario_parms$sc_str_pa_change
-         )]
-    }
-
-    # bmi ----
-    if (scenario_parms$sc_str_bmi_change != 0) {
-      if (!"bmi_sc" %in% names(dt))
-        set(dt, NULL, "bmi_sc", dt$bmi_curr_xps)
-      dt[row_sel,
-         `:=`(
-           bmi_sc = bmi_sc * (1 + scenario_parms$sc_str_bmi_change)
-         )]
-    }
-
-    # sbp ----
-    if (scenario_parms$sc_str_sbp_change != 0) {
-      if (!"sbp_sc" %in% names(dt))
-        set(dt, NULL, "sbp_sc", dt$sbp_curr_xps)
-      dt[row_sel,
-         `:=`(
-           sbp_sc = sbp_sc * (1 + scenario_parms$sc_str_sbp_change)
-         )]
-    }
-
-    # tchol ----
-    if (scenario_parms$sc_str_tchol_change != 0) {
-      if (!"tchol_sc" %in% names(dt))
-        set(dt, NULL, "tchol_sc", dt$tchol_curr_xps)
-      dt[row_sel,
-         `:=`(
-           tchol_sc = tchol_sc * (1 + scenario_parms$sc_str_tchol_change)
-         )]
-    }
-
-    invisible(dt)
-  }
-
-#' @export
-set_social <- function(scenario_parms, dt, design) {
-  # bypass if irrelevant
-  if (all(
-    scenario_parms$sc_soc_qimd1_change == 1L,
-    scenario_parms$sc_soc_qimd2_change == 2L,
-    scenario_parms$sc_soc_qimd3_change == 3L,
-    scenario_parms$sc_soc_qimd4_change == 4L,
-    scenario_parms$sc_soc_qimd5_change == 5L
-  )) {
-    return(invisible(dt))
-  } else {
-    # if any relevant scenario input
-
-    # Manipulate qimd per user input ----
-    set(dt, NULL, "qimd_sc", dt$qimd) # create new scenario qimd
-    l <- levels(dt$qimd)
-    if (scenario_parms$sc_soc_qimd1_change != 1L)
-      dt[qimd == l[1], qimd_sc := l[scenario_parms$sc_soc_qimd1_change]]
-    if (scenario_parms$sc_soc_qimd2_change != 2L)
-      dt[qimd == l[2], qimd_sc := l[scenario_parms$sc_soc_qimd2_change]]
-    if (scenario_parms$sc_soc_qimd3_change != 3L)
-      dt[qimd == l[3], qimd_sc := l[scenario_parms$sc_soc_qimd3_change]]
-    if (scenario_parms$sc_soc_qimd4_change != 4L)
-      dt[qimd == l[4], qimd_sc := l[scenario_parms$sc_soc_qimd4_change]]
-    if (scenario_parms$sc_soc_qimd5_change != 5L)
-      dt[qimd == l[5], qimd_sc := l[scenario_parms$sc_soc_qimd5_change]]
-
-
-
-    row_sel <- # Indices of eligible rows
-      dt[between(year,
-        scenario_parms$sc_init_year - 2000L,
-        scenario_parms$sc_last_year - 2000L) &
-          # dead == FALSE & # NOTE this is appropriate
-          qimd != qimd_sc, which = TRUE]
-
-
-    # smoking ----
-    # Assumes that from the smoking initiation/cessation/relapse probabilities
-    # change, not smoking prevalence. Smoking intensity also changes.
-    # pid_mrk needs to be recalculated for row_sel
-    if ("smok" %in% scenario_parms$sc_soc_qimd_rf_change) {
-      if (!"smok_status_sc" %in% names(dt))
-        set(dt, NULL, "smok_status_sc", dt$smok_status_curr_xps)
-      if (!"smok_quit_yrs_sc" %in% names(dt))
-        set(dt, NULL, "smok_quit_yrs_sc", dt$smok_quit_yrs_curr_xps)
-      if (!"smok_dur_sc" %in% names(dt))
-        set(dt, NULL, "smok_dur_sc", dt$smok_dur_curr_xps)
-      if (!"smok_cig_sc" %in% names(dt))
-        set(dt, NULL, "smok_cig_sc", dt$smok_cig_curr_xps)
-
-      dt[row_sel, pid_mrk_sc := mk_new_simulant_markers(pid)]
-
-      # Assign smok_incid probabilities
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/smok_incid_table.fst",
-          as.data.table = TRUE)
-      setnames(lutbl, c("qimd", "mu"), c("qimd_sc", "prb_smok_incid_sc"))
-      lookup_dt(dt, lutbl)
-
-
-      # Assign smok_cessation probabilities
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/smok_cess_table.fst",
-          as.data.table = TRUE)
-      setnames(lutbl, c("qimd", "mu"), c("qimd_sc", "prb_smok_cess_sc"))
-      lookup_dt(dt, lutbl)
-
-      # Handle smok_relapse probabilities
-      # No need to use qimd_sc here. It happens at the simsmok_sc side
-      tbl <-
-        read_fst("./inputs/exposure_distributions/smok_relapse_table.fst",
-          as.data.table = TRUE)
-      tbl <-
-        dcast(tbl, sex + qimd ~ smok_quit_yrs, value.var = "pr")
-      nam <- tbl[, paste0(sex, " ", qimd)]
-      tbl <-
-        as.matrix(tbl[, mget(paste0(1:15))], rownames = nam)
-
-      simsmok_sc(dt, tbl, design$sim_prm$smoking_relapse_limit, row_sel)
-
-      dt[, c("prb_smok_incid_sc", "prb_smok_cess_sc") := NULL]
-
-      # smok intensity
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/smok_cig_curr_table.fst",
-          as.data.table = TRUE)
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-
-      dt[row_sel, mrk := TRUE]
-
-      dt[(mrk) & smok_status_sc == "4",
-        smok_cig_sc := qZINBI(rankstat_smok_cig_curr, mu, sigma, nu)]
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/smok_cig_ex_table.fst",
-          as.data.table = TRUE)
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[(pid_mrk_sc) & # no need for mrk as superseded by pid_mrk_sc
-          smok_status_sc == "3",
-        smok_cig_sc := my_qZABNB(rankstat_smok_cig_ex,
-          mu,
-          sigma,
-          nu,
-          tau,
-          n_cpu = design$sim_prm$n_cpu)]
-
-      simsmok_cig_sc(dt, row_sel) # carry forward smok_cig if smok_status == 3
-      dt[smok_cig_sc == 0L & smok_status_sc != "1", smok_cig_sc := 1L]
-      dt[, mrk := NULL]
-
-
-      dt[, smok_status_sc := factor(smok_status_sc)]
-      dt[, smoke_cat_sc := 0L]
-      dt[smok_status_sc == "3", smoke_cat_sc := 1L]
-      dt[smok_status_sc == "4", smoke_cat_sc := 3L]
-      dt[smok_status_sc == "4" & smok_cig_sc < 10L, smoke_cat_sc := 2L]
-      dt[smok_status_sc == "4" & smok_cig_sc > 19L, smoke_cat_sc := 4L]
-    }
-
-    # ets ----
-    if ("ets" %in% scenario_parms$sc_soc_qimd_rf_change) {
-      if (!"ets_sc" %in% names(dt)) set(dt, NULL, "ets_sc", dt$ets_curr_xps)
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/ets_table.fst", as.data.table = TRUE)
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, rank := pbinom(ets_curr_xps, 1, mu)]
-
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, ets_sc := as.integer(rank < mu)]
-    }
-
-    # fv ----
-    if ("fv" %in% scenario_parms$sc_soc_qimd_rf_change) {
-      if (!"fruit_sc" %in% names(dt))
-        set(dt, NULL, "fruit_sc", dt$fruit_curr_xps)
-      if (!"veg_sc" %in% names(dt))
-        set(dt, NULL, "veg_sc", dt$veg_curr_xps)
-
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/frtpor_table.fst",
-          as.data.table = TRUE)
-      # is_valid_lookup_tbl(lutbl, c("year", "age", "sex", "sha", "qimd", "ethnicity"))
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, rank :=
-          my_pZISICHEL(fruit_curr_xps / 80,
-            mu,
-            sigma,
-            nu,
-            tau,
-            n_cpu = design$sim_prm$n_cpu)]
-      # rn not uniformly distributed because it is discrete distr. That's expected
-      # and without consequences.
-
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, fruit_sc :=
-          my_qZISICHEL(rank,
-            mu, sigma, nu, tau, n_cpu = design$sim_prm$n_cpu) * 80L]  # g/d
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/vegpor_table.fst",
-          as.data.table = TRUE)
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, rank :=
-          my_pDEL(veg_curr_xps / 80,
-            mu, sigma, nu, n_cpu = design$sim_prm$n_cpu)]
-
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, veg_sc :=
-          my_qDEL(rank,
-            mu, sigma, nu, n_cpu = design$sim_prm$n_cpu) * 80L]  # g/d
-    }
-
-    # alcohol ----
-    if ("alc" %in% scenario_parms$sc_soc_qimd_rf_change) {
-      if (!"alcohol_sc" %in% names(dt))
-        set(dt, NULL, "alcohol_sc", dt$alcohol_curr_xps)
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/alcohol_table.fst",
-          as.data.table = TRUE)
-      # is_valid_lookup_tbl(lutbl, c("year", "age", "sex", "sha", "qimd", "ethnicity"))
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, rank := pZINBI(alcohol_curr_xps, mu, sigma, nu)]
-
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, alcohol_sc := qZINBI(rank, mu, sigma, nu)]
-    }
-
-    # active_days ----
-    if ("pa" %in% scenario_parms$sc_soc_qimd_rf_change) {
-      if (!"active_days_sc" %in% names(dt))
-        set(dt, NULL, "active_days_sc", dt$active_days_curr_xps)
-
-      dt[, c("mu", "sigma", "nu", "tau") := NULL]
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/active_days_table.fst",
-          as.data.table = TRUE)
-      lookup_dt(dt, lutbl)
-      dt[row_sel, rank := fcase(
-        active_days_curr_xps == 0,
-        pa0 - 1e-5,
-        # -1e-5 for safety
-        active_days_curr_xps == 1,
-        pa1 - 1e-5,
-        active_days_curr_xps == 2,
-        pa2 - 1e-5,
-        active_days_curr_xps == 3,
-        pa3 - 1e-5,
-        active_days_curr_xps == 4,
-        pa4 - 1e-5,
-        active_days_curr_xps == 5,
-        pa5 - 1e-5,
-        active_days_curr_xps == 6,
-        pa6 - 1e-5,
-        active_days_curr_xps == 7,
-        1
-      )]
-
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = (paste0("pa", 0:6)))
-
-
-      dt[row_sel, active_days_sc := (rank > pa0) + (rank > pa1) + (rank > pa2) +
-          (rank > pa3) + (rank > pa4) + (rank > pa5) + (rank > pa6)]
-
-      dt[, (paste0("pa", 0:6)) := NULL]
-    }
-
-    # bmi ----
-    if ("bmi" %in% scenario_parms$sc_soc_qimd_rf_change) {
-      if (!"bmi_sc" %in% names(dt))
-        set(dt, NULL, "bmi_sc", dt$bmi_curr_xps)
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/bmi_table.fst", as.data.table = TRUE)
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, rank :=
-          my_pBCPEo(bmi_curr_xps, mu, sigma, nu, tau,
-            n_cpu = design$sim_prm$n_cpu)]
-
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, bmi_sc :=
-          my_qBCPEo(rank, mu, sigma, nu, tau, n_cpu = design$sim_prm$n_cpu)]
-    }
-
-    # sbp ----
-    if ("sbp" %in% scenario_parms$sc_soc_qimd_rf_change) {
-      if (!"sbp_sc" %in% names(dt))
-        set(dt, NULL, "sbp_sc", dt$sbp_curr_xps)
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/sbp_table.fst", as.data.table = TRUE)
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, rank :=
-          my_pBCPEo(sbp_curr_xps, mu, sigma, nu, tau,
-            n_cpu = design$sim_prm$n_cpu)]
-
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, sbp_sc :=
-          my_qBCPEo(rank, mu, sigma, nu, tau, n_cpu = design$sim_prm$n_cpu)]
-    }
-
-    # tchol ----
-    if ("tchol" %in% scenario_parms$sc_soc_qimd_rf_change) {
-      if (!"tchol_sc" %in% names(dt))
-        set(dt, NULL, "tchol_sc", dt$sbp_curr_xps)
-
-      lutbl <-
-        read_fst("./inputs/exposure_distributions/tchol_table.fst", as.data.table = TRUE)
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, rank :=
-          my_pBCT(tchol_curr_xps, mu, sigma, nu, tau,
-            n_cpu = design$sim_prm$n_cpu)]
-
-      setnames(lutbl, "qimd", "qimd_sc")
-      lookup_dt(dt, lutbl, exclude_col = c("mu", "sigma", "nu", "tau"))
-      dt[row_sel, tchol_sc :=
-          my_qBCT(rank, mu, sigma, nu, tau, n_cpu = design$sim_prm$n_cpu)]
-
-      dt[, c("mu", "sigma", "nu", "tau", "rank") := NULL]
-    }
-
-    # case fatality ----
-
-    if (any(
-      scenario_parms$sc_soc_qimd_disease_fatality_change,
-      scenario_parms$sc_soc_qimd_nonmodelled_fatality_change
-    ) &&
-        length(scenario_parms$sc_soc_qimd_rf_change) > 0L) {
-
-      # only affect case fatalities for diseases which are linked to the selected exposures
-      tt <-
-        data.table(
-          exposures = c(
-            "tobacco",
-            "packyears",
-            "ets",
-            "fv",
-            "fruit",
-            "alcohol",
-            "pa",
-            "sbp",
-            "bmi",
-            "tchol"
-          ),
-          short_xps = c(
-            "tob",
-            "tob",
-            "ets",
-            "fv",
-            "fv",
-            "alc",
-            "pa",
-            "sbp",
-            "bmi",
-            "tchol"
-          )
-        )
-      tt <- tt[short_xps %in% scenario_parms$sc_soc_qimd_rf_change]
-
-      causal_paths <- get_causal_paths(RR)
-      affected_diseases <-
-        causal_paths$dt[exposures %in% tt$exposures, unique(outcomes)]
-
-      if (scenario_parms$sc_soc_qimd_disease_fatality_change) {
-        nam <- affected_diseases[affected_diseases != "nonmodelled"]
-        nam <- paste0("prb_", nam, "_mrtl")
-
-        for (i in nam) {
-          if (grepl("chd|stroke", i)) {
-            lag <- design$lags_mc$cvd_lag
-          } else if (grepl("copd", i)) {
-            lag <- design$lags_mc$copd_lag
-          } else if (grepl("_ca_mrtl$", i)) {
-            lag <- design$lags_mc$cancer_lag
-          }
-
-          dt[, qimd_sc_lagged := # for lagged case fatalities
-              fifelse(year >= (scenario_parms$sc_init_year - 2000L + lag),
-                qimd_sc,
-                qimd)]
-
-          nc <- paste0(i, "_sc")
-          setnames(dt, i, "mod____") # to avoid using get() due to performance issues
-          tt <- dt[, min(mod____), keyby = .(age, qimd, sex, year)]
-          setnames(dt, "mod____", i)
-
-          lutbl <- tt[, {
-            # because some combinations are missing
-            l <- lapply(.SD, unique)
-            setDT(expand.grid(l))
-          }, .SDcols = c("age", "qimd", "sex", "year")]
-          absorb_dt(lutbl, tt)
-
-          setnames(lutbl, c("qimd", "V1"), c("qimd_sc_lagged", nc))
-
-          lookup_dt(dt, lutbl, exclude_col = nc) # row_sel not appropriate here
-          dt[, ("qimd_sc_lagged") := NULL]
-        } # for loop
-      } # if diseases fatalities in scenario
-
-      if (scenario_parms$sc_soc_qimd_nonmodelled_fatality_change &&
-          "nonmodelled" %in% affected_diseases) {
-        i <- "p0_nonmodelled"
-        lag <- design$lags_mc$nonmodelled_lag
-
-        dt[, qimd_sc_lagged := # for lagged case fatalities
-            fifelse(year >= scenario_parms$sc_init_year - 2000L + lag,
-              qimd_sc,
-              qimd)]
-
-        nc <- paste0(i, "_sc")
-        setnames(dt, i, "mod____") # to avoid using get() due to performance issues
-        tt <- dt[, min(mod____), keyby = .(age, qimd, sex, year)]
-        setnames(dt, "mod____", i)
-
-        lutbl <- tt[, {
-          # because some combinations are missing
-          l <- lapply(.SD, unique)
-          setDT(expand.grid(l))
-        }, .SDcols = c("age", "qimd", "sex", "year")]
-        absorb_dt(lutbl, tt)
-
-        setnames(lutbl, c("qimd", "V1"), c("qimd_sc_lagged", nc))
-
-        lookup_dt(dt, lutbl, exclude_col = nc) # row_sel not appropriate here
-        dt[, ("qimd_sc_lagged") := NULL]
-      }
-    }
-
-    return(invisible(dt))
-  }
-}
-
-
-
-#' @export
-run_scenario <-
-  function(scenario_nam, # This is true_scenario names
-           mc, # need to be mc_aggr
-           dt,
-           parameters_dt,
-           design,
-           output,
-           timing = c(TRUE, FALSE)) {
-    if (timing[[1]])
-      ptm <- proc.time()
-
-    basic_sc_nam <- parameters_dt[true_scenario == scenario_nam, unique(true_scenario), keyby = scenario]$scenario
-
-    scenario_parms <- lapply(basic_sc_nam, fromGUI_scenario_parms, parameters_dt)
-    names(scenario_parms) <- basic_sc_nam
-    # Sort scenarios in chronological order (important for serial ensembles)
-    basic_sc_nam <- names(sort(unlist(lapply(scenario_parms, `[[`, "sc_init_year"))))
-    scenario_parms <- scenario_parms[basic_sc_nam]
-    hlp <- list() # aux object to pass information between scenarios
-    hlp$previous_invitees <- hlp$previous_elig <- hlp$previous_attendees <- rep(0L, nrow(dt$pop))
-
-    # logic for parallel ensemble
-    tt <- unlist(lapply(scenario_parms, `[[`, "sc_ens_parallel_prc"))
-    if (length(tt) > 0) { # if parallel ensemble
-      unique_pid <- dt$pop[, unique(pid)] # all pid
-
-      if (sum(tt) == 1) {
-        ttt <- sample(names(tt), length(unique_pid), TRUE, tt)
-        hlp$sc_alloc <- lapply(names(tt), function(x) unique_pid[ttt==x])
-        names(hlp$sc_alloc) <- names(tt)
-      } else if (sum(tt) < 1) {
-        tt <- c(tt, 1-sum(tt))
-        names(tt) <- c(head(names(tt), -1), "excluded_")
-        ttt <- sample(names(tt), length(unique_pid), TRUE, tt)
-        hlp$sc_alloc <- lapply(names(tt), function(x) unique_pid[ttt==x])
-        names(hlp$sc_alloc) <- names(tt)
-      } else { # if > 1
-        hlp$sc_alloc <- lapply(names(tt),
-               function(x, tt) {
-                 unique_pid[as.logical(rbinom(length(unique_pid), 1, tt[x]))]
-        }, tt
-        )
-        names(hlp$sc_alloc) <- names(tt)
-      }
-      rm(unique_pid)
-    }
-
-
-    for (sc in basic_sc_nam) {
-      set_eligible(scenario_parms[[sc]], dt$pop, hlp)
-      set_invitees(scenario_parms[[sc]], dt$pop, hlp)
-      set_attendees(scenario_parms[[sc]], dt$pop, scenario_nam, parameters_dt, design, hlp)
-      set_px(scenario_parms[[sc]], dt$pop, mc, design) # slow
-      set_lifestyle(scenario_parms[[sc]], dt$pop, design)
-      set_structural(scenario_parms[[sc]], dt$pop, design)
-      set_social(scenario_parms[[sc]], dt$pop, design)
-    }
-
-    dt$pop[, eligible_sc  := clamp(eligible_sc + hlp$previous_elig)]
-    dt$pop[, invitees_sc  := clamp(invitees_sc + hlp$previous_invitees)]
-    dt$pop[, attendees_sc := clamp(attendees_sc + hlp$previous_attendees)]
-    dt$pop[, c("hc_eff_pa", "hc_eff_wm", "hc_eff_al", "hc_eff_sm") := NULL]
-    # TODO I can calculate the effect of xps change to disease prb for
-    # efficiency No need to recalculate disease probability for everyone only
-    # apply disease impact on attendees (works only with kismet == TRUE)
-
-    af_model(                 scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    htn_model(                scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    t2dm_model(               scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    chd_model(                scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    stroke_model(             scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    poststroke_dementia_model(scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    copd_model(               scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    lung_ca_model(            scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    colon_ca_model(           scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    breast_ca_model(          scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-    nonmodelled_model(        scenario_nam, mc, dt$pop, design, timing = timing[[2]])
-
-    # if (!"smok_status_sc" %in% names(dt$pop))
-    #   set(dt$pop, NULL, "smok_status_sc", dt$pop$smok_status_curr_xps)
-    # if (!"smok_quit_yrs_sc" %in% names(dt$pop))
-    #   set(dt$pop, NULL, "smok_quit_yrs_sc", dt$pop$smok_quit_yrs_curr_xps)
-    # if (!"smok_dur_sc" %in% names(dt$pop))
-    #   set(dt$pop, NULL, "smok_dur_sc", dt$pop$smok_dur_curr_xps)
-    # if (!"smok_cig_sc" %in% names(dt$pop))
-    #   set(dt$pop, NULL, "smok_cig_sc", dt$pop$smok_cig_curr_xps)
-
-    output <- gen_output(scenario_nam, design$sim_prm, design$lags_mc, dt$pop, output)
-
-    dt$pop[, (grep("_sc$", names(dt$pop), value = TRUE)) := NULL]
-
-    if (timing[[1]])
-      print(proc.time() - ptm)
-    invisible(output)
-  }
-
-
-
+# output_dir ----
+#' Generate Output Directory Path
+#' @description
+#' This function generates the path to the output directory by combining the simulation parameter's output directory
+#' and the provided suffix (if any).
+#'
+#' @param x A character string representing the suffix to be appended to the output directory path (default: "").
+#'
+#' @details
+#' The function uses the `file.path` function to combine the simulation parameter's output directory with the provided
+#' suffix (if any). It is typically used to organize output files in a structured manner.
+#'
+#' @return A character string representing the path to the output directory.
+#'
 #' @export
 output_dir <- function(x = "") {
   file.path(design$sim_prm$output_dir, x)
 }
 
-
-
-#' Get the Recent System Load
-#'
+#' Function for Linux
 #' @return A named numeric vector with five non-negative elements `1min`,
 #'   `5min`, and `15min` average CPU utilisation, used RAM, and available RAM.
 #' The first values represent estimates of the CPU load during the last
 #' minute, the last five minutes, and the last fifteen minutes \[1\]. An idle
 #' system have values close to zero, and a heavily loaded system have values
-#' near one`. If they are unknown, missing values are returned. Only works for
-#' Linux systems.
+#' near one`.
 #'
 #' @details
 #' This function works only Unix-like system with \file{/proc/loadavg}. It is

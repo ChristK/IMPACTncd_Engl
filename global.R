@@ -88,10 +88,11 @@ InstallIMPACTncdPackageOnChange<- function()
           nzchar(IMPACTncdPackageSnapshot$changed) ) )
   {
     # re/install IMPACTncd_Engl package and update snapshot
-    sIMPACTncdPackageDirPath<- "./Rpackage/IMPACTncd_Engl_model_pkg/"
+    sIMPACTncdPackageDirPath <- "./Rpackage/IMPACTncd_Engl_model_pkg/"
     InstallIMPACTncdPackage(sIMPACTncdPackageDirPath)
     if(!is.null(IMPACTncdPackageSnapshot))file.remove(sIMPACTncdPackageSnapshotFilePath)
-    IMPACTncdPackageSnapshot<- fileSnapshot(sIMPACTncdPackageDirPath,timestamp=NULL,md5sum=TRUE,recursive=TRUE)
+    IMPACTncdPackageSnapshot <- fileSnapshot(sIMPACTncdPackageDirPath, timestamp = NULL,
+                                             md5sum = TRUE, recursive = TRUE)
     qsave(IMPACTncdPackageSnapshot,sIMPACTncdPackageSnapshotFilePath)
   }
 }
@@ -99,3 +100,15 @@ InstallIMPACTncdPackageOnChange<- function()
 #if(interactive())
 InstallIMPACTncdPackageOnChange()
 library(IMPACTncdEngl)
+
+####################################################################################
+## Fix: Added this to update .Random.seed / seed only for Windows.
+## Run these two lines of code shown below for the first time and then we clear the work
+## space using `rm(list = ls(all = TRUE))` after which we run these two lines again we get the error mentioned
+## so to reproduce it remove this line of code `runif(1)`
+# source("global.R")
+# IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+## Error generated otherwise (without the code below): Error in get(".Random.seed", .GlobalEnv) :
+## object '.Random.seed' not found
+####################################################################################
+runif(1)

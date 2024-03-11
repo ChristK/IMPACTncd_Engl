@@ -28,7 +28,8 @@
 #
 #' @docType package
 #' @author Chris Kypridemos
-#' @import Rcpp R6 data.table CKutils
+#' @import Rcpp R6 data.table CKutils piggyback stats
+#' @importFrom utils chooseCRANmirror str
 #' @importFrom R6 R6Class
 #' @importFrom Rcpp evalCpp
 #' @importFrom fst read_fst
@@ -42,6 +43,7 @@
 #' @importFrom digest digest2int
 #' @importFrom yaml read_yaml write_yaml
 #' @importFrom foreach foreach
+#' @importFrom gh gh_token
 #' @importFrom igraph make_graph is_dag V neighbors all_simple_paths topo_sort
 #' @useDynLib IMPACTncdEngl
 #' @name IMPACTncdEngl
