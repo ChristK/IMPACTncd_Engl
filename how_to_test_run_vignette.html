@@ -475,7 +475,8 @@ simulation.</li>
 to</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>IMPACTncd<span class="sc">$</span><span class="fu">del_logs</span>()</span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>IMPACTncd<span class="sc">$</span><span class="fu">del_outputs</span>()</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>IMPACTncd<span class="sc">$</span><span class="fu">run</span>(<span class="at">mc =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="at">multicore =</span> <span class="cn">FALSE</span>, <span class="at">scenario_nam =</span> <span class="st">&quot;sc0&quot;</span>)  IMPACTncd<span class="sc">$</span><span class="fu">export_summaries</span>(<span class="at">multicore =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>IMPACTncd<span class="sc">$</span><span class="fu">run</span>(<span class="at">mc =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="at">multicore =</span> <span class="cn">FALSE</span>, <span class="at">scenario_nam =</span> <span class="st">&quot;sc0&quot;</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>IMPACTncd<span class="sc">$</span><span class="fu">export_summaries</span>(<span class="at">multicore =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
 <p>Note in the arguments for the <code>run()</code>, we have selected
 the number of Monte Carlo iterations to be 2 (mc = 1:2). This is OK for
 a test run, but in reality, you would like to run at least 100
@@ -507,9 +508,9 @@ output/hf_real structure folder structure
 <div id="how-to-remove-impactncd_engl-installed-package" class="section level4">
 <h4>How to remove IMPACTncd_Engl installed package</h4>
 <ol style="list-style-type: decimal">
-<li>The first and foremost we need to permanently delete the files from
-the project folder of <code>IMPACTncd_Engl</code> which can be
-identified from in <code>inputs/sim_design.yaml</code> :
+<li>First and foremost we need to permanently delete the files from the
+project folder of <code>IMPACTncd_Engl</code> which can be identified
+from in <code>inputs/sim_design.yaml</code> :
 <code>RootDirPath.</code></li>
 <li>Then we need to permanently delete the output and synthpop folder as
 mentioned in <code>inputs/sim_design.yaml</code> :
