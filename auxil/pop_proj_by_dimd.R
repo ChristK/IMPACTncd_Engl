@@ -29,7 +29,7 @@ pops13 <- dcast(pops13, LAD17CD + age + sex ~ dimd, value.var = "dimdprop")
 setnafill(pops13, type = "c", fill = 0, cols = c("1 most deprived", "2", "3", "4", "5", "6", "7", "8", "9", "10 least deprived"))
 
 # check the trends in areas with the highest and lowest deprivation
-pops13[between(age, 30, 99), sum(`10 least deprived`), keyby =  year]
+pops13[between(age, 30, 99), sum(`10 least deprived`)]
 
 tt <- pops13[between(age, 30, 99), sum(`10 least deprived`), keyby =  LAD17CD]
 setkey(tt, V1)
@@ -66,15 +66,30 @@ proj <- proj[year >= 13L, .(population_size = sum(population_size)), keyby = .(y
 proj[, year := year + 2000L]
 CKutils::to_agegrp(proj, 5L, 99L)
 proj <- proj[, .(population_size = as.integer(sum(population_size))), keyby = .(year, agegrp, sex, dimd)]
+
+# Calibrate to national population estimates and projections.
+tt <- read_fst("./inputs/pop_projections/national_proj.fst", as.data.table = TRUE)
+ttt <- read_fst("./inputs/pop_estimates_lsoa/national_pop_est.fst", as.data.table = TRUE)
+tt <- rbind(ttt, tt)
+CKutils::to_agegrp(tt, 5L, 99L)
+# Assume 95-99 is 95+ as agreed with Toby & co
+tt[is.na(agegrp), agegrp := "95-99"]
+tt <- tt[, .(target_pops = sum(pops)), keyby = .(year, sex, agegrp)]
+tt[, year := year + 2000L]
+
+proj[, clbr := sum(population_size), keyby = .(year, sex, agegrp)]
+proj[tt, on = c("year", "sex", "agegrp"), population_size_calibrated := as.numeric(population_size * i.target_pops / clbr)]
+proj[, sum(population_size_calibrated), keyby = .(year, sex, agegrp)]
+tt[between(year, 2013, 2043)]
 fwrite(proj, "./pop_proj_by_dimd.csv")
 
-proj[agegrp == "30-34" & sex == "men" & dimd == "1 most deprived", plot(year, population_size/1000, col = 1, ylim = c(100, 300), type = "l", lwd = 2, main = "Population projections by deprivation decile", xlab = "Year", ylab = "Population size (thousands)")]
-proj[agegrp == "30-34" & sex == "men" & dimd == "10 least deprived", lines(year, population_size/1000, col = 2, type = "l", lwd = 2)]
-proj[agegrp == "30-34" & sex == "men" & dimd == "5", lines(year, population_size/1000, col = 3, type = "l", lwd = 2)]
+proj[agegrp == "30-34" & sex == "men" & dimd == "1 most deprived", plot(year, population_size_calibrated / 1000, col = 1, ylim = c(100, 300), type = "l", lwd = 2, main = "Population projections by deprivation decile", xlab = "Year", ylab = "Population size (thousands)")]
+proj[agegrp == "30-34" & sex == "men" & dimd == "10 least deprived", lines(year, population_size_calibrated / 1000, col = 2, type = "l", lwd = 2)]
+proj[agegrp == "30-34" & sex == "men" & dimd == "5", lines(year, population_size_calibrated / 1000, col = 3, type = "l", lwd = 2)]
 
-proj[, .(population_size = as.integer(sum(population_size))), keyby = .(year, dimd)][dimd == "1 most deprived", plot(year, population_size/1000, col = 1, ylim = c(100, 7000), type = "l", lwd = 2, main = "Population projections by deprivation decile", xlab = "Year", ylab = "Population size (thousands)")]
-proj[, .(population_size = as.integer(sum(population_size))), keyby = .(year, dimd)][dimd == "10 least deprived", lines(year, population_size/1000, col = 2, type = "l", lwd = 2)]
-proj[, .(population_size = as.integer(sum(population_size))), keyby = .(year, dimd)][dimd == "5", lines(year, population_size/1000, col = 3, type = "l", lwd = 2)]
+proj[, .(population_size = as.integer(sum(population_size_calibrated))), keyby = .(year, dimd)][dimd == "1 most deprived", plot(year, population_size/1000, col = 1, ylim = c(100, 7000), type = "l", lwd = 2, main = "Population projections by deprivation decile", xlab = "Year", ylab = "Population size (thousands)")]
+proj[, .(population_size = as.integer(sum(population_size_calibrated))), keyby = .(year, dimd)][dimd == "10 least deprived", lines(year, population_size/1000, col = 2, type = "l", lwd = 2)]
+proj[, .(population_size = as.integer(sum(population_size_calibrated))), keyby = .(year, dimd)][dimd == "5", lines(year, population_size/1000, col = 3, type = "l", lwd = 2)]
 
 
 

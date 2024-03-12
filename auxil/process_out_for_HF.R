@@ -38,196 +38,219 @@ output_dir <- simulationParameters$output_dir
 #'
 #' @export
 tbl_smmrs <- function(
-    what = c("prvl", "prvl_change", "incd", "incd_change",
-             "ftlt", "ftlt_change", "mrtl", "mrtl_change",
-             "cms_score", "cms_score_change", "cms_score_age",
-              "cms_score_age_change", "cms_count", "cms_count_change",
-              "pop"),
+    what = c(
+            "prvl", "prvl_change", "incd", "incd_change",
+            "ftlt", "ftlt_change", "mrtl", "mrtl_change",
+            "cms_score", "cms_score_change", "cms_score_age",
+            "cms_score_age_change", "cms_count", "cms_count_change",
+            "pop"
+    ),
     type = c("ons", "esp"),
     strata,
     output_dir = output_dir,
     prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),
-    baseline_year = 2019L # only used for prvl_change etc.
-) {
-  strata <- lapply(strata, function(x)
-    c("mc", "scenario", x))
+    baseline_year = 2019L, # only used for prvl_change etc.
+    two_agegrps = FALSE # if TRUE, agegrp is 30-69 and 70-99
+    ) {
+        strata <- lapply(strata, function(x) {
+                c("mc", "scenario", x)
+        })
 
-    # construct file path to read from summaries
-    str0 <- c(
-            "prvl" = "prvl",
-            "prvl_change" = "prvl",
-            "incd" = "incd",
-            "incd_change" = "incd",
-            "ftlt" = "/dis_mrtl",
-            "ftlt_change" = "/dis_mrtl",
-            "mrtl" = "mrtl",
-            "mrtl_change" = "mrtl",
-            "cms_score" = "cms_score",
-            "cms_score_change" = "cms_score",
-            "cms_score_age" = "cms_score_by_age",
-            "cms_score_age_change" = "cms_score_by_age",
-            "cms_count" = "cms_count",
-            "cms_count_change" = "cms_count",
-            "pop" = "prvl"
-    )
-    str1 <- c("ons" = "_scaled_up.csv.gz", "esp" = "_esp.csv.gz")
-    fpth <- file.path(output_dir, "summaries", paste0(str0[[what]], str1[[type]]))
-    if (!file.exists(fpth)) {
-            message(fpth, " doesn't exist")
-            return(NULL)
-    }
-# other useful strings
-    str2 <- c(
-            "prvl" = "_prvl$|^popsize$",
-            "prvl_change" = "_prvl$|^popsize$",
-            "incd" = "_incd$|^popsize$",
-            "incd_change" = "_incd$|^popsize$",
-            "ftlt" = "_deaths$|_prvl$",
-            "ftlt_change" = "_deaths$|_prvl$",
-            "mrtl" = "_mrtl$|^popsize$",
-            "mrtl_change" = "_mrtl$|^popsize$",
-            "cms_score" = "cms_score",
-            "cms_score_change" = "cms_score",
-            "cms_score_age" = "cms_score",
-            "cms_score_age_change" = "cms_score",
-            "cms_count" = "cms_count",
-            "cms_count_change" = "cms_count",
-            "pop" = "^popsize$"
-    ) # used in grep
-    str3 <- c(
-            "prvl" = "prvl_rate_",
-            "prvl_change" = "prct_change_",
-            "incd" = "incd_rate_",
-            "incd_change" = "prct_change_",
-            "ftlt" = "ftlt_rate_",
-            "ftlt_change" = "ftlt_rate_",
-            "mrtl" = "mrtl_rate_",
-            "mrtl_change" = "mrtl_change_",
-            "cms_score" = "mean_cms_score_",
-            "cms_score_change" = "mean_cms_score_",
-            "cms_score_age" = "mean_cms_score_",
-            "cms_score_age_change" = "mean_cms_score_",
-            "cms_count" = "mean_cms_count_",
-            "cms_count_change" = "mean_cms_count_",
-            "pop" = "pop_size_"
-    ) # used to col name output
-    str4 <- c(
-            "prvl" = "prevalence by ",
-            "prvl_change" = "prevalence change by ",
-            "incd" = "incidence by ",
-            "incd_change" = "incidence change by ",
-            "ftlt" = "fatality by ",
-            "ftlt_change" = "fatality change by ",
-            "mrtl" = "mortality by ",
-            "mrtl_change" = "mortality change by ",
-            "cms_score" = "mean CMS score by ",
-            "cms_score_change" = "mean CMS score change by ",
-            "cms_score_age" = "mean CMS score by ",
-            "cms_score_age_change" = "mean CMS score change by ",
-            "cms_count" = "mean CMS count by ",
-            "cms_count_change" = "mean CMS count change by ",
-            "pop" = "pop size by "
-    )
+        # construct file path to read from summaries
+        str0 <- c(
+                "prvl" = "prvl",
+                "prvl_change" = "prvl",
+                "incd" = "incd",
+                "incd_change" = "incd",
+                "ftlt" = "/dis_mrtl",
+                "ftlt_change" = "/dis_mrtl",
+                "mrtl" = "mrtl",
+                "mrtl_change" = "mrtl",
+                "cms_score" = "cms_score",
+                "cms_score_change" = "cms_score",
+                "cms_score_age" = "cms_score_by_age",
+                "cms_score_age_change" = "cms_score_by_age",
+                "cms_count" = "cms_count",
+                "cms_count_change" = "cms_count",
+                "pop" = "prvl"
+        )
+        str1 <- c("ons" = "_scaled_up.csv.gz", "esp" = "_esp.csv.gz")
+        fpth <- file.path(output_dir, "summaries", paste0(str0[[what]], str1[[type]]))
+        if (!file.exists(fpth)) {
+                message(fpth, " doesn't exist")
+                return(NULL)
+        }
+        # other useful strings
+        str2 <- c(
+                "prvl" = "_prvl$|^popsize$",
+                "prvl_change" = "_prvl$|^popsize$",
+                "incd" = "_incd$|^popsize$",
+                "incd_change" = "_incd$|^popsize$",
+                "ftlt" = "_deaths$|_prvl$",
+                "ftlt_change" = "_deaths$|_prvl$",
+                "mrtl" = "_mrtl$|^popsize$",
+                "mrtl_change" = "_mrtl$|^popsize$",
+                "cms_score" = "cms_score",
+                "cms_score_change" = "cms_score",
+                "cms_score_age" = "cms_score",
+                "cms_score_age_change" = "cms_score",
+                "cms_count" = "cms_count",
+                "cms_count_change" = "cms_count",
+                "pop" = "^popsize$"
+        ) # used in grep
+        str3 <- c(
+                "prvl" = "prvl_rate_",
+                "prvl_change" = "prct_change_",
+                "incd" = "incd_rate_",
+                "incd_change" = "prct_change_",
+                "ftlt" = "ftlt_rate_",
+                "ftlt_change" = "ftlt_rate_",
+                "mrtl" = "mrtl_rate_",
+                "mrtl_change" = "mrtl_change_",
+                "cms_score" = "mean_cms_score_",
+                "cms_score_change" = "mean_cms_score_",
+                "cms_score_age" = "mean_cms_score_",
+                "cms_score_age_change" = "mean_cms_score_",
+                "cms_count" = "mean_cms_count_",
+                "cms_count_change" = "mean_cms_count_",
+                "pop" = "pop_size_"
+        ) # used to col name output
+        str4 <- c(
+                "prvl" = "prevalence by ",
+                "prvl_change" = "prevalence change by ",
+                "incd" = "incidence by ",
+                "incd_change" = "incidence change by ",
+                "ftlt" = "fatality by ",
+                "ftlt_change" = "fatality change by ",
+                "mrtl" = "mortality by ",
+                "mrtl_change" = "mortality change by ",
+                "cms_score" = "mean CMS score by ",
+                "cms_score_change" = "mean CMS score change by ",
+                "cms_score_age" = "mean CMS score by ",
+                "cms_score_age_change" = "mean CMS score change by ",
+                "cms_count" = "mean CMS count by ",
+                "cms_count_change" = "mean CMS count change by ",
+                "pop" = "pop size by "
+        )
 
 
 
-  tt <-
-    fread(fpth)[, `:=` (year = year + 2000L,
-                    dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
+        tt <-
+                fread(fpth)[, `:=`(
+                        year = year + 2000L,
+                        dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived"))
+                )]
 
-  # For ftlt I need prvl for the denominator
-  if (grepl("^ftlt", what)) {
-    fpth <- file.path(output_dir, "summaries",  paste0(str0[["prvl"]], str1[[type]]))
-    if (!file.exists(fpth)) stop(fpth, " doesn't exist")
-
-   t1 <- fread(fpth)[, `:=` (year = year + 2000L,
-                    dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
-   setnames(t1, "popsize", "nonmodelled_prvl")
-   absorb_dt(tt, t1)
-   tt <- tt[nonmodelled_prvl > 0] # This is the denom. Cannot be 0 and it is meaningless anyway
-  }
-
-  lapply(strata, function(x) {
-    if (grepl("^cms_", what)) {
-            d <- tt[, .("value" = weighted.mean(get(str2[[what]]), popsize)),
-                    keyby = eval(x)
-            ]
-
-                if (grepl("_change$", what)) { # when calculating change
-                        d19 <- d[year == baseline_year][, year := NULL]
-                        d[d19, on = c(setdiff(x, "year")), value := value / i.value]
+        if (two_agegrps) {
+                sTablesSubDirPath <- file.path(simulationParameters$output_dir, "tables2agegrps/")
+                if (!dir.exists(sTablesSubDirPath)) dir.create(sTablesSubDirPath)
+                if ("agegrp" %in% names(tt)) {
+                        tt[agegrp %in% c("30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69"), agegrp := "30-69"]
+                        tt[agegrp %in% c("70-74", "75-79", "80-84", "85-89", "90-94", "95-99"), agegrp := "70-99"]
                 }
-            d <- d[, as.list(fquantile(value, prbl)), keyby = eval(setdiff(x, "mc"))]
-            setnames(d, c(setdiff(x, "mc"), percent(prbl, prefix = str3[[what]])))
-
-    } else { # if not cms...
-            d <- tt[, lapply(.SD, sum),
-                    .SDcols = patterns(str2[[what]]),
-                    keyby = x
-            ]
-
-
-    if (grepl("^ftlt", what)) {
-        nm <- names(d)
-        nm <- grep("_deaths$", nm, value = TRUE)
-        nm <- gsub("_deaths$", "", nm)
-        nm <- setdiff(nm, "alive")
-        for (i in nm) {
-                set(
-                        d, NULL, paste0(i, "_ftlt"),
-                        d[[paste0(i, "_deaths")]] / d[[paste0(i, "_prvl")]]
-                )
         }
 
-   nm <- names(d)
-   nm <- grep("_deaths$|_prvl$", nm, value = TRUE)
-   d[, (nm) := NULL]
-   setnafill(d, "const", 0, cols = grep("_ftlt$", names(d), value = TRUE))
-    } else if (what != "pop") { # if not ftlt related and not pop
-        d <- d[, lapply(.SD, function(y) {
-                y / popsize
-        }), keyby = x]
-    }
+        # For ftlt I need prvl for the denominator
+        if (grepl("^ftlt", what)) {
+                fpth <- file.path(output_dir, "summaries", paste0(str0[["prvl"]], str1[[type]]))
+                if (!file.exists(fpth)) stop(fpth, " doesn't exist")
 
-    d <- melt(d, id.vars = x)
+                t1 <- fread(fpth)[, `:=`(
+                        year = year + 2000L,
+                        dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived"))
+                )]
+                setnames(t1, "popsize", "nonmodelled_prvl")
+                if (two_agegrps && "agegrp" %in% names(t1)) {
+                        t1[agegrp %in% c("30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69"), agegrp := "30-69"]
+                        t1[agegrp %in% c("70-74", "75-79", "80-84", "85-89", "90-94", "95-99"), agegrp := "70-99"]
+                }
+                absorb_dt(tt, t1)
+                tt <- tt[nonmodelled_prvl > 0] # This is the denom. Cannot be 0 and it is meaningless anyway
+        }
 
-    if (grepl("_change$", what)) { # when calculating change
-        d19 <- d[year == baseline_year][, year := NULL]
-        d[d19, on = c(setdiff(x, "year"), "variable"), value := value/i.value]
-    }
+        lapply(strata, function(x) {
+                if (grepl("^cms_", what)) {
+                        d <- tt[, .("value" = weighted.mean(get(str2[[what]]), popsize)),
+                                keyby = eval(x)
+                        ]
 
-    setkey(d, "variable")
-    d <-
-      d[, fquantile_byid(value, prbl, id = as.character(variable), rounding = what == "pop"),
-        keyby = eval(setdiff(x, "mc"))]
-    setnames(d, c(
-      setdiff(x, "mc"),
-      "disease",
-      percent(prbl, prefix = str3[[what]])
-    ))
-    if (what == "pop") {
-            d[, disease := NULL]
-    } else {
-            d <- d[disease != "popsize"]
-    }
-    }
-    setkeyv(d, setdiff(x, "mc"))
-    str5 <- c(
-            "ons" = " (not standardised).csv",
-            "esp" = paste0(" (", paste(setdiff(c("mc", "scenario", "year", "age", "sex", "dimd"), x),
-                    collapse = "-"
-            ), " standardised).csv")
-    )
+                        if (grepl("_change$", what)) { # when calculating change
+                                d19 <- d[year == baseline_year][, year := NULL]
+                                d[d19, on = c(setdiff(x, "year")), value := value / i.value]
+                        }
+                        d <- d[, as.list(fquantile(value, prbl)), keyby = eval(setdiff(x, "mc"))]
+                        setnames(d, c(setdiff(x, "mc"), percent(prbl, prefix = str3[[what]])))
+                } else { # if not cms...
+                        d <- tt[, lapply(.SD, sum),
+                                .SDcols = patterns(str2[[what]]),
+                                keyby = x
+                        ]
 
-    str6 <- paste0(
-            str4[[what]],
-            paste(setdiff(x, c("mc", "scenario")), collapse = "-"),
-            str5[[type]]
-    ) # used for output file name/path
-    fwrite(d, file.path(
-      output_dir, "tables", str6
-    ))
-  })
+
+                        if (grepl("^ftlt", what)) {
+                                nm <- names(d)
+                                nm <- grep("_deaths$", nm, value = TRUE)
+                                nm <- gsub("_deaths$", "", nm)
+                                nm <- setdiff(nm, "alive")
+                                for (i in nm) {
+                                        set(
+                                                d, NULL, paste0(i, "_ftlt"),
+                                                d[[paste0(i, "_deaths")]] / d[[paste0(i, "_prvl")]]
+                                        )
+                                }
+
+                                nm <- names(d)
+                                nm <- grep("_deaths$|_prvl$", nm, value = TRUE)
+                                d[, (nm) := NULL]
+                                setnafill(d, "const", 0, cols = grep("_ftlt$", names(d), value = TRUE))
+                        } else if (what != "pop") { # if not ftlt related and not pop
+                                d <- d[, lapply(.SD, function(y) {
+                                        y / popsize
+                                }), keyby = x]
+                        }
+
+                        d <- melt(d, id.vars = x)
+
+                        if (grepl("_change$", what)) { # when calculating change
+                                d19 <- d[year == baseline_year][, year := NULL]
+                                d[d19, on = c(setdiff(x, "year"), "variable"), value := value / i.value]
+                        }
+
+                        setkey(d, "variable")
+                        d <-
+                                d[, fquantile_byid(value, prbl, id = as.character(variable), rounding = what == "pop"),
+                                        keyby = eval(setdiff(x, "mc"))
+                                ]
+                        setnames(d, c(
+                                setdiff(x, "mc"),
+                                "disease",
+                                percent(prbl, prefix = str3[[what]])
+                        ))
+                        if (what == "pop") {
+                                d[, disease := NULL]
+                        } else {
+                                d <- d[disease != "popsize"]
+                        }
+                }
+                setkeyv(d, setdiff(x, "mc"))
+                str5 <- c(
+                        "ons" = " (not standardised).csv",
+                        "esp" = paste0(" (", paste(setdiff(c("mc", "scenario", "year", "age", "sex", "dimd"), x),
+                                collapse = "-"
+                        ), " standardised).csv")
+                )
+
+                str6 <- paste0(
+                        str4[[what]],
+                        paste(setdiff(x, c("mc", "scenario")), collapse = "-"),
+                        str5[[type]]
+                ) # used for output file name/path
+                
+                fwrite(d, file.path(
+                        output_dir, 
+                        ifelse(two_agegrps, "tables2agegrps", "tables"), str6
+                ))
+        })
 }
 
 
@@ -237,7 +260,7 @@ outperm <- expand.grid(
                 "ftlt", "ftlt_change", "mrtl", "mrtl_change",
                 "cms_score", "cms_score_change", "cms_score_age",
                 "cms_score_age_change", "cms_count", "cms_count_change",
-                 "pop"
+                "pop"
         ),
         type = c("ons", "esp")
 )
@@ -245,36 +268,38 @@ outperm <- expand.grid(
 for (i in seq_len(nrow(outperm))) {
         what <- as.character(outperm$what[[i]])
         type <- as.character(outperm$type[[i]])
-if (type == "ons") {
-        strata <- list(
-                "year",
-                c("year", "sex"),
-                c("year", "dimd"),
-                c("year", "agegrp"),
-                c("year", "agegrp", "sex"),
-                c("year", "agegrp", "sex", "dimd")
-        )
-} else if (type == "esp") {
-        strata <- list(
-                "year",
-                c("year", "sex"),
-                c("year", "dimd"),
-                c("year", "sex", "dimd")
-        )
-} else stop()
+        if (type == "ons") {
+                strata <- list(
+                        "year",
+                        c("year", "sex"),
+                        c("year", "dimd"),
+                        c("year", "agegrp"),
+                        c("year", "agegrp", "sex"),
+                        c("year", "agegrp", "sex", "dimd")
+                )
+        } else if (type == "esp") {
+                strata <- list(
+                        "year",
+                        c("year", "sex"),
+                        c("year", "dimd"),
+                        c("year", "sex", "dimd")
+                )
+        } else {
+                stop()
+        }
 
-if (grepl("_age", what)) {
-        strata <- lapply(strata, function(st) {
-                st[st == "agegrp"] <- "age"
-                st
-        })
-}
+        if (grepl("_age", what)) {
+                strata <- lapply(strata, function(st) {
+                        st[st == "agegrp"] <- "age"
+                        st
+                })
+        }
 
-if (what == "pop" && type == "esp") next()
-if (grepl("_age", what) && type == "esp") next()
+        if (what == "pop" && type == "esp") next()
+        if (grepl("_age", what) && type == "esp") next()
 
-print(paste0(what, "-", type))
-tbl_smmrs(what, type, strata, output_dir)
+        print(paste0(what, "-", type))
+        tbl_smmrs(what, type, strata, output_dir)
 }
 
 tbl_smmrs("pop", "ons", list(
@@ -285,6 +310,56 @@ tbl_smmrs("pop", "ons", list(
         c("year", "agegrp", "sex"),
         c("year", "agegrp", "sex", "dimd")
 ), output_dir)
+
+# 2 agegroups ----
+outperm <- expand.grid(
+        what = c(
+                "prvl", "prvl_change", "incd", "incd_change",
+                "ftlt", "ftlt_change", "mrtl", "mrtl_change",
+                "cms_score", "cms_score_change", "cms_score_age",
+                "cms_score_age_change", "cms_count", "cms_count_change",
+                "pop"
+        ),
+        type = "ons")
+for (i in seq_len(nrow(outperm))) {
+        what <- as.character(outperm$what[[i]])
+        type <- as.character(outperm$type[[i]])
+        if (type == "ons") {
+                strata <- list(
+                        c("year", "agegrp"),
+                        c("year", "agegrp", "sex"),
+                        c("year", "agegrp", "sex", "dimd")
+                )
+        } else if (type == "esp") {
+                strata <- list(
+                        "year",
+                        c("year", "sex"),
+                        c("year", "dimd"),
+                        c("year", "sex", "dimd")
+                )
+        } else {
+                stop()
+        }
+
+        if (grepl("_age", what)) {
+                strata <- lapply(strata, function(st) {
+                        st[st == "agegrp"] <- "age"
+                        st
+                })
+        }
+
+        if (what == "pop" && type == "esp") next()
+        if (grepl("_age", what) && type == "esp") next()
+
+        print(paste0(what, "-", type))
+        tbl_smmrs(what, type, strata, output_dir, two_agegrps = TRUE)
+}
+
+tbl_smmrs("pop", "ons", list(
+        c("year", "agegrp"),
+        c("year", "agegrp", "sex"),
+        c("year", "agegrp", "sex", "dimd")
+), output_dir, two_agegrps = TRUE)
 
 
 # All-cause mortality by disease not standardised----
