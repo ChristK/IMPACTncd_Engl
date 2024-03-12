@@ -45,6 +45,7 @@ The IMPACTncd_Engl model is written primarily in, and so requires installation o
 
 IMPACTncd_Engl is installed directly from GitHub, after which a model-specific configuration is set. With multiple configurations, different policy scenarios may be tested on the same server. 
 
+The installation of other tools required to run the model is shown here.
 
 #### Installing IMPACTncd
 
