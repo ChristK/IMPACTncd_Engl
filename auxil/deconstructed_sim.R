@@ -67,8 +67,6 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
 # ll <- sim$gen_synthpop_demog(design)
 sp <- SynthPop$new(1L, design)
 
-## sp$pop # get the col names, _curr_xps table, different diseases table for secondary
-
 e <- read_fst("./inputs/mortality/mrtl_clb.fst", as.data.table = TRUE) # mortality calibration
 lookup_dt(sp$pop, e,
           check_lookup_tbl_validity = design$sim_prm$logs)
