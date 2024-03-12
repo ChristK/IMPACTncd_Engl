@@ -66,8 +66,6 @@ Design <-
             "RootDirPath"  ,
             "sToken"                ,
             "locality"              ,
-            "iteration_n"           ,
-            "iteration_n_final"     ,
             "clusternumber"         ,
             "logs"                  ,
             "scenarios"             ,
@@ -93,7 +91,6 @@ Design <-
             "output_dir"            ,
             "synthpop_dir"          ,
             "validation"            ,
-            "max_prvl_for_outputs"  ,
             "iteration_n_max"       ,
             "n_synthpop_aggregation"
           ) %in% names(sim_prm),

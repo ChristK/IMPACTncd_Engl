@@ -4,12 +4,14 @@ library(fst)
 library(ungroup)
 
 # National ----
-pop <- as.data.table(read_excel("inputs/pop_projections/unprocessed/enpppopendata2020.xls",
+pop <- as.data.table(read_excel("inputs/pop_projections/unprocessed/enpppopendata2021.xlsx",
                                 sheet = "Population"))
 setnames(pop, tolower(names(pop)))
-pop <- pop[age %in% as.character(0:100)]
-pop[, sex := factor(sex, 1:2, c("men", "women"))]
+pop[, c("2021", "2022") := NULL]
+pop[, sex := factor(sex, c("Males", "Females"), c("men", "women"))]
 pop <- melt(pop, c("age", "sex"), variable.name = "year", value.name = "pops")
+pop[age == "105 - 109", age := 105]
+pop[age == "110 and over", age := 110]
 pop[, `:=` (
   age = as.integer(age),
   year = as.integer(as.character(year)) - 2000L
