@@ -141,22 +141,22 @@ Simulation <-
       #' @param sToken GitHub personal access token (default: NULL).
       #' @param sRepo GitHub repository (default: NULL).
       #' @param sTag GitHub tag or release (default: NULL).
-      #' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: NULL).
+      #' @param bOverwriteFilesOnDeploy Logical indicating whether to overwrite existing files on deployment (default: no).
       #' @param RootDirPath Path to the source directory for upload or deploy (default: NULL).
-      #' @param simulation_files_overwrite Logical indication whether to overwrite simulation folder files (default: NULL).
+      #' @param simulation_files_overwrite Logical indication whether to overwrite simulation folder files (default: no).
       #' @param args a list of the above specified parameters
       #'
       #' @return Invisible self for chaining
       #' @export
       DeployGitHubAssets = function(args = NULL) {
-        simulation_files_overwrite <- ifelse(is.null(args$simulation_files_overwrite), NULL, args$simulation_files_overwrite)
+        simulation_files_overwrite <- ifelse(is.null(args$simulation_files_overwrite), "no", args$simulation_files_overwrite)
         sTag <- ifelse(is.null(args$sTag), NULL, args$sTag)
-        bOverwriteFilesOnDeploy <- ifelse(is.null(args$bOverwriteFilesOnDeploy), NULL, args$bOverwriteFilesOnDeploy)
+        bOverwriteFilesOnDeploy <- ifelse(is.null(args$bOverwriteFilesOnDeploy), "no", args$bOverwriteFilesOnDeploy)
         sDeployToRootDirPath <- ifelse(is.null(args$RootDirPath), NULL, args$RootDirPath)
         sUploadSrcDirPath <- ifelse(is.null(args$RootDirPath), NULL, args$RootDirPath)
         sToken <- ifelse(is.null(args$sToken), gh::gh_token(), args$sToken)
         sRepo <- "ChristK/IMPACTncd_Engl"
-        bOverwriteFilesOnDeploy <- ifelse(bOverwriteFilesOnDeploy == "yes", T, F)
+        bOverwriteFilesOnDeploy <- ifelse(bOverwriteFilesOnDeploy == "yes", TRUE, FALSE)
 
         GetGitHubAssetRouteInfo(sRepo = sRepo, sTag = sTag, iTestWithFirstNAssets,
                                 sDeployToRootDirPath = sDeployToRootDirPath,
@@ -194,8 +194,14 @@ Simulation <-
         } else {
           print("Did not overwrite simulation asssets.")
         }
-
-        if (!all(sapply(all_files, file.exists))) {
+        if (bOverwriteFilesOnDeploy) {
+          lsHttpResponses <- piggyback::pb_download(
+            file = sanitisedToOriginalFilePaths$sanit_file,
+            dest = file.path(sDeployToRootDirPath, subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file),
+            repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
+            use_timestamps = FALSE, .token = sToken)
+          StopOnHttpFailure(lsHttpResponses, FALSE)
+        } else if (!all(sapply(all_files, file.exists))) {
           missing_files <- sanitisedToOriginalFilePaths$sanit_file[!file.exists(all_files)]
           missing_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% missing_files)]
           missing_sub_dirs <- subDirectoryPaths[which(sanitisedToOriginalFilePaths$sanit_file %in% missing_files)]
@@ -208,16 +214,7 @@ Simulation <-
 
           StopOnHttpFailure(lsHttpResponses, FALSE)
         } else {
-          if (bOverwriteFilesOnDeploy == "yes") {
-            lsHttpResponses <- piggyback::pb_download(
-              file = sanitisedToOriginalFilePaths$sanit_file,
-              dest = file.path(sDeployToRootDirPath, subDirectoryPaths, sanitisedToOriginalFilePaths$orig_file),
-              repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
-              use_timestamps = FALSE, .token = sToken)
-            StopOnHttpFailure(lsHttpResponses, FALSE)
-          } else {
-            print("The assets are downloaded.")
-          }
+          print("The assets are downloaded.")
         }
         invisible(self)
       },
