@@ -104,7 +104,7 @@ knitr::include_graphics("img/Git_14.jpeg")
 knitr::include_graphics("img/Git_15.jpeg")
 ```
 
-16. After the installation, it shows a window, click **Finish**, to check the correct installation, add paths of R and git on your system
+16. After the installation, it shows a window, click **Finish**, to check the correct installation, add path of git on your system
 
 17. Type Environment variables in search bar of your Windows system, click on Environment Variables
 

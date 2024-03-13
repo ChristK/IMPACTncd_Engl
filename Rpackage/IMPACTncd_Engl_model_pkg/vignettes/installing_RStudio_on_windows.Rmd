@@ -42,6 +42,7 @@ knitr::include_graphics("img/RStudio_3.jpeg")
 ```{r, echo = FALSE, out.width = "50%", fig.cap = ""}
 knitr::include_graphics("img/RStudio_4.jpeg")
 ```
+
 5. Wait for the installation process
 
 ```{r, echo = FALSE, out.width = "50%", fig.cap = ""}
@@ -72,4 +73,4 @@ knitr::include_graphics("img/RStudio_8.jpeg")
 knitr::include_graphics("img/RStudio_9.jpeg")
 ```
 
-10. Now check `2+3` in the RStudio console to check if R is installed properly and should be compiling correctly s
+10. Now check `2+3` in the RStudio console to check if R is installed properly and should be compiling correctly 
