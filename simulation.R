@@ -16,7 +16,7 @@ scenario_fn_secondary_prevention <- function(sp) NULL
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(1:10, multicore = TRUE, "sc0")
+  run(1:2, multicore = F, "sc0")
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 # source("./auxil/CPRD_sim_validation_plots.R")
@@ -154,8 +154,8 @@ scenario_fn_primary_prevention <- function(sp) {
 
 
 IMPACTncd$
-  run(1:10, multicore = TRUE, "sc1")$
-  export_summaries(multicore = TRUE)
+  run(1:2, multicore = F, "sc1")$
+  export_summaries(multicore = F)
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 source("./auxil/process_out_for_HF.R")

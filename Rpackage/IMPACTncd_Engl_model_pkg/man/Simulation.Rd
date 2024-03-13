@@ -85,11 +85,11 @@ in a specified directory structure.
 
 \item{\code{sTag}}{GitHub tag or release (default: NULL).}
 
-\item{\code{bOverwriteFilesOnDeploy}}{Logical indicating whether to overwrite existing files on deployment (default: NULL).}
+\item{\code{bOverwriteFilesOnDeploy}}{Logical indicating whether to overwrite existing files on deployment (default: no).}
 
 \item{\code{RootDirPath}}{Path to the source directory for upload or deploy (default: NULL).}
 
-\item{\code{simulation_files_overwrite}}{Logical indication whether to overwrite simulation folder files (default: NULL).}
+\item{\code{simulation_files_overwrite}}{Logical indication whether to overwrite simulation folder files (default: no).}
 }
 \if{html}{\out{</div>}}
 }
