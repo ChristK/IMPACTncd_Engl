@@ -207,9 +207,8 @@ Simulation <-
             repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
             use_timestamps = FALSE, .token = sToken)
           StopOnHttpFailure(lsHttpResponses, FALSE)
-        } else {
-          print("The assets are downloaded.")
         }
+        print("The assets are downloaded.")
         invisible(self)
       },
 
