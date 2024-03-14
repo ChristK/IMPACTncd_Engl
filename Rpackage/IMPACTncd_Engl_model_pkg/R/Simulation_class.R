@@ -183,7 +183,21 @@ Simulation <-
             repo = sRepo, tag = sTag, overwrite = bOverwriteFilesOnDeploy,
             use_timestamps = FALSE, .token = sToken)
           StopOnHttpFailure(lsHttpResponses, FALSE)
-        } else if (!all(sapply(all_files, file.exists))) {
+        } else if (!all(sapply(all_files, file.exists)) || !bOverwriteFilesOnDeploy) {
+          if (simulation_file_paths_non_NA && simulation_files_overwrite) {
+            simulation_files <- sanitisedToOriginalFilePaths$sanit_file[simulation_file_paths]
+            simulation_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% simulation_files)]
+            simulation_sub_dirs <- subDirectoryPaths[which(sanitisedToOriginalFilePaths$sanit_file %in% simulation_files)]
+            lsHttpResponses <- piggyback::pb_download(
+              file = simulation_files,
+              dest = file.path(sDeployToRootDirPath, simulation_sub_dirs, simulation_orig_files),
+              repo = sRepo, tag = sTag, overwrite = TRUE,
+              use_timestamps = FALSE, .token = sToken)
+            StopOnHttpFailure(lsHttpResponses, FALSE)
+          }
+          else {
+            print("The simulation assets are not overwritten.")
+          }
           missing_files <- sanitisedToOriginalFilePaths$sanit_file[!file.exists(all_files)]
           missing_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% missing_files)]
           missing_sub_dirs <- subDirectoryPaths[which(sanitisedToOriginalFilePaths$sanit_file %in% missing_files)]
@@ -195,20 +209,6 @@ Simulation <-
           StopOnHttpFailure(lsHttpResponses, FALSE)
         } else {
           print("The assets are downloaded.")
-        }
-        if (simulation_file_paths_non_NA && simulation_files_overwrite) {
-          simulation_files <- sanitisedToOriginalFilePaths$sanit_file[simulation_file_paths]
-          simulation_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% simulation_files)]
-          simulation_sub_dirs <- subDirectoryPaths[which(sanitisedToOriginalFilePaths$sanit_file %in% simulation_files)]
-          lsHttpResponses <- piggyback::pb_download(
-            file = simulation_files,
-            dest = file.path(sDeployToRootDirPath, simulation_sub_dirs, simulation_orig_files),
-            repo = sRepo, tag = sTag, overwrite = TRUE,
-            use_timestamps = FALSE, .token = sToken)
-          StopOnHttpFailure(lsHttpResponses, FALSE)
-        }
-        else {
-          print("The simulation assets are not overwritten.")
         }
         invisible(self)
       },
