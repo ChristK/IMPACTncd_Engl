@@ -9,14 +9,90 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
 #plot(igraph::make_ego_graph(g, order = 1, c("pain"), "in")[[1]])
 
-scenario_fn_primary_prevention   <- function(sp) NULL
-scenario_fn_secondary_prevention <- function(sp) NULL
+# scenario_fn_primary_prevention   <- function(sp) NULL
+# scenario_fn_secondary_prevention <- function(sp) NULL
 # multicore - F
 # baseline
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(1:2, multicore = F, "sc0")
+  run(1:2, multicore = T, "sc0")
+
+## https://docs.google.com/document/d/1jIsvoQxkFIyKZ-ak2i-RKv3lbR7gpP-fU3TAS7wzVH4/edit#heading=h.bo0sonprg2dl
+
+n_runs <- 2
+
+IMPACTncd$update_primary_prevention_scn(
+  function(sp) {
+    change_10pc <- 0.1
+    sc_year <- 23L
+    sp$pop[year >= sc_year,
+           bmi_curr_xps := bmi_curr_xps * (1 -change_10pc)]
+    }
+  )
+
+IMPACTncd$
+  run(1:n_runs, multicore = T, "sc1")
+
+IMPACTncd$update_primary_prevention_scn(
+  function(sp) {
+    change_10pc <- 0.1
+    sc_year <- 23L
+    sp$pop[year >= sc_year, fruit_curr_xps := as.integer(round(fruit_curr_xps * (1 + change_10pc)))]
+    sp$pop[year >= sc_year, veg_curr_xps := as.integer(round(veg_curr_xps * (1 + change_10pc)))]
+    }
+  )
+
+IMPACTncd$
+  run(1:n_runs, multicore = T, "sc2")
+
+
+IMPACTncd$update_primary_prevention_scn(
+  function(sp) {
+    change_10pc <- 0.1
+    sc_year <- 23L
+    tt <- sp$pop[year >= sc_year & active_days_curr_xps == 0, .(unique(pid))]
+    tt <- tt[as.logical(rbinom(.N, 1, abs(change_10pc))), V1]
+    sp$pop[pid %in% tt & year >= sc_year, `:=` (
+      active_days_curr_xps = 1,
+      met_curr_xps = as.integer(floor(1 * (3L + qbinom(runif(.N), 8, 3/11)) *
+                                        (30 + qexp(runif(.N), 1/7)) / 100))
+    )]
+  }
+)
+
+IMPACTncd$
+  run(1:n_runs, multicore = T, "sc3")
+
+IMPACTncd$update_primary_prevention_scn(
+  function(sp) {
+    change_10pc <- 0.1
+    sc_year <- 23L
+    sp$pop[year >= sc_year, bmi_curr_xps := bmi_curr_xps * (1 - change_10pc)]
+
+    # Fr & vg
+    sp$pop[year >= sc_year, fruit_curr_xps := as.integer(round(fruit_curr_xps * (1 + change_10pc)))]
+    sp$pop[year >= sc_year, veg_curr_xps := as.integer(round(veg_curr_xps * (1 + change_10pc)))]
+
+    # Physical activity
+    tt <- sp$pop[year >= sc_year & active_days_curr_xps == 0, .(unique(pid))]
+    tt <- tt[as.logical(rbinom(.N, 1, abs(change_10pc))), V1]
+    sp$pop[pid %in% tt & year >= sc_year, `:=` (
+      active_days_curr_xps = 1,
+      met_curr_xps = as.integer(floor(1 * (3L + qbinom(runif(.N), 8, 3/11)) *
+                                        (30 + qexp(runif(.N), 1/7)) / 100))
+    )]
+  }
+)
+
+IMPACTncd$
+  run(1:n_runs, multicore = T, "sc4") $
+  export_summaries(multicore = T,
+                   type = c("dis_char", "prvl", "incd", "dis_mrtl", "mrtl",
+                            "allcause_mrtl_by_dis", "cms"))
+
+
+
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 # source("./auxil/CPRD_sim_validation_plots.R")
@@ -154,8 +230,8 @@ scenario_fn_primary_prevention <- function(sp) {
 
 
 IMPACTncd$
-  run(1:2, multicore = F, "sc1")$
-  export_summaries(multicore = F)
+  run(1:2, multicore = T, "sc1")$
+  export_summaries(multicore = T)
 
 # IMPACTncd$export_summaries(multicore = TRUE)
 source("./auxil/process_out_for_HF.R")
