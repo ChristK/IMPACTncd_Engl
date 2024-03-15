@@ -251,13 +251,39 @@ Disease <-
           ff <- clone_dt(ff, 10, idcol = NULL)
 
           # NOTE future and mclapply do not work here for some reason
-          if (Sys.info()["sysname"] == "Windows") {
+          if (.Platform$OS.type == "windows") {
             cl <-
-              makeCluster(design_$sim_prm$clusternumber) # used for clustering. Windows compatible
-            registerDoParallel(cl)
+              makeClusterPSOCK(
+                design_$sim_prm$clusternumber,
+                dryrun = FALSE,
+                quiet = FALSE,
+                rscript_startup = quote(local({
+                  library(CKutils)
+                  library(IMPACTncdEngl)
+                  library(digest)
+                  library(fst)
+                  library(qs)
+                  library(wrswoR)
+                  library(gamlss.dist)
+                  library(dqrng)
+                  library(data.table)
+                })),
+                rscript_args = c("--no-init-file",
+                                 "--no-site-file",
+                                 "--no-environ"),
+                setup_strategy = "parallel"
+              ) # used for clustering. Windows compatible
+
+            on.exit(if (exists("cl")) stopCluster(cl))
+
+            xps_dt <- parLapplyLB(
+              cl = cl,
+              X = seq(1, (popsize / 10L)),
+              fun = function(x) private$gen_sp_forPARF(x, ff = ff, design_ = design_, diseases_ = diseases_)
+            )
           } else {
             registerDoParallel(design_$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
-          }
+          
           xps_dt <- foreach(
             mc_iter = seq(1, (popsize / 10L)),
             .inorder = FALSE,
@@ -278,7 +304,7 @@ Disease <-
                                    diseases_ = diseases_)
 
           }
-          if (exists("cl")) stopCluster(cl)
+         }
 
           if (design_$sim_prm$logs) message("End of parallelisation for PARF.")
 
