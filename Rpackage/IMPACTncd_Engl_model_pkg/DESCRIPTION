@@ -29,7 +29,9 @@ Imports:
     BH,
     igraph,
     gh,
-    piggyback (>= 0.1.5)
+    piggyback (>= 0.1.5),
+    parallelly,
+    parallel
 Suggests: 
     knitr,
     rmarkdown,
