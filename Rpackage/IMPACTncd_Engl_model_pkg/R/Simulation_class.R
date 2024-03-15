@@ -32,8 +32,9 @@
 Simulation <-
   R6::R6Class(
     classname = "Simulation",
-
-    # public ------------------------------------------------------------------
+    lock_objects = TRUE, # allows primary prevention scenario to be updated
+    lock_class = TRUE,
+# public ------------------------------------------------------------------
     public = list(
       #' @field design A Design object.
       design = NA,
@@ -65,6 +66,27 @@ Simulation <-
           nr_of_threads = self$design$sim_prm$clusternumber,
           reset_after_fork = NULL
         )
+
+
+        # Create folders if don't exist
+        # TODO write hlp function and use lapply
+        message("Creating output subfolders.")
+        private$create_new_folder(self$design$sim_prm$output_dir, self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("summaries/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("tables/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("plots/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("lifecourse/"), self$design$sim_prm$logs)
+        if (self$design$sim_prm$export_PARF) {
+           private$create_new_folder(private$output_dir("parf/"), self$design$sim_prm$logs)
+        }
+        if (self$design$sim_prm$export_xps) {
+           private$create_new_folder(private$output_dir("xps/"), self$design$sim_prm$logs)
+        }
+        if (self$design$sim_prm$logs) {
+           private$create_new_folder(private$output_dir("logs/"), self$design$sim_prm$logs)
+        }
+        # NOTE code below is duplicated in Synthpop class. This is intentional
+        private$create_new_folder(self$design$sim_prm$synthpop_dir,self$design$sim_prm$logs)
 
         deployArgs <- list(
           simulation_files_overwrite = self$design$sim_prm$simulation_files_overwrite,
@@ -129,6 +151,9 @@ Simulation <-
         private$death_codes <- unlist(lapply(self$diseases, function(x)
           x$meta$mortality$code))
         private$death_codes[["alive"]] <- 0L
+
+        private$primary_prevention_scn = function(synthpop) NULL # default for baseline scenario
+        private$secondary_prevention_scn = function(synthpop) NULL # default for baseline scenario
 
         invisible(self)
       },
@@ -212,6 +237,38 @@ Simulation <-
         invisible(self)
       },
 
+      # update_primary_prevention_scn ----
+      #' @description Updates the primary prevention policy scenario
+      #' @param method a function with synthpop as an argument that models the primary prevention policy.
+      #' @return The invisible self for chaining.
+      update_primary_prevention_scn = function(method) {
+        private$primary_prevention_scn <- method
+        environment(private$primary_prevention_scn) <- environment(private$update_primary_prevention_scn)
+      },
+
+      # get_primary_prevention_scn ----
+      #' @description Get the primary prevention policy scenario
+      #' @return The primary prevention policy scenario.
+      get_primary_prevention_scn = function() {
+        private$primary_prevention_scn
+      },
+
+      # update_secondary_prevention_scn ----
+      #' @description Updates the secondary prevention policy scenario
+      #' @param method a function with synthpop as an argument that models the secondary prevention policy.
+      #' @return The invisible self for chaining.
+      update_secondary_prevention_scn = function(method) {
+        private$secondary_prevention_scn <- method
+        environment(private$secondary_prevention_scn) <- environment(private$update_secondary_prevention_scn)
+      },
+
+      # get_secondary_prevention_scn ----
+      #' @description Get the secondary prevention policy scenario
+      #' @return The secondary prevention policy scenario.
+      get_secondary_prevention_scn = function() {
+        private$secondary_prevention_scn
+      },
+
       # run ----
       #' @description Runs a simulation
       #' @param mc A positive sequential integer vector with the Monte Carlo
@@ -219,7 +276,6 @@ Simulation <-
       #' @param multicore If TRUE run the simulation in parallel.
       #' @param scenario_nam A string for the scenario name (i.e. sc1)
       #' @return The invisible self for chaining.
-
       run = function(mc, multicore = TRUE, scenario_nam) {
 
         if (!is.integer(mc)) stop("mc need to be an integer")
@@ -230,18 +286,18 @@ Simulation <-
         if (anyNA(mc) || any(is.infinite(mc)) || length(mc) < 1L ||
             (length(mc) > 1L && diff(mc[1:2]) == 0) ||
             (length(mc) > 1L && diff(range(diff(mc))) > sqrt(.Machine$double.eps)))
-          stop("mc need to be a sequential integer vector, or a scalar")
+              stop("mc need to be a sequential integer vector, or a scalar")
         # NOTE mc is in fact mc_aggr. mc_ is the mc of the synthpop
         mc_sp <-
           (
             min(mc) * self$design$sim_prm$n_synthpop_aggregation -
               self$design$sim_prm$n_synthpop_aggregation + 1L
           ):(max(mc) * self$design$sim_prm$n_synthpop_aggregation)
-
+       
         # Create folders if don't exist
         # TODO write hlp function and use lapply
         if (file.exists(self$design$sim_prm$output_dir) && file.access(self$design$sim_prm$output_dir, mode = 2) == -1L)
-          stop("You don't have write access to the output folder. Please change the permissions or the path.")
+         stop("You don't have write access to the output folder. Please change the permissions or the path.")
 
         message("Creating output subfolders.")
         private$create_new_folder(self$design$sim_prm$output_dir, self$design$sim_prm$logs)
@@ -260,7 +316,7 @@ Simulation <-
         }
 
         if (file.exists(self$design$sim_prm$synthpop_dir) && file.access(self$design$sim_prm$synthpop_dir, mode = 2) == -1L)
-          stop("You don't have write access to the synthpop folder. Please change the permissions or the path.")
+         stop("You don't have write access to the synthpop folder. Please change the permissions or the path.")
 
         # NOTE code below is duplicated in Synthpop class. This is intentional
         private$create_new_folder(self$design$sim_prm$synthpop_dir, self$design$sim_prm$logs)
@@ -286,49 +342,72 @@ Simulation <-
         # multicore
         lapply(self$diseases, function(x) {
           x$gen_parf_files(self$design, self$diseases)
-        })
+          })
 
         if (multicore) {
 
-          if (Sys.info()["sysname"] == "Windows") {
+          if (self$design$sim_prm$logs) private$time_mark("Start of parallelisation")
+
+          if (.Platform$OS.type == "windows") {
             cl <-
-              makeCluster(self$design$sim_prm$clusternumber) # used for clustering. Windows compatible
-            registerDoParallel(cl)
+              makeClusterPSOCK(
+                self$design$sim_prm$clusternumber,
+                dryrun = FALSE,
+                quiet = FALSE,
+                rscript_startup = quote(local({
+                  library(CKutils)
+                  library(IMPACTncdEngl )
+                  library(digest)
+                  library(fst)
+                  library(qs)
+                  library(wrswoR)
+                  library(gamlss.dist)
+                  library(dqrng)
+                  library(data.table)
+                })),
+                rscript_args = c("--no-init-file",
+                                 "--no-site-file",
+                                 "--no-environ"),
+                setup_strategy = "parallel"
+              ) # used for clustering. Windows compatible
+
+            on.exit(if (exists("cl")) stopCluster(cl))
+
+            xps_dt <- parLapplyLB(
+              cl = cl,
+              X = mc_sp,
+              fun = function(x) private$run_sim(mc_ = x, scenario_nam)
+            )
           } else {
-            registerDoParallel(self$design$sim_prm$clusternumber) # used for forking. Only Linux/OSX compatible
+            # used for forking. Only Linux/OSX compatible
+            registerDoParallel(self$design$sim_prm$clusternumber)
+
+            xps_dt <- foreach(
+              mc_iter = mc_sp,
+              .inorder = FALSE,
+              .options.multicore = list(preschedule = FALSE),
+              .verbose = self$design$sim_prm$logs,
+              .packages = c(
+                "R6",
+                "digest",
+                "qs",
+                "wrswoR",
+                "gamlss.dist",
+                "dqrng",
+                "CKutils",
+                "IMPACTncdEngl",
+                "fst",
+                "data.table"
+              ),
+              .export = ls(envir = globalenv()),
+              .noexport = NULL # c("time_mark")
+            ) %dopar% {
+              private$run_sim(mc_ = mc_iter, scenario_nam)
+
           }
-
-          if (self$design$sim_prm$logs)
-            private$time_mark("Start of parallelisation")
-
-          xps_dt <- foreach(
-            mc_iter = mc_sp,
-            .inorder = FALSE,
-            .options.multicore = list(preschedule = FALSE),
-            .verbose = self$design$sim_prm$logs,
-            .packages = c(
-              "R6",
-              "gamlss.dist",
-              "dqrng",
-              "CKutils",
-              "IMPACTncdEngl",
-              "fst",
-              "data.table"
-            ),
-            .export = NULL,
-            .noexport = NULL # c("time_mark")
-          ) %dopar% {
-
-            private$run_sim(mc_ = mc_iter, scenario_nam)
-
-          }
-
-          if (exists("cl")) stopCluster(cl)
-
-          if (self$design$sim_prm$logs) private$time_mark("End of parallelisation")
-
-
-        } else {
+         }
+         if (self$design$sim_prm$logs) private$time_mark("End of parallelisation")
+        } else { # if multicore = FALSE
           if (self$design$sim_prm$logs)
             private$time_mark("Start of single-core run")
 
@@ -340,7 +419,7 @@ Simulation <-
         }
 
         if (self$design$sim_prm$avoid_appending_csv) {
-          # collect the lifecourse fragmented file
+          message("Collecting the fragmented lifecourse files. This may take some time. Please be patient...")
           private$collect_files("lifecourse", "_lifecourse.csv$", to_mc_aggr = TRUE)
 
           if (self$design$sim_prm$export_xps) {
@@ -350,23 +429,25 @@ Simulation <-
 
           if (self$design$sim_prm$logs)
             private$time_mark("End of collecting mc lifecourse files")
-        }
+        }   
 
         while (sink.number() > 0L) sink()
 
         invisible(self)
-      },
+        },
 
       # export_summaries ----
 
       #' @description Process the lifecourse files
       #' @param multicore If TRUE run the simulation in parallel.
       #' @param type The type of summary to extract.
+      #' @param single_year_of_age Export summaries by single year of age. Useful for the calibration proccess. 
       #' @return The invisible self for chaining.
       export_summaries = function(multicore = TRUE,
                                   type = c("le", "hle", "dis_char", "prvl",
                                            "incd", "dis_mrtl", "mrtl",
-                                           "allcause_mrtl_by_dis", "cms")) {
+                                           "allcause_mrtl_by_dis", "cms"),
+                                  single_year_of_age = FALSE) {
 
         fl <- list.files(private$output_dir("lifecourse"), full.names = TRUE)
 
@@ -383,123 +464,155 @@ Simulation <-
                         if ("allcause_mrtl_by_dis" %in% type) file_pth <- private$output_dir("summaries/all_cause_mrtl_by_dis_scaled_up.csv.gz")
 
 
-                        if (file.exists(file_pth)) {
-                          tt <- unique(fread(file_pth, select = "mc")$mc)
-                          for (i in seq_along(tt)) {
-                            fl <- grep(paste0("/", tt[[i]], "_lifecourse.csv.gz$"), fl,
-                                       value = TRUE, invert = TRUE)
-                          }
-                        }
-                        # end of logic
+        if (file.exists(file_pth)) {
+          tt <- unique(fread(file_pth, select = "mc")$mc)
+          for (i in seq_along(tt)) {
+            fl <- grep(paste0("/", tt[[i]], "_lifecourse.csv.gz$"), fl,
+                       value = TRUE, invert = TRUE)
+          }
+        }
+        # end of logic
 
-                        if (multicore) {
+        if (multicore) {
 
-                          if (Sys.info()["sysname"] == "Windows") {
-                            cl <-
-                              makeCluster(self$design$sim_prm$clusternumber_export) # used for clustering. Windows compatible
-                            registerDoParallel(cl)
-                          } else {
-                            registerDoParallel(self$design$sim_prm$clusternumber_export) # used for forking. Only Linux/OSX compatible
-                          }
+          if (self$design$sim_prm$logs)
+            private$time_mark("Start exporting summaries")
 
-                          if (self$design$sim_prm$logs)
-                            private$time_mark("Start exporting summaries")
+          if (.Platform$OS.type == "windows") {
+            cl <-
+              makeClusterPSOCK(
+                self$design$sim_prm$clusternumber_export,
+                dryrun = FALSE,
+                quiet = FALSE,
+                rscript_startup = quote(local({
+                  library(CKutils)
+                  library(IMPACTncdEngl)
+                  library(digest)
+                  library(fst)
+                  library(qs)
+                  library(wrswoR)
+                  library(gamlss.dist)
+                  library(dqrng)
+                  library(data.table)
+                })),
+                rscript_args = c("--no-init-file",
+                                 "--no-site-file",
+                                 "--no-environ"),
+                setup_strategy = "parallel"
+              ) # used for clustering. Windows compatible
 
-                          void <- foreach(
-                            i = seq_along(fl),
-                            .inorder = TRUE,
-                            .options.multicore = list(preschedule = FALSE),
-                            .verbose = self$design$sim_prm$logs,
-                            .packages = c(
-                              "R6",
-                              "CKutils",
-                              "IMPACTncdEngl",
-                              "data.table"
-                            ),
-                            .export = NULL,
-                            .noexport = NULL # c("time_mark")
-                          ) %dopar% {
+            on.exit(if (exists("cl")) stopCluster(cl))
 
-                            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("scenario", "pid", "year"))
-                            private$export_summaries_hlpr(lc, type = type)
-                            NULL
-                          }
+            parLapplyLB(
+              cl = cl,
+              X = seq_along(fl),
+              fun = function(i) {
+               lc <- fread(fl[i], stringsAsFactors = TRUE, key = c("scenario", "pid", "year"))
+               private$export_summaries_hlpr(lc, type = type, single_year_of_age = single_year_of_age)
+               NULL
+              }
+            )
 
-                          if (exists("cl")) stopCluster(cl)
+          } else {
+            registerDoParallel(self$design$sim_prm$clusternumber_export) # used for forking. Only Linux/OSX compatible
+          xps_dt <- foreach(
+            i = seq_along(fl),
+            .inorder = TRUE,
+            .options.multicore = list(preschedule = FALSE),
+            .verbose = self$design$sim_prm$logs,
+            .packages = c(
+              "R6",
+              "CKutils",
+              "IMPACTncdEngl",
+              "data.table"
+            ),
+            .export = NULL,
+            .noexport = NULL # c("time_mark")
+          ) %dopar% {
 
-                          if (self$design$sim_prm$logs)
-                            private$time_mark("End of exporting summuries")
+            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("scenario", "pid", "year"))
+            private$export_summaries_hlpr(lc, type = type, single_year_of_age = single_year_of_age)
+            NULL
+          }          
+          }
+
+        
 
 
-                        } else {
-                          if (self$design$sim_prm$logs)
-                            private$time_mark("Start of single-core run")
 
-                          lapply(seq_along(fl), function(i) {
-                            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("scenario", "pid", "year"))
-                            private$export_summaries_hlpr(lc, type = type)
-                            NULL
-                          })
+          if (self$design$sim_prm$logs)
+            private$time_mark("End of exporting summuries")
 
-                          if (self$design$sim_prm$logs)
-                            private$time_mark("End of single-core run")
 
-                        }
+        } else {
+          if (self$design$sim_prm$logs)
+            private$time_mark("Start of single-core run")
 
-                        if (self$design$sim_prm$avoid_appending_csv) {
-                          # collect the summary fragmentrd file
-                          if ("le" %in% type) {
-                            private$collect_files("summaries", "_le_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_le_esp.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_le60_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_le60_esp.csv$", to_mc_aggr = FALSE)
-                          }
-                          if ("hle" %in% type) {
-                            private$collect_files("summaries", "_hle_1st_cond_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_hle_1st_cond_esp.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_hle_cmsmm1.5_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_hle_cmsmm1.5_esp.csv$", to_mc_aggr = FALSE)
-                          }
-                          if ("cms" %in% type) {
-                            private$collect_files("summaries", "_cms_score_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_cms_score_esp.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_cms_score_by_age_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_cms_score_by_age_esp.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_cms_count_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_cms_count_esp.csv$", to_mc_aggr = FALSE)
-                          }
-                          if ("mrtl" %in% type) {
-                            private$collect_files("summaries", "_mrtl_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_mrtl_esp.csv$", to_mc_aggr = FALSE)
-                          }
-                          if ("dis_mrtl" %in% type) {
-                            private$collect_files("summaries", "_dis_mrtl_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_dis_mrtl_esp.csv$", to_mc_aggr = FALSE)
-                          }
-                          if ("dis_char" %in% type) {
-                            private$collect_files("summaries", "_dis_characteristics_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_dis_characteristics_esp.csv$", to_mc_aggr = FALSE)
-                          }
-                          if ("incd" %in% type) {
-                            private$collect_files("summaries", "_incd_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_incd_esp.csv$", to_mc_aggr = FALSE)
-                          }
-                          if ("prvl" %in% type) {
-                            private$collect_files("summaries", "_prvl_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_prvl_esp.csv$", to_mc_aggr = FALSE)
-                          }
-                          if ("allcause_mrtl_by_dis" %in% type) {
-                            private$collect_files("summaries", "_all_cause_mrtl_by_dis_scaled_up.csv$", to_mc_aggr = FALSE)
-                            private$collect_files("summaries", "_all_cause_mrtl_by_dis_esp.csv$", to_mc_aggr = FALSE)
-                          }
+          lapply(seq_along(fl), function(i) {
+            lc <-   fread(fl[i], stringsAsFactors = TRUE, key = c("pid", "year"))
+            private$export_summaries_hlpr(lc, type = type, single_year_of_age = single_year_of_age)
+            NULL
+          })
 
-                          if (self$design$sim_prm$logs)
-                            private$time_mark("End of collecting mc_aggr summary files")
-                        }
+          if (self$design$sim_prm$logs)
+            private$time_mark("End of single-core run")
 
-                        while (sink.number() > 0L) sink()
+        }
 
-                        invisible(self)
+        if (self$design$sim_prm$avoid_appending_csv) {
+          # collect the summary fragmentrd file
+          if ("le" %in% type) {
+            private$collect_files("summaries", "_le_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_le_esp.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_le60_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_le60_esp.csv$", to_mc_aggr = FALSE)
+          }
+          if ("hle" %in% type) {
+            private$collect_files("summaries", "_hle_1st_cond_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_hle_1st_cond_esp.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_hle_cmsmm1.5_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_hle_cmsmm1.5_esp.csv$", to_mc_aggr = FALSE)
+          }
+          if ("cms" %in% type) {
+            private$collect_files("summaries", "_cms_score_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_cms_score_esp.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_cms_score_by_age_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_cms_score_by_age_esp.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_cms_count_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_cms_count_esp.csv$", to_mc_aggr = FALSE)            
+          }  
+          if ("mrtl" %in% type) {
+            private$collect_files("summaries", "_mrtl_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_mrtl_esp.csv$", to_mc_aggr = FALSE)
+          }
+          if ("dis_mrtl" %in% type) {
+            private$collect_files("summaries", "_dis_mrtl_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_dis_mrtl_esp.csv$", to_mc_aggr = FALSE)
+          }
+          if ("dis_char" %in% type) {
+            private$collect_files("summaries", "_dis_characteristics_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_dis_characteristics_esp.csv$", to_mc_aggr = FALSE)
+          }
+          if ("incd" %in% type) {
+            private$collect_files("summaries", "_incd_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_incd_esp.csv$", to_mc_aggr = FALSE)
+          }
+          if ("prvl" %in% type) {
+            private$collect_files("summaries", "_prvl_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_prvl_esp.csv$", to_mc_aggr = FALSE)
+          }
+          if ("allcause_mrtl_by_dis" %in% type) {
+            private$collect_files("summaries", "_all_cause_mrtl_by_dis_scaled_up.csv$", to_mc_aggr = FALSE)
+            private$collect_files("summaries", "_all_cause_mrtl_by_dis_esp.csv$", to_mc_aggr = FALSE)
+          }
+
+           if (self$design$sim_prm$logs)
+            private$time_mark("End of collecting mc_aggr summary files")
+        }
+
+        while (sink.number() > 0L) sink()
+
+        invisible(self)
       },
 
       # get_causal_structure ----
@@ -599,13 +712,13 @@ Simulation <-
 
           # Check for safety that folders /lifecourse, /tables, /plots, and /summaries exist to avoid accidental deletes of other folders
           if (dir.exists(file.path(self$design$sim_prm$output_dir, "lifecourse")) &&
-              dir.exists(file.path(self$design$sim_prm$output_dir, "summaries")) &&
-              dir.exists(file.path(self$design$sim_prm$output_dir, "tables")) &&
-              dir.exists(file.path(self$design$sim_prm$output_dir, "plots"))) {
-
+            dir.exists(file.path(self$design$sim_prm$output_dir, "summaries")) &&
+            dir.exists(file.path(self$design$sim_prm$output_dir, "tables")) &&
+            dir.exists(file.path(self$design$sim_prm$output_dir, "plots"))) {
+          
             fl <- list.files(self$design$sim_prm$output_dir,
-                             full.names = TRUE,
-                             recursive = TRUE
+              full.names = TRUE,
+              recursive = TRUE
             )
             file.remove(fl)
 
@@ -638,6 +751,36 @@ Simulation <-
         invisible(self)
       },
 
+      # del_parfs ----
+      #' @description Delete all files in the ./simulation/parf folder.
+      #' @return The invisible self for chaining.
+      del_parfs = function() {
+
+        fl <- list.files("./simulation/parf", full.names = TRUE)
+
+        file.remove(fl)
+
+        if (length(fl) > 0 && self$design$sim_prm$logs)
+          message("Parf files deleted.")
+
+        invisible(self)
+      },
+
+      # del_synthpops ----
+      #' @description Delete all files in the synthpop folder.
+      #' @return The invisible self for chaining.
+      del_synthpops = function() {
+
+        fl <- list.files(self$design$sim_prm$synthpop_dir, full.names = TRUE)
+
+        file.remove(fl)
+
+        if (length(fl) > 0 && self$design$sim_prm$logs)
+          message("Sythpop files deleted.")
+
+        invisible(self)
+      },
+
       # get_esp ----
 
       #' @description Get the European Standardised Population 2013 by sex and
@@ -665,7 +808,7 @@ Simulation <-
           message("This function is only available in Linux.")
         invisible(self)
       },
-
+      
       # update_output_path ----
 
       #' @description Updates the output path.
@@ -690,9 +833,9 @@ Simulation <-
 
 
       # print ----
-      # ? ARU check
+
       #' @description Prints the simulation object metadata.
-      #' @return The invisible `SynthPop` object.
+      #' @return The invisible `Simulation` object.
       print = function() {
         print(c(
           "TODO..."
@@ -703,32 +846,20 @@ Simulation <-
 
 
 
-    # private -----------------------------------------------------------------
+# private -----------------------------------------------------------------
     private = list(
       synthpop_dir = NA,
       causality_structure = NA,
       death_codes = NA,
       # diseasenam_hlp = NA,
       esp_weights = data.table(),
+      #Models a primary prevention policy scenario
+      primary_prevention_scn = NULL,
+      #Models a secondary prevention policy scenario
+      secondary_prevention_scn = NULL,
 
       # run_sim ----
-      # ? ARU check
       # Runs the simulation in one core. mc is scalar
-      # @param mc_ Monte Carlo iteration number.
-      # @param scenario_nam Name of the scenario. Defaults to "sc0" if not provided.
-      #
-      # @details
-      # This function performs the following steps:
-      # - Initializes a synthetic population.
-      # - Applies mortality calibration to the population.
-      # - Applies primary and secondary prevention scenarios.
-      # - Initializes the scenario and runs the simulation using simcpp.
-      # - Updates population weights based on the scenario.
-      # - Prunes the population based on specified criteria.
-      # - Applies weights.
-      # - Exports exposures if export is enabled.
-      # - Writes the lifecourse data to a CSV or compressed CSV file.
-      #
       run_sim = function(mc_, scenario_nam = "") {
         if (!nzchar(scenario_nam)) scenario_nam <- "sc0"
 
@@ -756,11 +887,11 @@ Simulation <-
         lapply(self$diseases, function(x) {
           if (self$design$sim_prm$logs) print(x$name)
           x$
-            gen_parf(sp, self$design, self$diseases)$
-            set_init_prvl(sp = sp, design_ = self$design)
+           gen_parf(sp, self$design, self$diseases)$
+           set_init_prvl(sp = sp, design_ = self$design)
         })
-
-        scenario_fn_primary_prevention(sp) # apply primary pevention scenario
+      
+        private$primary_prevention_scn(sp) # apply primary pevention scenario
 
         lapply(self$diseases, function(x) {
           x$set_rr(sp, self$design)$
@@ -769,7 +900,7 @@ Simulation <-
             set_mrtl_prb(sp, self$design)
         })
 
-        scenario_fn_secondary_prevention(sp) # apply secondary pevention scenario
+        private$secondary_prevention_scn(sp) # apply secondary pevention scenario
 
         # ds <- copy(self$diseases) # Necessary for parallelisation
         # lapply(self$diseases, function(x) {
@@ -794,8 +925,8 @@ Simulation <-
         # Prune pop (NOTE that assignment in the function env makes this
         # data.table local)
         sp$pop <- sp$pop[all_cause_mrtl >= 0L &
-                           year >= self$design$sim_prm$init_year &
-                           between(age, self$design$sim_prm$ageL, self$design$sim_prm$ageH), ]
+                 year >= self$design$sim_prm$init_year &
+                 between(age, self$design$sim_prm$ageL, self$design$sim_prm$ageH), ]
         setkey(sp$pop, pid, year)
         sp$pop[, pid_mrk := mk_new_simulant_markers(pid)]
 
@@ -821,7 +952,7 @@ Simulation <-
         # incidence. It is still prevalence
         sp$pop[, `:=` (
           cms1st_cont_prvl   = carry_forward_incr(as.integer(cms_count == 1),
-                                                  pid_mrk, TRUE, 1L, byref = TRUE),
+                                             pid_mrk, TRUE, 1L, byref = TRUE),
           cmsmm0_prvl   = carry_forward_incr(as.integer(cms_score > 0),
                                              pid_mrk, TRUE, 1L, byref = TRUE),
           cmsmm1_prvl   = carry_forward_incr(as.integer(cms_score > 1),
@@ -832,23 +963,23 @@ Simulation <-
                                              pid_mrk, TRUE, 1L, byref = TRUE)
         )]
 
-        sp$pop[, scenario := scenario_nam]
+          sp$pop[, scenario := scenario_nam]
 
-        setkeyv(sp$pop, c("pid", "year"))
+          setkeyv(sp$pop, c("pid", "year"))
 
         # Write lifecourse
-        if (self$design$sim_prm$logs) message("Exporting lifecourse...")
+          if (self$design$sim_prm$logs) message("Exporting lifecourse...")
 
-        if (self$design$sim_prm$avoid_appending_csv) {
-          fnam <- private$output_dir(paste0(
-            "lifecourse/", sp$mc_aggr, "_", sp$mc, "_lifecourse.csv"
-          ))
-        } else {
-          fnam <- private$output_dir(paste0(
-            "lifecourse/", sp$mc_aggr, "_lifecourse.csv.gz"
-          ))
-        }
-        fwrite_safe(sp$pop, fnam)
+          if (self$design$sim_prm$avoid_appending_csv) {
+            fnam <- private$output_dir(paste0(
+              "lifecourse/", sp$mc_aggr, "_", sp$mc, "_lifecourse.csv"
+            ))
+          } else {
+            fnam <- private$output_dir(paste0(
+              "lifecourse/", sp$mc_aggr, "_lifecourse.csv.gz"
+            ))
+          }
+          fwrite_safe(sp$pop, fnam)
 
 
         if (self$design$sim_prm$logs) {
@@ -875,7 +1006,7 @@ Simulation <-
 
         # TODO the next line counteracts the commented line above. This is
         # intentional until we finalise the scenario mechanism
-        scenario_suffix_for_pop <- ""
+         scenario_suffix_for_pop <- ""
 
         list(
           "exposures"          = self$design$sim_prm$exposures,
@@ -956,9 +1087,9 @@ Simulation <-
           set(out_xps20, which(is.na(out_xps20[[j]])), j, "All")
         setkey(out_xps20, year)
         if (self$design$sim_prm$avoid_appending_csv) {
-          fwrite_safe(out_xps20, private$output_dir(paste0("xps/", sp$mc, "_xps20.csv")))
+          fwrite_safe(out_xps20, private$output_dir(paste0("xps/", sp$mc, "_xps20.csv"))) 
         } else {
-          fwrite_safe(out_xps20, private$output_dir("xps/xps20.csv.gz"))
+          fwrite_safe(out_xps20, private$output_dir("xps/xps20.csv.gz")) 
         }
 
         # TODO link strata in the outputs to the design.yaml
@@ -1049,18 +1180,22 @@ Simulation <-
       #
       export_summaries_hlpr = function(lc, type = c("le", "hle", "dis_char",
                                                     "prvl", "incd", "mrtl",  "dis_mrtl",
-                                                    "allcause_mrtl_by_dis", "cms")) {
+                                                    "allcause_mrtl_by_dis", "cms"),
+                                      single_year_of_age = FALSE) {
         if (self$design$sim_prm$logs) message("Exporting summaries...")
 
         strata <- c("mc", self$design$sim_prm$strata_for_output)
         strata_noagegrp <- c("mc",
-                             setdiff(self$design$sim_prm$strata_for_output, c("agegrp")))
+                    setdiff(self$design$sim_prm$strata_for_output, c("agegrp")))
         strata_age <- c(strata_noagegrp, "age")
+
+        if (single_year_of_age) strata <- strata_age # used for calibrate_incd_ftlt
 
         setkeyv(lc, c("scenario", "pid", "year")) # necessary for age_onset
 
         mcaggr <- ifelse(self$design$sim_prm$avoid_appending_csv, paste0(lc$mc[1], "_"), "")
         ext <- ifelse(self$design$sim_prm$avoid_appending_csv, ".csv", ".csv.gz")
+
 
         # Life expectancy ----
         # NOTE for scaled_up LE weights need to apply from the very beginning.
@@ -1173,16 +1308,16 @@ Simulation <-
             lc[sr, `:=` (age_onset = age, wt1st = wt)] # age at 1st ever event
 
             ans <- lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x),
-                                     "cases" = sum(wt),
-                                     "mean_age_incd" = weighted.mean(age[get(x) == 1L],
-                                                                     wt[get(x) == 1L]),
-                                     "mean_age_1st_onset" = weighted.mean(age_onset, wt1st, na.rm = TRUE),
+                              "cases" = sum(wt),
+                              "mean_age_incd" = weighted.mean(age[get(x) == 1L],
+                                                              wt[get(x) == 1L]),
+                              "mean_age_1st_onset" = weighted.mean(age_onset, wt1st, na.rm = TRUE),
 
-                                     "mean_age_prvl" = weighted.mean(age, wt),
-                                     "mean_duration" = weighted.mean(get(x), wt), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
-                                     "mean_cms_score" = weighted.mean(cms_score, wt),
-                                     "mean_cms_count" = weighted.mean(cms_count, wt)),
-                      keyby = strata_noagegrp]
+                              "mean_age_prvl" = weighted.mean(age, wt),
+                              "mean_duration" = weighted.mean(get(x), wt), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
+                              "mean_cms_score" = weighted.mean(cms_score, wt),
+                              "mean_cms_count" = weighted.mean(cms_count, wt)),
+               keyby = strata_noagegrp]
             lc[, c("age_onset", "wt1st") := NULL]
             ans
           }))
@@ -1204,15 +1339,15 @@ Simulation <-
             lc[sr, `:=` (age_onset = age, wt1st = wt_esp)] # age at 1st ever event
 
             ans <- lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x),
-                                     "cases" = sum(wt_esp),
-                                     "mean_age_incd" = weighted.mean(age[get(x) == 1L],
-                                                                     wt_esp[get(x) == 1L]),
-                                     "mean_age_1st_onset" = weighted.mean(age_onset, wt1st, na.rm = TRUE),
-                                     "mean_age_prvl" = weighted.mean(age, wt_esp),
-                                     "mean_duration" = weighted.mean(get(x), wt_esp), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
-                                     "mean_cms_score" = weighted.mean(cms_score, wt_esp),
-                                     "mean_cms_count" = weighted.mean(cms_count, wt_esp)),
-                      keyby = strata_noagegrp]
+                              "cases" = sum(wt_esp),
+                              "mean_age_incd" = weighted.mean(age[get(x) == 1L],
+                                                              wt_esp[get(x) == 1L]),
+                              "mean_age_1st_onset" = weighted.mean(age_onset, wt1st, na.rm = TRUE),
+                              "mean_age_prvl" = weighted.mean(age, wt_esp),
+                              "mean_duration" = weighted.mean(get(x), wt_esp), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
+                              "mean_cms_score" = weighted.mean(cms_score, wt_esp),
+                              "mean_cms_count" = weighted.mean(cms_count, wt_esp)),
+               keyby = strata_noagegrp]
             lc[, c("age_onset", "wt1st") := NULL]
             ans
           }))
@@ -1480,19 +1615,19 @@ Simulation <-
       collect_files = function(folder_name, pattern = NULL, to_mc_aggr = FALSE) {
         if (self$design$sim_prm$logs) message("Collecting mc files...")
         if (to_mc_aggr) {
-          string1 <- "_[0-9]+_"
-          string2 <- "_"
+         string1 <- "_[0-9]+_"
+         string2 <- "_"
         } else {
-          string1 <- "[0-9]+_"
-          string2 <- ""
+         string1 <- "[0-9]+_"
+         string2 <- ""
         }
         sapply(
-          list.files(path = private$output_dir(folder_name), pattern = pattern, full.names = TRUE),
-          function(fnam) {
-            fwrite_safe(fread(fnam), file = sub(string1, string2, fnam))
-            file.remove(fnam)
-          }
-        )
+             list.files(path = private$output_dir(folder_name), pattern = pattern, full.names = TRUE),
+             function(fnam) {
+               fwrite_safe(fread(fnam), file = sub(string1, string2, fnam))
+               file.remove(fnam)
+             }
+           )
         # gzip the .csv files to .csv.gz (faster than using gzip() and same speed/compression as with fst 80. But fst reads faster)
         if (self$design$sim_prm$logs) message("Compressing aggregated files...")
         sapply(

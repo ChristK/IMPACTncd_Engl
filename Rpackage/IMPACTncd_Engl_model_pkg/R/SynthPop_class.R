@@ -652,7 +652,8 @@ SynthPop <-
         # get unique lsoas
         lsoas <- private$get_unique_LSOAs(private$design)
 
-        if (Sys.info()["sysname"] == "Windows") {
+        if (.Platform$OS.type == "windows") {
+          # TODO update to make compatible with windows
           cl <-
             makeCluster(private$design$sim_prm$clusternumber) # used for clustering. Windows compatible
           registerDoParallel(cl)
@@ -819,6 +820,7 @@ SynthPop <-
           value
         }
       },
+
 
       # get all unique LSOAs included in locality vector
       # get_unique_LSOAs ----
