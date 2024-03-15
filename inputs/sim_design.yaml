@@ -32,7 +32,7 @@ synthpop_dir: D:/GitHub/IMPACTncd_Engl/synthpop/hf_real # ARU changed
 simulation_files_overwrite: no # yes for overwrite
 sTag: 'v0.0.5'
 bOverwriteFilesOnDeploy: no # yes for overwrite
-RootDirPath: D:/GitHub/IMPACTncd_Engl # ARU changed
+RootDirPath: D:/GitHub/IMPACTncd_Engl
 sToken: ~ # NULL
 uncertainty: # Note that uncertainties are independent
   incidence:
