@@ -16,14 +16,15 @@ vignette: >
 
 ### Steps to install R on Windows
 
-1. We need to first install R navigate to [CRAN](https://cran.rstudio.com/)
-2. Installing R first click **Download R for Windows** 
+1. To install R navigate to [CRAN](https://cran.rstudio.com/)
+
+2. Click **Download R for Windows** 
 
 ```{r, echo = FALSE, out.width = "100%", fig.cap = ""}
 knitr::include_graphics("img/R_1.jpeg")
 ```
 
-3. Once you click it click on **install R for the first time**
+3. Once you click it, click on **install R for the first time**
 
 ```{r, echo = FALSE, out.width = "100%", fig.cap = ""}
 knitr::include_graphics("img/R_2.jpeg")
@@ -35,7 +36,7 @@ knitr::include_graphics("img/R_2.jpeg")
 knitr::include_graphics("img/R_3.jpeg")
 ```
 
-5. Double click on the downloaded .exe file which is the setup file, Click **Yes** (accept defaults)
+5. Double click on the downloaded *.exe* file which is the setup file, Click **Yes** (accept defaults)
 
 ```{r, echo = FALSE, out.width = "50%", fig.cap = ""}
 knitr::include_graphics("img/R_4.jpeg")
@@ -48,7 +49,7 @@ knitr::include_graphics("img/R_5.jpeg")
 ```
 
 
-7. Select all default features, Click **Next** 
+7. Select default features, Click **Next** 
 
 ```{r, echo = FALSE, out.width = "50%", fig.cap = ""}
 knitr::include_graphics("img/R_6.jpeg")
@@ -90,7 +91,7 @@ knitr::include_graphics("img/R_11.jpeg")
 knitr::include_graphics("img/R_12.jpeg")
 ```
 
-14. Once completed this following window will show up, Click **Next** Now we need to add paths of R in the system variables
+14. Once completed this following window will show up, Click **Next**. Now we need to add paths of R in the system variables
 
 15. Type Environment variables in search bar of your Windows system, click on **Edit Environment Variables**
 
@@ -98,13 +99,13 @@ knitr::include_graphics("img/R_12.jpeg")
 knitr::include_graphics("img/Git_16.jpeg")
 ```
 
-16. Click on New  and then add the variable name PATH and the value as *C:\Program Files\R-4.3.2\bin* which is the path where Rscript.exe is stored e.g : *R4.3.2->bin->Rscript.exe*, click **Apply**
+16. Click on New  and then add the variable name **PATH** and the value as *C:\\Program Files\\R-4.3.2\\bin* which is the path where bin folder or the Rscript.exe is stored e.g : *R4.3.2->bin->Rscript.exe*, click **Apply**
 
 ```{r, echo = FALSE, out.width = "50%", fig.cap = ""}
 knitr::include_graphics("img/Git_17.jpeg")
 ```
 
-19. To check Rscript works on command prompt or console, go to the search bar in Windows, type **cmd** and then click on command prompt / terminal. Once it opens, type `Rscript` in terminal and you should be able to see this
+19. To check Rscript works on command prompt or console or terminal, go to the search bar in Windows system, type **cmd** and then click on command prompt / console / terminal. Once it opens, type `Rscript` in terminal and you should be able to see this
 
 ```{r, echo = FALSE, out.width = "50%", fig.cap = ""}
 knitr::include_graphics("img/Git_19.jpeg")

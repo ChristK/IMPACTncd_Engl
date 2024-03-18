@@ -112,13 +112,13 @@ knitr::include_graphics("img/Git_15.jpeg")
 knitr::include_graphics("img/Git_16.jpeg")
 ```
 
-18. Click on New  and then add the variable name PATH and the value as *C:\Program Files\Git\bin* where bin is installed in the Git folder, click **Apply**
+18. Click on New  and then add the variable name as **PATH** and the value as *C:\\Program Files\\Git\\bin* where bin folder is installed in the Git folder, click **Apply**
 
 ```{r, echo = FALSE, out.width = "100%", fig.cap = ""}
 knitr::include_graphics("img/Git_17.jpeg")
 ```
 
-19. To check Git work on command prompt or console, go to the search bar in Windows, type **cmd** and then click on command prompt / terminal. Once it opens, type `git` and it should show the following result
+19. To check Git works on command prompt or console, go to the search bar in Windows, type **cmd** and then click on command prompt / terminal. Once it opens, type `git` and it should show the following result
 
 ```{r, echo = FALSE, out.width = "50%", fig.cap = ""}
 knitr::include_graphics("img/Git_18.jpeg")
