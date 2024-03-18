@@ -5,7 +5,7 @@ logs: no
 export_xps: yes
 keep_lifecourse: yes
 export_PARF: no
-'n': 200 # number of individuals in simulation # ARU changed
+'n': 10000 # number of individuals in simulation # ARU changed
 n_synthpop_aggregation: 2 # number of synthpops to aggregate together (avoid values above 20) # ARU changed
 # n_primers: 10 # better be some multiple of n_synthpop_aggregation
 init_year_long: 2013 # 2008 to 2020 but be careful with max lags
