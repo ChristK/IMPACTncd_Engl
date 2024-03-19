@@ -24,7 +24,7 @@ In this vignette, we will run three example scenarios to demonstrate the sorts o
 - **active_days_curr_xps** : Number of days of physical activity per week      
 - **fruit_curr_xps** : Fruit consumption in grams per day (80g = 1 portion) 
 - **veg_curr_xps** : Vegetable consumption in grams per day (80g = 1 portion)      
-- **smok_status_curr_xps** :  
+- **smok_status_curr_xps** : this is current smoking status; 1 = never smoker, 2 = occasional smoker, 3 = ex-smoker, 4 = current smoker
 - **smok_cig_curr_xps** : Cigarettes per day     
 - **ets_curr_xps** : exposure to second-hand tobacco smoke. At individual level, 0 = not exposed, 1 = exposed
 - **alcohol_curr_xps** : alcohol consumption in g/day     
@@ -59,7 +59,7 @@ In this vignette, we will run three example scenarios to demonstrate the sorts o
 - **pain** : chronic pain
 
 
-For our alternative scenarios, we will set the first year the change starts to 2013. We run the baseline scenario before the alternative scenarios so that we can compare results. The results from each additional scenario get appended to the baseline scenario.
+For our alternative scenarios, we will set the first year the change starts to 2023. We run the baseline scenario before the alternative scenarios so that we can compare results. The results from each additional scenario get appended to the baseline scenario.
 
 1. Set up the simulation parameters following steps 1-4 of the [How to run a test of IMPACTncd_Engl]() vignette. 
 
@@ -80,7 +80,8 @@ In the above, we use the chain syntax using $, which is equivalent to:
 ```{r, run-simulation-break, eval = FALSE}
 IMPACTncd$del_logs()
 IMPACTncd$del_outputs()
-IMPACTncd$run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")  IMPACTncd$export_summaries(multicore = FALSE)
+IMPACTncd$run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")
+IMPACTncd$export_summaries(multicore = FALSE)
 ```
 
 Note: In the arguments for the `run()`, we have selected the number of Monte Carlo iterations to be 2  (mc = 1:2). This is OK for a test run, but in reality, you would like to run at least 100 iterations (i.e. mc = 1:100) in production. If, at a later point, you would like to run 100 more iterations additionally, then you could do `IMPACTncd$run(mc = 101:200, multicore = FALSE, scenario_nam = "sc0")` without deleting the existing output (i.e. do not run `IMPACTncd$del_outputs()`). 
