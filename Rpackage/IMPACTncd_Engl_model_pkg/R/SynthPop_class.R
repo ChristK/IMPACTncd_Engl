@@ -1597,7 +1597,11 @@ SynthPop <-
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             lookup_dt(dt, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
-            dt[, ets := as.integer(rank_ets < mu)]
+            dt[, ets := as.integer(rank_ets >= (1 - mu))] 
+            # NOTE for line above. 1 - mu to be equivalent to qbinom(rank_ets,
+            # 1, mu). Otherwise rank_ets < mu is equivalent to qbinom(rank_ets,
+            # 1, mu, lower.tail = FALSE)). The two have the same prevalence, but
+            # correlations are captured correctly only with the 1-mu variant.
             dt[, rank_ets := NULL]
             dt[, (col_nam) := NULL]
             # View(dt[, prop_if(ets == 1)/prop_if(smok_status == "4"), keyby = .(year, sha)])
@@ -1653,7 +1657,7 @@ SynthPop <-
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             absorb_dt(dt, tbl) # not lookup_tbl because not all sbp from 0
-            dt[, bpmed := as.integer(rank_bpmed < mu)]
+            dt[, bpmed := as.integer(rank_bpmed > (1 - mu))]
             dt[, rank_bpmed := NULL]
             dt[, (col_nam) := NULL]
             dt[, `:=` (sbp = sbp_acc,
@@ -1700,7 +1704,7 @@ SynthPop <-
             col_nam <-
               setdiff(names(tbl), intersect(names(dt), names(tbl)))
             absorb_dt(dt, tbl) # not lookup_dt. Not tchol from 0
-            dt[, statin_px := as.integer(rank_statin_px < mu)]
+            dt[, statin_px := as.integer(rank_statin_px < (1 - mu))]
             dt[, rank_statin_px := NULL]
             dt[, (col_nam) := NULL]
             dt[, `:=` (tchol = tchol_acc,
