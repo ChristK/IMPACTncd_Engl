@@ -2,10 +2,19 @@
 
 #### Authors : Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya
 
-- The installation procedure outlined here pertains to versions RTools 4.3. 
+
+- The installation procedure outlined here pertains to versions RTools 4.3.
+
+- Rtools is only required for Windows.
+
+
+Installation steps for : 
+
+- R in [Windows](installing_R_on_windows.md) / [Linux](installing_R_on_linux.md)
+- RStudio in [Windows](installing_RStudio_on_windows.md)
+- [Git](installing_git.md) 
 
 ### Steps to install RTools on Windows
-
 
 1. Navigate to [RTools](https://cran.r-project.org/bin/windows/Rtools/), click on **RTools4.3** and once downloaded, double click on the .exe file
 

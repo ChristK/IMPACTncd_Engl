@@ -5,6 +5,11 @@
 
 - The installation procedure outlined here pertains to versions Git 2.43.0. 
 
+Installation steps for : 
+
+- R in [Windows](installing_R_on_windows.md) / [Linux](installing_R_on_linux.md)
+- RStudio in [Windows](installing_RStudio_on_windows.md)
+- Rtools in [Windows](installing_rtools_on_windows.md)
 
 ### Steps to install Git on Windows
 

@@ -7,6 +7,10 @@
 
 - The installation process for R has exhibited notable consistency throughout the years.
 
+Installation steps for : 
+
+- [Git](installing_git.md)
+
 ### Steps to install R on Linux
 
 1. We need to first install R navigate to [CRAN](https://cran.r-project.org/). Select a mirror site near you; a list of [CRAN mirrors](https://cran.r-project.org/mirrors.html) appears at the upper left of the CRAN home page.
