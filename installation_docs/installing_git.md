@@ -1,4 +1,4 @@
-# Installing Git on Windows and opening a GitHub account
+# Installing Git on Windows /Linux and opening a GitHub account
 
 #### Authors : Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya
 
@@ -123,3 +123,14 @@
   - You are going to be re-generating and restoring your PAT on a schedule dictated by its expiration period. By default, once per month.
  - When the PAT expires, return to the GitHub token and click on its Note. At this point, you can optionally adjust scopes and then click "Regenerate token". You can optionally modify its Expiration and then click "Regenerate token" (again). As before, copy the PAT to the clipboard, call `gitcreds::gitcreds_set()`, and paste!
  - In Linux this PAT is stored temporarily and hence when installing assets we recommend setting your Linux PAT using `gitcreds::gitcreds_set()`
+
+
+### Steps to install Git on Linux (Ubuntu) 
+
+1. Run these commands in the terminal 
+
+```{r}
+$ sudo apt-get update 
+$ sudo apt-get install git-all
+$ git version
+```
