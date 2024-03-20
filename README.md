@@ -55,11 +55,11 @@ The installation of other tools required to run the model is shown here.
 
 2. Click Fork and then accept the defaults, add in a description if you like, and click Create Fork
 
-![](img/Github_3.jpeg)
+![](installation_dosc/img/Github_3.jpeg)
 
 3. Now go to your own repository which you forked and then select Code, this will show a link which can be used to install / download the package in your system for local use. Copy this link
 
-![](img/Github_4.jpeg)
+![](installation_dosc/img/Github_4.jpeg)
 
 
 4. In terminal, Type git clone https://github.com/ChristK/IMPACTncd_Engl.git (the link you copied) 
