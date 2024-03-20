@@ -8,7 +8,7 @@
 
 - The installation process for RStudio has exhibited notable consistency throughout the years.
 
-- It is important to note that RStudio should be installed only after installing R which is described [here](path). 
+- It is important to note that RStudio should be installed only after installing R which is described for [Windows](installing_R_on_windows.md) and [Linux](installing_R_on_linux.md). 
 
 ### Steps to install RStudio on Windows
 
