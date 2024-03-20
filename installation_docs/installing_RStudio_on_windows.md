@@ -2,13 +2,21 @@
 
 #### Authors : Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya
 
+
 - Installation of RStudio is not mandatory and can be skipped.
 
 - The installation procedure outlined here pertains to version RStudio 2023.12.1.402.
 
 - The installation process for RStudio has exhibited notable consistency throughout the years.
 
-- It is important to note that RStudio should be installed only after installing R which is described for [Windows](installing_R_on_windows.md) and [Linux](installing_R_on_linux.md). 
+- It is important to note that RStudio should be installed only after installing R which is described for [Windows](installing_R_on_windows.md). 
+
+
+Installation steps for : 
+
+- R in [Windows](installing_R_on_windows.md)
+- [Git](installing_git.md) 
+- Rtools in [Windows](installing_rtools_on_windows.md)
 
 ### Steps to install RStudio on Windows
 
