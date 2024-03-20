@@ -2,11 +2,6 @@
 title: "Installing Git on Windows and opening a GitHub account"
 author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
 date: "11 March, 2024"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Installing Git on Windows and opening a GitHub account}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 - The installation procedure outlined here pertains to versions Git 2.43.0. 
