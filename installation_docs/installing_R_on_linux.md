@@ -1,13 +1,6 @@
----
-title: "Installing R on Linux"
-author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
-date: "11 March, 2024"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Installing R on Linux}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
+# Installing R on Linux
+
+#### Authors : Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya
 
 
 - The installation procedure outlined here pertains to versions R 4.3.2. 
