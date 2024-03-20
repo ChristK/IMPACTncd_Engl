@@ -51,7 +51,7 @@ The installation of other tools required to run the model is shown here.
 
 ##### To install and run IMPACTncd_Engl we need to install R on [Windows]() / [Linux](); [Git](); and [rtools]() (only for Windows) before these following steps
 
-1. IMPACTncd England is here: https://github.com/ChristK/IMPACTncd_Engl. The Fork button is on the top right-hand side of the page
+1. IMPACTncd England is here: https://github.com/ChristK/IMPACTncd_Engl. 
 
 2. Click Fork and then accept the defaults, add in a description if you like, and click Create Fork
 
@@ -62,7 +62,7 @@ The installation of other tools required to run the model is shown here.
 ![](img/Github_4.jpeg)
 
 
-4. In terminal, Type git clone https://github.com/your_username/IMPACTncd_Engl.git (the link you copied) 
+4. In terminal, Type git clone https://github.com/ChristK/IMPACTncd_Engl.git (the link you copied) 
 
 5. The next steps can be found in : [How to run a test of IMPACTncd_Engl vignette](https://docs.google.com/document/d/1rJYNErUTgamlyGw94i-RzgzMSVlzyqxW_CJsZBBN34U/edit?pli=1#heading=h.bo0sonprg2dl)
 
