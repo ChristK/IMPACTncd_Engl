@@ -7,6 +7,13 @@
 
 - The installation process for R has exhibited notable consistency throughout the years.
 
+Installation steps for : 
+
+- RStudio in [Windows](installing_RStudio_on_windows.md)
+- [Git](installing_git.md)
+- Rtools in [Windows](installing_rtools_on_windows.md)
+
+
 ### Steps to install R on Windows
 
 1. To install R navigate to [CRAN](https://cran.rstudio.com/)
