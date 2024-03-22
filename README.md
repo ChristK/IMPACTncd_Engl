@@ -55,18 +55,34 @@ The installation of other tools required to run the model is shown here.
 
 2. Select Code on the right side corner, this will show a link which can be used to download the package in local system. Copy this link
 
-![](installation_dosc/img/Github_4.jpeg)
+![](installation_docs/img/Github_4.jpeg)
 
 
 3. In terminal, type git clone https://github.com/ChristK/IMPACTncd_Engl.git (which is the copied link) 
 
-5. The next steps can be found in : [How to run a test of IMPACTncd_Engl vignette](Rpackage/IMPACTncd_Engl_model_pkg/vignettes/how_to_test_run.Rmd)
+5. The next steps can be found using the code below
 
-6. To run different policy scenarios are explained in [How to run different scenarios in IMPACTncd_Engl](Rpackage/IMPACTncd_Engl_model_pkg/vignettes/how_to_run_scenarios.Rmd)
+```{r}
+vignette("How to run a test of IMPACTncd_Engl", package = "IMPACTncdEngl")
+```
 
-7. To understand models outputs is explained [here](Rpackage/IMPACTncd_Engl_model_pkg/vignettes/understanding_model_outputs.Rmd)
+6. Use the following code to open the vignette to run different policy scenarios
 
-8. To completely delete the package IMPACTncd_Engl is explained in a section called **How to remove IMPACTncd_Engl installed package** in [How to run different scenarios in IMPACTncd_Engl](Rpackage/IMPACTncd_Engl_model_pkg/vignettes/how_to_run_scenarios.Rmd)
+```{r}
+vignette("How to run scenarios in IMPACTncd_Engl", package = "IMPACTncdEngl")
+```
+
+7. Use the following code to open the vignette to understand model outputs 
+
+```{r}
+vignette("Understanding IMPACTncd_Engl model outputs", package = "IMPACTncdEngl")
+```
+
+8. To completely delete the package IMPACTncd_Engl is explained in a section called **How to remove IMPACTncd_Engl installed package** in the vignette mentioned below
+
+```{r}
+vignette("How to run scenarios in IMPACTncd_Engl", package = "IMPACTncdEngl")
+```
 
 ## Further notes and references
 
