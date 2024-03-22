@@ -269,3 +269,26 @@ mean risk factor exposure levels
 - **smok_packyrs_curr_xps** : Smoking pack-years - this is the total amount smoked so far, taking into account the number of cigarettes smoked per day and the length of time smoked
 - **smok_never_curr_xps** : never smoked. At the individual level, 0 = has smoked, 1 = never smoked
 - **smok_active_curr_xps** : current smoker. At individual level, 0 = doesn’t smoke, 1 = currently smokes
+
+
+### Other files 
+
+- Use the following code to open the vignette to run a test of IMPACTncdEngl
+
+```{r}
+vignette("how_to_test_run", package = "IMPACTncdEngl")
+```
+
+- Use the following code to open the vignette to run different policy scenarios
+
+```{r}
+vignette("how_to_run_scenarios", package = "IMPACTncdEngl")
+```
+
+- To completely delete the package IMPACTncdEngl is explained in a section called **How to remove IMPACTncdEngl installed package** in the vignette mentioned below
+
+```{r}
+vignette("how_to_test_run", package = "IMPACTncdEngl")
+```
+
+
