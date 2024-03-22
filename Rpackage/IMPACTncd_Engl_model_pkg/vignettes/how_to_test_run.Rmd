@@ -1,15 +1,15 @@
 ---
-title: "How to run a test of IMPACTncd_Engl"
+title: "How to run a test of IMPACTncdEngl"
 author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
 date: "11 March, 2024"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{How to run a test of IMPACTncd_Engl}
+  %\VignetteIndexEntry{How to run a test of IMPACTncdEngl}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-Two main files are used to run IMPACTncd_Engl: 
+Two main files are used to run IMPACTncdEngl: 
 
 - `simulation.R `- deploys assets, sets the parameters for the baseline and alternative scenarios, including number of iterations to be run. 
 
@@ -80,9 +80,24 @@ We have also selected `multicore = FALSE` here so that parallel processing is no
 knitr::include_graphics("img/output_folder.jpg")
 ```
 
-#### How to remove IMPACTncd_Engl installed package 
+#### How to remove IMPACTncdEngl installed package 
 
 1. First and foremost we need to permanently delete the files from the project folder of `IMPACTncd_Engl` which can be identified from in `inputs/sim_design.yaml` : `RootDirPath.` 
 2. Then we need to permanently delete the output and synthpop folder as mentioned in `inputs/sim_design.yaml` : `output_dir` and `synthpop_dir`. 
 3. Finally delete the `IMPACTncd_Engl` folder / package  from `R/library` and the file inside `_cache` folder in the `R/library`.  
+
+
+### Other files 
+
+- Use the following code to open the vignette to run different policy scenarios
+
+```{r}
+vignette("how_to_run_scenarios", package = "IMPACTncdEngl")
+```
+
+- Use the following code to open the vignette to understand model outputs 
+
+```{r}
+vignette("understanding_model_outputs", package = "IMPACTncdEngl")
+```
 

@@ -1,16 +1,16 @@
 ---
-title: "How to run scenarios in IMPACTncd_Engl"
+title: "How to run scenarios in IMPACTncdEngl"
 author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
 date: "11 March, 2024"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{How to run scenarios in IMPACTncd_Engl}
+  %\VignetteIndexEntry{How to run scenarios in IMPACTncdEngl}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 
-In this vignette, we will run three example scenarios to demonstrate the sorts of alternative scenarios that can be run in IMPACTncd_Engl:
+In this vignette, we will run three example scenarios to demonstrate the sorts of alternative scenarios that can be run in IMPACTncdEngl:
 
 - Reducing BMI by 10% in all simulants compared to their BMI in the baseline scenario
 
@@ -61,7 +61,11 @@ In this vignette, we will run three example scenarios to demonstrate the sorts o
 
 For our alternative scenarios, we will set the first year the change starts to 2023. We run the baseline scenario before the alternative scenarios so that we can compare results. The results from each additional scenario get appended to the baseline scenario.
 
-1. Set up the simulation parameters following steps 1-4 of the [How to run a test of IMPACTncd_Engl]() vignette. 
+1. Set up the simulation parameters following steps 1-4 using the How to run a test of IMPACTncdEngl vignette, which can be accessed using 
+
+```{r}
+vignette("how_to_test_run", package = "IMPACTncdEngl")
+```
 
 In particular, you may need to adjust the `n` and `n_synthpop_aggregation` parameters to create the desired synthetic population size. If you use the same `synthpop_dir` location as in your test run, the new synthpop files will have a different filename and will not overwrite the existing files. However, you may want to delete the existing synthpop files in the folder to save disk space.
 
@@ -233,3 +237,24 @@ IMPACTncd$
                      "incd", "dis_mrtl", "mrtl",
                      "allcause_mrtl_by_dis", "cms"))
 ```
+
+### Other files 
+
+- Use the following code to open the vignette to run a test of IMPACTncdEngl
+
+```{r}
+vignette("how_to_test_run", package = "IMPACTncdEngl")
+```
+
+- Use the following code to open the vignette to understand model outputs 
+
+```{r}
+vignette("understanding_model_outputs", package = "IMPACTncdEngl")
+```
+
+- To completely delete the package IMPACTncdEngl is explained in a section called **How to remove IMPACTncdEngl installed package** in the vignette mentioned below
+
+```{r}
+vignette("how_to_test_run", package = "IMPACTncdEngl")
+```
+

@@ -68,9 +68,12 @@ InstallIMPACTncdPackage<- function(sIMPACTncdPackageDirPath)
   file.remove(list.files(sIMPACTncdPackageDirPath,
                          pattern=".o$|.dll&|.so&", recursive = TRUE,
                          full.names = TRUE))
-  pak::local_install(sIMPACTncdPackageDirPath,
-                     upgrade = FALSE,
-                     ask = FALSE)
+  ## Find a solution to build vignettes while installing the package using pak
+  # pak::local_install(sIMPACTncdPackageDirPath,
+  #                    upgrade = F,
+  #                    ask = F)
+  remotes::install_local(sIMPACTncdPackageDirPath,
+                         build_vignettes = T, force = T)
   # build_vignettes = T, force = T
 }
 
