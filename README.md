@@ -4,7 +4,7 @@
 
 IMPACTncd_Engl is an implementation of the IMPACTncd framework, developed by Chris
 Kypridemos with contributions from Max Birkett, Karl Emmert-Fees, Anna Head, Brendan Collins, Martin O'Flaherty,
-Peter Crowther (Melandra Ltd), Maria Guzman-Castillo, Amandine Robert, and Piotr Bandosz. 
+Peter Crowther (Melandra Ltd), Maria Guzman-Castillo, Amandine Robert, Piotr Bandosz, and Adithi R. Upadhya. 
 
 Several research grants have supported its development including grants from the Health Foundation,
 NIHR, EU Horizon2020, Liverpool City Council, MRC, NIH, and the National Cerebral and Cardiovascular Center in Japan.  
@@ -45,46 +45,62 @@ The IMPACTncd_Engl model is written primarily in, and so requires installation o
 
 IMPACTncd_Engl is installed directly from GitHub, after which a model-specific configuration is set. With multiple configurations, different policy scenarios may be tested on the same server. 
 
-The installation of other tools required to run the model is shown here.
+### Download without GitHub
+
+#### Downloading IMPACTncd_Engl
+
+##### To install and run IMPACTncd_Engl we need to install R on [Windows](installation_docs/installing_R_on_windows.md) / [Linux](installation_docs/installing_R_on_linux.md); and [rtools](installation_docs/installing_rtools_on_windows.md) (only for Windows) before these following steps
+
+1. To use IMPACTncd England navigate here: https://github.com/ChristK/IMPACTncd_Engl. 
+
+2. Select Code on the right side corner, this will show an option of **Download ZIP**
+
+![](installation_docs/img/Github_4.jpeg)
+
+### Download without GitHub
 
 #### Cloning IMPACTncd_Engl
 
 ##### To install and run IMPACTncd_Engl we need to install R on [Windows](installation_docs/installing_R_on_windows.md) / [Linux](installation_docs/installing_R_on_linux.md); [Git](installation_docs/installing_git.md); and [rtools](installation_docs/installing_rtools_on_windows.md) (only for Windows) before these following steps
 
-1. IMPACTncd England is here: https://github.com/ChristK/IMPACTncd_Engl. 
+1. To use IMPACTncd England navigate here: https://github.com/ChristK/IMPACTncd_Engl. 
 
-2. Select Code on the right side corner, this will show a link which can be used to download the package in local system. Copy this link
+2. Select Code on the right side corner, this will present a link which can be used to download the package in local system. Copy this link
 
 ![](installation_docs/img/Github_4.jpeg)
 
 
 3. In terminal, type git clone https://github.com/ChristK/IMPACTncd_Engl.git (which is the copied link) 
 
-4. All vinettes can be viewed using the code below 
+
+### Modelling with IMPACTncdEngl
+
+
+1. All vignettes can be viewed using the code below 
 
 ```{r}
 vignette(package = "IMPACTncdEngl")
 ```
 
-5. The next steps can be found in the vignette which can be accessed using the code below
+2. The next steps can be found in the vignette which can be accessed using the code below
 
 ```{r}
 vignette("how_to_test_run", package = "IMPACTncdEngl")
 ```
 
-6. Use the following code to open the vignette to run different policy scenarios
+3. Use the following code to open the vignette to run different policy scenarios
 
 ```{r}
 vignette("how_to_run_scenarios", package = "IMPACTncdEngl")
 ```
 
-7. Use the following code to open the vignette to understand model outputs 
+4. Use the following code to open the vignette to understand model outputs 
 
 ```{r}
 vignette("understanding_model_outputs", package = "IMPACTncdEngl")
 ```
 
-8. To completely delete the package IMPACTncdEngl is explained in a section called **How to remove IMPACTncdEngl installed package** in the vignette mentioned below
+5. To completely delete the package IMPACTncdEngl is explained in a section called **How to remove IMPACTncdEngl installed package** in the vignette mentioned below
 
 ```{r}
 vignette("how_to_test_run", package = "IMPACTncdEngl")
@@ -92,4 +108,4 @@ vignette("how_to_test_run", package = "IMPACTncdEngl")
 
 ## Further notes and references
 
-[^policyScenario]: the default what-if scenario is described further elsewhere.
+[^policyScenario]
