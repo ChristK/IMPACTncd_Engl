@@ -47,8 +47,6 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 
 ### Download without GitHub
 
-#### Downloading IMPACTncd_Engl
-
 ##### To install and run IMPACTncd_Engl we need to install R on [Windows](installation_docs/installing_R_on_windows.md) / [Linux](installation_docs/installing_R_on_linux.md); and [rtools](installation_docs/installing_rtools_on_windows.md) (only for Windows) before these following steps
 
 1. To use IMPACTncd England navigate here: https://github.com/ChristK/IMPACTncd_Engl. 
@@ -57,9 +55,7 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 
 ![](installation_docs/img/Github_4.jpeg)
 
-### Download without GitHub
-
-#### Cloning IMPACTncd_Engl
+### Download with GitHub
 
 ##### To install and run IMPACTncd_Engl we need to install R on [Windows](installation_docs/installing_R_on_windows.md) / [Linux](installation_docs/installing_R_on_linux.md); [Git](installation_docs/installing_git.md); and [rtools](installation_docs/installing_rtools_on_windows.md) (only for Windows) before these following steps
 
@@ -75,6 +71,8 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 
 ### Modelling with IMPACTncdEngl
 
+
+##### Note : It is highly recommended to make your own copies of `sim_design.yaml` present in `inputs` folder and `simulation.R` in the root folder to run this model, as this would help reducing conflicts in pushing changes or recommendations to Github repository here :  https://github.com/ChristK/IMPACTncd_Engl 
 
 1. All vignettes can be viewed using the code below 
 
