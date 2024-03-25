@@ -1,15 +1,15 @@
 ---
-title: "How to run a test of IMPACTncd_Engl"
+title: "How to run a test of IMPACTncdEngl"
 author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
 date: "11 March, 2024"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{How to run a test of IMPACTncd_Engl}
+  %\VignetteIndexEntry{How to run a test of IMPACTncdEngl}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-Two main files are used to run IMPACTncd_Engl: 
+Two main files are used to run IMPACTncdEngl: 
 
 - `simulation.R `- deploys assets, sets the parameters for the baseline and alternative scenarios, including number of iterations to be run. 
 
@@ -51,14 +51,7 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
 Note that you can have multiple yaml files with different configurations, and you can call them at will, depending on your needs.
 
-4. Now, we can run a baseline scenario for which we need to define  `scenario_fn_primary_prevention` and `scenario_fn_secondary_prevention` using the code below. The baseline scenario is a crucial step to run before starting to use different scenarios
-
-```{r, scenario-null, eval = FALSE}
-scenario_fn_primary_prevention   <- function(sp) NULL
-scenario_fn_secondary_prevention <- function(sp) NULL
-```
-
-5. To run a baseline scenario, run the following chunk of code, which deletes everything inside the existing output and log folders, runs a new baseline scenario from scratch and summarises the results of the simulation. 
+4. To run a baseline scenario, run the following chunk of code, which deletes everything inside the existing output and log folders, runs a new baseline scenario from scratch and summarises the results of the simulation. 
 
 ```{r, run-simulation, eval = FALSE}
 IMPACTncd$
@@ -77,19 +70,34 @@ IMPACTncd$run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")
 IMPACTncd$export_summaries(multicore = FALSE)
 ```
 
-Note in the arguments for the `run()`, we have selected the number of Monte Carlo iterations to be 2  (mc = 1:2). This is OK for a test run, but in reality, you would like to run at least 100 iterations (i.e. mc = 1:100) in production. If, at a later point, you would like to run 100 more iterations additionally, then you could do `IMPACTncd$run(mc = 101:200, multicore = FALSE, scenario_nam = "sc0")` without deleting the existing output (i.e. do not run `IMPACTncd$del_outputs()`). 
+Note: In the arguments for the `run()`, we have selected the number of Monte Carlo iterations to be 2  (mc = 1:2). This is OK for a test run, but in reality, you would like to run at least 100 iterations (i.e. mc = 1:100) in production. If, at a later point, you would like to run 100 more iterations additionally, then you could do `IMPACTncd$run(mc = 101:200, multicore = FALSE, scenario_nam = "sc0")` without deleting the existing output (i.e. do not run `IMPACTncd$del_outputs()`). 
 
-We have also selected `multicore = FALS`E here so that parallel processing is not used. This slows down the simulation, but it requires substantially less computational resources. In production, you would most likely want to set this to `TRUE.` The third argument of the `run()` function defines the name of the baseline scenario as "sc0" here. Please do not change the name of the baseline scenario. Finally, the `export_summaries()` generates summary output files from the lifecourse files that are the raw simulation output. 
+We have also selected `multicore = FALSE` here so that parallel processing is not used. This slows down the simulation, but it requires substantially less computational resources. In production, you would most likely want to set this to `TRUE.` The third argument of the `run()` function defines the name of the baseline scenario as "sc0" here. Please do not change the name of the baseline scenario. Finally, the `export_summaries()` generates summary output files from the lifecourse files that are the raw simulation output. 
 
-6. After running the code we will have the folders created as shown below in the output/hf_real folder. A separate vignette will detail the output/hf_real folder contents.
+6. After running the code we will have the folders created as shown below in the `output/hf_real` folder. A separate vignette will detail the `output/hf_real` folder contents.
 
 ```{r, echo = FALSE, out.width = "50%", fig.cap = "output/hf_real structure folder structure"}
 knitr::include_graphics("img/output_folder.jpg")
 ```
 
-#### How to remove IMPACTncd_Engl installed package 
+#### How to remove IMPACTncdEngl installed package 
 
 1. First and foremost we need to permanently delete the files from the project folder of `IMPACTncd_Engl` which can be identified from in `inputs/sim_design.yaml` : `RootDirPath.` 
 2. Then we need to permanently delete the output and synthpop folder as mentioned in `inputs/sim_design.yaml` : `output_dir` and `synthpop_dir`. 
 3. Finally delete the `IMPACTncd_Engl` folder / package  from `R/library` and the file inside `_cache` folder in the `R/library`.  
+
+
+### Other files 
+
+- Use the following code to open the vignette to run different policy scenarios
+
+```{r}
+vignette("how_to_run_scenarios", package = "IMPACTncdEngl")
+```
+
+- Use the following code to open the vignette to understand model outputs 
+
+```{r}
+vignette("understanding_model_outputs", package = "IMPACTncdEngl")
+```
 

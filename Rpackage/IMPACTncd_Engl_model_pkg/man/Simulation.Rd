@@ -27,6 +27,10 @@ To be completed...
 \itemize{
 \item \href{#method-Simulation-new}{\code{Simulation$new()}}
 \item \href{#method-Simulation-DeployGitHubAssets}{\code{Simulation$DeployGitHubAssets()}}
+\item \href{#method-Simulation-update_primary_prevention_scn}{\code{Simulation$update_primary_prevention_scn()}}
+\item \href{#method-Simulation-get_primary_prevention_scn}{\code{Simulation$get_primary_prevention_scn()}}
+\item \href{#method-Simulation-update_secondary_prevention_scn}{\code{Simulation$update_secondary_prevention_scn()}}
+\item \href{#method-Simulation-get_secondary_prevention_scn}{\code{Simulation$get_secondary_prevention_scn()}}
 \item \href{#method-Simulation-run}{\code{Simulation$run()}}
 \item \href{#method-Simulation-export_summaries}{\code{Simulation$export_summaries()}}
 \item \href{#method-Simulation-get_causal_structure}{\code{Simulation$get_causal_structure()}}
@@ -35,6 +39,8 @@ To be completed...
 \item \href{#method-Simulation-update_design}{\code{Simulation$update_design()}}
 \item \href{#method-Simulation-del_outputs}{\code{Simulation$del_outputs()}}
 \item \href{#method-Simulation-del_logs}{\code{Simulation$del_logs()}}
+\item \href{#method-Simulation-del_parfs}{\code{Simulation$del_parfs()}}
+\item \href{#method-Simulation-del_synthpops}{\code{Simulation$del_synthpops()}}
 \item \href{#method-Simulation-get_esp}{\code{Simulation$get_esp()}}
 \item \href{#method-Simulation-get_mm_weights}{\code{Simulation$get_mm_weights()}}
 \item \href{#method-Simulation-allow_universal_output_folder_access}{\code{Simulation$allow_universal_output_folder_access()}}
@@ -98,6 +104,72 @@ Invisible self for chaining
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-update_primary_prevention_scn"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-update_primary_prevention_scn}{}}}
+\subsection{Method \code{update_primary_prevention_scn()}}{
+Updates the primary prevention policy scenario
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$update_primary_prevention_scn(method)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{method}}{a function with synthpop as an argument that models the primary prevention policy.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_primary_prevention_scn"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_primary_prevention_scn}{}}}
+\subsection{Method \code{get_primary_prevention_scn()}}{
+Get the primary prevention policy scenario
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_primary_prevention_scn()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The primary prevention policy scenario.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-update_secondary_prevention_scn"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-update_secondary_prevention_scn}{}}}
+\subsection{Method \code{update_secondary_prevention_scn()}}{
+Updates the secondary prevention policy scenario
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$update_secondary_prevention_scn(method)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{method}}{a function with synthpop as an argument that models the secondary prevention policy.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_secondary_prevention_scn"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_secondary_prevention_scn}{}}}
+\subsection{Method \code{get_secondary_prevention_scn()}}{
+Get the secondary prevention policy scenario
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$get_secondary_prevention_scn()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The secondary prevention policy scenario.
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Simulation-run"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-run}{}}}
 \subsection{Method \code{run()}}{
@@ -131,7 +203,8 @@ Process the lifecourse files
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$export_summaries(
   multicore = TRUE,
   type = c("le", "hle", "dis_char", "prvl", "incd", "dis_mrtl", "mrtl",
-    "allcause_mrtl_by_dis", "cms")
+    "allcause_mrtl_by_dis", "cms"),
+  single_year_of_age = FALSE
 )}\if{html}{\out{</div>}}
 }
 
@@ -141,6 +214,8 @@ Process the lifecourse files
 \item{\code{multicore}}{If TRUE run the simulation in parallel.}
 
 \item{\code{type}}{The type of summary to extract.}
+
+\item{\code{single_year_of_age}}{Export summaries by single year of age. Useful for the calibration proccess.}
 }
 \if{html}{\out{</div>}}
 }
@@ -266,6 +341,32 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_parfs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_parfs}{}}}
+\subsection{Method \code{del_parfs()}}{
+Delete all files in the ./simulation/parf folder.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$del_parfs()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_synthpops"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_synthpops}{}}}
+\subsection{Method \code{del_synthpops()}}{
+Delete all files in the synthpop folder.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$del_synthpops()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Simulation-get_esp"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-get_esp}{}}}
 \subsection{Method \code{get_esp()}}{
@@ -356,7 +457,7 @@ Prints the simulation object metadata.
 }
 
 \subsection{Returns}{
-The invisible \code{SynthPop} object.
+The invisible \code{Simulation} object.
 }
 }
 \if{html}{\out{<hr>}}
