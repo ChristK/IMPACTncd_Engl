@@ -75,7 +75,7 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 ### Modelling with IMPACTncdEngl
 
 
-##### Note : It is highly recommended to create your own copies of `sim_design.yaml` present in `inputs` folder and `simulation.R` in the root folder to run this model and make no changes to the original `sim_design.yaml` and `simulation.R`, as this would help reducing conflicts while pulling changes from [GitHub](https://github.com/ChristK/IMPACTncd_Engl). 
+##### Important Note : It is highly recommended to create your own copies of `sim_design.yaml` present in `inputs` folder and `simulation.R` in the root folder to run this model and make no changes to the original `sim_design.yaml` and `simulation.R`, as this would help reducing conflicts while pulling changes from [GitHub](https://github.com/ChristK/IMPACTncd_Engl). 
 
 1. All vignettes can be viewed using the code below 
 
