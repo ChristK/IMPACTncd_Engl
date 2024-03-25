@@ -47,23 +47,48 @@ IMPACTncd_Engl is installed directly from GitHub, after which a model-specific c
 
 The installation of other tools required to run the model is shown here.
 
-#### Installing IMPACTncd
+#### Cloning IMPACTncd_Engl
 
-1. IMPACTncd England is here: https://github.com/ChristK/IMPACTncd_Engl. The Fork button is on the top right-hand side of the page
+##### To install and run IMPACTncd_Engl we need to install R on [Windows](installation_docs/installing_R_on_windows.md) / [Linux](installation_docs/installing_R_on_linux.md); [Git](installation_docs/installing_git.md); and [rtools](installation_docs/installing_rtools_on_windows.md) (only for Windows) before these following steps
 
-2. Click Fork and then accept the defaults, add in a description if you like, and click Create Fork
+1. IMPACTncd England is here: https://github.com/ChristK/IMPACTncd_Engl. 
 
-![](img/Github_3.jpeg)
+2. Select Code on the right side corner, this will show a link which can be used to download the package in local system. Copy this link
 
-3. Now go to your own repository which you forked and then select Code, this will show a link which can be used to install / download the package in your system for local use. Copy this link
-
-![](img/Github_4.jpeg)
+![](installation_docs/img/Github_4.jpeg)
 
 
-4. In terminal, Type git clone https://github.com/your_username/IMPACTncd_Engl.git (the link you copied) 
+3. In terminal, type git clone https://github.com/ChristK/IMPACTncd_Engl.git (which is the copied link) 
 
-5. The next steps can be found in this vignette [How to run a test of IMPACTncd_Engl](https://docs.google.com/document/d/1rJYNErUTgamlyGw94i-RzgzMSVlzyqxW_CJsZBBN34U/edit?pli=1#heading=h.bo0sonprg2dl).
+4. All vinettes can be viewed using the code below 
 
+```{r}
+vignette(package = "IMPACTncdEngl")
+```
+
+5. The next steps can be found in the vignette which can be accessed using the code below
+
+```{r}
+vignette("how_to_test_run", package = "IMPACTncdEngl")
+```
+
+6. Use the following code to open the vignette to run different policy scenarios
+
+```{r}
+vignette("how_to_run_scenarios", package = "IMPACTncdEngl")
+```
+
+7. Use the following code to open the vignette to understand model outputs 
+
+```{r}
+vignette("understanding_model_outputs", package = "IMPACTncdEngl")
+```
+
+8. To completely delete the package IMPACTncdEngl is explained in a section called **How to remove IMPACTncdEngl installed package** in the vignette mentioned below
+
+```{r}
+vignette("how_to_test_run", package = "IMPACTncdEngl")
+```
 
 ## Further notes and references
 
