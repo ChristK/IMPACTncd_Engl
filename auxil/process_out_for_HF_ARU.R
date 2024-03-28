@@ -3,14 +3,15 @@ library(CKutils)
 library(scales)
 library(yaml)
 
-
-prbl <- c(0.5, 0.025, 0.975, 0.1, 0.9) # user input
-## These parameters will come from sim_design.yaml and design class
+# Parameters from sim_design.yaml ----
 simulationParameters <- read_yaml(base::normalizePath("./inputs/sim_design.yaml", mustWork = TRUE))
-sSummariesSubDirPath <- file.path(simulationParameters$output_dir, "summaries/")
-sTablesSubDirPath <- file.path(simulationParameters$output_dir, "tables/")
 output_dir <- simulationParameters$output_dir
 
+prbl <- c(0.5, 0.025, 0.975, 0.1, 0.9) # user input
+
+# Private functions to be added in Simulation_class.R ----
+
+## table summaries
 tbl_smmrs <- function(
     what = c(
       "prvl", "prvl_change", "incd", "incd_change",
@@ -227,77 +228,14 @@ tbl_smmrs <- function(
   })
 }
 
-xps_summ <- function(outstrata, prbl, path,
-                     sTablesSubDirPath, what = "xps",
-                     type = c("ons", "esp")) {
-  strata <- lapply(strata, function(st) {
-    st[st == "dimd"] <- "qimd"
-    st
-  })
-  for(i in length(outstrata)) {
-    if("ons" %in% type){
-      xps_tab <- fread(file.path(path, "xps/xps20.csv.gz"))
-      if (all(c("agegrp20", "sex", "qimd") %in% outstrata[[i]])) {
-        d <- xps_tab[sex != "All" & agegrp20 != "All" & qimd != "All"]
-        file_name <- "/exposures by year-agegroup-sex-qimd (not standardised).csv"
-      } else {
-        if (all(c("qimd", "sex") %in% outstrata[[i]])) {
-          d <- xps_tab[sex != "All" & agegrp20 == "All" & qimd != "All"]
-          file_name <- "/exposures by year-sex-qimd (not standardised).csv"
-        } else if (all(c("qimd", "agegrp20") %in% outstrata[[i]])) {
-          d <- xps_tab[sex == "All" & agegrp20 != "All" & qimd != "All"]
-          file_name <- "/exposures by year-agegroup-qimd (not standardised).csv"
-        } else if (all(c("agegrp20", "sex") %in% outstrata[[i]])) {
-          d <- xps_tab[sex != "All" & agegrp20 != "All" & qimd == "All"]
-          file_name <- "/exposures by year-agegroup-sex (not standardised).csv"
-        } else if ("agegrp20" %in% outstrata[[i]] & !any(c("sex", "qimd") %in% outstrata[[i]])) {
-          d <- xps_tab[sex == "All" & agegrp20 != "All" & qimd == "All"]
-          file_name <- "/exposures by year-agegroup (not standardised).csv"
-        } else if ("sex" %in% outstrata[[i]] & !any(c("agegrp20", "qimd") %in% outstrata[[i]])) {
-          d <- xps_tab[sex != "All" & agegrp20 == "All" & qimd == "All"]
-          file_name <- "/exposures by year-sex (not standardised).csv"
-        } else if ("qimd" %in% outstrata[[i]] & !any(c("agegrp20", "sex") %in% outstrata[[i]])) {
-          d <- xps_tab[sex == "All" & agegrp20 == "All" & qimd != "All"]
-          file_name <- "/exposures by year-qimd (not standardised).csv"
-        } else if(!all(c("sex", "qimd", "agegrp20") %in% outstrata[[i]])) {
-          d <- xps_tab[sex == "All" & agegrp20 == "All" & qimd == "All"]
-          file_name <- "/exposures by year (not standardised).csv"
-        }
-      }
-    }
-    if("esp" %in% type) {
-      xps_tab <- fread(file.path(simulationParameters$output_dir, "xps/xps_esp.csv.gz"))
-      if (all(c("sex", "qimd") %in% outstrata[[i]])) {
-        d <- xps_tab[sex != "All" & qimd != "All"]
-        file_name <- "/exposures by year-sex-qimd (age standardised).csv"
-      } else {
-        if ("sex" %in% outstrata[[i]] & !any(c("qimd") %in% outstrata[[i]])) {
-          d <- xps_tab[sex != "All" & qimd == "All"]
-          file_name <- "/exposures by year-sex (age-qimd standardised).csv"
-        } else if ("qimd" %in% outstrata[[i]] & !any(c("sex") %in% outstrata[[i]])) {
-          d <- xps_tab[sex == "All" & qimd != "All"]
-          file_name <- "/exposures by year-qimd (age-sex standardised).csv"
-        } else if(!all(c("sex", "qimd") %in% outstrata[[i]])) {
-          d <- xps_tab[sex == "All" & qimd == "All"]
-          file_name <- "/exposures by year (age-sex-qimd standardised).csv"
-        }
-      }
-    }
-    xps_names <- grep("_curr_xps$", names(xps_tab), value = TRUE)
-    d <- d[, lapply(.SD, mean), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata[[i]])]
-    d <- melt(d, id.vars = outstrata[[i]])
-    setkey(d, "variable")
-    d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata[[i]], "mc"))]
-    setnames(d, c(setdiff(outstrata[[i]], "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
-    setkeyv(d, setdiff(outstrata[[i]], "mc"))
-    fwrite(d, paste0(sTablesSubDirPath, file_name))
-  }
-}
+# Add file.exists
 
-allcause_mrtl_by_dis <- function(outstrata, prbl, sTablesSubDirPath,
-                                  pop_denom = F, what = "allcause_mrtl_by_dis",
-                                  type = c("ons", "esp")) {
-  for(i in length(outstrata)) {
+## all cause mortality by disease summaries
+allcause_mrtl_by_dis_smmrs <- function(what = "allcause_mrtl_by_dis",
+                                       type = c("ons", "esp"), outstrata, output_dir, prbl,
+                                       sTablesSubDirPath, sSummariesSubDirPath,
+                                       pop_denom = FALSE) {
+  for(i in 1:length(outstrata)) {
     if("ons" %in% type) {
       tt <- fread(paste0(sSummariesSubDirPath, "/all_cause_mrtl_by_dis_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
                                                                                                    dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
@@ -331,8 +269,8 @@ allcause_mrtl_by_dis <- function(outstrata, prbl, sTablesSubDirPath,
         file_name <- gsub("(not standardised).csv", "popdenom (not standardised).csv", file_name)
       }
     } else if("esp" %in% type) {
-      tt <- fread(paste0(sSummariesSubDirPath,"/all_cause_mrtl_by_dis_esp.csv.gz"))[, `:=` (year = year + 2000L,
-                                                                                            dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
+      tt <- fread(paste0(sSummariesSubDirPath, "/all_cause_mrtl_by_dis_esp.csv.gz"))[, `:=` (year = year + 2000L,
+                                                                                             dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")))]
       if (all(c("mc", "year", "scenario") %in% outstrata[[i]]) &
           !(any(c("sex", "agegrp", "dimd") %in% outstrata[[i]]))) {
         file_name <- "/all-cause mrtl by disease-year (age-sex-dimd standardised).csv"
@@ -362,6 +300,9 @@ allcause_mrtl_by_dis <- function(outstrata, prbl, sTablesSubDirPath,
     d <- tt[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"),
             keyby = eval(outstrata[[i]])]
     d <- melt(d, id.vars = outstrata[[i]])
+    if(dim(d)[1] == 0) {
+      break()
+    }
     if(!pop_denom) {
       cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
     }
@@ -380,13 +321,90 @@ allcause_mrtl_by_dis <- function(outstrata, prbl, sTablesSubDirPath,
   }
 }
 
-dis_chrs <- function(outstrata, prbl, sTablesSubDirPath,
-                     what = "dis_char", type = c("ons")) {
-  for(i in length(outstrata)) {
+## XPS summaries
+xps_smmrs <- function(what = "xps", type = c("ons", "esp"), outstrata, prbl,
+                      output_dir, sTablesSubDirPath) {
+  outstrata <- lapply(outstrata, function(st) {
+    st[st == "dimd"] <- "qimd"
+    st
+  })
+  for(i in 1:length(outstrata)) {
     if("ons" %in% type) {
-      tt <- fread(paste0(sSummariesSubDirPath,"/dis_characteristics_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
-                                                                                                dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")),
-                                                                                                mean_cms_count_cms1st_cont = as.numeric(mean_cms_count_cms1st_cont))]
+      xps_tab <- fread(file.path(output_dir, "xps/xps20.csv.gz"))
+      if (all(c("agegrp20", "sex", "qimd") %in% outstrata[[i]])) {
+        d <- xps_tab[sex != "All" & agegrp20 != "All" & qimd != "All"]
+        file_name <- "/exposures by year-agegroup-sex-qimd (not standardised).csv"
+      } else {
+        if (all(c("qimd", "sex") %in% outstrata[[i]])) {
+          # empty data right now, will be exported in future due to export_xps()
+          d <- xps_tab[sex != "All" & agegrp20 == "All" & qimd != "All"]
+          file_name <- "/exposures by year-sex-qimd (not standardised).csv"
+        } else if (all(c("qimd", "agegrp20") %in% outstrata[[i]])) {
+          d <- xps_tab[sex == "All" & agegrp20 != "All" & qimd != "All"]
+          file_name <- "/exposures by year-agegroup-qimd (not standardised).csv"
+        } else if (all(c("agegrp20", "sex") %in% outstrata[[i]])) {
+          d <- xps_tab[sex != "All" & agegrp20 != "All" & qimd == "All"]
+          file_name <- "/exposures by year-agegroup-sex (not standardised).csv"
+        } else if ("agegrp20" %in% outstrata[[i]] & !any(c("sex", "qimd") %in% outstrata[[i]])) {
+          d <- xps_tab[sex == "All" & agegrp20 != "All" & qimd == "All"]
+          file_name <- "/exposures by year-agegroup (not standardised).csv"
+        } else if ("sex" %in% outstrata[[i]] & !any(c("agegrp20", "qimd") %in% outstrata[[i]])) {
+          d <- xps_tab[sex != "All" & agegrp20 == "All" & qimd == "All"]
+          file_name <- "/exposures by year-sex (not standardised).csv"
+        } else if ("qimd" %in% outstrata[[i]] & !any(c("agegrp20", "sex") %in% outstrata[[i]])) {
+          d <- xps_tab[sex == "All" & agegrp20 == "All" & qimd != "All"]
+          file_name <- "/exposures by year-qimd (not standardised).csv"
+        } else if(!all(c("sex", "qimd", "agegrp20") %in% outstrata[[i]])) {
+          d <- xps_tab[sex == "All" & agegrp20 == "All" & qimd == "All"]
+          file_name <- "/exposures by year (not standardised).csv"
+        }
+      }
+    }
+    if("esp" %in% type) {
+      xps_tab <- fread(file.path(output_dir, "xps/xps_esp.csv.gz"))
+      if (all(c("sex", "qimd") %in% outstrata[[i]])) {
+        d <- xps_tab[sex != "All" & qimd != "All"]
+        file_name <- "/exposures by year-sex-qimd (age standardised).csv"
+      } else {
+        if ("sex" %in% outstrata[[i]] & !any(c("qimd") %in% outstrata[[i]])) {
+          d <- xps_tab[sex != "All" & qimd == "All"]
+          file_name <- "/exposures by year-sex (age-qimd standardised).csv"
+        } else if ("qimd" %in% outstrata[[i]] & !any(c("sex") %in% outstrata[[i]])) {
+          d <- xps_tab[sex == "All" & qimd != "All"]
+          file_name <- "/exposures by year-qimd (age-sex standardised).csv"
+        } else if(!all(c("sex", "qimd") %in% outstrata[[i]])) {
+          d <- xps_tab[sex == "All" & qimd == "All"]
+          file_name <- "/exposures by year (age-sex-qimd standardised).csv"
+        }
+      }
+    }
+    # Check if data filtered is empty or not
+    if(dim(d)[1] == 0) {
+      break()
+    }
+    xps_names <- grep("_curr_xps$", names(xps_tab), value = TRUE)
+    d <- d[, lapply(.SD, mean), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata[[i]])]
+    d <- melt(d, id.vars = outstrata[[i]])
+    setkey(d, "variable")
+    d <- d[, fquantile_byid(value, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata[[i]], "mc"))]
+    setnames(d, c(setdiff(outstrata[[i]], "mc"), "exposure", percent(prbl, prefix = "xps_mean_")))
+    setkeyv(d, setdiff(outstrata[[i]], "mc"))
+    fwrite(d, paste0(sTablesSubDirPath, file_name))
+  }
+}
+
+## disease characteristics summaries
+dis_char_smmrs <- function(what = "dis_char", type = c("ons"),
+                           outstrata, output_dir, prbl,
+                           sTablesSubDirPath) {
+  for(i in 1:length(outstrata)) {
+    if("esp" %in% type) {
+      print("Disease characteristics summaries only with type ons")
+    }
+    if("ons" %in% type) {
+      tt <- fread(paste0(sSummariesSubDirPath, "/dis_characteristics_scaled_up.csv.gz"))[, `:=` (year = year + 2000L,
+                                                                                                 dimd = factor(dimd, c("1 most deprived", as.character(2:9), "10 least deprived")),
+                                                                                                 mean_cms_count_cms1st_cont = as.numeric(mean_cms_count_cms1st_cont))]
       if (all(c("mc", "year", "scenario") %in% outstrata[[i]]) &
           !(any(c("sex", "dimd") %in% outstrata[[i]]))) {
         file_name <- "/disease characteristics by year (not standardised).csv"
@@ -400,120 +418,46 @@ dis_chrs <- function(outstrata, prbl, sTablesSubDirPath,
                  !(any(c("agegrp") %in% outstrata[[i]]))) {
         file_name <- "/disease characteristics by year-sex-dimd (not standardised).csv"
       }
+      d1 <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^cases_")]
+      d1 <- melt(d1, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
+      d1 <- unique(d1, by = c("mc", "year", "scenario", "sex", "dimd", "variable"))
+      d1[, `:=` (disease = gsub("^cases_", "", variable), variable = NULL)]
+      tt <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_")]
+      tt <- melt(tt, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
+      tt[, disease := gsub("^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_", "", variable)]
+      tt[d1, on = c("mc", "year", "scenario", "sex", "dimd", "disease"), cases := i.value]
+      d <- tt[, weighted.mean(value, cases, na.rm = TRUE), keyby = c(outstrata[[i]], "variable")] # na.rm = TRUE for mean_age_incd
+      d <- melt(d, id.vars = outstrata[[i]])
+      if(dim(d)[1] == 0) {
+        break()
+      }
+      setkey(d, "variable")
+      d <- d[, fquantile_byid(V1, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata[[i]], "mc"))]
+      setnames(d, c(setdiff(outstrata[[i]], "mc"), "variable", percent(prbl, prefix = "value_")))
+      d[, disease := gsub("^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_", "", variable)]
+      d[grep("^mean_duration_", variable), type := "mean_duration"]
+      d[grep("^mean_age_incd_", variable), type := "mean_age_incd"]
+      d[grep("^mean_age_1st_onset_", variable), type := "mean_age_1st_onset"]
+      d[grep("^mean_age_prvl_", variable), type := "mean_age_prvl"]
+      d[grep("^mean_cms_score_", variable), type := "mean_cms_score"]
+      d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
+      d[, variable := NULL]
+      setkeyv(d, c(setdiff(outstrata[[i]], "mc"), "disease", "type"))
+      setcolorder(d)
+      fwrite(d, paste0(sTablesSubDirPath, file_name))
     }
-    d1 <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^cases_")]
-    d1 <- melt(d1, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
-    d1 <- unique(d1, by = c("mc", "year", "scenario", "sex", "dimd", "variable"))
-    d1[, `:=` (disease = gsub("^cases_", "", variable), variable = NULL)]
-    tt <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_")]
-    tt <- melt(tt, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
-    tt[, disease := gsub("^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_", "", variable)]
-    tt[d1, on = c("mc", "year", "scenario", "sex", "dimd", "disease"), cases := i.value]
-    d <- tt[, weighted.mean(value, cases, na.rm = TRUE), keyby = c(outstrata[[i]], "variable")] # na.rm = TRUE for mean_age_incd
-    setkey(d, "variable")
-    d <- d[, fquantile_byid(V1, prbl, id = as.character(variable)), keyby = eval(setdiff(outstrata[[i]], "mc"))]
-    setnames(d, c(setdiff(outstrata[[i]], "mc"), "variable", percent(prbl, prefix = "value_")))
-    d[, disease := gsub("^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_", "", variable)]
-    d[grep("^mean_duration_", variable), type := "mean_duration"]
-    d[grep("^mean_age_incd_", variable), type := "mean_age_incd"]
-    d[grep("^mean_age_1st_onset_", variable), type := "mean_age_1st_onset"]
-    d[grep("^mean_age_prvl_", variable), type := "mean_age_prvl"]
-    d[grep("^mean_cms_score_", variable), type := "mean_cms_score"]
-    d[grep("^mean_cms_count_", variable), type := "mean_cms_count"]
-    d[, variable := NULL]
-    setkeyv(d, c(setdiff(outstrata[[i]], "mc"), "disease", "type"))
-    setcolorder(d)
-    fwrite(d, paste0(sTablesSubDirPath, file_name))
   }
 }
 
-# All-cause mortality by disease not standardised ----
-outstrata <- c("mc", "year", "scenario")
-allcause_mrtl_by_dis(outstrata, prbl, sTablesSubDirPath,
-                                  pop_denom = F, what = "allcause_mrtl_by_dis",
-                                  type = c("ons"))
-
-outstrata <- c("mc", "year", "sex", "scenario")
-
-outstrata <- c("mc", "year", "agegrp", "scenario")
-
-outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
-
-outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
-
-
-# All-cause mortality by disease not standardised pop denominator----
-
-outstrata <- c("mc", "year", "scenario")
-allcause_mrtl_by_dis(outstrata, prbl, sTablesSubDirPath,
-                            pop_denom = T, what = "allcause_mrtl_by_dis",
-                            type = c("ons"))
-
-outstrata <- c("mc", "year", "sex", "scenario")
-
-
-outstrata <- c("mc", "year", "agegrp", "sex", "scenario")
-
-
-outstrata <- c("mc", "year", "agegrp", "sex", "dimd", "scenario")
-
-
-# All-cause mortality by disease standardised ----
-
-outstrata <- c("mc", "year", "scenario")
-allcause_mrtl_by_dis(outstrata, prbl, sTablesSubDirPath,
-                            pop_denom = F, what = "allcause_mrtl_by_dis",
-                            type = c("esp"))
-
-outstrata <- c("mc", "year", "sex", "scenario")
-
-outstrata <- c("mc", "year", "dimd", "scenario")
-
-outstrata <- c("mc", "year", "sex", "dimd", "scenario")
-
-
-# Disease characteristics non standardised ----
-
-outstrata <- c("mc", "year", "scenario")
-dis_chrs(outstrata, prbl, sTablesSubDirPath,
-         what = "dis_char", type = c("ons"))
-outstrata <- c("mc", "year", "sex", "scenario")
-
-outstrata <- c("mc", "year", "dimd", "scenario")
-
-outstrata <- c("mc", "year", "sex", "dimd", "scenario")
-
-# XPS ----
-outstrata <- c("mc", "year", "scenario")
-xps_summ(outstrata, prbl, path,
-         sTablesSubDirPath, what = "xps",
-         type = c("ons"))
-
-outstrata <- c("mc", "year", "agegrp20", "scenario")
-
-outstrata <- c("mc", "year", "agegrp20", "sex", "scenario")
-
-outstrata <- c("mc", "year", "qimd", "scenario")
-
-# XPS Standardised ----
-outstrata <- c("mc", "year", "sex", "qimd", "scenario")
-xps_summ(outstrata, prbl, path,
-         sTablesSubDirPath, what = "xps",
-         type = c("esp"))
-
-outstrata <- c("mc", "year", "scenario")
-
-outstrata <- c("mc", "year", "sex", "scenario")
-
-outstrata <- c("mc", "year", "qimd", "scenario")
-
-
-
-
-generate_analysis <- function(what, type, strata_list, output_dir,
+# Public function to be added in Simulation_class.R ----
+export_tables <- function(what, type, strata, output_dir,
                               prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),
                               baseline_year = 2019L,
-                              two_agegrps = FALSE) {
+                              two_agegrps = FALSE,
+                              pop_denom = FALSE) {
+  sSummariesSubDirPath <- file.path(output_dir, "summaries/")
+  sTablesSubDirPath <- file.path(output_dir, "tables/")
+  # create a grid
   outperm <- expand.grid(
     what = what,
     type = type
@@ -525,52 +469,56 @@ generate_analysis <- function(what, type, strata_list, output_dir,
       st
     })
   }
-
   # Define the loop to call functions based on outperm
   for (i in seq_len(nrow(outperm))) {
     what <- as.character(outperm$what[[i]])
     type <- as.character(outperm$type[[i]])
-
-    # Get the strata_list based on user input
-    if (!missing(strata_list)) {
-      strata_list_input <- strata_list
+    # Get the strata based on user input
+    if (!missing(strata)) {
+      strata_list_input <- strata
     } else {
       stop("Please provide strata parameter.")
     }
-
     # Convert agegrp to age if necessary
     if (grepl("_age", what)) {
       strata_list_input <- convert_agegrp(strata_list_input)
     }
-
     # Skip certain cases
     if (what == "pop" && type == "esp") next()
+    if (what == "dis_char" && type == "esp") next()
     if (grepl("_age", what) && type == "esp") next()
-
     # Print what and type for debugging
     print(paste0(what, "-", type))
-
-    if (what %in% c("prvl", "prvl_change", "incd", "incd_change", "ftlt", "ftlt_change", "mrtl", "mrtl_change", "cms_score", "cms_score_change", "cms_score_age", "cms_score_age_change", "cms_count", "cms_count_change")) {
-      xps_summ(what, type, strata_list_input, output_dir)
-    } else if (what == "pop") {
-      allcause_mrtl_by_dis(what, type, strata_list_input, output_dir)
+    if (what %in% c("prvl", "prvl_change", "incd", "incd_change", "ftlt",
+                    "ftlt_change", "mrtl", "mrtl_change", "cms_score",
+                    "cms_score_change", "cms_score_age", "cms_score_age_change",
+                    "cms_count", "cms_count_change", "pop")) {
+      tbl_smmrs(what, type, strata_list_input, output_dir, prbl, baseline_year, two_agegrps)
+    } else if (what == "allcause_mrtl_by_dis") {
+      allcause_mrtl_by_dis_smmrs(what, type, strata_list_input, output_dir, prbl,
+                                 sTablesSubDirPath, sSummariesSubDirPath,
+                                 pop_denom)
+    } else if (what == "xps") {
+      xps_smmrs(what, type, strata_list_input, output_dir, prbl, sTablesSubDirPath)
+    } else if (what == "dis_char") {
+      dis_char_smmrs(what, type, strata_list_input, output_dir, prbl, sTablesSubDirPath)
     } else {
       stop("Invalid 'what' parameter")
     }
   }
 }
 
-# Example usage of the function
-generate_analysis(
+# Example use case of the function
+export_tables(
   what = c(
     "prvl", "prvl_change", "incd", "incd_change",
     "ftlt", "ftlt_change", "mrtl", "mrtl_change",
     "cms_score", "cms_score_change", "cms_score_age",
     "cms_score_age_change", "cms_count", "cms_count_change",
-    "pop"
+    "pop", "allcause_mrtl_by_dis", "xps", "dis_char"
   ),
   type = c("ons", "esp"),
-  strata_list = list(
+  strata = list(
     "year",
     c("year", "sex"),
     c("year", "dimd"),
@@ -581,5 +529,6 @@ generate_analysis(
   output_dir = output_dir,
   prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),
   baseline_year = 2019L,
-  two_agegrps = FALSE
+  two_agegrps = FALSE,
+  pop_denom = FALSE
 )
