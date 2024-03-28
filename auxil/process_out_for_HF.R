@@ -245,9 +245,9 @@ tbl_smmrs <- function(
                         paste(setdiff(x, c("mc", "scenario")), collapse = "-"),
                         str5[[type]]
                 ) # used for output file name/path
-                
+
                 fwrite(d, file.path(
-                        output_dir, 
+                        output_dir,
                         ifelse(two_agegrps, "tables2agegrps", "tables"), str6
                 ))
         })
