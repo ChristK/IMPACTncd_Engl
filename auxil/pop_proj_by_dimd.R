@@ -36,7 +36,7 @@ setkey(tt, V1)
 rich <- tail(tt, 10L)$LAD17CD
 poor <- head(tt, 10L)$LAD17CD
 
-# assume that the growth in population by LAD is the same accross all dimd in the LAD
+# assume that the growth in population by LAD is the same across all dimd in the LAD
 proj <- read_fst("./inputs/pop_projections/lad17_proj.fst", as.data.table = TRUE)[age < 100, ]
 proj[LAD17CD %in% rich & between(age, 30, 99), sum(pops), keyby = year][, plot(year, V1)]
 proj[LAD17CD %in% poor & between(age, 30, 99), sum(pops), keyby = year][, plot(year, V1)]
