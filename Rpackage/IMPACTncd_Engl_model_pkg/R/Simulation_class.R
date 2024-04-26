@@ -188,7 +188,7 @@ Simulation <-
                                 bOverwriteFilesOnDeploy = bOverwriteFilesOnDeploy,
                                 sToken = sToken)
         sDeployToRootDirPath <- TrimSlashes(sDeployToRootDirPath, bRidStartSlash = FALSE)
-        sanitisedToOriginalFilePaths <- fread(file.path(sDeployToRootDirPath, "/auxil/filindx.csv"), key = "orig_file")
+        sanitisedToOriginalFilePaths <- fread(file.path(sDeployToRootDirPath, "simulation/filindx.csv"), key = "orig_file")
 
         if (iTestWithFirstNAssets != 0) {
           sanitisedToOriginalFilePaths <- sanitisedToOriginalFilePaths[1:iTestWithFirstNAssets, ]
