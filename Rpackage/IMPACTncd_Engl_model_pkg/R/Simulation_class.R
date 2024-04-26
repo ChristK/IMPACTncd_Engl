@@ -221,7 +221,7 @@ Simulation <-
             StopOnHttpFailure(lsHttpResponses, FALSE)
           }
           else {
-            print("The simulation assets are not overwritten.")
+            message("The simulation assets are not overwritten.")
           }
           missing_files <- sanitisedToOriginalFilePaths$sanit_file[!file.exists(all_files)]
           missing_orig_files <- sanitisedToOriginalFilePaths$orig_file[which(sanitisedToOriginalFilePaths$sanit_file %in% missing_files)]
