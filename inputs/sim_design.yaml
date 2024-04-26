@@ -5,16 +5,15 @@ logs: no
 export_xps: yes
 keep_lifecourse: yes
 export_PARF: no
-'n': 10000 # number of individuals in simulation # ARU changed
-n_synthpop_aggregation: 2 # number of synthpops to aggregate together (avoid values above 20) # ARU changed
-# n_primers: 10 # better be some multiple of n_synthpop_aggregation
-init_year_long: 2013 # 2008 to 2020 but be careful with max lags
-sim_horizon_max: 2025 # population projections do not support longer horizon # ARU changed
+'n': 100000 # number of individuals in simulation
+n_synthpop_aggregation: 2 # number of synthpops to aggregate together (avoid values above 20) 
+init_year_long: 2013 # 2008 to 2020, but be careful with max lags
+sim_horizon_max: 2040 # population projections do not support longer horizon 
 ageL: 30
 ageH: 99
-apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
-model_trends_in_redidual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
-avoid_appending_csv: yes #  Do not append on existing .csv. Rather write separately and join later. To bypass problems with Docker on windows
+apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE: it affects nonmodelled as well
+model_trends_in_redidual_incd: no # Model trends in non-attributable incidence? (NOTE: implementation needs further refinement)
+avoid_appending_csv: yes #  Do not append on existing .csv. Rather, write separately and join later. To bypass problems with Docker on Windows
 maxlag: 10
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
@@ -23,16 +22,16 @@ bpmed_adherence: 0.9
 decision_aid: 0.8
 stochastic: yes
 kismet: yes
-calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population projections if no. Calibrate to populationprojections by Local Authority District if yes. For smaller than national localities it is forced to yes and the user setting is ignored
+calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population projections if no. Calibrate to population projections by Local Authority District if yes. For smaller than national localities, it is forced to yes and the user setting is ignored
 simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 iteration_n_max: 1000
-output_dir: D:/GitHub/IMPACTncd_Engl/output/hf_real # ARU changed
-synthpop_dir: D:/GitHub/IMPACTncd_Engl/synthpop/hf_real # ARU changed
+output_dir: /mnt/storage_fast/output/hf_real
+synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 simulation_files_overwrite: no # yes for overwrite
 sTag: 'v0.0.5'
 bOverwriteFilesOnDeploy: no # yes for overwrite
-RootDirPath: D:/GitHub/IMPACTncd_Engl
+RootDirPath: ~/My_Models/IMPACTncd_Engl/
 sToken: ~ # NULL
 uncertainty: # Note that uncertainties are independent
   incidence:
