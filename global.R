@@ -35,7 +35,7 @@ if (!nzchar(system.file(package = "CKutils"))) {
 }
 
 library(CKutils)
-options(rgl.useNULL = TRUE)  # suppress error by demography in rstudio server
+options(rgl.useNULL = TRUE) # suppress error by demography in rstudio server
 options(future.fork.enable = TRUE) # TODO remove for production
 options(future.globals.maxSize = +Inf)
 options(future.rng.onMisuse = "ignore") # Remove false warning
@@ -45,63 +45,67 @@ options(datatable.showProgress = FALSE)
 CKutils::dependencies(yaml::read_yaml("./dependencies.yaml")) # install missing packages
 
 #' @description Detach library package.
-detach_package<- function(pkg, character.only = FALSE)
-{
-  if(!character.only) pkg <- deparse(substitute(pkg))
+detach_package <- function(pkg, character.only = FALSE) {
+  if (!character.only) pkg <- deparse(substitute(pkg))
   search_item <- paste("package", pkg, sep = ":")
-  while(search_item %in% search())
-  {
+  while (search_item %in% search()) {
     detach(search_item, unload = TRUE, character.only = TRUE)
   }
 }
 
 #' @description Re/install the IMPACTncd_Engl package from local directory.
 #' @param sIMPACTncdPackageDirPath string, IMPACTncd_Engl package directory path.
-InstallIMPACTncdPackage<- function(sIMPACTncdPackageDirPath)
-{
-  if(!nzchar(system.file(package = "pak")))install.packages("pak")
-  if(nzchar(system.file(package = "roxygen2")))
-    roxygen2::roxygenise(sIMPACTncdPackageDirPath, clean = TRUE) # update package exports (and docs) if necessary
+InstallIMPACTncdPackage <- function(sIMPACTncdPackageDirPath) {
+  if (!nzchar(system.file(package = "pak"))) install.packages("pak")
+  if (nzchar(system.file(package = "roxygen2"))) {
+    roxygen2::roxygenise(sIMPACTncdPackageDirPath, clean = TRUE)
+  } # update package exports (and docs) if necessary
   detach_package(IMPACTncdEngl)
 
   # ensure full install by removing intermediate files
   file.remove(list.files(sIMPACTncdPackageDirPath,
-                         pattern=".o$|.dll&|.so&", recursive = TRUE,
-                         full.names = TRUE))
+    pattern = ".o$|.dll&|.so&", recursive = TRUE,
+    full.names = TRUE
+  ))
   ## Find a solution to build vignettes while installing the package using pak
   # pak::local_install(sIMPACTncdPackageDirPath,
-  #                    upgrade = F,
-  #                    ask = F)
+  #                    upgrade = FALSE,
+  #                    ask = FALSE)
   remotes::install_local(sIMPACTncdPackageDirPath,
-                         build_vignettes = T, force = T)
+    build_vignettes = TRUE, force = TRUE, upgrade = "never"
+  )
   # build_vignettes = T, force = T
 }
 
 #' @description Re/install the IMPACTncd_Engl package if not installed or if local package files have changed.
-InstallIMPACTncdPackageOnChange<- function()
-{
+InstallIMPACTncdPackageOnChange <- function() {
   # load previously saved snapshot of package files
-  sIMPACTncdPackageSnapshotFilePath<- "./Rpackage/.IMPACTncd_Engl_model_pkg_snapshot.qs"
-  IMPACTncdPackageSnapshot<-NULL
-  if(file.exists(sIMPACTncdPackageSnapshotFilePath))
-    IMPACTncdPackageSnapshot<- changedFiles(qread(sIMPACTncdPackageSnapshotFilePath))
+  sIMPACTncdPackageSnapshotFilePath <- "./Rpackage/.IMPACTncd_Engl_model_pkg_snapshot.qs"
+  IMPACTncdPackageSnapshot <- NULL
+  if (file.exists(sIMPACTncdPackageSnapshotFilePath)) {
+    IMPACTncdPackageSnapshot <- changedFiles(qread(sIMPACTncdPackageSnapshotFilePath))
+  }
 
-  if(!nzchar(system.file(package="IMPACTncdEngl")) || is.null(IMPACTncdPackageSnapshot) ||
-     any( nzchar(IMPACTncdPackageSnapshot$added), nzchar(IMPACTncdPackageSnapshot$deleted),
-          nzchar(IMPACTncdPackageSnapshot$changed) ) )
-  {
+  if (!nzchar(system.file(package = "IMPACTncdEngl")) || is.null(IMPACTncdPackageSnapshot) ||
+    any(
+      nzchar(IMPACTncdPackageSnapshot$added), nzchar(IMPACTncdPackageSnapshot$deleted),
+      nzchar(IMPACTncdPackageSnapshot$changed)
+    )) {
     # re/install IMPACTncd_Engl package and update snapshot
     sIMPACTncdPackageDirPath <- "./Rpackage/IMPACTncd_Engl_model_pkg/"
     InstallIMPACTncdPackage(sIMPACTncdPackageDirPath)
-    if(!is.null(IMPACTncdPackageSnapshot))file.remove(sIMPACTncdPackageSnapshotFilePath)
-    IMPACTncdPackageSnapshot <- fileSnapshot(sIMPACTncdPackageDirPath, timestamp = NULL,
-                                             md5sum = TRUE, recursive = TRUE)
-    qsave(IMPACTncdPackageSnapshot,sIMPACTncdPackageSnapshotFilePath)
+    if (!is.null(IMPACTncdPackageSnapshot)) file.remove(sIMPACTncdPackageSnapshotFilePath)
+    IMPACTncdPackageSnapshot <- fileSnapshot(sIMPACTncdPackageDirPath,
+      timestamp = NULL,
+      md5sum = TRUE, recursive = TRUE
+    )
+    qsave(IMPACTncdPackageSnapshot, sIMPACTncdPackageSnapshotFilePath)
   }
 }
 
-#if(interactive())
+# if(interactive())
 InstallIMPACTncdPackageOnChange()
+
 library(IMPACTncdEngl)
 
 ####################################################################################
