@@ -16,7 +16,7 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(1:2, multicore = T, "sc0")
+  run(1:2, multicore = TRUE, "sc0")
 
 ## https://docs.google.com/document/d/1jIsvoQxkFIyKZ-ak2i-RKv3lbR7gpP-fU3TAS7wzVH4/edit#heading=h.bo0sonprg2dl
 
