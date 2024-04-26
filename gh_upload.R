@@ -65,7 +65,7 @@ UploadGitHubAssets <- function(sToken = NULL, iTestWithFirstNAssets = 0,
   if (iTestWithFirstNAssets != 0) {
     dtOriginalAndSanitisedFilePathNames <- dtOriginalAndSanitisedFilePathNames[1:iTestWithFirstNAssets, ]
   }
-  fwrite(dtOriginalAndSanitisedFilePathNames, "./auxil/filindx.csv")
+  fwrite(dtOriginalAndSanitisedFilePathNames, "./simulation/filindx.csv")
 
   lsSrcFilePath <- file.path(dtOriginalAndSanitisedFilePathNames$abs_dir, dtOriginalAndSanitisedFilePathNames$orig_file)
   lsHttpResponses <- piggyback::pb_upload(lsSrcFilePath,
