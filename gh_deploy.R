@@ -43,7 +43,7 @@ DeployGitHubAssets <- function(sToken = NULL, sRepo = NULL, sTag = NULL,
   sDeployToRootDirPath <- TrimSlashes(sDeployToRootDirPath, bRidStartSlash = FALSE)
   # get table which maps SANITISED to ORIGINAL filenames
   sanitisedToOriginalFilePaths <- fread(file.path(sDeployToRootDirPath,
-                                                  "/auxil/filindx.csv"),
+                                                  "/simulation/filindx.csv"),
                                         key = "orig_file")
   if (iTestWithFirstNAssets != 0) { # if testing, only use first N assets
     sanitisedToOriginalFilePaths <- sanitisedToOriginalFilePaths[1:iTestWithFirstNAssets, ]
