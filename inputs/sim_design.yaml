@@ -1,7 +1,7 @@
 locality: England # See cols "LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM" ./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst for area names
 clusternumber: 10 # explicit parallelisation
 clusternumber_export: 10 # NEW: number of clusters for export_summaries
-logs: no
+logs: yes
 export_xps: yes
 keep_lifecourse: yes
 export_PARF: no
@@ -26,7 +26,7 @@ calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population proj
 simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real
+output_dir: /mnt/storage_fast/output/hf_real/test
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 simulation_files_overwrite: no # yes for overwrite
 sTag: 'v0.0.5'
