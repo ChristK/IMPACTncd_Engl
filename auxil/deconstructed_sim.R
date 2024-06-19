@@ -75,6 +75,8 @@ rm(e)
 
 # self <- sp$.__enclos_env__$self
 # private <- sp$.__enclos_env__$private
+# self <- IMPACTncd$.__enclos_env__$self
+# private <- IMPACTncd$.__enclos_env__$private
 # dt <- copy(sp$pop)
 
 # diseases$ckd$gen_parf(sp, design)
