@@ -250,7 +250,6 @@ mortality_projections.fst,mortality.projections.fst,/home/pp0u8134/projects/IMPA
 mortality_projections_indx.fst,mortality.projections.indx.fst,/home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst/inputs/exposure_distributions,/inputs/exposure_distributions
 mrtl_by_dimd.fst,mrtl.by.dimd.fst,/home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst/inputs/mortality,/inputs/mortality
 mrtl_clb.fst,mrtl.clb.fst,/home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst/inputs/mortality,/inputs/mortality
-national_mid_year_population_estimates.fst,national.mid.year.population.estimates.fst,/home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst/inputs/pop_estimates_lsoa,/inputs/pop_estimates_lsoa
 national_proj.fst,national.proj.fst,/home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst/inputs/pop_projections,/inputs/pop_projections
 nonmodelled_ftlt.fst,nonmodelled.ftlt.fst,/home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst/inputs/disease_burden,/inputs/disease_burden
 nonmodelled_ftlt_indx.fst,nonmodelled.ftlt.indx.fst,/home/pp0u8134/projects/IMPACT/IMPACTncd_Engl_copyFst/inputs/disease_burden,/inputs/disease_burden

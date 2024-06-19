@@ -323,7 +323,7 @@ The invisible \code{SynthPop} object.
 \subsection{Method \code{gen_synthpop_demog()}}{
 Generate synthpop sociodemographics for a random sample of the population in the initial year.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SynthPop$gen_synthpop_demog(design_, month = "April")}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SynthPop$gen_synthpop_demog(design_, month = "July")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
