@@ -236,7 +236,7 @@ SynthPop <-
             all(private$design$sim_prm$locality %in% unique(read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst", columns = "RGN11NM",
                      as.data.table = TRUE)$RGN11NM))
                      ) {
-            refpop <- private$get_pop_size(FALSE)[age >= private$design$sim_prm$ageL & year >= private$design$sim_prm$init_year] # Use national projections
+            refpop <- private$get_pop_size(TRUE)[age >= private$design$sim_prm$ageL & year >= private$design$sim_prm$init_year] # Use national projections
             ttt <- self$pop[age >= private$design$sim_prm$ageL & year >= private$design$sim_prm$init_year, sum(wt, na.rm = TRUE), keyby = .(year, age, sex)]
             refpop[ttt, on = c("year", "age", "sex"), correction := pops / (i.V1 * private$design$sim_prm$n_synthpop_aggregation)]
             self$pop[refpop, on = c("year", "age", "sex"), wt := i.correction * wt]
