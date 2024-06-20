@@ -200,9 +200,8 @@ SynthPop <-
       #' @return The invisible self for chaining.
       update_pop_weights = function(scenario_nam = "sc0") {
         strata <- c("year", "age", "sex")
-        if (private$design$sim_prm$calibrate_to_pop_projections_by_LAD) {
-          strata <- c(strata, "LAD17CD")
-        }
+        if (private$design$sim_prm$calibrate_to_pop_projections_by_LAD) strata <- c(strata, "LAD17CD")
+        
         if (scenario_nam == "sc0" & !"wt" %in% names(self$pop)) { # baseline
           tt <- private$get_pop_size(private$design$sim_prm$calibrate_to_pop_projections_by_LAD)
           self$pop[all_cause_mrtl >= 0, wt := .N, by = strata] # Long deads are NAs and those died in the year need to be counted
@@ -216,7 +215,7 @@ SynthPop <-
           # if n is small because not all year/age/sex/(LAD17CD) are represented
           # in the sample. The recent change to stratified sampling by age sex
           # should reduce the chance of this issue but is almost certainly
-          # happening when v = TRUE.
+          # happening when design$sim_prm$calibrate_to_pop_projections_by_LAD = TRUE.
           # cbind(
           #   tt[age >= private$design$sim_prm$ageL & year >= private$design$sim_prm$init_year, sum(pops), keyby = year],
           #   self$pop[age >= private$design$sim_prm$ageL & year >= private$design$sim_prm$init_year, sum(wt) * 2, keyby = year]
@@ -231,6 +230,7 @@ SynthPop <-
             refpop[ttt, on = c("year", "age", "sex"), correction := pops / (i.V1 * private$design$sim_prm$n_synthpop_aggregation)]
             self$pop[refpop, on = c("year", "age", "sex"), wt := i.correction * wt]
           } else if ( # For LADs and regions use the LAD projections
+          # TODO cover cases when locality contains both LADS and Regions
             all(private$design$sim_prm$locality %in% unique(read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst", columns = "LAD17NM",
                      as.data.table = TRUE)$LAD17NM)) ||
             all(private$design$sim_prm$locality %in% unique(read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst", columns = "RGN11NM",
@@ -252,13 +252,13 @@ SynthPop <-
           # For policy scenarios
           fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
 
-          t0 <- fread(fnam, select = list(integer = c("pid", "year"), factor = c("scenario"), numeric = "wt"),
-                      key = c("scenario", "pid", "year"))[scenario == "sc0", ][, scenario := NULL] # wt for sc0
+          t0 <- fread(fnam, select = list(integer = c("year", "age"), factor = c("scenario", "sex", "LAD17CD"), numeric = "wt"),
+                     )[scenario == "sc0", ][, scenario := NULL] # wt for sc0
+          # Based on the fact that wt by strata is unique i.e. the following should return 1
+          # sp$pop[, uniqueN(wt), keyby = .(year, age, sex, LAD17CD)][, unique(V1)]
+          # TODO check that this works with kismet = FALSE
+          t0[, .(wt = unique(wt)), keyby = strata]
           absorb_dt(self$pop, t0)
-          # for simulants that are not in the baseline scenario carry over their
-          # last wt. No need to be by pid because the beginning of lifecourses are
-          # similar to all scenarios
-          setnafill(self$pop, type = "locf", cols = "wt")
           self$pop[is.na(all_cause_mrtl), wt := 0]
         
         } else {
@@ -921,14 +921,16 @@ SynthPop <-
       get_unique_LADs = function(design_) {
         indx_hlp <-
           read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst",
-                   as.data.table = TRUE, columns = c("LAD17CD", "LAD17NM", "RGN11NM"))
+                   as.data.table = TRUE, columns = c("LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM", "LAD17CD"))
 
         if ("England" %in% design_$sim_prm$locality) {
           lads <- indx_hlp[, unique(LAD17CD)] # national
         } else {
           lads <-
-            indx_hlp[LAD17NM %in% design_$sim_prm$locality |
-                       RGN11NM %in% design_$sim_prm$locality, unique(LAD17CD)]
+            indx_hlp[LSOA11CD %in% design_$sim_prm$locality |
+                     LAD17NM %in% design_$sim_prm$locality |
+                     RGN11NM %in% design_$sim_prm$locality |
+                     ICB22NM %in% design_$sim_prm$locality, unique(LAD17CD)]
         }
         return(sort(lads))
       },
@@ -1913,7 +1915,7 @@ SynthPop <-
 
         if (return_pop_projections_by_LAD) {
           strata <- c("year", "age", "sex", "LAD17CD")
-          lads <- private$get_unique_LADs(private$design)
+          lads <- private$get_unique_LADs(private$design) # This doesnt work for ICBs
           tt <- read_fst("./inputs/pop_projections/lad17_proj.fst", as.data.table = TRUE
           )[LAD17CD %in% lads &
             age >= minage &
