@@ -902,17 +902,6 @@ Simulation <-
 
         private$secondary_prevention_scn(sp) # apply secondary pevention scenario
 
-        # ds <- copy(self$diseases) # Necessary for parallelisation
-        # lapply(self$diseases, function(x) {
-        #   if (self$design$sim_prm$logs) print(x$name)
-        #   x$gen_parf(sp, self$design, self$diseases)$
-        #     set_init_prvl(sp, self$design)$
-        #     set_rr(sp, self$design)$
-        #     set_incd_prb(sp, self$design)$
-        #     set_dgns_prb(sp, self$design)$
-        #     set_mrtl_prb(sp, self$design)
-        # })
-
         l <- private$mk_scenario_init(sp, scenario_nam)
         if (!identical(key(sp$pop), c("pid", "year"))) stop("synthpop key is not as expected")
         simcpp(sp$pop, l, sp$mc)
@@ -945,7 +934,7 @@ Simulation <-
                  grep("^cms_|_prvl$|_dgns$|_mrtl$", names(sp$pop), value = TRUE))
         nam <- grep("^prb_", nam, value = TRUE, invert = TRUE) # exclude prb_ ... _dgns
         sp$pop[, setdiff(names(sp$pop), nam) := NULL]
-        sp$pop[, mc := sp$mc_aggr]
+        sp$pop[, `:=` (mc = sp$mc_aggr, mc_chunk = sp$mc)]
 
 
         # TODO add logic for the years of having MM. Currently 1 is not the real
