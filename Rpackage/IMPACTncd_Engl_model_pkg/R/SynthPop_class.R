@@ -252,20 +252,56 @@ SynthPop <-
           # For policy scenarios
           fnam <- file.path(private$design$sim_prm$output_dir, paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz"))
 
-          t0 <- fread(fnam, select = list(integer = c("year", "age"), factor = c("scenario", "sex", "LAD17CD"), numeric = "wt"),
-                     )[scenario == "sc0", ][, scenario := NULL] # wt for sc0
+          t0 <- fread(fnam, select = list(integer = c("year", "age", "mc_chunk"), factor = c("scenario", "sex", "LAD17CD"), numeric = "wt"),
+                     )[scenario == "sc0" & mc_chunk == self$mc, ][, scenario := NULL] # wt for sc0
           # Based on the fact that wt by strata is unique i.e. the following should return 1
           # sp$pop[, uniqueN(wt), keyby = .(year, age, sex, LAD17CD)][, unique(V1)]
           # TODO check that this works with kismet = FALSE
-          t0[, .(wt = unique(wt)), keyby = strata]
-          absorb_dt(self$pop, t0)
+          if (private$design$sim_prm$logs && t0[, length(unique(wt)), keyby = strata][, uniqueN(V1)] != 1L) stop(paste0("Population weights are not unique by ", paste(strata, collapse = ", "), "."))
+          t0 <- t0[, .(wt = first(wt)), keyby = strata]
+
+          fullTable <- CJ(year = private$design$sim_prm$init_year:(private$design$sim_prm$init_year + private$design$sim_prm$sim_horizon_max),
+             age = private$design$sim_prm$ageL:private$design$sim_prm$ageH,
+             sex = c("men", "women"),
+             LAD17CD = unique(t0$LAD17CD))
+          absorb_dt(fullTable, t0)
+          # Variation of weights is primarily because of age and year. LADs have more or
+          # less similar weights for specificc year/age/sex. Therefore I will fill missing
+          # values with the average accross LADs for specific year/age/sex.
+          if (anyNA(fullTable$wt)) {
+             fillTable <-  fullTable[, mean(wt, na.rm = TRUE), keyby = .(year, age, sex)]
+             absorb_dt(fullTable, fillTable)
+             fullTable[is.na(wt), wt := V1]
+             fullTable[, V1 := NULL]
+          }
+          if (anyNA(fullTable$wt)) {
+             fillTable <-  fullTable[, mean(wt, na.rm = TRUE), keyby = .(year, age)]
+             absorb_dt(fullTable, fillTable)
+             fullTable[is.na(wt), wt := V1]
+             fullTable[, V1 := NULL]
+          }
+          if (anyNA(fullTable$wt)) { 
+             # TODO although this should happen very rarely except when n is too small a
+             # better way to do this might exist
+             fillTable <-  fullTable[, mean(wt, na.rm = TRUE), keyby = .(age)]
+             absorb_dt(fullTable, fillTable)
+             fullTable[is.na(wt), wt := V1]
+             fullTable[, V1 := NULL]
+          }
+          if (anyNA(fullTable$wt)) {
+             # TODO although this should happen very rarely except when n is too small a
+             # better way to do this might exist
+             setnafill(fullTable, "locf",  cols = "wt")
+          }
+
+
+          absorb_dt(self$pop, fullTable)
           self$pop[is.na(all_cause_mrtl), wt := 0]
         
         } else {
           stop("The baseline scenario need to be named 'sc0' and simulated first, before any policy scenarios.") # TODO more informative message
         }
 
-# self$pop[pid == sample(pid, 1), plot(age, wt)]
         invisible(self)
       },
 
@@ -626,7 +662,7 @@ SynthPop <-
           # fact that not lsoas for an are are sampled
           tt <- dtinit[, .N, keyby = .(age, sex, LSOA11CD)]
           refpop[tt, on = c("age", "sex", "LSOA11CD"), N := i.N]
-          refpop <- refpop[, .(correction_mltp = 1/(sum(pops * !is.na(N))/sum(pops)), year = design_$sim_prm$init_year), keyby = .(age, sex)]
+          refpop <- refpop[, .(correction_mltp = sum(pops) / sum(pops * !is.na(N)), year = design_$sim_prm$init_year), keyby = .(age, sex)]
           tt <- refpop[age == design_$sim_prm$ageL & year == design_$sim_prm$init_year]
           tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max)
           tt[, `:=`(age = age - .id, .id = NULL)]
