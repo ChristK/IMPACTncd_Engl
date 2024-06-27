@@ -427,7 +427,7 @@ The invisible self for chaining.
 \subsection{Method \code{update_output_path()}}{
 Updates the output path.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$update_output_path(new_path, carry_over_lifecourse_files_path)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$update_output_path(new_path, carry_over_lifecourse_files_from)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -435,10 +435,10 @@ Updates the output path.
 \describe{
 \item{\code{new_path}}{A string with the new output path (absolute).}
 
-\item{\code{carry_over_lifecourse_files_path}}{A string with a previous output
+\item{\code{carry_over_lifecourse_files_from}}{A string with a previous output
 path (absolute) from which the lifecourse files will be copied to the
-new output folder defined in nea_path argument. If missing, no copy
-occurs.}
+new output folder defined in new_path argument. Overwritting is not
+allowed. If missing, no copy occurs.}
 }
 \if{html}{\out{</div>}}
 }

@@ -784,20 +784,20 @@ Simulation <-
 
       #' @description Updates the output path. 
       #' @param new_path A string with the new output path (absolute). 
-      #' @param carry_over_lifecourse_files_path A string with a previous output
+      #' @param carry_over_lifecourse_files_from A string with a previous output
       #' path (absolute) from which the lifecourse files will be copied to the
       #' new output folder defined in new_path argument. Overwritting is not
       #' allowed. If missing, no copy occurs.
       #' @return The invisible self for chaining.
-      update_output_path = function(new_path, carry_over_lifecourse_files_path) {
+      update_output_path = function(new_path, carry_over_lifecourse_files_from) {
         if (!is.character(new_path)) stop("new_path needs to be a string.")
-        if (!missing(carry_over_lifecourse_files_path) && !is.character(carry_over_lifecourse_files_path)) stop("carry_over_lifecourse_files_path needs to be a string.")
-        if (!missing(carry_over_lifecourse_files_path) && !dir.exists(carry_over_lifecourse_files_path)) stop("Folder defined with carry_over_lifecourse_files_path does not exist.")
+        if (!missing(carry_over_lifecourse_files_from) && !is.character(carry_over_lifecourse_files_from)) stop("carry_over_lifecourse_files_from needs to be a string.")
+        if (!missing(carry_over_lifecourse_files_from) && !dir.exists(carry_over_lifecourse_files_from)) stop("Folder defined with carry_over_lifecourse_files_from does not exist.")
 
-        if (!missing(carry_over_lifecourse_files_path)) fl <- list.files(file.path(carry_over_lifecourse_files_path, "lifecourse"), pattern = "lifecourse", full.names = TRUE)
+        if (!missing(carry_over_lifecourse_files_from)) fl <- list.files(file.path(carry_over_lifecourse_files_from, "lifecourse"), pattern = "lifecourse", full.names = TRUE)
         self$design$sim_prm$output_dir <- new_path
         private$create_output_folder_structure()
-        if (!missing(carry_over_lifecourse_files_path)) file.copy(fl, file.path(self$design$sim_prm$output_dir, "lifecourse"))
+        if (!missing(carry_over_lifecourse_files_from)) file.copy(fl, file.path(self$design$sim_prm$output_dir, "lifecourse"))
         invisible(self)
       },
 
