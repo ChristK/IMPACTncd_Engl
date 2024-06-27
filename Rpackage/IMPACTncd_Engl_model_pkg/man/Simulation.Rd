@@ -44,6 +44,7 @@ To be completed...
 \item \href{#method-Simulation-get_esp}{\code{Simulation$get_esp()}}
 \item \href{#method-Simulation-get_mm_weights}{\code{Simulation$get_mm_weights()}}
 \item \href{#method-Simulation-allow_universal_output_folder_access}{\code{Simulation$allow_universal_output_folder_access()}}
+\item \href{#method-Simulation-allow_universal_synthpop_folder_access}{\code{Simulation$allow_universal_synthpop_folder_access()}}
 \item \href{#method-Simulation-update_output_path}{\code{Simulation$update_output_path()}}
 \item \href{#method-Simulation-update_synthpop_path}{\code{Simulation$update_synthpop_path()}}
 \item \href{#method-Simulation-print}{\code{Simulation$print()}}
@@ -408,18 +409,36 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-allow_universal_synthpop_folder_access"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-allow_universal_synthpop_folder_access}{}}}
+\subsection{Method \code{allow_universal_synthpop_folder_access()}}{
+Make synthpop folder available to all users (Linux specific).
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$allow_universal_synthpop_folder_access()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Simulation-update_output_path"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-update_output_path}{}}}
 \subsection{Method \code{update_output_path()}}{
 Updates the output path.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$update_output_path(new_path)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$update_output_path(new_path, carry_over_lifecourse_files_path)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{new_path}}{A string with the new output path (absolute).}
+
+\item{\code{carry_over_lifecourse_files_path}}{A string with a previous output
+path (absolute) from which the lifecourse files will be copied to the
+new output folder defined in nea_path argument. If missing, no copy
+occurs.}
 }
 \if{html}{\out{</div>}}
 }
