@@ -69,24 +69,7 @@ Simulation <-
 
 
         # Create folders if don't exist
-        # TODO write hlp function and use lapply
-        message("Creating output subfolders.")
-        private$create_new_folder(self$design$sim_prm$output_dir, self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("summaries/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("tables/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("plots/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("lifecourse/"), self$design$sim_prm$logs)
-        if (self$design$sim_prm$export_PARF) {
-           private$create_new_folder(private$output_dir("parf/"), self$design$sim_prm$logs)
-        }
-        if (self$design$sim_prm$export_xps) {
-           private$create_new_folder(private$output_dir("xps/"), self$design$sim_prm$logs)
-        }
-        if (self$design$sim_prm$logs) {
-           private$create_new_folder(private$output_dir("logs/"), self$design$sim_prm$logs)
-        }
-        # NOTE code below is duplicated in Synthpop class. This is intentional
-        private$create_new_folder(self$design$sim_prm$synthpop_dir,self$design$sim_prm$logs)
+        private$create_output_folder_structure()
 
         deployArgs <- list(
           simulation_files_overwrite = self$design$sim_prm$simulation_files_overwrite,
@@ -294,45 +277,23 @@ Simulation <-
               self$design$sim_prm$n_synthpop_aggregation + 1L
           ):(max(mc) * self$design$sim_prm$n_synthpop_aggregation)
        
-        # Create folders if don't exist
-        # TODO write hlp function and use lapply
-        if (file.exists(self$design$sim_prm$output_dir) && file.access(self$design$sim_prm$output_dir, mode = 2) == -1L)
-         stop("You don't have write access to the output folder. Please change the permissions or the path.")
-
-        message("Creating output subfolders.")
-        private$create_new_folder(self$design$sim_prm$output_dir, self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("summaries/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("tables/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("plots/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("lifecourse/"), self$design$sim_prm$logs)
-        if (self$design$sim_prm$export_PARF) {
-          private$create_new_folder(private$output_dir("parf/"), self$design$sim_prm$logs)
-        }
-        if (self$design$sim_prm$export_xps) {
-          private$create_new_folder(private$output_dir("xps/"), self$design$sim_prm$logs)
-        }
-        if (self$design$sim_prm$logs) {
-          private$create_new_folder(private$output_dir("logs/"), self$design$sim_prm$logs)
-        }
-
-        if (file.exists(self$design$sim_prm$synthpop_dir) && file.access(self$design$sim_prm$synthpop_dir, mode = 2) == -1L)
-         stop("You don't have write access to the synthpop folder. Please change the permissions or the path.")
-
-        # NOTE code below is duplicated in Synthpop class. This is intentional
-        private$create_new_folder(self$design$sim_prm$synthpop_dir, self$design$sim_prm$logs)
+        # Create folders if don't exist (necessary for when output_dir in the
+        # design.yaml is changed between scenarios i.e.)
+        private$create_output_folder_structure()
 
 
+        # TODO better logic as this is always true for the non baseline scenario
         if (any(file.exists( # TODO fix when lifecourse is not saved
           file.path(
             self$design$sim_prm$output_dir,
             "lifecourse",
-            paste0(mc, "_lifecourse.cs")
+            paste0(mc, "_lifecourse.csv.gz")
           )
         ))) {
           # stop("Results from a previous simulation exists in the output
           #      folder. Please remove them before run a new one.")
           message(
-            "Results from a previous simulation exists in the output folder. Please remove them if this was unintentional."
+            "Results from a previous simulation exists in the output folder. This is usually results from a previous scenario. Please remove them if this was unintentional."
           )
         }
 
@@ -808,15 +769,35 @@ Simulation <-
           message("This function is only available in Linux.")
         invisible(self)
       },
+
+      # allow_universal_synthpop_folder_access ----
+
+      #' @description Make synthpop folder available to all users (Linux specific).
+      #' @return The invisible self for chaining.
+      allow_universal_synthpop_folder_access = function() {
+        if (Sys.info()["sysname"] == "Linux") system2("chmod", paste0("ugo+rwx ", self$design$sim_prm$synthpop_dir)) else
+          message("This function is only available in Linux.")
+        invisible(self)
+      },
       
       # update_output_path ----
 
-      #' @description Updates the output path.
-      #' @param new_path A string with the new output path (absolute).
+      #' @description Updates the output path. 
+      #' @param new_path A string with the new output path (absolute). 
+      #' @param carry_over_lifecourse_files_path A string with a previous output
+      #' path (absolute) from which the lifecourse files will be copied to the
+      #' new output folder defined in new_path argument. Overwritting is not
+      #' allowed. If missing, no copy occurs.
       #' @return The invisible self for chaining.
-      update_output_path = function(new_path) {
+      update_output_path = function(new_path, carry_over_lifecourse_files_path) {
         if (!is.character(new_path)) stop("new_path needs to be a string.")
+        if (!missing(carry_over_lifecourse_files_path) && !is.character(carry_over_lifecourse_files_path)) stop("carry_over_lifecourse_files_path needs to be a string.")
+        if (!missing(carry_over_lifecourse_files_path) && !dir.exists(carry_over_lifecourse_files_path)) stop("Folder defined with carry_over_lifecourse_files_path does not exist.")
+
+        if (!missing(carry_over_lifecourse_files_path)) fl <- list.files(file.path(carry_over_lifecourse_files_path, "lifecourse"), pattern = "lifecourse", full.names = TRUE)
         self$design$sim_prm$output_dir <- new_path
+        private$create_output_folder_structure()
+        if (!missing(carry_over_lifecourse_files_path)) file.copy(fl, file.path(self$design$sim_prm$output_dir, "lifecourse"))
         invisible(self)
       },
 
@@ -1639,12 +1620,40 @@ Simulation <-
       # @description Create folder if doesn't exist. Stops on failure.
       # @param sDirPathName String folder path and name.
       # @param bReport Bool report folder creation.
-      create_new_folder = function(sDirPathName,bReport) {
+      create_new_folder = function(sDirPathName, bReport) {
         if (!dir.exists(sDirPathName)) {
-          bSuccess <- dir.create(sDirPathName, recursive=TRUE)
-          if (!bSuccess) stop (paste("Failed creating directory",sDirPathName))
-          if (bReport) message(paste0("Folder ",sDirPathName," was created"))
+          bSuccess <- dir.create(sDirPathName, recursive = TRUE)
+          if (!bSuccess) stop (paste("Failed creating directory", sDirPathName))
+          if (bReport) message(paste0("Folder ",sDirPathName, " was created"))
         }
+      },
+
+      # create_output_folder_structure ----
+      # Create output folder structure
+      create_output_folder_structure = function() {
+        if (self$design$sim_prm$logs) message("Creating output subfolders.")
+        if (file.exists(self$design$sim_prm$output_dir) && file.access(self$design$sim_prm$output_dir, mode = 2) == -1L) {
+          stop("You don't have write access to the output folder. Please change the permissions or the path. If you are using Linux you can use i.e. IMPACTncd$allow_universal_output_folder_access() to allow write access to the output folder.")
+        }
+        if (file.exists(self$design$sim_prm$synthpop_dir) && file.access(self$design$sim_prm$synthpop_dir, mode = 2) == -1L) {
+          stop("You don't have write access to the synthpop folder. Please change the permissions or the path.  If you are using Linux you can use i.e. IMPACTncd$allow_universal_synthpop_folder_access() to allow write access to the synthpop folder.")
+        }
+        private$create_new_folder(self$design$sim_prm$output_dir, self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("summaries/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("tables/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("plots/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("lifecourse/"), self$design$sim_prm$logs)
+        if (self$design$sim_prm$export_PARF) {
+           private$create_new_folder(private$output_dir("parf/"), self$design$sim_prm$logs)
+        }
+        if (self$design$sim_prm$export_xps) {
+           private$create_new_folder(private$output_dir("xps/"), self$design$sim_prm$logs)
+        }
+        if (self$design$sim_prm$logs) {
+           private$create_new_folder(private$output_dir("logs/"), self$design$sim_prm$logs)
+        }
+        # NOTE code below is duplicated in Synthpop class. This is intentional
+        private$create_new_folder(self$design$sim_prm$synthpop_dir, self$design$sim_prm$logs)
       }
     )
   )
