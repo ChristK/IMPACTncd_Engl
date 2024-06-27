@@ -4,7 +4,7 @@ outcome: t2dm
 lag: 4
 distribution: lognormal
 source: GBD 2019.
-notes: MET mins/week (in hundreads. I.e. 6 is 600 MET min / week).
+notes: MET mins/week (in hundreds. I.e. 6 is 600 MET min / week).
 apply_rr_extra_fn: >
   function(sp) {
     if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
