@@ -158,12 +158,27 @@ IMPACTncd$
 
 Again, we update `primary_prevention_scn`. We start by selecting the patient ids (`pid`) from the population who do no physical activity (`active_days_curr_xps` = 0) in the years greater than or equal to sc_year, and save this as tt. Then we use rbinom to randomly select 10% of these people for whom we will increase physical activity (`active_days_curr_xps`) to 1. We also need to update the `met_curr_xps` (MET ( metabolic equivalent) minutes (in hundreds) per week) variable to reflect the new level of physical activity. We do this using a set formula. 
 
+Because we are using random sampling, we want to set a seed to ensure that when can replicate our analyses. IMPACTncd uses random numbers in various ways, so to ensure we don't change the random numbers for other processes, we temporarily store any pre-set seeds and return the seed to this value at the end.
+
 
 ```{r, sc3, eval = FALSE}
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     change_10pc <- 0.1
     sc_year <- 23L
+    if (exists(".Random.seed", .GlobalEnv)) { # save rng state
+      oldseed <- .GlobalEnv$.Random.seed
+    } else {
+      oldseed <- NULL
+    }
+    set.seed(545390654 + sp$mc) # http://www.cookbook-r.com/Numbers/Saving_the_state_of_the_random_number_generator/
+    on.exit({if (!is.null(oldseed)) { # restore rng state
+      .GlobalEnv$.Random.seed <- oldseed
+    } else {
+      rm(".Random.seed", envir = .GlobalEnv)
+    }
+    }
+    )
     tt <- sp$pop[year >= sc_year & active_days_curr_xps == 0, .(unique(pid))]
     tt <- tt[as.logical(rbinom(.N, 1, abs(change_10pc))), V1]
     sp$pop[pid %in% tt & year >= sc_year, `:=` (
@@ -189,6 +204,8 @@ IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     change_10pc <- 0.1
     sc_year <- 23L
+
+    # BMI
     sp$pop[year >= sc_year, bmi_curr_xps := bmi_curr_xps * (1 - change_10pc)]
 
     # Fr & vg
@@ -196,6 +213,19 @@ IMPACTncd$update_primary_prevention_scn(
     sp$pop[year >= sc_year, veg_curr_xps := as.integer(round(veg_curr_xps * (1 + change_10pc)))]
 
     # Physical activity
+        if (exists(".Random.seed", .GlobalEnv)) { # save rng state
+      oldseed <- .GlobalEnv$.Random.seed
+    } else {
+      oldseed <- NULL
+    }
+    set.seed(545390654 + sp$mc_aggr) # http://www.cookbook-r.com/Numbers/Saving_the_state_of_the_random_number_generator/
+    on.exit({if (!is.null(oldseed)) { # restore rng state
+      .GlobalEnv$.Random.seed <- oldseed
+    } else {
+      rm(".Random.seed", envir = .GlobalEnv)
+    }
+    }
+    )
     tt <- sp$pop[year >= sc_year & active_days_curr_xps == 0, .(unique(pid))]
     tt <- tt[as.logical(rbinom(.N, 1, abs(change_10pc))), V1]
     sp$pop[pid %in% tt & year >= sc_year, `:=` (
