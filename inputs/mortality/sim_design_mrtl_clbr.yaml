@@ -1,6 +1,6 @@
-iteration_n: 15
-iteration_n_final: 100
-clusternumber: 15 # explicit parallelisation
+locality: England # See cols "LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM" ./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst for area names
+clusternumber: 10 # explicit parallelisation
+clusternumber_export: 10 # NEW: number of clusters for export_summaries
 logs: no
 export_xps: no
 keep_lifecourse: yes
@@ -14,6 +14,9 @@ ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
 model_trends_in_residual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
+avoid_appending_csv: yes #  Do not append on existing .csv. Rather, write separately and join later. To bypass problems with Docker on Windows
+calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population projections if no. Calibrate to population projections by Local Authority District if yes. For smaller than national localities, it is forced to yes and the user setting is ignored
+
 maxlag: 10
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
@@ -28,6 +31,23 @@ max_prvl_for_outputs: 2 # duration 1 is incidence and 2 is prevalence
 iteration_n_max: 1000
 output_dir: /mnt/storage_fast/output/hf_real_mrtl_clbr
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
+
+simulation_files_overwrite: no # yes for overwrite
+sTag: 'v0.0.5'
+bOverwriteFilesOnDeploy: no # yes for overwrite
+RootDirPath: ~/My_Models/IMPACTncd_Engl/
+sToken: ~ # NULL
+uncertainty: # Note that uncertainties are independent
+  incidence:
+    upper: 0.05 # i.e. incd * ( 1 + 0.02)
+    lower: -0.05 # i.e. incd * ( 1 - 0.02)
+  prevalence:
+    upper: 0.05 # i.e. init prvl * ( 1 + 0.02)
+    lower: -0.05 # i.e. init prvl * ( 1 - 0.02)
+  mortality:
+    upper: 0.05 # i.e. mrtl * ( 1 + 0.02)
+    lower: -0.05 # i.e. mrtl * ( 1 - 0.02)
+
 # synthpop_dir: c:/synthpop
 diseases:
 - name: obesity
@@ -663,6 +683,7 @@ strata_for_output:
 - agegrp
 - sex
 - dimd
+- LAD17CD
 # - ethnicity
 # - sha
 exposures:
