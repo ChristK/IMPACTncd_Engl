@@ -9,19 +9,32 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+#### Setting the working directory 
+
+Whether using IMPACTncdEngl in Rstudio or in a terminal, we need to ensure that the working directory is set to where the model is downloaded. 
+
+If using Rstudio, we would recommend setting up a project for IMPACTncd in the directory where you have downloaded the model. Instructions on how to start a new project in an existing directory are available [here](https://bookdown.org/introrbook/intro2r/files-and-projects.html#:~:text=3.2.2)
+The model should then always be run from within this project when using Rstudio.  
+
+If running the model in the terminal, you will need to set the working directory to where you saved the downloaded IMPACTncd. To run R code in the terminal, type `R` and press enter
+
+#### How to run the model 
+
 Two main files are used to run IMPACTncdEngl: 
 
 - `simulation.R `- deploys assets, sets the parameters for the baseline and alternative scenarios, including number of iterations to be run. 
 
 - `sim_design.yaml` - sets the overall parameters for deploying assets in the local system, the simulation, including the location to store outputs, the characteristics and size of the synthetic population to be simulated, and some computing specifications (e.g. number of processors, compiling of files etc.)
 
-The steps to follow for running the simulation is as shown below -
+The steps to follow for running the simulation are as shown below - 
 
 1. Open `simulation.R` run the `global.R` file using the code
 
 ```{r, run-global-r, eval = FALSE}
 source("global.R")
 ```
+
+NB: Depending on your system setup, you may get an error indicating that `pandoc` is not installed. If so, please follow the pandoc installation instructions [here](https://pandoc.org/installing.html). 
 
 2. To install certain large data files that are necessary for the simulation, stored as GitHub repo assets. A design file `inputs/sim_design.yaml` holds details that ease asset installation. Open `inputs/sim_design.yaml` with any text editor. There are a few parameters to check and/or change in the configuration of this file:
 
@@ -38,7 +51,7 @@ source("global.R")
 - `sTag` is the version of the assets latest being v0.0.5 (as of March 2024)
 - `bOverwriteFilesOnDeploy` is an option to overwrite existing files, which will either be `no` or `yes` 
 - `RootDirectory` is an absolute path in your system, i.e., *C:/IMPACTncd_Engl* on Windows, or */IMPACTncd_Engl* on Linux. This path should be the root directory where the model will be deployed. You need at least 25 GB of free disk available
-- `sToken` should be the specific GitHub token for this project (ensure your system is protected as this token should be private) else we can keep it as NULL as this will use the token generated in the installation document [here](https://github.com/adithirgis/IMPACTncd_Engl?tab=readme-ov-file#opening-a-github-account).
+- `sToken` should be the specific GitHub token for this project (ensure your system is protected as this token should be private) else we can keep it as NULL as this will use the token generated in the git installation document [here](https://github.com/ChristK/IMPACTncd_Engl/blob/main/installation_docs/installing_git.md#setting-a-personal-access-token).
 
 *All other parameters in the YAML file can be unchanged for day-to-day use and are only to be used by developers and advanced users.*
 
