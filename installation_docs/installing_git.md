@@ -104,6 +104,16 @@ Installation steps for :
 ![](img/Git_18.jpeg)
 
 
+### Steps to install Git on Linux (Ubuntu) 
+
+1. Run these commands in the terminal 
+
+```{r}
+$ sudo apt-get update 
+$ sudo apt-get install git-all
+$ git version
+```
+
 
 #### Opening a Github account
 
@@ -112,9 +122,11 @@ Installation steps for :
 ![](img/Github_2.jpeg)
 
 
-2. Select **Continue** and select **Continue for Free** 
+2. Select **Continue** and select **Continue for Free**
 
-3. After this we will need a **Personal Access Token** (like a password) to use github resources. To create a PAT follow these steps in RStudio console [(reference)](https://happygitwithr.com/https-pat): 
+#### Setting a Personal Access Token
+
+Once Git is installed and you have a Github account, we will need a **Personal Access Token** (like a password) to use github resources. To create a PAT follow these steps in RStudio console [(reference)](https://happygitwithr.com/https-pat): 
   - In RStudio console, typing `usethis::create_github_token()`, will open this [link](https://github.com/settings/tokens) -> Generate new token
   
  ![](img/Github_5.jpeg)
@@ -130,12 +142,3 @@ Installation steps for :
  - In Linux this PAT is stored temporarily and hence when installing assets we recommend setting your Linux PAT using `gitcreds::gitcreds_set()`
 
 
-### Steps to install Git on Linux (Ubuntu) 
-
-1. Run these commands in the terminal 
-
-```{r}
-$ sudo apt-get update 
-$ sudo apt-get install git-all
-$ git version
-```
