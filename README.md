@@ -45,6 +45,8 @@ The IMPACTncd_Engl model is written primarily in, and so requires installation o
 
 IMPACTncd_Engl is installed directly from GitHub, after which a model-specific configuration is set. With multiple configurations, different policy scenarios may be tested on the same server. 
 
+As the installation requires downloading numerous files from GitHub, you will need a Personal Access Token. Instructions [here](https://github.com/ChristK/IMPACTncd_Engl/blob/main/installation_docs/installing_git.md#setting-a-personal-access-token) 
+
 ### Download without GitHub
 
 ##### To install and run IMPACTncd_Engl we need to install R on [Windows](installation_docs/installing_R_on_windows.md) / [Linux](installation_docs/installing_R_on_linux.md); and [rtools](installation_docs/installing_rtools_on_windows.md) (only for Windows) before these following steps
