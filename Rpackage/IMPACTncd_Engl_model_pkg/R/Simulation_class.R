@@ -1207,32 +1207,69 @@ Simulation <-
           # fwrite_safe(lc[cms_count == 1L, .("popsize" = (.N), HLE = mean(age)),
           #                keyby = strata_noagegrp],
           #             private$output_dir(paste0("summaries/", "hle_1st_cond_out", ext)))
-          fwrite_safe(lc[cms_count == 1L | (cms_count == 0L & all_cause_mrtl > 0),
-                         .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
-                         keyby = strata_noagegrp],
+          # fwrite_safe(lc[cms_count == 1L | (cms_count == 0L & all_cause_mrtl > 0),
+          #                .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
+          #                keyby = strata_noagegrp],
+          #             private$output_dir(paste0(
+          #               "summaries/", mcaggr, "hle_old_1st_cond_scaled_up", ext
+          #             )))
+          # fwrite_safe(lc[cms_count == 1L | (cms_count == 0L & all_cause_mrtl > 0),
+          #                .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
+          #                keyby = strata_noagegrp],
+          #             private$output_dir(paste0("summaries/", mcaggr, "hle_old_1st_cond_esp", ext
+          #             )))
+
+          # # fwrite_safe(lc[cmsmm1.5_prvl == 1L, .("popsize" = (.N), HLE = mean(age)),
+          # #                keyby = strata_noagegrp],
+          # #             private$output_dir(paste0("summaries/", "hle_cmsmm1.5_out", ext)))
+          # fwrite_safe(lc[cmsmm1.5_prvl == 1L | (cmsmm1.5_prvl == 0L & all_cause_mrtl > 0),
+          #                .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
+          #                keyby = strata_noagegrp],
+          #             private$output_dir(paste0(
+          #               "summaries/", mcaggr, "hle_old_cmsmm1.5_scaled_up", ext
+          #             )))
+          # fwrite_safe(lc[cmsmm1.5_prvl == 1L | (cmsmm1.5_prvl == 0L & all_cause_mrtl > 0),
+          #                .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
+          #                keyby = strata_noagegrp],
+          #             private$output_dir(paste0("summaries/", mcaggr, "hle_old_cmsmm1.5_esp", ext
+          #             )))
+
+                    fwrite_safe(
+                      lc[cms_count == 0L,
+                        .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
+                        keyby = strata_noagegrp
+                      ],
                       private$output_dir(paste0(
                         "summaries/", mcaggr, "hle_1st_cond_scaled_up", ext
-                      )))
-          fwrite_safe(lc[cms_count == 1L | (cms_count == 0L & all_cause_mrtl > 0),
-                         .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
-                         keyby = strata_noagegrp],
-                      private$output_dir(paste0("summaries/", mcaggr, "hle_1st_cond_esp", ext
-                      )))
+                      ))
+                    )
+                    fwrite_safe(
+                      lc[cms_count == 0L,
+                        .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
+                        keyby = strata_noagegrp
+                      ],
+                      private$output_dir(paste0("summaries/", mcaggr, "hle_1st_cond_esp", ext))
+                    )
 
-          # fwrite_safe(lc[cmsmm1.5_prvl == 1L, .("popsize" = (.N), HLE = mean(age)),
-          #                keyby = strata_noagegrp],
-          #             private$output_dir(paste0("summaries/", "hle_cmsmm1.5_out", ext)))
-          fwrite_safe(lc[cmsmm1.5_prvl == 1L | (cms_count == 0L & all_cause_mrtl > 0),
-                         .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
-                         keyby = strata_noagegrp],
+                    # fwrite_safe(lc[cmsmm1.5_prvl == 1L, .("popsize" = (.N), HLE = mean(age)),
+                    #                keyby = strata_noagegrp],
+                    #             private$output_dir(paste0("summaries/", "hle_cmsmm1.5_out", ext)))
+                    fwrite_safe(
+                      lc[cmsmm1.5_prvl == 0L,
+                        .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
+                        keyby = strata_noagegrp
+                      ],
                       private$output_dir(paste0(
                         "summaries/", mcaggr, "hle_cmsmm1.5_scaled_up", ext
-                      )))
-          fwrite_safe(lc[cmsmm1.5_prvl == 1L | (cms_count == 0L & all_cause_mrtl > 0),
-                         .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
-                         keyby = strata_noagegrp],
-                      private$output_dir(paste0("summaries/", mcaggr, "hle_cmsmm1.5_esp", ext
-                      )))
+                      ))
+                    )
+                    fwrite_safe(
+                      lc[cmsmm1.5_prvl == 0L,
+                        .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
+                        keyby = strata_noagegrp
+                      ],
+                      private$output_dir(paste0("summaries/", mcaggr, "hle_cmsmm1.5_esp", ext))
+                    )
         }
 
         # Disease characteristics----
