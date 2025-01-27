@@ -143,7 +143,7 @@ The invisible self for chaining.
 \if{html}{\out{<a id="method-SynthPop-update_pop_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-SynthPop-update_pop_weights}{}}}
 \subsection{Method \code{update_pop_weights()}}{
-Updates the wt_immrtl to account for mortality in baseline scenario.
+Updates the wt to reflect population change.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SynthPop$update_pop_weights(scenario_nam = "sc0")}\if{html}{\out{</div>}}
 }
