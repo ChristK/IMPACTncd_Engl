@@ -122,10 +122,13 @@ Disease <-
         private$dgns_colnam  <- paste0("prb_", self$name, "_dgns")
         private$mrtl_colnam2 <- paste0("prb_", self$name, "_mrtl2") # Only for mrtl 2
 
+        # TODO add logic to avoid recalculating parf files if years/ages are
+        # already included in the existing parf files. I.e. when horizon goes
+        # from 2043 to 2040.
         private$chksum <-
           digest(list(
-            design_$sim_prm[c("init_year", "ageL", "ageH", "apply_RR_to_mrtl2",
-                              "model_trends_in_redidual_incd")],
+            design_$sim_prm[c("init_year", "sim_horizon_max", "ageL", "ageH", 
+                              "apply_RR_to_mrtl2", "model_trends_in_residual_incd")],
             lapply(private$rr, function(x)
               x$get_input_rr()),
             lapply(private$rr, `[[`, "lag"),
@@ -202,10 +205,18 @@ Disease <-
         private$UpdateDiseaseSnapshotIfInvalid(TRUE, function() self$del_parf_file())
         if (file.exists(private$parf_filenam)) return(NULL) # nothing to do
 
-        tmpfile <- file.path(private$parf_dir,
-                             paste0("PARF_", self$name, "_", digest(sort(
-                               sapply(private$rr, `[[`, "name")
-                             )), ".qs"))
+        tmpfile <- file.path(
+          private$parf_dir,
+          paste0("PARF_", self$name, "_", digest(
+            list(
+              lapply(private$rr, function(x) {
+                x$get_input_rr()
+              }),
+              lapply(private$rr, `[[`, "lag"),
+              lapply(private$rr, `[[`, "distribution")
+            )
+          ), ".qs")
+        )
 
         if (file.exists(tmpfile)) {
           if (design_$sim_prm$logs) message("Reading file from cache.")
@@ -356,7 +367,7 @@ Disease <-
         if (sum(dim(private$incd_indx)) > 0) {
           if (design_$sim_prm$logs) message("Estimating p0.")
 
-          if (design_$sim_prm$model_trends_in_redidual_incd) {
+          if (design_$sim_prm$model_trends_in_residual_incd) {
             # TODO calculate PARF per year. Now it is assumed static as in init year
             yrs <- seq(
               design_$sim_prm$init_year,

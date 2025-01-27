@@ -8,11 +8,11 @@ export_PARF: no
 'n': 100000 # number of individuals in simulation
 n_synthpop_aggregation: 2 # number of synthpops to aggregate together (avoid values above 20) 
 init_year_long: 2013 # 2008 to 2020, but be careful with max lags
-sim_horizon_max: 2040 # population projections do not support longer horizon 
+sim_horizon_max: 2043 # population projections do not support longer horizon 
 ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE: it affects nonmodelled as well
-model_trends_in_redidual_incd: no # Model trends in non-attributable incidence? (NOTE: implementation needs further refinement)
+model_trends_in_residual_incd: no # Model trends in non-attributable incidence? (NOTE: implementation needs further refinement)
 avoid_appending_csv: yes #  Do not append on existing .csv. Rather, write separately and join later. To bypass problems with Docker on Windows
 maxlag: 10
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
@@ -672,6 +672,7 @@ cols_for_output:
 - dimd
 - ethnicity
 - sha
+- LAD17CD
 - wt
 - wt_esp
 strata_for_output:
