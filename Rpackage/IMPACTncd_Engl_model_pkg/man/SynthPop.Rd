@@ -143,7 +143,7 @@ The invisible self for chaining.
 \if{html}{\out{<a id="method-SynthPop-update_pop_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-SynthPop-update_pop_weights}{}}}
 \subsection{Method \code{update_pop_weights()}}{
-Updates the wt_immrtl to account for mortality in baseline scenario.
+Updates the wt to reflect population change.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SynthPop$update_pop_weights(scenario_nam = "sc0")}\if{html}{\out{</div>}}
 }
@@ -323,7 +323,7 @@ The invisible \code{SynthPop} object.
 \subsection{Method \code{gen_synthpop_demog()}}{
 Generate synthpop sociodemographics for a random sample of the population in the initial year.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SynthPop$gen_synthpop_demog(design_, month = "April")}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SynthPop$gen_synthpop_demog(design_, month = "July")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{

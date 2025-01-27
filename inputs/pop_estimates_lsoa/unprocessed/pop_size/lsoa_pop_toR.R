@@ -389,7 +389,7 @@ write_fst(lsoa_pop, "./inputs/pop_estimates_lsoa/LSOA_mid_year_population_estima
 nat <- lsoa_pop[, lapply(.SD, sum), keyby = .(year, sex), .SDcols = as.character(0:100)]
 nat <- melt(nat, c("year", "sex"), variable.name = "age", value.name = "pops")
 nat[, age := as.character(as.integer(age))]
-write_fst(nat, "./inputs/pop_estimates_lsoa/national_mid_year_population_estimates.fst", 100)
+# write_fst(nat, "./inputs/pop_estimates_lsoa/national_mid_year_population_estimates.fst", 100)
 
 # Convert from mid-year (1st-2nd July) to 1st of April (3 months)
 foo <- function(x) {

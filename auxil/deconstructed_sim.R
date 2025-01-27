@@ -1,5 +1,6 @@
 source("./global.R")
-design <- Design$new("./inputs/sim_design.yaml")
+design <- Design$new("./inputs/sim_design_NotinghamICS.yaml")
+
 # RR ----
 # Create a named list of Exposure objects for the files in ./inputs/RR
 fl <- list.files(path = "./inputs/RR", pattern = ".csvy$", full.names = TRUE)
@@ -63,9 +64,12 @@ mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
 
 # sim <- SynthPop$new(0L, design)
 # sim$write_synthpop(1:500)
-# sim$delete_synthpop(NULL)
+# sim$delete_synthpop(1L)
 # ll <- sim$gen_synthpop_demog(design)
 sp <- SynthPop$new(1L, design)
+
+sp$update_pop_weights()
+sp$pop[year == 13L, sum(wt)]
 
 e <- read_fst("./inputs/mortality/mrtl_clb.fst", as.data.table = TRUE) # mortality calibration
 lookup_dt(sp$pop, e,
@@ -75,6 +79,8 @@ rm(e)
 
 # self <- sp$.__enclos_env__$self
 # private <- sp$.__enclos_env__$private
+# self <- IMPACTncd$.__enclos_env__$self
+# private <- IMPACTncd$.__enclos_env__$private
 # dt <- copy(sp$pop)
 
 # diseases$ckd$gen_parf(sp, design)
@@ -571,3 +577,31 @@ lapply(f, function(x) {
     fwrite(l, x)
     NULL
 })
+
+
+lc <- fread("/mnt/storage_fast4/output/hf_real_elasticities/sbp_parf/lifecourse/2_lifecourse.csv.gz")
+nm <- grep("_prvl$", names(lc), value = TRUE)
+out <- data.table(year = 13:43)
+for (i in nm) {
+    tt <- lc[get(i) == 1L, .N, keyby = year]
+    setnames(tt, "N", i)
+    absorb_dt(out, tt)
+}
+out[]
+
+lc <- fread("/mnt/storage_fast4/output/hf_real_elasticities/sbp_parf/lifecourse/_lifecourse.csv.gz")
+dcast(lc[year >= 23L & cmsmm1.5_prvl == 1L,
+    .(HLE = weighted.mean(age, wt)),
+    keyby = .(year, scenario)
+], year ~ scenario, value.var = "HLE")[, sbp_parf - sc0]
+dcast(lc[year >= 23L & (cmsmm1.5_prvl == 1L | (cmsmm1.5_prvl == 0L & all_cause_mrtl > 0)),
+    .(HLE = weighted.mean(age, wt)),
+    keyby = .(year, scenario)
+], year~scenario, value.var = "HLE")[, sbp_parf - sc0]
+dcast(lc[year >= 23L & cmsmm1.5_prvl == 0L,
+    .(HLE = weighted.mean(age, wt)),
+    keyby = .(year, scenario)
+], year~scenario, value.var = "HLE")[, sbp_parf - sc0]
+
+le <- lc[all_cause_mrtl > 0, .("popsize" = sum(wt), LE = weighted.mean(age, wt)), keyby = .(year, scenario)]
+dur <- lc[cmsmm1.5_prvl > 0L, .("popsize" = sum(wt), LE = weighted.mean(cmsmm1.5_prvl, wt)), keyby = .(year, scenario)] # bias because of dur at init year all set to 1
