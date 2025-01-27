@@ -13,7 +13,7 @@ sim_horizon_max: 2023 # population projections do not support longer horizon
 ageL: 30
 ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE it affects nonmodelled as well
-model_trends_in_redidual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
+model_trends_in_residual_incd: no # Model trends in non attributable incidence? (NOTE implementation needs further refinement)
 maxlag: 10
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
