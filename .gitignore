@@ -54,3 +54,4 @@ auxil/lifecourse_recalibration.R
 /debugging_info/
 /documents/
 inputs/sim_design_elast.yaml
+docker_setup/.env
