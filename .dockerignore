@@ -1,0 +1,11 @@
+# Exclude folders named secure_data and docker_setup
+.history/
+.Rproj.user/
+.vscode/
+auxil/
+debugging_info/
+secure_data/
+docker_setup/
+documents/
+validation/
+validation_internal/

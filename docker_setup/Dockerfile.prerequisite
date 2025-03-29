@@ -1,0 +1,29 @@
+FROM rocker/r-ver:4.4.3
+
+LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>"
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Copy R package list early to improve layer caching
+COPY r-packages.txt /tmp/r-packages.txt
+
+# Copy apt package list early to improve layer caching
+COPY apt-packages.txt /tmp/apt-packages.txt
+
+# System packages pinned as of 2025-03-21 for reproducibility
+# get version of packages ie for libicu-dev  with 
+# docker run --rm -it rocker/r-ver:4.4.3 bash -c "apt-get update -qq && apt-cache policy libicu-dev"
+RUN apt-get update -qq && \
+  xargs -a /tmp/apt-packages.txt apt-get install -y --no-install-recommends && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
+
+# Repo frozen on March 21, 2025. See https://packagemanager.posit.co/client/#/repos/cran/setup?distribution=ubuntu-24.04&r_environment=other&snapshot=2025-03-21
+RUN install2.r -s \
+  -r "https://packagemanager.posit.co/cran/__linux__/noble/2025-03-21" \
+  -n $(nproc) \
+  $(grep -v '^#' /tmp/r-packages.txt)
+
+# RUN installGithub.r "ChristK/CKutils@main"
+RUN installGithub.r "ChristK/CKutils@86d00357ab4614208f3e141b7e478fa80e36e508" # the HEAD as of 21/03/2025
+
+# docker run -it --name my_new_container chriskypri/impactncd-r-prerequisite /bin/bash
