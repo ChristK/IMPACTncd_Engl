@@ -12,7 +12,7 @@
 # - shinydashboard
 # - shinyBS
 # - bsplus # from https://ijlyttle.github.io/bsplus/index.html
-- shinythemes
+# - shinythemes
 # - shinyjs
 # - shinyWidgets # http://shinyapps.dreamrs.fr/shinyWidgets/
 # - DT
