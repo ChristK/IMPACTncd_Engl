@@ -1,45 +1,50 @@
 Package: IMPACTncdEngl
 Type: Package
-Title: Utility Functions for IMPACTncdEngl Model
-Version: 0.0.2
-Date: 2022-04-14
-Author: Chris Kypridemos
+Title: Simulation Framework for Public Health Impact Modeling in England
+Version: 0.0.3
+Date: 2025-03-29
+Authors@R: 
+    person("Chris", "Kypridemos", , "christodoulosk@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0746-9229"))
 Maintainer: Chris Kypridemos <christodoulosk@gmail.com>
-Description: This package contains the functions that are necessary for IMPACTncdEngl model. 
+Description: 
+  A simulation framework for evaluating public health policies and interventions in England using 
+  synthetic populations, disease progression models, and Monte Carlo methods. This package supports 
+  scenario-based modelling and integrates data management, exposure simulation, and visualization tools 
+  tailored to the IMPACTncd_Engl model.
 License: GPL (>=3)
 Encoding: UTF-8
+URL: https://github.com/ChristK/IMPACTncd_Engl
+BugReports: https://github.com/ChristK/IMPACTncd_Engl/issues
 LazyData: true
 NeedsCompilation: yes
 Byte-Compile: yes
 Roxygen: list(markdown = TRUE, r6 = TRUE)
 Imports: 
-    Rcpp (>= 1.0.2),
-    data.table (>= 1.14.0),
-    fst (>= 0.9.0),
-    dqrng,
-    CKutils,
-    gamlss,
-    cowplot,
-    mc2d,
-    digest,
-    R6,
-    yaml,
-    shinythemes,
-    foreach,
     BH,
-    igraph,
+    CKutils,
+    R6,
+    Rcpp (>= 1.0.2),
+    cowplot,
+    data.table (>= 1.14.0),
+    digest,
+    dqrng,
+    foreach,
+    fst (>= 0.9.0),
+    gamlss,
     gh,
-    piggyback (>= 0.1.5),
+    igraph,
+    mc2d,
+    parallel,
     parallelly,
-    parallel
+    piggyback (>= 0.1.5),
+    yaml
 Suggests: 
     knitr,
     rmarkdown,
-    roxygen2
-LinkingTo: Rcpp, 
-           dqrng,
-           sitmo,
-           BH,
-           data.table
+    roxygen2, 
+    tinytest
+LinkingTo: Rcpp, dqrng, sitmo, BH, data.table
 RoxygenNote: 7.3.2
 VignetteBuilder: knitr
+Config/tinytest: true

@@ -26,8 +26,8 @@ calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population proj
 simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real/test
-synthpop_dir: /mnt/storage_fast/synthpop/hf_real
+output_dir: ./output
+synthpop_dir: ./synthpop
 simulation_files_overwrite: no # yes for overwrite
 sTag: 'v0.0.5'
 bOverwriteFilesOnDeploy: no # yes for overwrite

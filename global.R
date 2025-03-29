@@ -119,3 +119,6 @@ library(IMPACTncdEngl)
 ## object '.Random.seed' not found
 ####################################################################################
 runif(1)
+
+# roxygen2::roxygenise("./Rpackage/IMPACTncd_Engl_model_pkg/", clean = TRUE)
+  # remotes::install_local("./Rpackage/IMPACTncd_Engl_model_pkg/", build_vignettes = TRUE, force = TRUE, upgrade = "never")
