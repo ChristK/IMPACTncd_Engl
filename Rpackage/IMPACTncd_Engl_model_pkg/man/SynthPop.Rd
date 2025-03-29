@@ -2,29 +2,76 @@
 % Please edit documentation in R/SynthPop_class.R
 \name{SynthPop}
 \alias{SynthPop}
-\title{R6 Class representing a synthetic population}
+\title{SynthPop Class}
 \description{
-A synthpop has a \code{pop} field that contains the life course of simulants in a
-\code{data.table}.
+An R6 class representing a synthetic population in the IMPACTncd simulation framework.
+This class encapsulates synthetic simulants, manages file-based persistence,
+simulates exposures, and adjusts synthetic population weights to match national or local projections.
 }
 \details{
-To be completed...
+The \code{SynthPop} class stores and operates on a synthetic population used for simulation of public health interventions.
+It ensures consistency between simulations by persisting data to disk and using consistent checksums and filenames.
+The synthetic population is composed of individuals (simulants) with simulated life-course data and exposures,
+generated using a design object and stratified sampling.
+
+Key features include:
+\itemize{
+\item Generation of synthetic demographic and exposure data.
+\item Calibration of weights to match national/local population projections.
+\item Modular and parallel generation of population files.
+\item Tools for risk storage, deletion, and validation of synthpop files.
 }
+}
+\section{Public Fields}{
+
+\describe{
+\item{\code{mc}}{Monte Carlo iteration number.}
+\item{\code{mc_aggr}}{Monte Carlo aggregation group.}
+\item{\code{metadata}}{YAML metadata associated with the synthpop.}
+\item{\code{pop}}{A \code{data.table} containing the synthetic population life-course data.}
+}
+}
+
+\section{Public Methods}{
+
+\describe{
+\item{\code{initialize(mc_, design_)}}{Initializes or loads the synthpop.}
+\item{\code{update_design(design_)}}{Updates the internal design object.}
+\item{\code{update_pop_weights(scenario_nam)}}{Adjusts weights for baseline or scenario populations.}
+\item{\code{delete_synthpop(mc_)}}{Deletes synthpop files from disk.}
+\item{\code{delete_incomplete_synthpop()}}{Removes orphaned or incomplete synthpop files.}
+\item{\code{check_integridy()}}{Checks and optionally removes malformed synthpop files.}
+\item{\code{count_synthpop()}}{Reports file counts and size.}
+\item{\code{get_checksum()}}{Returns the checksum of the current synthpop.}
+\item{\code{get_filename()}}{Prints synthpop filenames.}
+\item{\code{get_design()}}{Returns the internal design object.}
+\item{\code{get_dir()}}{Prints the synthpop storage directory.}
+\item{\code{gen_synthpop_demog()}}{Generates baseline sociodemographic structure.}
+\item{\code{write_synthpop(mc_)}}{Generates and writes synthpop files in parallel.}
+\item{\code{get_risks(disease_nam)}}{Returns disease-specific risk tables.}
+\item{\code{store_risks(disease_nam)}}{Stores and removes risk-related columns from \code{pop}.}
+\item{\code{print()}}{Prints summary of synthpop metadata.}
+}
+}
+
+\section{Private Methods}{
+
+Many helper methods support internal logic for data integrity, file generation, risk storage,
+LSOA and LAD resolution, checksum creation, and exposure generation.
+}
+
 \examples{
 
 ## ------------------------------------------------
 ## Method `SynthPop$new`
 ## ------------------------------------------------
 
-design <- Design$new("./validation/design_for_trends_validation.yaml")
-POP$write_synthpop(1:6, design)
-POP <- SynthPop$new(4L, design)
-POP$print()
-POP$count_synthpop()
-
-POP$delete_synthpop(1L)
-POP$delete_synthpop(5:6)
-POP$get_filename()
+design <- Design$new("inputs/sim_design.yaml")
+sp <- SynthPop$new(1, design)
+sp$print()
+}
+\seealso{
+\code{\link[R6]{R6Class}}, \code{\link[yaml]{read_yaml}}, \code{\link[fst]{read_fst}}, \code{\link[data.table]{data.table}}#'
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -33,7 +80,7 @@ POP$get_filename()
 integer generates a unique synthetic population.}
 
 \item{\code{mc_aggr}}{The Monte Carlo iteration of the synthetic population to
-be used when multiple synthetic populations getting aggregated.It
+be used when multiple synthetic populations getting aggregated. It
 ensures correct seeds for the RNGs during the simulation for the RRs
 and the lags.}
 
@@ -41,7 +88,8 @@ and the lags.}
 
 \item{\code{pop}}{The data.table that contains the life-course of simulants.
 If the file exists, it is loaded from disk. If it doesn't, it is
-first generated, then saved to disk, and then loaded from disk.}
+first generated, then saved to disk, and then loaded from disk.
+Initialize SynthPop Object}
 }
 \if{html}{\out{</div>}}
 }
@@ -71,12 +119,11 @@ first generated, then saved to disk, and then loaded from disk.}
 \if{html}{\out{<a id="method-SynthPop-new"></a>}}
 \if{latex}{\out{\hypertarget{method-SynthPop-new}{}}}
 \subsection{Method \code{new()}}{
-Create a new SynthPop object.
-If a synthpop file in \code{\link[fst]{fst-package}} format already
-exists, then the synthpop is loaded from there. Otherwise it is
-generated from scratch and then saved as \code{filename} in
-\code{\link[fst]{fst-package}} format. Two additional files are saved
-for each 'synthpop'. A metadata file, and an index file.
+Constructs a \code{SynthPop} object for a specified Monte Carlo iteration using a given \code{Design} object.
+If the corresponding synthpop files already exist on disk, they are loaded.
+If not, the synthetic population is generated from scratch, saved, and then loaded.
+
+This method ensures reproducibility and safe concurrent execution via deterministic filenames and file checks.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SynthPop$new(mc_, design_)}\if{html}{\out{</div>}}
 }
@@ -84,35 +131,20 @@ for each 'synthpop'. A metadata file, and an index file.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{mc_}}{The Monte Carlo iteration of the synthetic population. Each
-integer generates a unique synthetic population. If \code{mc = 0} an
-object with an empty synthpop is initiated.}
+\item{\code{mc_}}{Integer. The Monte Carlo iteration number (≥ 0). If set to 0, initializes an empty synthpop object.}
 
-\item{\code{design_}}{A \code{\link[IMPACTncdEngl]{Design}} object.}
-
-\item{\code{synthpop_dir_}}{The directory where 'SynthPop' objects are stored.
-The synthpop file in \code{\link[fst]{fst-package}} format. If
-\code{filename} already exists, then the synthpop is loaded from there.
-Otherwise it is generated from scratch and then saved as \code{filename}
-in \code{\link[fst]{fst-package}} format. Two additional files are
-saved for each 'synthpop'. A metadata file, and an index file.}
+\item{\code{design_}}{A valid \code{\link{Design}} object containing simulation parameters.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A new \code{SynthPop} object.
+An invisible \code{SynthPop} object.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{design <- Design$new("./validation/design_for_trends_validation.yaml")
-POP$write_synthpop(1:6, design)
-POP <- SynthPop$new(4L, design)
-POP$print()
-POP$count_synthpop()
-
-POP$delete_synthpop(1L)
-POP$delete_synthpop(5:6)
-POP$get_filename()
+\preformatted{design <- Design$new("inputs/sim_design.yaml")
+sp <- SynthPop$new(1, design)
+sp$print()
 }
 \if{html}{\out{</div>}}
 

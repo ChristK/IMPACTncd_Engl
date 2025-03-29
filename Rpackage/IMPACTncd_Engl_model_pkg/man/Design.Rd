@@ -2,21 +2,73 @@
 % Please edit documentation in R/Design_class.R
 \name{Design}
 \alias{Design}
-\title{R6 Class representing a simulation design}
+\title{Design Class}
 \description{
-A design has a sim_prm list that holds the simulation parameters.
-This R6 class represents a simulation design with associated parameters and methods.
+An R6 class representing a simulation design for the IMPACTncd framework.
+This class encapsulates simulation configuration parameters (\code{sim_prm}),
+enforces validation, supports GUI updates, and provides tools for detecting and resolving
+dependency structures among diseases.
 }
 \details{
-To be completed...
+The \code{Design} class is used to initialize and manage the structure of a simulation run.
+It can load simulation parameters from a YAML configuration file or directly from an R list.
+The class performs validation of required fields, sets default values, and computes derived fields
+like initial year and simulation horizon. It also handles the topological ordering of diseases
+based on their dependencies and can detect cyclic relationships using \code{igraph}.
 }
+\section{Initialization}{
+
+The class is initialized with either a file path (YAML) or a list:
+
+\code{
+design <- Design$new("inputs/sim_design.yaml")
+}
+}
+
+\section{Public Fields}{
+
+\describe{
+\item{\code{sim_prm}}{A named list of validated and processed simulation parameters.}
+}
+}
+
+\section{Public Methods}{
+
+\describe{
+\item{\code{initialize(sim_prm)}}{Initializes the object. Accepts a list or path to YAML.}
+\item{\code{save_to_disk(path)}}{Saves the current configuration to disk as a YAML file.}
+\item{\code{update_fromGUI(GUI_prm)}}{Updates the design based on GUI-provided inputs.}
+\item{\code{print()}}{Prints the current design parameters.}
+}
+}
+
+\section{Private Methods}{
+
+\describe{
+\item{\code{detect_cycles(sim_prm)}}{Detects feedback loops in disease dependencies.}
+\item{\code{reorder_diseases(sim_prm)}}{Sorts diseases in topological order based on their dependencies.}
+}
+}
+
 \examples{
 
 ## ------------------------------------------------
 ## Method `Design$new`
 ## ------------------------------------------------
 
-design <- Design$new("./validation/design_for_trends_validation.yaml")
+design <- Design$new("inputs/sim_design.yaml")
+Save Simulation Design to Disk
+
+## ------------------------------------------------
+## Method `Design$save_to_disk`
+## ------------------------------------------------
+
+design <- Design$new("inputs/sim_design.yaml")
+design$save_to_disk("outputs/saved_sim_design.yaml")
+
+}
+\seealso{
+\code{\link[yaml]{read_yaml}}, \code{\link[igraph]{make_graph}}
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -57,7 +109,8 @@ A new \code{Design} object.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{design <- Design$new("./validation/design_for_trends_validation.yaml")
+\preformatted{design <- Design$new("inputs/sim_design.yaml")
+Save Simulation Design to Disk
 }
 \if{html}{\out{</div>}}
 
@@ -68,7 +121,8 @@ A new \code{Design} object.
 \if{html}{\out{<a id="method-Design-save_to_disk"></a>}}
 \if{latex}{\out{\hypertarget{method-Design-save_to_disk}{}}}
 \subsection{Method \code{save_to_disk()}}{
-Create a new design object.
+Serializes the current simulation parameters (\code{sim_prm}) and writes them to a YAML file.
+This can be useful for saving configurations that can later be reloaded or shared.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Design$save_to_disk(path)}\if{html}{\out{</div>}}
 }
@@ -76,14 +130,24 @@ Create a new design object.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{path}}{Path including file name and extension to save a yaml
-file with the simulation parameters.}
+\item{\code{path}}{A character string specifying the full file path (including filename and extension)
+where the simulation design should be saved.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The \code{Design} object.
+The \code{Design} object, invisibly.
 }
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{design <- Design$new("inputs/sim_design.yaml")
+design$save_to_disk("outputs/saved_sim_design.yaml")
+
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Design-update_fromGUI"></a>}}
