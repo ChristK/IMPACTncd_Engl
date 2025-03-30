@@ -162,13 +162,7 @@ Design <-
           normalizePath(sim_prm$synthpop_dir, mustWork = FALSE)
 
         # Reorder the diseases based on dependencies
-        self$reorder_diseases(sim_prm)
-
-        # Detect cycles in the disease graph
-        cycles <- self$detect_cycles(sim_prm)
-        if (sim_prm$logs && length(cycles) > 0) {
-          message("Cycles found: ", cycles)
-        }
+        sim_prm$diseases <- private$reorder_diseases(sim_prm)
 
         # Store the simulation parameters
         self$sim_prm = sim_prm
@@ -245,52 +239,7 @@ Design <-
     # private ------------------------------------------------------------------
     private = list(
       mc_aggr = NA,
-
-      
-      # Detect Cycles in Disease Dependency Graph
-      # @description
-      # Constructs a directed graph based on disease dependencies and searches for cycles.
-      # This is used to detect feedback loops in the disease model, which may indicate modeling errors
-      # or complex feedback needing special handling.
-      # 
-      # @param sim_prm A list of simulation parameters that includes a named list of diseases,
-      # where each disease may list other diseases that influence its incidence.
-      # 
-      # @return A list of cycles found, where each cycle is a sequence of disease names involved in a dependency loop.
-      # If no cycles are found, an empty list is returned.
-      # 
-      # @importFrom igraph make_graph V neighbors all_simple_paths
-      # @keywords internal
-      # detect_cycles ----
-      detect_cycles = function(sim_prm) {
-        out <- vector() # will hold graph structure
-        ds <- names(sim_prm$diseases)
-        
-        for (i in seq_along(ds)) {
-          ds_ <- ds[i]
-          dep <-
-            sim_prm[["diseases"]][[i]][["meta"]][["incidence"]][["influenced_by_disease_name"]]
-          if (length(dep) > 0L) {
-            for (j in seq_along(dep)) {
-              out <- c(out, dep[[j]], ds_)
-            }
-          }
-        }
-        
-        g <- make_graph(out, directed = TRUE)
-        Cycles = NULL
-        for(v1 in V(g)) {
-          for(v2 in neighbors(g, v1, mode="out")) {
-            Cycles = c(Cycles,
-                       lapply(all_simple_paths(g, v2,v1, mode = "out"), function(p) c(v1,p)))
-          }
-        }
-        # remove duplicates
-        Cycles <- Cycles[sapply(Cycles, min) == sapply(Cycles, `[`, 1)]
-        # find cycles of length >= 3
-        return(Cycles[which(sapply(Cycles, length) >= 3)])
-      },
-
+     
       # Reorder Diseases by Dependency
       # @description
       # Reorders the list of diseases in the simulation parameters using topological sorting.
@@ -310,14 +259,51 @@ Design <-
       # @keywords internal
       # reorder_diseases ----
       reorder_diseases = function(sim_prm) {
-        # first name the list
+        # Reorder the diseases so dependencies are always calculated first
+        # (topological ordering). This is crucial for init_prevalence
+        # first name the list and
         sim_prm$diseases <-
-          setNames(sim_prm$diseases, sapply(sim_prm$diseases, function(x)
-            x$name))
+          setNames(sim_prm$diseases, sapply(sim_prm$diseases, function(x) {
+            x$name
+          }))
 
-        o <- topo_sort(make_graph(unlist(sim_prm$diseases)))
+        out <- vector() # will hold graph structure
+        ds <- names(sim_prm$diseases)
+        for (i in seq_along(ds)) {
+          ds_ <- ds[i]
+          dep <-
+            sim_prm[["diseases"]][[i]][["meta"]][["incidence"]][["influenced_by_disease_name"]]
+          if (length(dep) > 0L) {
+            # dep <- gsub("_prvl", "", dep)
+            for (j in seq_along(dep)) {
+              out <- c(out, dep[[j]], ds_)
+            }
+          }
+        }
+        g <- make_graph(out, directed = TRUE)
+        # stopifnot(is_dag(g)) # Removed for diseases depend on diseases
+        # get all cycles in the graph
+        Cycles <- NULL
+        for (v1 in V(g)) {
+          for (v2 in neighbors(g, v1, mode = "out")) {
+            Cycles <- c(
+              Cycles,
+              lapply(all_simple_paths(g, v2, v1, mode = "out"), function(p) c(v1, p))
+            )
+          }
+        }
+        # remove duplicates
+        Cycles <- Cycles[sapply(Cycles, min) == sapply(Cycles, `[`, 1)]
+        # find cycles of length i.e. 3 (i.e. chd -> t2dm -> chd)
+        Cycles[which(sapply(Cycles, length) >= 3)]
+
+        if (sim_prm$logs && length(Cycles) > 0) message("Cycles found: ", Cycles)
+
+        o <- topo_sort(g)
+
         # then reorder based on the topological ordering
-        sim_prm$diseases <- sim_prm$diseases[order(match(names(sim_prm$diseases), names(o)))]
+        sim_prm$diseases[order(match(names(sim_prm$diseases), names(o)))]
       }
     )
   )
+
