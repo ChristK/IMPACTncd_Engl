@@ -19,11 +19,11 @@ RUN apt-get update -qq && \
 
 # Repo frozen on March 21, 2025. See https://packagemanager.posit.co/client/#/repos/cran/setup?distribution=ubuntu-24.04&r_environment=other&snapshot=2025-03-21
 RUN install2.r -s \
-  -r "https://packagemanager.posit.co/cran/__linux__/noble/2025-03-21" \
+  -r "https://packagemanager.posit.co/cran/__linux__/noble/2025-03-31" \
   -n $(nproc) \
   $(grep -v '^#' /tmp/r-packages.txt)
 
 # RUN installGithub.r "ChristK/CKutils@main"
-RUN installGithub.r "ChristK/CKutils@86d00357ab4614208f3e141b7e478fa80e36e508" # the HEAD as of 21/03/2025
+RUN installGithub.r "ChristK/CKutils@819c19fa6e32022bee26c020015b8eec5d537357" # the HEAD as of 31/03/2025
 
 # docker run -it --name my_new_container chriskypri/impactncd-r-prerequisite /bin/bash
