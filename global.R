@@ -21,91 +21,59 @@
 # If segfault from C stack overflow see
 # https://github.com/Rdatatable/data.table/issues/1967
 
-setOptions_for_repo <- function() {
-  chooseCRANmirror(ind = 1)
+#' @section CRAN Mirror Selection:
+#' This block sets the CRAN repository mirror only if:
+#'   - The code is **not running inside a Docker container**, and
+#'   - The CRAN repository option is either unset or set to the default placeholder ("@CRAN@").
+#'
+#' This prevents unnecessary or problematic CRAN mirror selection inside Docker,
+#' where the environment is usually pre-configured or isolated from user input.
+#'
+#' The check `file.exists("/.dockerenv")` is a common way to detect Docker containers.
+
+if (!file.exists("/.dockerenv")) {
   repos <- getOption("repos")
+  if (is.null(repos) || repos["CRAN"] == "@CRAN@") {
+    chooseCRANmirror(ind = 1)
+  }
 }
-setOptions_for_repo()
 
 cat("Initialising IMPACTncd_Engl model...\n\n")
-if (!nzchar(system.file(package = "CKutils"))) {
-  if (!nzchar(system.file(package = "pak"))) install.packages("pak")
-  pak::pkg_install("ChristK/CKutils", upgrade = FALSE, ask = FALSE)
-  # force = T
+
+# Ensure 'pak' is installed
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")
 }
 
+# Ensure 'CKutils' is installed from GitHub if missing
+if (!requireNamespace("CKutils", quietly = TRUE)) {
+  remotes::install_github("ChristK/CKutils", upgrade = "never", force = TRUE)
+}
 library(CKutils)
+
+# Set development mode flag
+dev_mode <- TRUE  # Set to FALSE for production
+
+# Environment-specific options
 options(rgl.useNULL = TRUE) # suppress error by demography in rstudio server
-options(future.fork.enable = TRUE) # TODO remove for production
-options(future.globals.maxSize = +Inf)
-options(future.rng.onMisuse = "ignore") # Remove false warning
+if (dev_mode) {
+  options(future.fork.enable = TRUE) # enable for development only
+  options(future.globals.maxSize = +Inf)
+  options(future.rng.onMisuse = "ignore") # Remove false warning
+}
 options(datatable.verbose = FALSE)
 options(datatable.showProgress = FALSE)
 
-CKutils::dependencies(yaml::read_yaml("./dependencies.yaml")) # install missing packages
+# install missing packages
+pkg_list <- readLines("docker_setup/r-packages.txt", warn = FALSE)
+pkg_list <- trimws(pkg_list)
+pkg_list <- pkg_list[nzchar(pkg_list) & !grepl("^#", pkg_list)]
+dependencies(pkg_list)
+rm(pkg_list)
 
-#' @description Detach library package.
-detach_package <- function(pkg, character.only = FALSE) {
-  if (!character.only) pkg <- deparse(substitute(pkg))
-  search_item <- paste("package", pkg, sep = ":")
-  while (search_item %in% search()) {
-    detach(search_item, unload = TRUE, character.only = TRUE)
-  }
-}
 
-#' @description Re/install the IMPACTncd_Engl package from local directory.
-#' @param sIMPACTncdPackageDirPath string, IMPACTncd_Engl package directory path.
-InstallIMPACTncdPackage <- function(sIMPACTncdPackageDirPath) {
-  if (!nzchar(system.file(package = "pak"))) install.packages("pak")
-  if (nzchar(system.file(package = "roxygen2"))) {
-    roxygen2::roxygenise(sIMPACTncdPackageDirPath, clean = TRUE)
-  } # update package exports (and docs) if necessary
-  detach_package(IMPACTncdEngl)
-
-  # ensure full install by removing intermediate files
-  file.remove(list.files(sIMPACTncdPackageDirPath,
-    pattern = ".o$|.dll&|.so&", recursive = TRUE,
-    full.names = TRUE
-  ))
-  ## Find a solution to build vignettes while installing the package using pak
-  # pak::local_install(sIMPACTncdPackageDirPath,
-  #                    upgrade = FALSE,
-  #                    ask = FALSE)
-  remotes::install_local(sIMPACTncdPackageDirPath,
-    build_vignettes = TRUE, force = TRUE, upgrade = "never"
-  )
-  # build_vignettes = T, force = T
-}
-
-#' @description Re/install the IMPACTncd_Engl package if not installed or if local package files have changed.
-InstallIMPACTncdPackageOnChange <- function() {
-  # load previously saved snapshot of package files
-  sIMPACTncdPackageSnapshotFilePath <- "./Rpackage/.IMPACTncd_Engl_model_pkg_snapshot.qs"
-  IMPACTncdPackageSnapshot <- NULL
-  if (file.exists(sIMPACTncdPackageSnapshotFilePath)) {
-    IMPACTncdPackageSnapshot <- changedFiles(qread(sIMPACTncdPackageSnapshotFilePath))
-  }
-
-  if (!nzchar(system.file(package = "IMPACTncdEngl")) || is.null(IMPACTncdPackageSnapshot) ||
-    any(
-      nzchar(IMPACTncdPackageSnapshot$added), nzchar(IMPACTncdPackageSnapshot$deleted),
-      nzchar(IMPACTncdPackageSnapshot$changed)
-    )) {
-    # re/install IMPACTncd_Engl package and update snapshot
-    sIMPACTncdPackageDirPath <- "./Rpackage/IMPACTncd_Engl_model_pkg/"
-    InstallIMPACTncdPackage(sIMPACTncdPackageDirPath)
-    if (!is.null(IMPACTncdPackageSnapshot)) file.remove(sIMPACTncdPackageSnapshotFilePath)
-    IMPACTncdPackageSnapshot <- fileSnapshot(sIMPACTncdPackageDirPath,
-      timestamp = NULL,
-      md5sum = TRUE, recursive = TRUE
-    )
-    qsave(IMPACTncdPackageSnapshot, sIMPACTncdPackageSnapshotFilePath)
-  }
-}
-
-# if(interactive())
-InstallIMPACTncdPackageOnChange()
-
+installLocalPackageIfChanged(pkg_path = "./Rpackage/IMPACTncd_Engl_model_pkg/",
+                            snapshot_path = "./Rpackage/.IMPACTncd_Engl_model_pkg_snapshot.rds")
 library(IMPACTncdEngl)
 
 ####################################################################################
@@ -118,7 +86,7 @@ library(IMPACTncdEngl)
 ## Error generated otherwise (without the code below): Error in get(".Random.seed", .GlobalEnv) :
 ## object '.Random.seed' not found
 ####################################################################################
-runif(1)
+invisible(runif(1))
 
 # roxygen2::roxygenise("./Rpackage/IMPACTncd_Engl_model_pkg/", clean = TRUE)
   # remotes::install_local("./Rpackage/IMPACTncd_Engl_model_pkg/", build_vignettes = TRUE, force = TRUE, upgrade = "never")
