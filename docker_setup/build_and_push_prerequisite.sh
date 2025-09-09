@@ -6,7 +6,7 @@
 # - Automatically sources environment variables from a `.env` file if it exists.
 # - Uses DOCKERHUB_USERNAME and DOCKERHUB_TOKEN from the environment or `.env`.
 # - If DOCKERHUB_USERNAME is missing, it prompts for it at runtime.
-# - Constructs the image name as: <DOCKERHUB_USERNAME>/impactncd-r-prerequisite:latest
+# - Constructs the image name as: <DOCKERHUB_USERNAME>/impactncd-engl-r-prerequisite:latest
 # - Uses token-based login if available; otherwise prompts for manual login.
 # - Logs each step with timestamps and exits on failure.
 #
@@ -38,7 +38,7 @@ if [[ -z "${DOCKERHUB_USERNAME:-}" ]]; then
   read -p "Enter your Docker Hub username: " DOCKERHUB_USERNAME
 fi
 
-IMAGE_NAME="${DOCKERHUB_USERNAME}/impactncd-r-prerequisite:latest"
+IMAGE_NAME="${DOCKERHUB_USERNAME}/impactncd-engl-r-prerequisite:latest"
 
 # Function for timestamped log messages
 log() {

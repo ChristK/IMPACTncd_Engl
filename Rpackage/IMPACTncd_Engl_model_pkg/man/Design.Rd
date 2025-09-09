@@ -20,9 +20,17 @@ based on their dependencies and can detect cyclic relationships using \code{igra
 
 The class is initialized with either a file path (YAML) or a list:
 
-\code{
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# From YAML file
 design <- Design$new("inputs/sim_design.yaml")
-}
+
+# From list
+config_list <- list(
+  simulation_files_overwrite = FALSE,
+  sTag = "my_simulation",
+  # ... other required fields
+)
+design <- Design$new(config_list)
+}\if{html}{\out{</div>}}
 }
 
 \section{Public Fields}{
@@ -35,9 +43,8 @@ design <- Design$new("inputs/sim_design.yaml")
 \section{Public Methods}{
 
 \describe{
-\item{\code{initialize(sim_prm)}}{Initializes the object. Accepts a list or path to YAML.}
+\item{\code{initialize(sim_prm)}}{Initializes the object. Accepts a list or path to YAML file.}
 \item{\code{save_to_disk(path)}}{Saves the current configuration to disk as a YAML file.}
-\item{\code{update_fromGUI(GUI_prm)}}{Updates the design based on GUI-provided inputs.}
 \item{\code{print()}}{Prints the current design parameters.}
 }
 }
@@ -45,18 +52,112 @@ design <- Design$new("inputs/sim_design.yaml")
 \section{Private Methods}{
 
 \describe{
-\item{\code{detect_cycles(sim_prm)}}{Detects feedback loops in disease dependencies.}
 \item{\code{reorder_diseases(sim_prm)}}{Sorts diseases in topological order based on their dependencies.}
+\item{\code{is_in_docker()}}{Checks if R session is running inside a Docker container.}
+\item{\code{update_fromGUI(GUI_prm)}}{Updates the design based on GUI-provided inputs.}
+}
+}
+
+\section{Required Configuration Fields}{
+
+The following fields are required in the simulation parameters:
+\describe{
+\item{\code{simulation_files_overwrite}}{Whether to overwrite existing simulation files.}
+\item{\code{sTag}}{Simulation tag identifier.}
+\item{\code{bOverwriteFilesOnDeploy}}{Whether to overwrite files on deployment.}
+\item{\code{RootDirPath}}{Root directory path for the simulation.}
+\item{\code{sToken}}{Security token for the simulation.}
+\item{\code{locality}}{Geographic locality for the simulation.}
+\item{\code{clusternumber}}{Cluster number for parallel processing.}
+\item{\code{logs}}{Whether to enable logging.}
+\item{\code{scenarios}}{List of scenarios to simulate.}
+\item{\code{cols_for_output}}{Columns to include in output.}
+\item{\code{strata_for_output}}{Stratification variables for output.}
+\item{\code{exposures}}{List of exposure variables.}
+\item{\code{n}}{Sample size for simulation.}
+\item{\code{init_year_long}}{Initial year for simulation (full year format).}
+\item{\code{sim_horizon_max}}{Maximum simulation horizon year.}
+\item{\code{ageL}}{Lower age limit.}
+\item{\code{ageH}}{Upper age limit.}
+\item{\code{diseases}}{List of diseases to model.}
+\item{\code{maxlag}}{Maximum lag for disease models.}
+\item{\code{smoking_relapse_limit}}{Limit for smoking relapse modeling.}
+\item{\code{stochastic}}{Whether to use stochastic modeling.}
+\item{\code{kismet}}{Random seed or fate parameter.}
+\item{\code{jumpiness}}{Parameter controlling model jumpiness.}
+\item{\code{statin_adherence}}{Statin adherence parameter.}
+\item{\code{bpmed_adherence}}{Blood pressure medication adherence.}
+\item{\code{decision_aid}}{Decision aid parameter.}
+\item{\code{export_xps}}{Whether to export exposures.}
+\item{\code{simsmok_calibration}}{Smoking simulation calibration parameter.}
+\item{\code{output_dir}}{Output directory path.}
+\item{\code{synthpop_dir}}{Synthetic population directory path.}
+\item{\code{validation}}{Validation parameters.}
+\item{\code{iteration_n_max}}{Maximum number of iterations.}
+\item{\code{n_synthpop_aggregation}}{Number for synthetic population aggregation.}
+}
+}
+
+\section{Docker Support}{
+
+The class automatically detects if running inside a Docker container and adjusts
+output and synthpop directory paths accordingly. When in Docker, paths are set to:
+\describe{
+\item{\code{output_dir}}{"/IMPACTncd_Engl/output"}
+\item{\code{synthpop_dir}}{"/IMPACTncd_Engl/synthpop"}
+}
+}
+
+\section{Disease Dependencies}{
+
+The class handles disease dependencies by:
+\itemize{
+\item Detecting cycles in disease dependency graphs
+\item Performing topological sorting to ensure proper disease ordering
+\item Logging any cycles found for debugging purposes
+}
+}
+
+\section{Automatic Adjustments}{
+
+The class automatically performs several adjustments during initialization:
+\itemize{
+\item Converts \code{sim_horizon_max} to relative horizon by subtracting \code{init_year_long}
+\item Converts \code{init_year_long} to short format by subtracting 2000
+\item Sets default values for GUI-related parameters
+\item Forces LAD population projection for non-England localities
+\item Normalizes directory paths (except when in Docker)
 }
 }
 
 \examples{
+\dontrun{
+# Initialize from YAML file
+design <- Design$new("inputs/sim_design.yaml")
+
+# Initialize from list
+config_list <- list(
+  simulation_files_overwrite = FALSE,
+  sTag = "my_simulation",
+  # ... other required fields
+)
+design <- Design$new(config_list)
+
+# Save configuration
+design$save_to_disk("outputs/my_config.yaml")
+
+# Print current configuration
+design$print()
+}
+
 
 ## ------------------------------------------------
 ## Method `Design$new`
 ## ------------------------------------------------
 
+\dontrun{
 design <- Design$new("inputs/sim_design.yaml")
+}
 Save Simulation Design to Disk
 
 ## ------------------------------------------------
@@ -82,7 +183,6 @@ design$save_to_disk("outputs/saved_sim_design.yaml")
 \itemize{
 \item \href{#method-Design-new}{\code{Design$new()}}
 \item \href{#method-Design-save_to_disk}{\code{Design$save_to_disk()}}
-\item \href{#method-Design-update_fromGUI}{\code{Design$update_fromGUI()}}
 \item \href{#method-Design-print}{\code{Design$print()}}
 \item \href{#method-Design-clone}{\code{Design$clone()}}
 }
@@ -99,8 +199,8 @@ Create a new design object.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{sim_prm}}{Either a path to a yaml file or a list with
-appropriate format.}
+\item{\code{sim_prm}}{Either a path to a YAML file or a list with
+appropriate format containing simulation parameters.}
 }
 \if{html}{\out{</div>}}
 }
@@ -109,7 +209,9 @@ A new \code{Design} object.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{design <- Design$new("inputs/sim_design.yaml")
+\preformatted{\dontrun{
+design <- Design$new("inputs/sim_design.yaml")
+}
 Save Simulation Design to Disk
 }
 \if{html}{\out{</div>}}
@@ -150,26 +252,6 @@ design$save_to_disk("outputs/saved_sim_design.yaml")
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-update_fromGUI"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-update_fromGUI}{}}}
-\subsection{Method \code{update_fromGUI()}}{
-Updates the design object from GUI.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$update_fromGUI(GUI_prm)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{GUI_prm}}{A GUI parameter object.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The \code{Design} object.
-}
-}
-\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Design-print"></a>}}
 \if{latex}{\out{\hypertarget{method-Design-print}{}}}
 \subsection{Method \code{print()}}{
@@ -179,7 +261,7 @@ Print the simulation parameters.
 }
 
 \subsection{Returns}{
-The \code{Design} object.
+The \code{Design} object, invisibly.
 }
 }
 \if{html}{\out{<hr>}}
