@@ -53,7 +53,7 @@ if (-not $DockerHubUsername) {
     $DockerHubUsername = Read-Host "Enter your Docker Hub username"
 }
 
-$ImageName = "$DockerHubUsername/impactncd-r-prerequisite:latest"
+$ImageName = "$DockerHubUsername/impactncd-engl-r-prerequisite:latest"
 
 # Login
 if (-not $DockerHubToken) {

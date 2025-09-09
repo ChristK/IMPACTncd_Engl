@@ -2,28 +2,391 @@
 % Please edit documentation in R/Exposure_class.R
 \name{Exposure}
 \alias{Exposure}
-\title{R6 Class representing an exposure}
+\title{Exposure Class}
 \description{
-An exposure object has the RR between an exposure and a disease.
+An R6 class representing an exposure-disease relationship in the IMPACTncd framework.
+This class encapsulates relative risk (RR) data between an exposure and a disease outcome,
+supports stochastic modeling, and provides methods for generating, caching, and applying
+relative risks in population health simulations.
 }
 \details{
-To be completed...
+The \code{Exposure} class manages exposure-disease relationships by:
+\itemize{
+\item Loading relative risk data from CSVY files (CSV with YAML metadata)
+\item Generating stochastic relative risks using Monte Carlo methods
+\item Applying time lags between exposure and disease outcomes
+\item Supporting various distributions (lognormal, normal) for uncertainty modeling
+\item Caching computed relative risks for performance optimization
+\item Handling population stratification (age, sex, ethnicity, deprivation)
 }
+
+The class supports both deterministic and stochastic modeling modes, with the ability
+to apply exposure effects with specified time lags and uncertainty distributions.
+}
+\section{Initialization}{
+
+The class is initialized with a path to a CSVY file containing relative risk data
+and a Design object with simulation parameters:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Initialize exposure object
+bmi_chd <- Exposure$new("./inputs/RR/bmi_chd.csvy", design)
+}\if{html}{\out{</div>}}
+}
+
+\section{Public Fields}{
+
+\describe{
+\item{\code{name}}{Character. The name of the exposure (e.g., "bmi", "smoking").}
+\item{\code{outcome}}{Character. The name of the disease outcome the exposure influences.}
+\item{\code{lag}}{Integer. The time lag (in years) between exposure and disease onset.}
+\item{\code{distribution}}{Character. Distribution for Monte Carlo uncertainty ("lognormal" or "normal").}
+\item{\code{source}}{Character. Citation information for the effect size.}
+\item{\code{notes}}{Character. Additional notes regarding the exposure-outcome relationship.}
+}
+}
+
+\section{Public Methods}{
+
+\describe{
+\item{\code{initialize(file_path, design)}}{Initializes the exposure object from a CSVY file.}
+\item{\code{gen_stochastic_effect(design, overwrite, smooth, ...)}}{Generates stochastic relative risks.}
+\item{\code{del_stochastic_effect(invert)}}{Deletes stochastic effect files from disk.}
+\item{\code{get_rr(mc, design, drop, plot_rr)}}{Retrieves relative risks for a Monte Carlo iteration.}
+\item{\code{clear_cache()}}{Clears the internal cache for relative risks.}
+\item{\code{xps_to_rr(sp, design, checkNAs, forPARF)}}{Applies relative risks to synthetic population.}
+\item{\code{validate_rr()}}{Validates and plots input vs stochastic relative risks.}
+\item{\code{get_input_rr()}}{Returns original input relative risks.}
+\item{\code{get_metadata()}}{Returns metadata from the CSVY file.}
+\item{\code{get_seed()}}{Returns the random seed used for this exposure.}
+\item{\code{write_xps_tmplte_file(file_path)}}{Writes a template exposure file.}
+\item{\code{convert_from_old_format(old_file, metadata, file_path, estimates, second_estimate_is_p)}}{Converts old CSV format to new CSVY format.}
+\item{\code{get_lag(mc)}}{Returns exposure lag for given Monte Carlo iteration.}
+\item{\code{get_ideal_xps_lvl(mc)}}{Returns ideal exposure level for given iteration.}
+\item{\code{get_name()}}{Returns the exposure-outcome combination name.}
+\item{\code{print()}}{Prints exposure information.}
+}
+}
+
+\section{Private Methods}{
+
+\describe{
+\item{\code{write_xps_prm_file(dt, metadata, file_path)}}{Writes exposure parameter files.}
+\item{\code{stochRRtabl(m, ci, distribution)}}{Generates stochastic relative risks from distributions.}
+\item{\code{generate_rr_l(dt, tt, mc_max, smooth, do_checks, ...)}}{Generates age-specific relative risks with interpolation.}
+\item{\code{ci_from_p_forratio(mean_rr, p)}}{Calculates confidence intervals from p-values.}
+}
+}
+
+\section{File Format}{
+
+The class expects CSVY files (CSV with YAML header) containing:
+\describe{
+\item{YAML metadata}{exposure name, outcome, distribution, lag, source, notes}
+\item{CSV data}{relative risks by age group, sex, and optional stratification variables}
+}
+}
+
+\section{Supported Stratification}{
+
+The class supports stratification by:
+\itemize{
+\item Age groups (5-year bands from 0-99 years)
+\item Sex (men, women)
+\item Smoking status (4 levels: never, former, current light, current heavy)
+\item Ethnicity (9 categories: white, indian, pakistani, bangladeshi, other asian, black caribbean, black african, chinese, other)
+\item Deprivation (DIMD: 10 deciles, QIMD: 5 quintiles)
+}
+}
+
+\section{Monte Carlo Features}{
+
+\itemize{
+\item Supports lognormal and normal distributions for uncertainty
+\item Generates deterministic seeds based on exposure-outcome combination
+\item Applies variable time lags using binomial distribution
+\item Caches results for performance optimization
+\item Supports smoothing with loess regression
+}
+}
+
+\section{File Management}{
+
+\itemize{
+\item Automatically creates simulation/rr/ directory structure
+\item Uses content-based checksums for file versioning
+\item Stores separate files for relative risks and indexing
+\item Supports file cleanup and overwrite options
+}
+}
+
 \examples{
+\dontrun{
+# Initialize exposure from CSVY file
+bmi_chd <- Exposure$new("./inputs/RR/bmi_chd.csvy", design)
+
+# Generate stochastic effects
+bmi_chd$gen_stochastic_effect(design, overwrite = TRUE)
+
+# Get relative risks for Monte Carlo iteration 1
+rr_data <- bmi_chd$get_rr(mc = 1, design)
+
+# Apply to synthetic population
+bmi_chd$xps_to_rr(synthpop, design)
+
+# Validate relative risks
+bmi_chd$validate_rr()
+
+# Create template file
+Exposure$new()$write_xps_tmplte_file("./template.csvy")
+}
+
 
 ## ------------------------------------------------
 ## Method `Exposure$new`
 ## ------------------------------------------------
 
-af_stroke$read_xps_prm("./inputs/RR/af_stroke.csvy", design)
+\dontrun{
+# Initialize BMI-CHD exposure relationship
+bmi_chd <- Exposure$new("./inputs/RR/bmi_chd.csvy", design)
+
+# Initialize with smoking exposure
+smoking_stroke <- Exposure$new("./inputs/RR/smoking_stroke.csvy", design)
+}
 
 ## ------------------------------------------------
 ## Method `Exposure$gen_stochastic_effect`
 ## ------------------------------------------------
 
-af_stroke <- Exposure$new("af", "stroke")
-af_stroke$read_xps_prm("./inputs/RR/af_stroke.csvy", design)
-af_stroke$gen_stochastic_effect(design, TRUE)
+\dontrun{
+# Generate stochastic effects with default settings
+bmi_chd$gen_stochastic_effect(design)
+
+# Overwrite existing files with smoothing
+bmi_chd$gen_stochastic_effect(design, overwrite = TRUE, smooth = TRUE, span = 0.5)
+
+# Generate without smoothing, overwriting existing
+smoking_copd$gen_stochastic_effect(design, overwrite = TRUE, smooth = FALSE)
+}
+
+## ------------------------------------------------
+## Method `Exposure$del_stochastic_effect`
+## ------------------------------------------------
+
+\dontrun{
+# Delete current stochastic effects
+bmi_chd$del_stochastic_effect()
+
+# Clean up old versions, keep current
+smoking_copd$del_stochastic_effect(invert = TRUE)
+}
+
+## ------------------------------------------------
+## Method `Exposure$get_rr`
+## ------------------------------------------------
+
+\dontrun{
+# Get relative risks for Monte Carlo iteration 1
+rr_data <- bmi_chd$get_rr(mc = 1, design)
+
+# Get scalar value if uniform across age/sex
+uniform_rr <- simple_exposure$get_rr(mc = 1, design, drop = TRUE)
+
+# Create diagnostic plot
+rr_with_plot <- smoking_copd$get_rr(mc = 1, design, plot_rr = TRUE)
+
+# Access from cache (subsequent calls with same mc)
+cached_rr <- bmi_chd$get_rr(mc = 1, design)  # Fast access
+}
+
+## ------------------------------------------------
+## Method `Exposure$clear_cache`
+## ------------------------------------------------
+
+\dontrun{
+# Clear cache to free memory
+bmi_chd$clear_cache()
+
+# Chain with other operations
+exposure$clear_cache()$get_rr(mc = 1, design)
+}
+
+## ------------------------------------------------
+## Method `Exposure$xps_to_rr`
+## ------------------------------------------------
+
+\dontrun{
+# Apply BMI relative risks to population
+bmi_chd$xps_to_rr(synthpop, design)
+
+# Apply with NA checking disabled
+smoking_copd$xps_to_rr(synthpop, design, checkNAs = FALSE)
+
+# Apply for PARF calculation (no lags)
+alcohol_stroke$xps_to_rr(parf_population, design, forPARF = TRUE)
+
+# Chain with other operations
+exposure$gen_stochastic_effect(design)$xps_to_rr(synthpop, design)
+}
+
+## ------------------------------------------------
+## Method `Exposure$validate_rr`
+## ------------------------------------------------
+
+\dontrun{
+# Validate after generating stochastic effects
+bmi_chd$gen_stochastic_effect(design)
+bmi_chd$validate_rr()
+
+# Quick validation workflow
+smoking_copd$gen_stochastic_effect(design, overwrite = TRUE)$validate_rr()
+}
+
+## ------------------------------------------------
+## Method `Exposure$get_input_rr`
+## ------------------------------------------------
+
+\dontrun{
+# Get original input relative risks
+original_rr <- bmi_chd$get_input_rr()
+
+# Compare with stochastic version
+stoch_rr <- bmi_chd$get_rr(mc = 1, design)
+}
+
+## ------------------------------------------------
+## Method `Exposure$get_metadata`
+## ------------------------------------------------
+
+\dontrun{
+# Get metadata for inspection
+meta <- bmi_chd$get_metadata()
+print(meta$source)
+
+# Check distribution type
+if (smoking_copd$get_metadata()$distribution == "lognormal") {
+  message("Using lognormal distribution")
+}
+}
+
+## ------------------------------------------------
+## Method `Exposure$get_seed`
+## ------------------------------------------------
+
+\dontrun{
+# Get the seed for reproducibility checks
+seed_val <- bmi_chd$get_seed()
+
+# Verify different exposures have different seeds
+bmi_seed <- bmi_chd$get_seed()
+smoking_seed <- smoking_copd$get_seed()
+identical(bmi_seed, smoking_seed)  # Should be FALSE
+}
+
+## ------------------------------------------------
+## Method `Exposure$write_xps_tmplte_file`
+## ------------------------------------------------
+
+\dontrun{
+# Create template file in default location
+exposure$write_xps_tmplte_file()
+
+# Create template with custom path
+exposure$write_xps_tmplte_file("./my_exposure_template.csvy")
+
+# Method chaining
+exposure$write_xps_tmplte_file()$print()
+}
+
+## ------------------------------------------------
+## Method `Exposure$convert_from_old_format`
+## ------------------------------------------------
+
+\dontrun{
+# Convert existing CSV file
+metadata <- list(
+  xps_name = "bmi", outcome = "chd", distribution = "lognormal",
+  source = "Meta-analysis 2020", notes = "Converted from legacy format"
+)
+exposure$convert_from_old_format(
+  old_file = "legacy_bmi_chd.csv",
+  metadata = metadata,
+  file_path = "bmi_chd.csvy"
+)
+
+# Create from estimates with p-value
+exposure$convert_from_old_format(
+  metadata = metadata,
+  file_path = "new_exposure.csvy",
+  estimates = c(1.2, 0.05),
+  second_estimate_is_p = TRUE
+)
+}
+
+## ------------------------------------------------
+## Method `Exposure$get_lag`
+## ------------------------------------------------
+
+\dontrun{
+# Get median lag
+median_lag <- bmi_chd$get_lag()
+
+# Get lag for specific Monte Carlo iterations
+mc_lags <- bmi_chd$get_lag(c(1, 5, 10))
+
+# Use in conditional logic
+if (smoking_copd$get_lag() > 10) {
+  message("Long lag exposure")
+}
+}
+
+## ------------------------------------------------
+## Method `Exposure$get_ideal_xps_lvl`
+## ------------------------------------------------
+
+\dontrun{
+# Get mean ideal exposure level
+ideal_bmi <- bmi_chd$get_ideal_xps_lvl()
+
+# Get ideal levels for Monte Carlo iterations
+ideal_levels <- bmi_chd$get_ideal_xps_lvl(c(1, 5, 10))
+
+# Use in PARF calculations
+if (current_exposure > smoking_copd$get_ideal_xps_lvl()) {
+  # Calculate attributable risk
+}
+}
+
+## ------------------------------------------------
+## Method `Exposure$get_name`
+## ------------------------------------------------
+
+\dontrun{
+# Get internal name for file identification
+internal_name <- bmi_chd$get_name()
+
+# Use in file path construction
+file_path <- paste0("results/", smoking_copd$get_name(), "_output.csv")
+
+# Compare internal names
+if (exp1$get_name() == exp2$get_name()) {
+  warning("Duplicate exposure-outcome pairs detected")
+}
+}
+
+## ------------------------------------------------
+## Method `Exposure$print`
+## ------------------------------------------------
+
+\dontrun{
+# Print exposure information
+bmi_chd$print()
+
+# Print in workflow
+smoking_copd$gen_stochastic_effect(design)$print()
+}
+}
+\seealso{
+\code{\link{Design}}, \code{\link[fst]{read_fst}}, \code{\link[yaml]{as.yaml}}
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -69,7 +432,9 @@ Currently lognormal and normal are supported.}
 \if{html}{\out{<a id="method-Exposure-new"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-new}{}}}
 \subsection{Method \code{new()}}{
-Reads exposure parameter from file and creates a new exposure object..
+Initialize a new Exposure object by reading exposure parameters from a CSVY file.
+This method loads relative risk data, validates the file structure, processes
+stratification variables, and sets up Monte Carlo parameters for stochastic modeling.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$new(sRelativeRiskByPopulationSubsetForExposureFilePath, design)}\if{html}{\out{</div>}}
 }
@@ -77,18 +442,42 @@ Reads exposure parameter from file and creates a new exposure object..
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{sRelativeRiskByPopulationSubsetForExposureFilePath}}{string, path to .csvy file detailing relative risk (RR) by population subset (age, sex, maybe decile 'Index of Multiple Deprivation' DIMD) for a specific exposure. File header may contain other exposure parameters.}
+\item{\code{sRelativeRiskByPopulationSubsetForExposureFilePath}}{Character string.
+Path to a CSVY file containing relative risk (RR) data by population subset
+(age, sex, and optionally deprivation index, ethnicity, smoking status).
+The file must have a YAML header with exposure metadata and CSV data with RR values.}
 
-\item{\code{design}}{A design object with the simulation parameters.}
+\item{\code{design}}{A \code{Design} object containing simulation parameters including
+maximum lag, iteration count, age limits, and logging preferences.}
 }
 \if{html}{\out{</div>}}
 }
+\subsection{Details}{
+The method performs several key operations:
+\itemize{
+\item Validates file existence and Design object
+\item Reads CSVY file using \code{fread} with YAML parsing
+\item Processes factor levels for stratification variables (smoking, ethnicity, deprivation)
+\item Validates metadata fields (name, outcome, distribution, lag)
+\item Sets up Monte Carlo lag distribution using binomial sampling
+\item Generates deterministic seed from exposure-outcome combination
+\item Prepares file paths for stochastic effect storage
+\item Expands relative risk data to full age range with interpolation
+}
+}
+
 \subsection{Returns}{
-An \code{Exposure} object.
+A new \code{Exposure} object with populated fields and prepared data structures.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{af_stroke$read_xps_prm("./inputs/RR/af_stroke.csvy", design)
+\preformatted{\dontrun{
+# Initialize BMI-CHD exposure relationship
+bmi_chd <- Exposure$new("./inputs/RR/bmi_chd.csvy", design)
+
+# Initialize with smoking exposure
+smoking_stroke <- Exposure$new("./inputs/RR/smoking_stroke.csvy", design)
+}
 }
 \if{html}{\out{</div>}}
 
@@ -99,7 +488,9 @@ An \code{Exposure} object.
 \if{html}{\out{<a id="method-Exposure-gen_stochastic_effect"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-gen_stochastic_effect}{}}}
 \subsection{Method \code{gen_stochastic_effect()}}{
-Generates and write to disk the stochastic effect.
+Generate and write stochastic relative risk effects to disk for Monte Carlo simulations.
+This method creates uncertainty distributions around the point estimates of relative risks
+and stores them in optimized FST format files for fast access during simulations.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$gen_stochastic_effect(
   design_ = design,
@@ -112,26 +503,50 @@ Generates and write to disk the stochastic effect.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{design_}}{A design object with the simulation parameters.}
+\item{\code{design_}}{A \code{Design} object containing simulation parameters. Defaults to \code{design}.}
 
-\item{\code{overwrite}}{If TRUE overwrite the files. Else if files exist they
-are not regenerated.}
+\item{\code{overwrite}}{Logical. If \code{TRUE}, overwrites existing stochastic effect files.
+If \code{FALSE}, skips generation if files already exist. Default is \code{FALSE}.}
 
-\item{\code{smooth}}{If true applies loess smoothing to the input relative risks}
+\item{\code{smooth}}{Logical. If \code{TRUE}, applies loess smoothing to relative risks across age.
+This can help create smoother age-specific risk profiles.}
 
-\item{\code{...}}{Further arguments to be passed to \code{loess}, usually span =
-0.7, degree = 1}
+\item{\code{...}}{Additional arguments passed to \code{loess} function when \code{smooth = TRUE}.
+Common arguments include \code{span} (smoothing parameter, default 0.7) and
+\code{degree} (polynomial degree, default 1).}
 }
 \if{html}{\out{</div>}}
 }
+\subsection{Details}{
+The method generates stochastic relative risks by:
+\itemize{
+\item Sampling from specified distributions (lognormal/normal) using confidence intervals
+\item Expanding data to full age range with linear interpolation if needed
+\item Applying optional loess smoothing across age groups
+\item Enforcing constraints (RR >= 1 or RR <= 1) based on input data
+\item Writing results to FST files with indexing for fast Monte Carlo access
+\item Creating checksums to ensure data integrity and version control
+}
+
+Files are stored in \code{simulation/rr/} directory with names containing
+exposure-outcome combination and data checksum for versioning.
+}
+
 \subsection{Returns}{
-An \code{Exposure} object.
+The \code{Exposure} object, invisibly, for method chaining.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{af_stroke <- Exposure$new("af", "stroke")
-af_stroke$read_xps_prm("./inputs/RR/af_stroke.csvy", design)
-af_stroke$gen_stochastic_effect(design, TRUE)
+\preformatted{\dontrun{
+# Generate stochastic effects with default settings
+bmi_chd$gen_stochastic_effect(design)
+
+# Overwrite existing files with smoothing
+bmi_chd$gen_stochastic_effect(design, overwrite = TRUE, smooth = TRUE, span = 0.5)
+
+# Generate without smoothing, overwriting existing
+smoking_copd$gen_stochastic_effect(design, overwrite = TRUE, smooth = FALSE)
+}
 }
 \if{html}{\out{</div>}}
 
@@ -142,7 +557,9 @@ af_stroke$gen_stochastic_effect(design, TRUE)
 \if{html}{\out{<a id="method-Exposure-del_stochastic_effect"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-del_stochastic_effect}{}}}
 \subsection{Method \code{del_stochastic_effect()}}{
-Deletes the stochastic effect file and index from disk.
+Delete stochastic effect files from disk to free storage space or force regeneration.
+This method can either delete all files for this exposure-outcome combination or
+keep only the current version (based on data checksum) while removing outdated versions.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$del_stochastic_effect(invert = FALSE)}\if{html}{\out{</div>}}
 }
@@ -150,20 +567,43 @@ Deletes the stochastic effect file and index from disk.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{invert}}{If TRUE keeps the  file with the current checksum and deletes
-all other files for this exposure~outcome.}
+\item{\code{invert}}{Logical. If \code{FALSE} (default), deletes the current stochastic effect
+files. If \code{TRUE}, keeps files with the current checksum and deletes all other
+versions for this exposure-outcome combination (useful for cleanup).}
 }
 \if{html}{\out{</div>}}
 }
-\subsection{Returns}{
-The invisible self for chaining.
+\subsection{Details}{
+Files deleted include both the main relative risk data file and the indexing file
+used for fast Monte Carlo iteration access. When \code{invert = TRUE}, this serves
+as a cleanup function to remove outdated versions while preserving current data.
 }
+
+\subsection{Returns}{
+The \code{Exposure} object, invisibly, for method chaining.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Delete current stochastic effects
+bmi_chd$del_stochastic_effect()
+
+# Clean up old versions, keep current
+smoking_copd$del_stochastic_effect(invert = TRUE)
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-get_rr"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-get_rr}{}}}
 \subsection{Method \code{get_rr()}}{
-Get relative risks from disk.
+Retrieve relative risk data from disk for a specific Monte Carlo iteration.
+This method loads stochastic relative risks (if available) or returns deterministic
+values, with built-in caching for performance optimization.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$get_rr(mc, design_ = design, drop = FALSE, plot_rr = FALSE)}\if{html}{\out{</div>}}
 }
@@ -171,42 +611,100 @@ Get relative risks from disk.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{mc}}{An integer that signifies the Monte Carlo iteration.}
+\item{\code{mc}}{Integer. Monte Carlo iteration number between 1 and \code{design$iteration_n_max}.
+Must be a single integer value.}
 
-\item{\code{design_}}{A design object with the simulation parameters.}
+\item{\code{design_}}{A \code{Design} object containing simulation parameters. Defaults to \code{design}.}
 
-\item{\code{drop}}{If \code{TRUE} returns a scalar numeric of the RR if the RR is
-common for all age groups and both sexes. Otherwise, a data.table.}
+\item{\code{drop}}{Logical. If \code{TRUE} and all relative risks are identical across age/sex,
+returns a scalar numeric value instead of a data.table. Default is \code{FALSE}.}
 
-\item{\code{plot_rr}}{If TRUE, plots the relative risk}
+\item{\code{plot_rr}}{Logical. If \code{TRUE}, creates a diagnostic plot showing relative risks
+by age and sex, overlaying stochastic values with original input data. Default is \code{FALSE}.}
 }
 \if{html}{\out{</div>}}
 }
-\subsection{Returns}{
-A data.table with the stochastic relative risks, if stochastic
-= TRUE; else, the deterministic relative risks.
+\subsection{Details}{
+The method behavior depends on simulation mode:
+\itemize{
+\item \strong{Stochastic mode}: Reads pre-generated stochastic effects from FST files
+\item \strong{Deterministic mode}: Returns original input relative risks
+\item \strong{Caching}: Stores last accessed data to avoid repeated file I/O
+\item \strong{Validation}: Ensures Monte Carlo iteration is within valid range
 }
+
+The plot option provides visual validation of stochastic vs input relative risks,
+with points showing original data and scattered points showing stochastic variation.
+}
+
+\subsection{Returns}{
+A data.table with relative risk values by age and sex (and other stratification
+variables if present), or a scalar numeric if \code{drop = TRUE} and values are uniform.
+Column names include age, sex, and the exposure-specific RR column (e.g., "bmi_rr").
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Get relative risks for Monte Carlo iteration 1
+rr_data <- bmi_chd$get_rr(mc = 1, design)
+
+# Get scalar value if uniform across age/sex
+uniform_rr <- simple_exposure$get_rr(mc = 1, design, drop = TRUE)
+
+# Create diagnostic plot
+rr_with_plot <- smoking_copd$get_rr(mc = 1, design, plot_rr = TRUE)
+
+# Access from cache (subsequent calls with same mc)
+cached_rr <- bmi_chd$get_rr(mc = 1, design)  # Fast access
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-clear_cache"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-clear_cache}{}}}
 \subsection{Method \code{clear_cache()}}{
-Clear the cache for get_rr.
+Clear the internal cache used for storing recently accessed relative risk data.
+This method frees memory and forces fresh data loading on next access.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$clear_cache()}\if{html}{\out{</div>}}
 }
 
-\subsection{Returns}{
-The \code{Exposure} object.
+\subsection{Details}{
+The cache stores the most recently accessed Monte Carlo iteration data to avoid
+repeated file I/O operations. Clearing it may be useful when memory is limited
+or when ensuring fresh data access is critical.
 }
+
+\subsection{Returns}{
+The \code{Exposure} object, invisibly, for method chaining.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Clear cache to free memory
+bmi_chd$clear_cache()
+
+# Chain with other operations
+exposure$clear_cache()$get_rr(mc = 1, design)
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-xps_to_rr"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-xps_to_rr}{}}}
 \subsection{Method \code{xps_to_rr()}}{
-Apply the RR in a new column in sp$pop based on the
-exposure level. I the case of smok_quit_yrs it modifies the risk of
-smok_cig or packyrs and no new column is created.
+Apply relative risk values to a synthetic population based on exposure levels.
+This method creates a new column in the population data with relative risks
+corresponding to each individual's exposure level, age, sex, and other characteristics.
+It handles time lags and special cases like smoking cessation effects.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$xps_to_rr(
   sp,
@@ -219,81 +717,239 @@ smok_cig or packyrs and no new column is created.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{sp}}{A synthetic population.}
+\item{\code{sp}}{A \code{SynthPop} object containing the synthetic population data.
+Must have columns for the exposure variable, age, sex, and stratification variables.}
 
-\item{\code{design_}}{A design object with the simulation parameters.}
+\item{\code{design_}}{A \code{Design} object containing simulation parameters including
+age limits, logging preferences, and lag settings.}
 
-\item{\code{checkNAs}}{If \code{TRUE}, prints the table of NAs before they get
-overwritten with 1. Note that for some exposures, NAs are expected
-for certain levels of exposure (i.e. for active days).}
+\item{\code{checkNAs}}{Logical. If \code{TRUE}, prints diagnostic tables showing NA patterns
+before they are replaced with neutral values (RR = 1). Default follows \code{design$logs}.
+Note that NAs may be expected for certain exposure levels.}
 
-\item{\code{forPARF}}{Set TRUE when applied on the specialised forPARF
-SynthPop}
+\item{\code{forPARF}}{Logical. If \code{TRUE}, applies Population Attributable Risk Fraction
+mode without time lags. Used for counterfactual analyses. Default is \code{FALSE}.}
 }
 \if{html}{\out{</div>}}
 }
-\subsection{Returns}{
-The invisible self for chaining.
+\subsection{Details}{
+The method performs several operations:
+\itemize{
+\item Creates lagged exposure variables using \code{shift_bypid} (unless \code{forPARF = TRUE})
+\item Matches population characteristics to relative risk lookup tables
+\item Applies special transformation functions if defined in metadata (e.g., smoking quit years)
+\item Handles missing values by setting them to neutral effect (RR = 1)
+\item Preserves original exposure variables while creating temporary working copies
 }
+
+For smoking exposures, quit years may modify existing smoking relative risks rather
+than creating new columns. The method handles conflicts with disease prevalence
+variables by temporarily renaming them.
+}
+
+\subsection{Returns}{
+The \code{Exposure} object, invisibly, for method chaining.
+The \code{sp$pop} data.table is modified in place with a new relative risk column.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Apply BMI relative risks to population
+bmi_chd$xps_to_rr(synthpop, design)
+
+# Apply with NA checking disabled
+smoking_copd$xps_to_rr(synthpop, design, checkNAs = FALSE)
+
+# Apply for PARF calculation (no lags)
+alcohol_stroke$xps_to_rr(parf_population, design, forPARF = TRUE)
+
+# Chain with other operations
+exposure$gen_stochastic_effect(design)$xps_to_rr(synthpop, design)
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-validate_rr"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-validate_rr}{}}}
 \subsection{Method \code{validate_rr()}}{
-Get relative risks from disk.
+Validate stochastic relative risks by creating diagnostic plots comparing
+input data with generated stochastic effects. This helps ensure the
+Monte Carlo generation process is working correctly.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$validate_rr()}\if{html}{\out{</div>}}
 }
 
-\subsection{Returns}{
-A plot with the input and stochastic relative risks.
+\subsection{Details}{
+Creates a two-panel plot showing:
+\itemize{
+\item Stochastic relative risks as semi-transparent points (showing uncertainty)
+\item Original input relative risks as solid points (showing central estimates)
+\item Separate panels for men and women
+\item Age on x-axis, relative risk on y-axis
 }
+
+This visualization helps identify issues such as:
+\itemize{
+\item Excessive or insufficient uncertainty
+\item Bias in stochastic generation
+\item Age-specific patterns in uncertainty
+}
+}
+
+\subsection{Returns}{
+\code{NULL}. The method creates plots as a side effect.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Validate after generating stochastic effects
+bmi_chd$gen_stochastic_effect(design)
+bmi_chd$validate_rr()
+
+# Quick validation workflow
+smoking_copd$gen_stochastic_effect(design, overwrite = TRUE)$validate_rr()
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-get_input_rr"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-get_input_rr}{}}}
 \subsection{Method \code{get_input_rr()}}{
-Get original input relative risks by age and sex.
+Get the original input relative risk data by age and sex without Monte Carlo variation.
+This method returns the deterministic relative risks as loaded from the CSVY file,
+useful for comparisons with stochastic effects or PARF calculations.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$get_input_rr()}\if{html}{\out{</div>}}
 }
 
-\subsection{Returns}{
-A copied data.table with the original relative risks.
+\subsection{Details}{
+This method:
+\itemize{
+\item Returns deterministic (non-stochastic) relative risks
+\item Removes the agegroup column (keeps only age)
+\item Renames "rr" column to exposure-specific name
+\item Caches result with special "forPARF" identifier
+\item Provides baseline data for validation and PARF calculations
 }
+}
+
+\subsection{Returns}{
+A data.table containing the original relative risks with columns for age,
+sex, and the exposure-specific relative risk column (e.g., "bmi_rr").
+The agegroup column is removed and data is cached for performance.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Get original input relative risks
+original_rr <- bmi_chd$get_input_rr()
+
+# Compare with stochastic version
+stoch_rr <- bmi_chd$get_rr(mc = 1, design)
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-get_metadata"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-get_metadata}{}}}
 \subsection{Method \code{get_metadata()}}{
-Get original metadata.
+Get the original metadata associated with the exposure-disease relationship.
+Returns the complete metadata list as loaded from the CSVY file header,
+including exposure name, outcome, distribution, source, and notes.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$get_metadata()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-A list with the original metadata.
+A list containing the original metadata with elements:
+\itemize{
+\item \code{xps_name} - The exposure name
+\item \code{outcome} - The disease outcome
+\item \code{distribution} - Uncertainty distribution type
+\item \code{source} - Citation or data source
+\item \code{notes} - Additional notes
+\item \code{lag} - Exposure lag in years (if specified)
 }
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Get metadata for inspection
+meta <- bmi_chd$get_metadata()
+print(meta$source)
+
+# Check distribution type
+if (smoking_copd$get_metadata()$distribution == "lognormal") {
+  message("Using lognormal distribution")
+}
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-get_seed"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-get_seed}{}}}
 \subsection{Method \code{get_seed()}}{
-Get seed for RNG.
+Get the random number generator seed used for Monte Carlo simulations.
+The seed is generated as a hash digest of the exposure name and outcome,
+ensuring reproducible stochastic effects for the same exposure-outcome pair.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$get_seed()}\if{html}{\out{</div>}}
 }
 
-\subsection{Returns}{
-A seed for the RNG that is produced by the digest of exposure
-name and outcome.
+\subsection{Details}{
+The seed is automatically generated during initialization using:
+\itemize{
+\item A digest hash of exposure name and outcome
+\item Ensures reproducibility across simulation runs
+\item Different exposure-outcome pairs get different seeds
+\item Used by \code{dqset.seed()} for high-quality random number generation
 }
+}
+
+\subsection{Returns}{
+An integer representing the RNG seed used for this exposure's
+Monte Carlo simulations.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Get the seed for reproducibility checks
+seed_val <- bmi_chd$get_seed()
+
+# Verify different exposures have different seeds
+bmi_seed <- bmi_chd$get_seed()
+smoking_seed <- smoking_copd$get_seed()
+identical(bmi_seed, smoking_seed)  # Should be FALSE
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-write_xps_tmplte_file"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-write_xps_tmplte_file}{}}}
 \subsection{Method \code{write_xps_tmplte_file()}}{
-Writes a template exposure file to disk.
+Write a template exposure file to disk in CSVY format. This creates a
+skeleton file with placeholder metadata and a full age-sex grid of
+relative risks set to 1.0, which can be edited to create new exposures.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$write_xps_tmplte_file(file_path = "./inputs/RR/template.csvy")}\if{html}{\out{</div>}}
 }
@@ -301,20 +957,53 @@ Writes a template exposure file to disk.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{file_path}}{Path including file name and .csvy extension to write the
-file with placeholder exposure parameters.}
+\item{\code{file_path}}{Character string. Path where the template file will be written,
+including filename and .csvy extension. Defaults to "./inputs/RR/template.csvy".}
 }
 \if{html}{\out{</div>}}
 }
-\subsection{Returns}{
-The \code{Exposure} object.
+\subsection{Details}{
+Creates a template file containing:
+\itemize{
+\item YAML metadata header with placeholder values
+\item Full age-sex grid from 0-99 years in 5-year groups
+\item All relative risks initialized to 1.0
+\item All confidence intervals initialized to 1.0
+\item Proper factor levels for agegroup and sex
 }
+
+The template provides the correct structure for new exposure files and
+can be customized by replacing placeholder values with actual data.
+}
+
+\subsection{Returns}{
+The \code{Exposure} object, invisibly, for method chaining.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Create template file in default location
+exposure$write_xps_tmplte_file()
+
+# Create template with custom path
+exposure$write_xps_tmplte_file("./my_exposure_template.csvy")
+
+# Method chaining
+exposure$write_xps_tmplte_file()$print()
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-convert_from_old_format"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-convert_from_old_format}{}}}
 \subsection{Method \code{convert_from_old_format()}}{
-Convert the old format .csv to the new format .csvy.
+Convert legacy CSV format exposure files to the new CSVY format with metadata header.
+This method facilitates migration from older IMPACTncd versions by reading old
+CSV files and creating properly formatted CSVY files with YAML metadata.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$convert_from_old_format(
   old_file,
@@ -328,32 +1017,72 @@ Convert the old format .csv to the new format .csvy.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{old_file}}{Path to the old format .csv file with the RR.}
+\item{\code{old_file}}{Character string. Path to the legacy CSV file containing relative
+risk data. If missing, uses the \code{estimates} parameter instead.}
 
-\item{\code{metadata}}{List with the metadata information.}
+\item{\code{metadata}}{List containing metadata fields required for the new format:
+xps_name, outcome, distribution, source, notes, and optionally lag.}
 
-\item{\code{file_path}}{Path including file name and .csvy extension to write the
-new file.}
+\item{\code{file_path}}{Character string. Output path for the new CSVY file,
+including filename and .csvy extension.}
 
-\item{\code{estimates}}{Only used when old_file is missing. A vector of length
-2 with the 1st element being the point estimate and the 2nd one of
-the CI.}
+\item{\code{estimates}}{Numeric vector of length 2. Only used when \code{old_file} is missing.
+First element is the point estimate, second is either CI or p-value.}
 
-\item{\code{second_estimate_is_p}}{If \code{TRUE} and the \code{estimates} not \code{NULL} then the
-second element of \code{estimates} is interpreted like a p-value for ratio
-rather than a CI.}
+\item{\code{second_estimate_is_p}}{Logical. If \code{TRUE} and \code{estimates} is provided,
+interprets the second element as a p-value rather than confidence interval.}
 }
 \if{html}{\out{</div>}}
 }
-\subsection{Returns}{
-The \code{Exposure} object.
+\subsection{Details}{
+The conversion process:
+\itemize{
+\item Reads legacy CSV with age groups and sex stratification
+\item Expands to full 0-99 age range with 5-year groups
+\item Converts sex coding from numeric (1,2) to factor ("men","women")
+\item Handles single estimate expansion across age/sex groups
+\item Adds YAML metadata header for new format compatibility
+\item Supports p-value to confidence interval conversion
 }
+}
+
+\subsection{Returns}{
+The \code{Exposure} object, invisibly, for method chaining.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Convert existing CSV file
+metadata <- list(
+  xps_name = "bmi", outcome = "chd", distribution = "lognormal",
+  source = "Meta-analysis 2020", notes = "Converted from legacy format"
+)
+exposure$convert_from_old_format(
+  old_file = "legacy_bmi_chd.csv",
+  metadata = metadata,
+  file_path = "bmi_chd.csvy"
+)
+
+# Create from estimates with p-value
+exposure$convert_from_old_format(
+  metadata = metadata,
+  file_path = "new_exposure.csvy",
+  estimates = c(1.2, 0.05),
+  second_estimate_is_p = TRUE
+)
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-get_lag"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-get_lag}{}}}
 \subsection{Method \code{get_lag()}}{
-Get exposure lag.
+Get the exposure lag for the exposure-disease relationship. Returns either
+the fixed lag value or Monte Carlo-specific lag values for stochastic simulations.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$get_lag(mc_)}\if{html}{\out{</div>}}
 }
@@ -361,19 +1090,53 @@ Get exposure lag.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{mc_}}{A vector of Monte Carlo iterations. If missing or 0 return median (= mean).}
+\item{\code{mc_}}{Integer vector. Monte Carlo iteration numbers. If missing or 0,
+returns the median (deterministic) lag value. Otherwise returns lag values
+for the specified Monte Carlo iterations.}
 }
 \if{html}{\out{</div>}}
 }
-\subsection{Returns}{
-An integer vector with exposure~disease lag.
+\subsection{Details}{
+Exposure lag represents the time delay between exposure and disease onset:
+\itemize{
+\item For deterministic runs: returns the fixed lag value from metadata
+\item For Monte Carlo runs: returns iteration-specific lag values
+\item Lag affects when exposure changes influence disease incidence
+\item Important for policy impact timing and lifecycle analysis
 }
+}
+
+\subsection{Returns}{
+Integer vector containing exposure lag(s) in years. Length matches
+the length of \code{mc_} parameter, or single value if \code{mc_} is missing/0.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Get median lag
+median_lag <- bmi_chd$get_lag()
+
+# Get lag for specific Monte Carlo iterations
+mc_lags <- bmi_chd$get_lag(c(1, 5, 10))
+
+# Use in conditional logic
+if (smoking_copd$get_lag() > 10) {
+  message("Long lag exposure")
+}
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-get_ideal_xps_lvl"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-get_ideal_xps_lvl}{}}}
 \subsection{Method \code{get_ideal_xps_lvl()}}{
-Get ideal exposure level.
+Get the ideal (counterfactual) exposure level used for population attributable
+fraction calculations. This represents the theoretical minimum risk exposure
+level for calculating preventable disease burden.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$get_ideal_xps_lvl(mc_)}\if{html}{\out{</div>}}
 }
@@ -381,40 +1144,142 @@ Get ideal exposure level.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{mc_}}{A vector of Monte Carlo iterations. If missing or 0 return
-the user input lag.}
+\item{\code{mc_}}{Integer vector. Monte Carlo iteration numbers. If missing or 0,
+returns the mean ideal exposure level. Otherwise returns iteration-specific
+ideal exposure levels for stochastic calculations.}
 }
 \if{html}{\out{</div>}}
 }
-\subsection{Returns}{
-An integer vector with exposure~disease lag.
+\subsection{Details}{
+The ideal exposure level is used for:
+\itemize{
+\item Population Attributable Risk Fraction (PARF) calculations
+\item Determining preventable disease burden
+\item Setting counterfactual scenarios in policy simulations
+\item Calculating theoretical minimum risk exposure distributions
 }
+
+Common ideal levels include:
+\itemize{
+\item BMI: 21-23 kg/m² (optimal weight range)
+\item Smoking: 0 (complete cessation)
+\item Salt intake: WHO recommended levels
+\item Physical activity: WHO recommended levels
+}
+}
+
+\subsection{Returns}{
+Numeric vector containing ideal exposure level(s). Length matches
+the length of \code{mc_} parameter, or single value if \code{mc_} is missing/0.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Get mean ideal exposure level
+ideal_bmi <- bmi_chd$get_ideal_xps_lvl()
+
+# Get ideal levels for Monte Carlo iterations
+ideal_levels <- bmi_chd$get_ideal_xps_lvl(c(1, 5, 10))
+
+# Use in PARF calculations
+if (current_exposure > smoking_copd$get_ideal_xps_lvl()) {
+  # Calculate attributable risk
+}
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-get_name"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-get_name}{}}}
 \subsection{Method \code{get_name()}}{
-Get name of the object.
+Get the internal suffix name used for file naming and identification.
+This is typically a combination of the exposure name and outcome,
+used for creating unique filenames and internal references.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$get_name()}\if{html}{\out{</div>}}
 }
 
-\subsection{Returns}{
-An string.
+\subsection{Details}{
+The internal name is used for:
+\itemize{
+\item Creating unique filenames for stochastic effect files
+\item Internal object identification and referencing
+\item Avoiding naming conflicts between exposure-outcome pairs
+\item File management and organization
 }
+
+Format typically follows: "exposure_outcome" pattern
+(e.g., "bmi_chd", "smoking_copd", "salt_stroke")
+}
+
+\subsection{Returns}{
+Character string containing the internal name/suffix used for
+file identification and naming conventions.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Get internal name for file identification
+internal_name <- bmi_chd$get_name()
+
+# Use in file path construction
+file_path <- paste0("results/", smoking_copd$get_name(), "_output.csv")
+
+# Compare internal names
+if (exp1$get_name() == exp2$get_name()) {
+  warning("Duplicate exposure-outcome pairs detected")
+}
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-print"></a>}}
 \if{latex}{\out{\hypertarget{method-Exposure-print}{}}}
 \subsection{Method \code{print()}}{
-Print the simulation parameters.
+Print a summary of the exposure object showing key parameters and metadata.
+Displays exposure name, outcome, distribution type, lag, source, and notes
+in a readable format.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Exposure$print()}\if{html}{\out{</div>}}
 }
 
-\subsection{Returns}{
-The \code{Exposure} object.
+\subsection{Details}{
+Prints formatted information including:
+\itemize{
+\item Exposure name (e.g., "bmi", "smoking")
+\item Disease outcome influenced
+\item Uncertainty distribution type
+\item Median lag in years
+\item Source citation
+\item Additional notes
 }
+}
+
+\subsection{Returns}{
+The \code{Exposure} object, invisibly, for method chaining.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Print exposure information
+bmi_chd$print()
+
+# Print in workflow
+smoking_copd$gen_stochastic_effect(design)$print()
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Exposure-clone"></a>}}
