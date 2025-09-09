@@ -81,8 +81,8 @@ IMPACTncd$update_primary_prevention_scn(
     sbp_sd  <- (8.05 - 3.54)/(2*(qnorm(0.975)))
     sbp_effect <- rnorm(1, mean = -5.79, sd= sbp_sd)/2.27 #change provided is for 2.27 decrease in BMI
     sbp_effect[sbp_effect > 0] <- 0 # make sure effect is nor reversed
-    tchol_sd  <- (0.649 - 0.330)/(2*(qnorm(0.975)))
-    tchol_effect <- rnorm(1, mean = -0.483, tchol_sd)
+    tchol_sd <- (11.7 / 38.67 - 5.94 / 38.67) / (2 * (qnorm(0.975)))
+    tchol_effect <- rnorm(1, mean = -8.87 / 38.67, tchol_sd)
     tchol_effect[tchol_effect > 0] <- 0 # make sure effect is nor reversed
     sp$pop[year >= sc_year, 
            bmi_chnge :=  fifelse(bmi_curr_xps > bmi_target,
