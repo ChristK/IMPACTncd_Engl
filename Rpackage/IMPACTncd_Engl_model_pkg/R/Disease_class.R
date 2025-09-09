@@ -932,8 +932,10 @@ Disease <-
                           .(clbfctr = sum(mu)/sum(rp)),
                           keyby = .(dimd, sex)] # ,ethnicity, sha
 
-            lookup_dt(sp$pop, tbl,
-                      check_lookup_tbl_validity = design_$sim_prm$logs)
+            # NOTE lookup_dt is not safe in the line below because some LA (i.e.
+            # Nottingham) do not have all dimd and therefore tbl is not a proper
+            # look_up table because it lacks dimd levels  
+            absorb_dt(sp$pop, tbl)
 
             sp$pop[year >= design_$sim_prm$init_year,
                    clbfctr := clbintrc * clbfctr *
@@ -997,8 +999,7 @@ Disease <-
             ein <- sp$pop[year == design_$sim_prm$init_year & get(paste0(self$name, "_prvl")) == 0L & age >= design_$sim_prm$ageL, .(rp, mu, sex, dimd)]
             ein <- ein[, .(clbfctr = sum(mu, na.rm = TRUE)/sum(rp, na.rm = TRUE)),
                           keyby = .(sex, dimd)] # correction for init year, applies to other ages as well.
-            lookup_dt(sp$pop, ein, check_lookup_tbl_validity = design_$sim_prm$logs)
-            # absorb_dt(sp$pop, ein)
+            absorb_dt(sp$pop, ein) # not safe for lookup_dt. ein may not be a proper lu_tbl
 
              # sp$pop[year >= design_$sim_prm$init_year,
             #       summary(clbfctr * (clbtrend^(year - design_$sim_prm$init_year)))]
