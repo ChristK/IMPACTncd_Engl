@@ -55,3 +55,4 @@ auxil/lifecourse_recalibration.R
 inputs/sim_design_elast.yaml
 docker_setup/.env
 lad17_proj_byDIMD
+*.parquet
