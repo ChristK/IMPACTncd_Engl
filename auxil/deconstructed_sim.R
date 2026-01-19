@@ -684,41 +684,67 @@ large_files
 
 
 
+library(data.table)
+library(arrow)
+library(fst)
+library(jsonlite)
 
 fst_files <- list.files(
-  path = "inputs/exposure_distributions",
+  path = file.path("inputs", "exposure_distributions"),
   pattern = "\\.fst$",
   recursive = FALSE,
   full.names = TRUE
 )
-
+i <- 1L
 for (i in seq_along(fst_files)) {
   f <- fst_files[[i]]
   print(f)
   fout <- sub("\\.fst$", "", basename(f))
-  df <- fst::read_fst(f, as.data.table = FALSE)
-  if ("year" %in% names(df)) {
+  print(fout)
+  tbl <- fst::read_fst(f, as.data.table = TRUE)
+  print(key(tbl))
+  kc <- sort(
+    names(tbl)[
+      !names(tbl) %in% c("mu", "sigma", "nu", "tau", "maxq", "minq") &
+        !grepl("[0-9]$", names(tbl))
+    ]
+  )
+  kc <- kc[order(match(kc, "year"))]
+  print(kc)
+  setcolorder(tbl, kc)
+  setkeyv(tbl, kc)
+
+  tbl <- arrow_table(tbl)
+  
+# Arrow Schema metadata must be string->string; JSON is a safe encoding
+  meta <- tbl$metadata
+  meta[["r.data.table.keys"]] <- toJSON(kc, auto_unbox = TRUE)
+  meta[["r.data.table.keys_format"]] <- "json"
+  tbl$metadata <- meta
+
     arrow::write_dataset(
-      dataset = df,
+      dataset = tbl,
       path = file.path("inputs", "exposure_distributions", fout),
       format = "parquet",
-      partitioning = "year"
+      partitioning = if ("year" %in% names(tbl)) "year" else NULL
     )
-  } else if ("age" %in% names(df)) {
-    arrow::write_dataset(
-      dataset = df,
-      path = file.path("inputs", "exposure_distributions", fout),
-      format = "parquet",
-      partitioning = "age"
-    )
-  } else {
-    arrow::write_dataset(
-      dataset = df,
-      path = file.path("inputs", "exposure_distributions", fout),
-      format = "parquet",
-      partitioning = NULL
-    )
-  }
 }
 
 file.remove(fst_files)
+
+
+source("./global.R")
+design <- Design$new("testing/sim_design_testing.yaml")
+
+lapply(design$exposures, function(exposure) {
+  print(exposure$name)
+  exposure$add_qmin_qmax(
+    read_parquet_dt(exposure$file_path),
+    force = FALSE,
+    write_to_disk = TRUE
+  )
+})
+
+tt <- read_parquet_dt(design$exposures$income$file_path)
+names(tt)
+data.table::key(tt)

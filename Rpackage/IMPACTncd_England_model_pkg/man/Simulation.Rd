@@ -9,6 +9,59 @@ A simulation environment.
 \details{
 To be completed...
 }
+\section{Calibration Process}{
+
+
+The calibration operates over a specific time period defined by two key parameters:
+\itemize{
+\item \strong{Start year}: The initial year for in the designated sim_design yaml file
+\item \strong{End year}: The latest year as defined by the sim_horizon in sim_design yaml file
+}
+
+The calibration process follows these steps for each age from \code{ageL} to \code{ageH}:
+
+\subsection{1. Incidence Calibration}{
+For both CHD and stroke:
+\itemize{
+\item Runs simulation and extracts uncalibrated incidence rates
+\item Fits log-log linear models to both benchmark and simulated data over the calibration period
+\item Calculates calibration factors to align simulated trends with benchmark trends
+\item Updates prevalence estimates based on incidence corrections
+}
+}
+
+\subsection{2. Case Fatality Calibration}{
+For CHD, stroke, and non-modeled causes:
+\itemize{
+\item Incorporates incidence-corrected prevalence estimates
+\item Calculates calibration factors for case fatality rates
+\item Ensures mortality rates align with benchmark data
+\item Applies competing risk adjustments for previous ages
+}
+}
+}
+
+\section{Implementation Details}{
+
+
+\itemize{
+\item \strong{Sequential Processing}: Ages are processed sequentially to ensure proper
+prevalence carryover between age groups
+\item \strong{Trend Modeling}: Uses log-log linear regression to capture temporal trends
+in the calibration period
+\item \strong{Robust Estimation}: Employs median-based estimators to handle
+rare events and reduce Monte Carlo variability
+}
+}
+
+\examples{
+
+## ------------------------------------------------
+## Method `Simulation$export_tables`
+## ------------------------------------------------
+
+IMPACTncd$export_tables()
+}
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
@@ -33,22 +86,30 @@ To be completed...
 \item \href{#method-Simulation-update_secondary_prevention_scn}{\code{Simulation$update_secondary_prevention_scn()}}
 \item \href{#method-Simulation-get_secondary_prevention_scn}{\code{Simulation$get_secondary_prevention_scn()}}
 \item \href{#method-Simulation-run}{\code{Simulation$run()}}
+\item \href{#method-Simulation-calibrate_incd_ftlt}{\code{Simulation$calibrate_incd_ftlt()}}
 \item \href{#method-Simulation-export_summaries}{\code{Simulation$export_summaries()}}
+\item \href{#method-Simulation-export_tables}{\code{Simulation$export_tables()}}
 \item \href{#method-Simulation-get_causal_structure}{\code{Simulation$get_causal_structure()}}
 \item \href{#method-Simulation-get_node_names}{\code{Simulation$get_node_names()}}
 \item \href{#method-Simulation-get_causal_path}{\code{Simulation$get_causal_path()}}
 \item \href{#method-Simulation-update_design}{\code{Simulation$update_design()}}
 \item \href{#method-Simulation-del_outputs}{\code{Simulation$del_outputs()}}
+\item \href{#method-Simulation-del_summaries}{\code{Simulation$del_summaries()}}
 \item \href{#method-Simulation-del_logs}{\code{Simulation$del_logs()}}
 \item \href{#method-Simulation-del_parfs}{\code{Simulation$del_parfs()}}
+\item \href{#method-Simulation-del_RR_cache}{\code{Simulation$del_RR_cache()}}
 \item \href{#method-Simulation-del_synthpops}{\code{Simulation$del_synthpops()}}
 \item \href{#method-Simulation-get_esp}{\code{Simulation$get_esp()}}
 \item \href{#method-Simulation-get_mm_weights}{\code{Simulation$get_mm_weights()}}
+\item \href{#method-Simulation-validate}{\code{Simulation$validate()}}
+\item \href{#method-Simulation-split_large_files}{\code{Simulation$split_large_files()}}
+\item \href{#method-Simulation-reconstruct_large_files}{\code{Simulation$reconstruct_large_files()}}
+\item \href{#method-Simulation-del_large_files}{\code{Simulation$del_large_files()}}
+\item \href{#method-Simulation-print}{\code{Simulation$print()}}
 \item \href{#method-Simulation-allow_universal_output_folder_access}{\code{Simulation$allow_universal_output_folder_access()}}
 \item \href{#method-Simulation-allow_universal_synthpop_folder_access}{\code{Simulation$allow_universal_synthpop_folder_access()}}
 \item \href{#method-Simulation-update_output_path}{\code{Simulation$update_output_path()}}
 \item \href{#method-Simulation-update_synthpop_path}{\code{Simulation$update_synthpop_path()}}
-\item \href{#method-Simulation-print}{\code{Simulation$print()}}
 \item \href{#method-Simulation-clone}{\code{Simulation$clone()}}
 }
 }
@@ -164,6 +225,40 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-calibrate_incd_ftlt"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-calibrate_incd_ftlt}{}}}
+\subsection{Method \code{calibrate_incd_ftlt()}}{
+Generates new calibration parameters for incidence and case fatality rates.
+
+This method implements a sequential age-based calibration process that aligns
+modeled disease incidence and case fatality rates with user input data from
+external sources (e.g., GBD, national statistics). The calibration ensures
+that simulation outputs match observed epidemiological patterns.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$calibrate_incd_ftlt(mc, replace = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{mc}}{A positive sequential integer vector with the Monte Carlo
+iterations of synthetic population to simulate, or a scalar.}
+
+\item{\code{replace}}{If TRUE the calibration deletes the previous calibration file and
+starts from scratch. If FALSE, continues from the last uncalibrated age.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Details}{
+NOTE: This method requires England-specific disease burden files in ./inputs/disease_burden/
+including chd_incd.fst, stroke_incd.fst, chd_ftlt.fst, stroke_ftlt.fst, nonmodelled_ftlt.fst
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Simulation-export_summaries"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-export_summaries}{}}}
 \subsection{Method \code{export_summaries()}}{
@@ -172,7 +267,7 @@ Process the lifecourse files
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$export_summaries(
   multicore = TRUE,
   type = c("le", "hle", "dis_char", "prvl", "incd", "dis_mrtl", "mrtl",
-    "allcause_mrtl_by_dis", "cms"),
+    "all_cause_mrtl_by_dis", "cms", "qalys", "costs"),
   single_year_of_age = FALSE
 )}\if{html}{\out{</div>}}
 }
@@ -193,6 +288,58 @@ The invisible self for chaining.
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-export_tables"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-export_tables}{}}}
+\subsection{Method \code{export_tables()}}{
+Export summary tables for the simulation results.
+
+This method generates and exports summary tables for the main simulation outputs,
+including prevalence, incidence, mortality, disease characteristics, and exposures.
+It calls modular helper methods for each type of summary, ensuring output directories
+are created as needed and that all tables are written to the appropriate locations.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$export_tables(
+  baseline_year_for_change_outputs = 2019L,
+  prbl = c(0.5, 0.025, 0.975, 0.1, 0.9)
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{baseline_year_for_change_outputs}}{Integer. The baseline year to use for change outputs (default: 2019L).}
+
+\item{\code{prbl}}{Numeric vector. The quantiles to use for summary statistics (default: c(0.5, 0.025, 0.975, 0.1, 0.9)).}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Details}{
+This method is a high-level wrapper that orchestrates the export of all main summary tables.
+It delegates the actual export logic to the following private helper methods:
+\itemize{
+\item \code{private$export_main_tables}
+\item \code{private$export_all_cause_mrtl_tables}
+\item \code{private$export_disease_characteristics_tables}
+\item \code{private$export_xps_tables}
+}
+
+Each helper method is responsible for a specific set of outputs and ensures that
+the results are saved in the correct format and location.
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{IMPACTncd$export_tables()
+}
+\if{html}{\out{</div>}}
+
+}
+
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Simulation-get_causal_structure"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-get_causal_structure}{}}}
 \subsection{Method \code{get_causal_structure()}}{
@@ -202,7 +349,9 @@ causality structure.
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$get_causal_structure(
   processed = TRUE,
   print_plot = FALSE,
-  focus = FALSE
+  focus = FALSE,
+  mode = "in",
+  order = 1
 )}\if{html}{\out{</div>}}
 }
 
@@ -217,6 +366,13 @@ graph.}
 \item{\code{focus}}{If missing the whole causal structure is returned.
 Otherwise, if a named node only the subgraph of the 1st order
 neighbours that point to the given vertrice is returned.}
+
+\item{\code{mode}}{Character. When focus is specified, determines direction:
+"in" for neighbors pointing to the node, "out" for neighbors
+stemming from the node, "all" for both directions.}
+
+\item{\code{order}}{Integer. When focus is specified, determines how many
+steps away to include neighbors. Use Inf for all possible orders.}
 }
 \if{html}{\out{</div>}}
 }
@@ -287,9 +443,22 @@ The invisible self for chaining.
 \if{html}{\out{<a id="method-Simulation-del_outputs"></a>}}
 \if{latex}{\out{\hypertarget{method-Simulation-del_outputs}{}}}
 \subsection{Method \code{del_outputs()}}{
-Delete all output files.
+Delete all output files and folders below the first level.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$del_outputs()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_summaries"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_summaries}{}}}
+\subsection{Method \code{del_summaries()}}{
+Delete all output summary files and subdirectories while preserving first-level directory structure.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$del_summaries()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
@@ -316,6 +485,19 @@ The invisible self for chaining.
 Delete all files in the ./simulation/parf folder.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Simulation$del_parfs()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_RR_cache"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_RR_cache}{}}}
+\subsection{Method \code{del_RR_cache()}}{
+Delete all files in the ./simulation/rr folder.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$del_RR_cache()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
@@ -361,6 +543,91 @@ Morbidity Score weights).
 
 \subsection{Returns}{
 A named vector with disease weights.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-validate"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-validate}{}}}
+\subsection{Method \code{validate()}}{
+Internal validation of the disease burden.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$validate()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-split_large_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-split_large_files}{}}}
+\subsection{Method \code{split_large_files()}}{
+Splits files larger than 50Mb into chunks of 49Mb.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$split_large_files()}\if{html}{\out{</div>}}
+}
+
+\subsection{Details}{
+The function splits files larger than 50Mb into chunks of 49Mb
+so they can be tracked by GitHub. The large files are deleted and an
+index is created at "./simulation/large_files_indx.csv" so they can be
+reconstructed. The function also adds the large files to \code{.gitignore}.
+It works on Linux and Windows. Untested on Mac.
+}
+
+\subsection{Returns}{
+The invisible \code{Simulation} object.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-reconstruct_large_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-reconstruct_large_files}{}}}
+\subsection{Method \code{reconstruct_large_files()}}{
+Reconstructs large files from chunks.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$reconstruct_large_files()}\if{html}{\out{</div>}}
+}
+
+\subsection{Details}{
+The function reconstructs large files from chunks. The path of
+the files are stored in "./simulation/large_files_indx.csv". It works
+on Linux and Windows. Untested on Mac.
+}
+
+\subsection{Returns}{
+The invisible \code{Simulation} object.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_large_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_large_files}{}}}
+\subsection{Method \code{del_large_files()}}{
+Deletes large files.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$del_large_files()}\if{html}{\out{</div>}}
+}
+
+\subsection{Details}{
+The function deletes large files that are stored in chunks.
+The path of the files are stored in
+"./simulation/large_files_indx.csv".
+}
+
+\subsection{Returns}{
+The invisible \code{Simulation} object.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-print"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-print}{}}}
+\subsection{Method \code{print()}}{
+Prints the simulation object metadata.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$print()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The invisible \code{Simulation} object.
 }
 }
 \if{html}{\out{<hr>}}
@@ -432,19 +699,6 @@ Updates the synthpop path.
 }
 \subsection{Returns}{
 The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Simulation-print"></a>}}
-\if{latex}{\out{\hypertarget{method-Simulation-print}{}}}
-\subsection{Method \code{print()}}{
-Prints the simulation object metadata.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Simulation$print()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-The invisible \code{Simulation} object.
 }
 }
 \if{html}{\out{<hr>}}

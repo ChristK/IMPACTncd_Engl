@@ -67,7 +67,7 @@ For our alternative scenarios, we will set the first year the change starts to 2
 vignette("how_to_test_run", package = "IMPACTncdEngl")
 ```
 
-In particular, you may need to adjust the `n` and `n_synthpop_aggregation` parameters to create the desired synthetic population size. If you use the same `synthpop_dir` location as in your test run, the new synthpop files will have a different filename and will not overwrite the existing files. However, you may want to delete the existing synthpop files in the folder to save disk space.
+In particular, you may need to adjust the `n` and `num_chunks` parameters to create the desired synthetic population size. If you use the same `synthpop_dir` location as in your test run, the new synthpop files will have a different filename and will not overwrite the existing files. However, you may want to delete the existing synthpop files in the folder to save disk space.
 
 2.  To run a baseline scenario, run the following chunk of code, which deletes everything inside the existing output and log folders, runs a new baseline scenario from scratch and summarises the results of the simulation. 
 
@@ -254,7 +254,7 @@ In this example, we specify the `type` to only export a few of the summary outpu
 
 - **mrtl** : all-cause mortality; 
 
-- **allcause_mrtl_by_dis** : all-cause mortality by disease;
+- **all_cause_mrtl_by_dis** : all-cause mortality by disease;
 
 - **cms** : information on CMS (Cambridge Multimorbidity Score) score and count. 
 
@@ -265,7 +265,7 @@ IMPACTncd$
   run(1:n_runs, multicore = FALSE, "sc4") $
     export_summaries(multicore = FALSE, type = c("dis_char", "prvl",
                      "incd", "dis_mrtl", "mrtl",
-                     "allcause_mrtl_by_dis", "cms"))
+                     "all_cause_mrtl_by_dis", "cms"))
 ```
 
 ### Other files 

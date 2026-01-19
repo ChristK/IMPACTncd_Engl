@@ -231,7 +231,7 @@ tbl_smmrs <- function(
 # Add file.exists
 
 ## all cause mortality by disease summaries
-allcause_mrtl_by_dis_smmrs <- function(what = "allcause_mrtl_by_dis",
+all_cause_mrtl_by_dis_smmrs <- function(what = "all_cause_mrtl_by_dis",
                                        type = c("ons", "esp"), outstrata, output_dir, prbl,
                                        sTablesSubDirPath, sSummariesSubDirPath,
                                        pop_denom = FALSE) {
@@ -494,8 +494,8 @@ export_tables <- function(what, type, strata, output_dir,
                     "cms_score_change", "cms_score_age", "cms_score_age_change",
                     "cms_count", "cms_count_change", "pop")) {
       tbl_smmrs(what, type, strata_list_input, output_dir, prbl, baseline_year, two_agegrps)
-    } else if (what == "allcause_mrtl_by_dis") {
-      allcause_mrtl_by_dis_smmrs(what, type, strata_list_input, output_dir, prbl,
+    } else if (what == "all_cause_mrtl_by_dis") {
+      all_cause_mrtl_by_dis_smmrs(what, type, strata_list_input, output_dir, prbl,
                                  sTablesSubDirPath, sSummariesSubDirPath,
                                  pop_denom)
     } else if (what == "xps") {
@@ -515,7 +515,7 @@ export_tables(
     "ftlt", "ftlt_change", "mrtl", "mrtl_change",
     "cms_score", "cms_score_change", "cms_score_age",
     "cms_score_age_change", "cms_count", "cms_count_change",
-    "pop", "allcause_mrtl_by_dis", "xps", "dis_char"
+    "pop", "all_cause_mrtl_by_dis", "xps", "dis_char"
   ),
   type = c("ons", "esp"),
   strata = list(

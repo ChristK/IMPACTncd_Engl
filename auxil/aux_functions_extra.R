@@ -1002,7 +1002,7 @@ set_attendees <- function(scenario_parms, dt, scenario_nam, parameters_dt,
                                                dt[year == scenario_parms$sc_init_year - 2000L &
                                                     invitees_sc == 1L,
                                                   sum(wt) *
-                                                    design$sim_prm$n_synthpop_aggregation]])
+                                                    design$sim_prm$num_chunks]])
       setnafill(dt, "c", 0, cols = "uptake_wt")
       dt[, c("Qrisk2_cat", "agegrp10") := NULL]
 

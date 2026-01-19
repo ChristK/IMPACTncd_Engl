@@ -141,7 +141,7 @@ Design <-
           "synthpop_dir",
           "validation",
           "iteration_n_max",
-          "n_synthpop_aggregation"
+          "num_chunks"
         )
 
         stopifnot(

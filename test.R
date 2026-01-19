@@ -3,14 +3,14 @@ IMPACTncd <- Simulation$new("testing/sim_design_testing.yaml")
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  del_synthpops()$
-# del_parfs()$
+  # del_synthpops()$
+  # del_parfs()$
 run(1:2, multicore = TRUE, "sc0")
 
 # library(data.table)
 # tbl <- read_parquet_dt(design$exposures$smok_dur_ex$file_path)
-# # tbl[, smok_status := as.integer(as.character(smok_status))]
-# # arrow::write_dataset(tbl, design$exposures$smok_dur_ex$file_path, partitioning = "year")
+# tbl[, smok_status := as.integer(as.character(smok_status))]
+# arrow::write_dataset(tbl, design$exposures$smok_dur_ex$file_path, partitioning = "year")
 # kc <- sort(setdiff(
 #   names(tbl),
 #   c("mu", "sigma", "nu", "tau", "maxq", "minq", design$exposures$veg$thresholds)

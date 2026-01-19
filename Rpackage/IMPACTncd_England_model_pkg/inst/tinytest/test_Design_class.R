@@ -41,7 +41,7 @@ create_design_list <- function(overrides = list()) {
         synthpop_dir = tempdir(),
         validation = FALSE,
         iteration_n_max = 2,
-        n_synthpop_aggregation = 1
+        num_chunks = 1
     )
     modifyList(base, overrides)
 }
@@ -88,7 +88,7 @@ gui_input <- list(
     iteration_n_gui = 99,
     iteration_n_final_gui = 9,
     n_gui = 1000,
-    n_synthpop_aggregation_gui = 2,
+    num_chunks_gui = 2,
     n_primers_gui = 1,
     cancer_cure_gui = 0.7,
     jumpiness_gui = 0.3,

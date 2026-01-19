@@ -115,7 +115,7 @@ Simulation <-
         # Create folders if don't exist
         private$create_output_folder_structure()
         
-        private$create_empty_calibration_prms_file(replace = FALSE)
+        # private$create_empty_calibration_prms_file(replace = FALSE)
         message("Generating microsimulation structure.")
         # Generate the graph with the causality structure
         ds <- unlist(strsplit(names(self$design$RR), "~"))
@@ -171,8 +171,8 @@ Simulation <-
         }))
         private$death_codes[["alive"]] <- 0L
 
-        private$primary_prevention_scn = function(synthpop) NULL # default for baseline scenario
-        private$secondary_prevention_scn = function(synthpop) NULL # default for baseline scenario
+        private$primary_prevention_scn <- function(synthpop) NULL # default for baseline scenario
+        private$secondary_prevention_scn <- function(synthpop) NULL # default for baseline scenario
 
         invisible(self)
       },
@@ -213,10 +213,253 @@ Simulation <-
         private$secondary_prevention_scn
       },
 
+      # run ----
+      #' @description Runs a simulation
+      #' @param mc A positive sequential integer vector with the Monte Carlo
+      #'   iterations of synthetic population to simulate, or a scalar.
+      #' @param multicore If TRUE run the simulation in parallel.
+      #' @param scenario_nam A string for the scenario name (i.e. sc1)
+      #' @return The invisible self for chaining.
+      run = function(mc, multicore = TRUE, scenario_nam) {
+        if (!is.integer(mc)) {
+          stop("mc need to be an integer")
+        }
+        if (any(mc <= 0)) {
+          stop("mc need to be positive integer")
+        }
+
+        # recombine the chunks of large files
+        # TODO logic to delete these files
+        self$reconstruct_large_files()
+
+        # check if sequential vector. Necessary if
+        # design$sim_prm$num_chunks > 1
+        if (
+          anyNA(mc) ||
+            any(is.infinite(mc)) ||
+            length(mc) < 1L ||
+            (length(mc) > 1L && diff(mc[1:2]) == 0) ||
+            (length(mc) > 1L &&
+              diff(range(diff(mc))) > sqrt(.Machine$double.eps))
+        ) {
+          stop("mc need to be a sequential integer vector, or a scalar")
+        }
+        # NOTE mc is in fact mc_aggr. mc_ is the mc of the synthpop
+        mc_sp <-
+          (min(mc) *
+            self$design$sim_prm$num_chunks -
+            self$design$sim_prm$num_chunks +
+            1L):(max(mc) * self$design$sim_prm$num_chunks)
+
+        # Create folders if don't exist (necessary for when output_dir in the
+        # design.yaml is changed between scenarios i.e.)
+        private$create_output_folder_structure()
+
+        # TODO better logic as this is always true for the non baseline scenario
+        if (
+          any(file.exists(
+            # TODO fix when lifecourse is not saved
+            file.path(
+              self$design$sim_prm$output_dir,
+              "lifecourse"
+            ),
+            recursive = TRUE
+          ))
+        ) {
+          # stop("Results from a previous simulation exists in the output
+          #      folder. Please remove them before run a new one.")
+          if (self$design$sim_prm$logs) {
+          message(
+              "Results from a previous simulation exists in the output folder. Please remove them if this was unintentional."
+          )
+          }
+        }
+
+        # Generate PARF files if they don't exist. Note that generation is
+        # multicore
+        lapply(self$design$diseases, function(x) {
+          x$gen_parf_files(self$design, self$design$diseases)
+        })
+
+        if (multicore) {
+          if (self$design$sim_prm$logs) {
+            private$time_mark("Start of parallelisation")
+          }
+
+          arrow::set_cpu_count(1L)
+          data.table::setDTthreads(
+            threads = 1L,
+            restore_after_fork = NULL
+          )
+          fst::threads_fst(
+            nr_of_threads = 1L,
+            reset_after_fork = NULL
+          )
+
+          if (.Platform$OS.type == "windows") {
+            cl <-
+              makeClusterPSOCK(
+                self$design$sim_prm$clusternumber,
+                dryrun = FALSE,
+                quiet = FALSE,
+                rscript_startup = quote(local({
+                  library(CKutils)
+                  library(IMPACTncdEngland)
+                  library(digest)
+                  library(fst)
+                  library(qs2)
+                  library(wrswoR)
+                  library(gamlss.dist)
+                  library(dqrng)
+                  library(data.table)
+                })),
+                rscript_args = c(
+                  "--no-init-file",
+                  "--no-site-file",
+                  "--no-environ"
+                ),
+                setup_strategy = "parallel"
+              ) # used for clustering. Windows compatible
+
+            on.exit(if (exists("cl")) stopCluster(cl))
+
+            xps_dt <- parLapplyLB(
+              cl = cl,
+              X = mc_sp,
+              fun = function(x) private$run_sim(mc_ = x, scenario_nam)
+            )
+          } else {
+            # used for forking. Only Linux/OSX compatible
+            registerDoParallel(self$design$sim_prm$clusternumber)
+
+            xps_dt <- foreach(
+              mc_iter = mc_sp,
+              .inorder = FALSE,
+              .options.multicore = list(preschedule = FALSE),
+              .verbose = self$design$sim_prm$logs,
+              .packages = c(
+                "R6",
+                "digest",
+                "qs2",
+                "wrswoR",
+                "gamlss.dist",
+                "dqrng",
+                "CKutils",
+                "IMPACTncdEngland",
+                "fst",
+                "data.table"
+              ),
+              .export = ls(envir = globalenv()),
+              .noexport = NULL # c("time_mark")
+            ) %dopar%
+              {
+                private$run_sim(mc_ = mc_iter, scenario_nam)
+              }
+          }
+          if (self$design$sim_prm$logs) {
+            private$time_mark("End of parallelisation")
+          }
+        } else {
+          # if multicore = FALSE
+          if (self$design$sim_prm$logs) {
+            private$time_mark("Start of single-core run")
+          }
+          # all implicit parallelisation
+          arrow::set_cpu_count(self$design$sim_prm$clusternumber)
+          data.table::setDTthreads(
+            threads = self$design$sim_prm$clusternumber,
+            restore_after_fork = NULL
+          )
+          fst::threads_fst(
+            nr_of_threads = self$design$sim_prm$clusternumber,
+            reset_after_fork = NULL
+          )
+          lapply(mc_sp, private$run_sim, scenario_nam)
+
+          if (self$design$sim_prm$logs) {
+            private$time_mark("End of single-core run")
+          }
+        }
+
+        while (sink.number() > 0L) {
+          sink()
+        }
+
+        invisible(self)
+      },
+
+      # The trends in incidence by sex alone seem a bit off. This is because I
+      # calibrate using a single year of age, and there is bias there that is
+      # compounded rather than cancelling out. I think I can fix this by adding a
+      # final step in the calibration after the calibration by a single year of age
+      # finish. The prevalence at older ages fluctuates a lot. This is because the
+      # initial values we get from GBD are not aligned with the mortality rates we
+      # use. The only way to fix this is by using DISMOD to align the initial
+      # prevalence for the given incidence and mortality. Nonmodelled,
+      # CHD and stroke mortalities are underestimated. This is most likely because I
+      # calibrate them independently from one another while the risk of mortality is
+      # not independent but competing. I think I can change the calibration algorithm
+      # to consider competing risks. Another possibility is that it is the bias
+      # introduced by the use of beta distribution for the uncertainty. From memory,
+      # when I checked it, that bias was much smaller than the one observed in these
+      # plots, but I will double-check to make sure.
+
       # calibrate_incd_ftlt ----
-      #' @description Calibrate incidence and case fatality parameters
-      #' @param mc A positive sequential integer vector with the Monte Carlo iterations
-      #' @param replace If TRUE, replace the existing calibration file. If FALSE, resume from where left off.
+      #' @description Generates new calibration parameters for incidence and case fatality rates.
+      #'
+      #' This method implements a sequential age-based calibration process that aligns
+      #' modeled disease incidence and case fatality rates with user input data from
+      #' external sources (e.g., GBD, national statistics). The calibration ensures
+      #' that simulation outputs match observed epidemiological patterns.
+      #'
+      #' @section Calibration Process:
+      #'
+      #' The calibration operates over a specific time period defined by two key parameters:
+      #' \itemize{
+      #'   \item **Start year**: The initial year for in the designated sim_design yaml file
+      #'   \item **End year**: The latest year as defined by the sim_horizon in sim_design yaml file
+      #' }
+      #'
+      #' The calibration process follows these steps for each age from `ageL` to `ageH`:
+      #'
+      #' \subsection{1. Incidence Calibration}{
+      #'   For both CHD and stroke:
+      #'   \itemize{
+      #'     \item Runs simulation and extracts uncalibrated incidence rates
+      #'     \item Fits log-log linear models to both benchmark and simulated data over the calibration period
+      #'     \item Calculates calibration factors to align simulated trends with benchmark trends
+      #'     \item Updates prevalence estimates based on incidence corrections
+      #'   }
+      #' }
+      #'
+      #' \subsection{2. Case Fatality Calibration}{
+      #'   For CHD, stroke, and non-modeled causes:
+      #'   \itemize{
+      #'     \item Incorporates incidence-corrected prevalence estimates
+      #'     \item Calculates calibration factors for case fatality rates
+      #'     \item Ensures mortality rates align with benchmark data
+      #'     \item Applies competing risk adjustments for previous ages
+      #'   }
+      #' }
+      #'
+      #'
+      #' @section Implementation Details:
+      #'
+      #' \itemize{
+      #'   \item **Sequential Processing**: Ages are processed sequentially to ensure proper
+      #'     prevalence carryover between age groups
+      #'   \item **Trend Modeling**: Uses log-log linear regression to capture temporal trends
+      #'     in the calibration period
+      #'   \item **Robust Estimation**: Employs median-based estimators to handle
+      #'     rare events and reduce Monte Carlo variability
+      #   \item **Competing Risks**: Adjusts calibration factors for previously calibrated
+      #     ages to account for competing mortality risks
+      #' }
+      #'
+      #' @param mc A positive sequential integer vector with the Monte Carlo
+      #'   iterations of synthetic population to simulate, or a scalar.
+      #' @param replace If TRUE the calibration deletes the previous calibration file and
+      #'   starts from scratch. If FALSE, continues from the last uncalibrated age.
       #' @return The invisible self for chaining.
       #' @details NOTE: This method requires England-specific disease burden files in ./inputs/disease_burden/
       #' including chd_incd.fst, stroke_incd.fst, chd_ftlt.fst, stroke_ftlt.fst, nonmodelled_ftlt.fst
@@ -447,6 +690,11 @@ Simulation <-
           ]
 
           # Case fatality calibration
+          # Because we do incd and case fatality correction in the same step, we
+          # need to estimate the expected changes on prvl because of the incd
+          # calibration, before we proceed with the case fatality calibration.
+          # Note that the calibration factor (multiplier) is 1/prvl as we
+          # currently have mortality rates in the ftlt files.
           prvl <- open_dataset(file.path(
             self$design$sim_prm$output_dir,
             "summaries",
@@ -583,12 +831,12 @@ Simulation <-
               on = c("age", "sex", "year"),
               nonmodelled_ftlt_clbr_fctr := mu2 / nonmodelled_mrtl
             ]
-            mrtl[chd_ftlt_clbr_fctr == Inf, chd_ftlt_clbr_fctr := 1]
-            mrtl[stroke_ftlt_clbr_fctr == Inf, stroke_ftlt_clbr_fctr := 1]
+            mrtl[chd_ftlt_clbr_fctr == Inf, chd_ftlt_clbr_fctr := 1] # to avoid Inf through division by 0
+            mrtl[stroke_ftlt_clbr_fctr == Inf, stroke_ftlt_clbr_fctr := 1] # to avoid Inf through division by 0
             mrtl[
               nonmodelled_ftlt_clbr_fctr == Inf,
               nonmodelled_ftlt_clbr_fctr := 1
-            ]
+            ] # to avoid Inf through division by 0
 
             clbr[
               mrtl,
@@ -629,18 +877,731 @@ Simulation <-
             )
           ]
 
-          fwrite(clbr, "./simulation/calibration_prms.csv")
+          fwrite(clbr, "./simulation/calibration_prms.csv") # NOTE this needs to be inside the loop so it influences the simulation during the loop over ages
         } # end loop over ages
 
         self$design$sim_prm$export_xps <- export_xps # restore the original value
         invisible(self)
       },
 
-      # validate ----
-      #' @description Validate the simulation results against observed data
+      # export_summaries ----
+
+      #' @description Process the lifecourse files
+      #' @param multicore If TRUE run the simulation in parallel.
+      #' @param type The type of summary to extract.
+      #' @param single_year_of_age Export summaries by single year of age. Useful for the calibration proccess.
       #' @return The invisible self for chaining.
-      #' @details NOTE: This method requires England-specific population files.
-      #' Update the file path below to point to your England population data.
+      export_summaries = function(
+        multicore = TRUE,
+        type = c(
+          "le",
+          "hle",
+          "dis_char",
+          "prvl",
+          "incd",
+          "dis_mrtl",
+          "mrtl",
+          "all_cause_mrtl_by_dis",
+          "cms",
+          "qalys",
+          "costs"
+        ),
+        single_year_of_age = FALSE
+      ) {
+        if (multicore) {
+          arrow::set_cpu_count(1L)
+          data.table::setDTthreads(threads = 1L, restore_after_fork = NULL)
+          fst::threads_fst(nr_of_threads = 1L, reset_after_fork = NULL)
+        } else {
+          # if not explicit parallelism
+          arrow::set_cpu_count(self$design$sim_prm$clusternumber_export)
+          data.table::setDTthreads(
+            threads = self$design$sim_prm$clusternumber_export,
+            restore_after_fork = NULL
+          )
+          fst::threads_fst(
+            nr_of_threads = self$design$sim_prm$clusternumber_export,
+            reset_after_fork = NULL
+          )
+        }
+
+        lc <- open_dataset(private$output_dir("lifecourse"))
+
+        # Connect DuckDB and register the Arrow dataset as a DuckDB view with better error handling
+        con <- NULL
+        mc_set <- NULL
+
+        tryCatch(
+          {
+            con <- dbConnect(duckdb::duckdb(), ":memory:", read_only = TRUE)
+            if (multicore) {
+              private$execute_sql(con, "PRAGMA threads=1")
+            } else {
+              # if not explicit parallelism
+              private$execute_sql(
+                con,
+                paste0(
+                  "PRAGMA threads=",
+                  self$design$sim_prm$clusternumber_export
+                )
+              )
+            }
+
+            duckdb::duckdb_register_arrow(con, "lc_table", lc)
+            mc_set <- private$query_sql(
+              con,
+              "SELECT DISTINCT mc FROM lc_table"
+            )$mc
+            scn_set <- private$query_sql(
+              con,
+              "SELECT DISTINCT scenario FROM lc_table"
+            )$scenario
+          },
+          error = function(e) {
+            stop(sprintf(
+              "Failed to initialize DuckDB connection or query mc_set or query scn_set: %s",
+              e$message
+            ))
+          },
+          finally = {
+            if (!is.null(con)) {
+              try(dbDisconnect(con, shutdown = TRUE), silent = TRUE)
+            }
+          }
+        )
+
+        if (is.null(mc_set) || length(mc_set) == 0) {
+          stop("No Monte Carlo iterations found in lifecourse data")
+        }
+        if (is.null(scn_set) || length(scn_set) == 0) {
+          stop("No scenarios found in lifecourse data")
+        }
+
+        # test that the rng seeds that were generated for each scenario/sp$mc_aggr
+        # combination are unique
+        scn_set <- c(paste0("primary", scn_set), paste0("secondary", scn_set))
+        rng_seeds <- sapply(mc_set, function(i) digest2int(scn_set, i))
+        colnames(rng_seeds) <- paste0("mc=", mc_set)
+        rownames(rng_seeds) <- gsub("primary|secondary", "", scn_set)
+        duplicates <- duplicated(as.vector(rng_seeds))
+        duplicates <- matrix(
+          duplicates,
+          nrow = nrow(rng_seeds),
+          ncol = ncol(rng_seeds)
+        )
+
+        if (any(duplicates)) {
+          # Find which positions have duplicated values - Method 1: Direct approach
+          dup_coords <- which(duplicates, arr.ind = TRUE)
+          dup_row_names <- rownames(rng_seeds)[dup_coords[, 1]]
+          warning(
+            "RNG seeds are not unique for each scenario/mc combination. This may lead to correlated results. ",
+            "Try to rename scenario ",
+            paste(unique(dup_row_names), collapse = ", "),
+            " and rerun the simulation to avoid unintended correlations."
+          )
+        }
+
+        # logic to avoid inappropriate dual processing of already processed mc iterations
+        # TODO take into account scenarios
+        if ("le" %in% type) {
+          file_pth <- private$output_dir("summaries/le_scaled_up")
+        } else if ("hle" %in% type) {
+          file_pth <- private$output_dir("summaries/hle_1st_cond_scaled_up")
+        } else if ("cms" %in% type) {
+          file_pth <- private$output_dir("summaries/cms_count_scaled_up")
+        } else if ("mrtl" %in% type) {
+          file_pth <- private$output_dir("summaries/mrtl_scaled_up")
+        } else if ("dis_mrtl" %in% type) {
+          file_pth <- private$output_dir("summaries/dis_mrtl_scaled_up")
+        } else if ("dis_char" %in% type) {
+          file_pth <- private$output_dir(
+            "summaries/dis_characteristics_scaled_up"
+          )
+        } else if ("incd" %in% type) {
+          file_pth <- private$output_dir("summaries/incd_scaled_up")
+        } else if ("prvl" %in% type) {
+          file_pth <- private$output_dir("summaries/prvl_scaled_up")
+        } else if ("all_cause_mrtl_by_dis" %in% type) {
+          file_pth <- private$output_dir(
+            "summaries/all_cause_mrtl_by_dis_scaled_up"
+          )
+        } else if ("qalys" %in% type) {
+          file_pth <- private$output_dir("summaries/qalys_scaled_up")
+        } else if ("costs" %in% type) {
+          file_pth <- private$output_dir("summaries/costs_scaled_up")
+        } else {
+          stop("Unknown type of summary")
+        }
+
+        if (file.exists(file_pth) && length(list.files(file_pth)) > 0) {
+          con2 <- NULL
+          mc_toexclude <- NULL
+
+          tryCatch(
+            {
+              con2 <- dbConnect(duckdb::duckdb(), ":memory:", read_only = TRUE)
+              if (multicore) {
+                private$execute_sql(con2, "PRAGMA threads=1")
+              } else {
+                # if not explicit parallelism
+                private$execute_sql(
+                  con2,
+                  paste0(
+                    "PRAGMA threads=",
+                    self$design$sim_prm$clusternumber_export
+                  )
+                )
+              }
+              duckdb::duckdb_register_arrow(
+                con2,
+                "tbl",
+                open_dataset(file_pth, format = "parquet")
+              )
+              mc_toexclude <- private$query_sql(
+                con2,
+                "SELECT DISTINCT mc FROM tbl"
+              )$mc
+            },
+            error = function(e) {
+              warning(sprintf("Failed to check existing files: %s", e$message))
+              mc_toexclude <- NULL
+            },
+            finally = {
+              if (!is.null(con2)) {
+                try(dbDisconnect(con2, shutdown = TRUE), silent = TRUE)
+              }
+            }
+          )
+
+          if (!is.null(mc_toexclude)) {
+            mc_set <- mc_set[!mc_set %in% mc_toexclude]
+          }
+        }
+
+        if (length(mc_set) == 0) {
+          if (self$design$sim_prm$logs) {
+            message(
+              "All required Monte Carlo iterations already processed for type: ",
+              paste(type, collapse = ", "),
+              ". Skipping summary export."
+            )
+          }
+          return(invisible(self)) # Exit if nothing left to process
+        }
+        # end of logic
+
+        if (multicore) {
+          if (self$design$sim_prm$logs) {
+            private$time_mark("Start exporting summaries")
+          }
+
+          arrow::set_cpu_count(1L)
+          data.table::setDTthreads(
+            threads = 1L,
+            restore_after_fork = NULL
+          )
+          fst::threads_fst(
+            nr_of_threads = 1L,
+            reset_after_fork = NULL
+          )
+
+          if (.Platform$OS.type == "windows") {
+            cl <-
+              makeClusterPSOCK(
+                self$design$sim_prm$clusternumber_export,
+                dryrun = FALSE,
+                quiet = !self$design$sim_prm$logs,
+                rscript_startup = quote(local({
+                  library(CKutils)
+                  library(IMPACTncdJapan)
+                  library(R6)
+                  library(arrow)
+                  library(duckdb)
+                  library(data.table)
+                })),
+                rscript_args = c(
+                  "--no-init-file",
+                  "--no-site-file",
+                  "--no-environ"
+                ),
+                setup_strategy = "parallel"
+              ) # used for clustering. Windows compatible
+
+            on.exit(if (exists("cl")) stopCluster(cl), add = TRUE)
+
+            parLapplyLB(
+              cl = cl,
+              X = seq_along(mc_set),
+              fun = function(i) {
+                private$export_summaries_hlpr(
+                  mcaggr = i,
+                  type = type,
+                  single_year_of_age = single_year_of_age,
+                  implicit_parallelism = FALSE
+                )
+                NULL
+              }
+            )
+          } else {
+            registerDoParallel(self$design$sim_prm$clusternumber_export) # used for forking. Only Linux/OSX compatible
+            xps_dt <- foreach(
+              i = seq_along(mc_set),
+              .inorder = TRUE,
+              .options.multicore = list(preschedule = FALSE),
+              .verbose = self$design$sim_prm$logs,
+              .packages = c(
+                "R6",
+                "CKutils",
+                "IMPACTncdEngland",
+                "arrow",
+                "duckdb",
+                "data.table"
+              ),
+              .export = NULL,
+              .noexport = NULL # c("time_mark")
+            ) %dopar%
+              {
+                private$export_summaries_hlpr(
+                  mcaggr = i,
+                  type = type,
+                  single_year_of_age = single_year_of_age,
+                  implicit_parallelism = FALSE
+                )
+                NULL
+              }
+          }
+
+          if (self$design$sim_prm$logs) {
+            private$time_mark("End of exporting summaries")
+          }
+        } else {
+          # if multicore = FALSE
+          if (self$design$sim_prm$logs) {
+            private$time_mark("Start of single-core summaries export")
+          }
+
+          lapply(seq_along(mc_set), function(i) {
+            private$export_summaries_hlpr(
+              mcaggr = i,
+              type = type,
+              single_year_of_age = single_year_of_age,
+              implicit_parallelism = TRUE # allow implicit parallelisation
+            )
+            NULL
+          })
+
+          if (self$design$sim_prm$logs) {
+            private$time_mark("End of single-core summaries export")
+          }
+        } # end of multicore = FALSE
+
+        while (sink.number() > 0L) {
+          sink()
+        }
+
+        invisible(self)
+      },
+      # export_tables ----
+      #' @description
+      #' Export summary tables for the simulation results.
+      #'
+      #' This method generates and exports summary tables for the main simulation outputs,
+      #' including prevalence, incidence, mortality, disease characteristics, and exposures.
+      #' It calls modular helper methods for each type of summary, ensuring output directories
+      #' are created as needed and that all tables are written to the appropriate locations.
+      #'
+      #' @param baseline_year_for_change_outputs Integer. The baseline year to use for change outputs (default: 2019L).
+      #' @param prbl Numeric vector. The quantiles to use for summary statistics (default: c(0.5, 0.025, 0.975, 0.1, 0.9)).
+      #'
+      #' @details
+      #' This method is a high-level wrapper that orchestrates the export of all main summary tables.
+      #' It delegates the actual export logic to the following private helper methods:
+      #' - \code{private$export_main_tables}
+      #' - \code{private$export_all_cause_mrtl_tables}
+      #' - \code{private$export_disease_characteristics_tables}
+      #' - \code{private$export_xps_tables}
+      #'
+      #' Each helper method is responsible for a specific set of outputs and ensures that
+      #' the results are saved in the correct format and location.
+      #'
+      #' @return The invisible self for chaining.
+      #'
+      #' @examples
+      #' IMPACTncd$export_tables()
+      export_tables = function(
+        baseline_year_for_change_outputs = 2019L,
+        prbl = c(0.5, 0.025, 0.975, 0.1, 0.9)
+      ) {
+        private$export_main_tables(
+          prbl,
+          baseline_year_for_change_outputs,
+          private$output_dir()
+        )
+        private$export_all_cause_mrtl_tables(
+          prbl,
+          private$output_dir("summaries"),
+          private$output_dir("tables")
+        )
+        private$export_disease_characteristics_tables(
+          prbl,
+          private$output_dir("summaries"),
+          private$output_dir("tables")
+        )
+        private$export_xps_tables(
+          prbl,
+          private$output_dir(),
+          private$output_dir("tables")
+        )
+
+        invisible(self)
+      }, # end of export_tables
+
+      # get_causal_structure ----
+
+      #' @description Returns the causality matrix and optionally plots the
+      #'   causality structure.
+      #' @param processed If `TRUE` generates the causality matrix from the
+      #'   graph.
+      #' @param print_plot If `TRUE` prints the causal structure graph.
+      #' @param focus If missing the whole causal structure is returned.
+      #'  Otherwise, if a named node only the subgraph of the 1st order
+      #'  neighbours that point to the given vertrice is returned.
+      #' @param mode Character. When focus is specified, determines direction:
+      #'   "in" for neighbors pointing to the node, "out" for neighbors
+      #'   stemming from the node, "all" for both directions.
+      #' @param order Integer. When focus is specified, determines how many
+      #'   steps away to include neighbors. Use Inf for all possible orders.
+      #' @return The processed causality matrix if `processed = TRUE` or the
+      #'   graph otherwise.
+      get_causal_structure = function(
+        processed = TRUE,
+        print_plot = FALSE,
+        focus = FALSE,
+        mode = "in",
+        order = 1
+      ) {
+        if (missing(focus)) {
+          graph <- private$causality_structure
+        } else {
+          if (length(focus) > 1L) {
+            stop("focus need to be scalar string.")
+          }
+          if (!focus %in% self$get_node_names()) {
+            stop(
+              "focus need to be a node name. Use get_node_names() to get the list of eligible values."
+            )
+          }
+          if (!mode %in% c("in", "out", "all")) {
+            stop("mode must be one of 'in', 'out', or 'all'.")
+          }
+          if (!is.numeric(order) || order < 1) {
+            stop("order must be a positive integer or Inf.")
+          }
+
+          # Handle Inf order by using the graph diameter (maximum possible distance)
+          if (is.infinite(order)) {
+            # Use diameter of the graph as maximum order, or a large number if disconnected
+            graph_diameter <- diameter(
+              private$causality_structure,
+              directed = TRUE
+            )
+            if (is.infinite(graph_diameter)) {
+              # If graph is disconnected, use number of vertices as upper bound
+              actual_order <- vcount(private$causality_structure)
+            } else {
+              actual_order <- graph_diameter
+            }
+          } else {
+            actual_order <- order
+          }
+
+          graph <- make_ego_graph(
+            private$causality_structure,
+            order = actual_order,
+            nodes = focus,
+            mode = mode
+          )[[1]]
+        }
+        if (print_plot) {
+          print(
+            plot(
+              graph,
+              vertex.shape = "none",
+              edge.arrow.size = .3,
+              vertex.label.font = 2,
+              vertex.label.color = "gray40",
+              edge.arrow.width = .5,
+              vertex.label.cex = .7,
+              edge.color = "gray85",
+              layout = layout_components
+            )
+          )
+        }
+
+        if (processed) {
+          graph <- as.matrix(as_adjacency_matrix(graph))
+          n <- sapply(self$design$diseases, `[[`, "name")
+          graph <- graph[rowSums(graph) > 0, colnames(graph) %in% n]
+        }
+
+        return(graph)
+      },
+
+      # get_node_names ----
+
+      #' @description Returns the names of all exposures and diseases.
+      #' @return A string vector.
+      get_node_names = function() {
+        return(V(private$causality_structure)$name)
+      },
+
+      # get_causal_path ----
+
+      #' @description Returns the causal paths between an exposure and an outcome (disease).
+      #' @param from the beginning of the path (an exposure) as a string. Use `get_node_names` for available nodes.
+      #' @param to the end of the path (a disease) as a string. Use `get_node_names` for available nodes.
+      #' @param shortest_paths Boolean. If true, only returns the paths with the smallest number of nodes. Else, all possible paths (excluding multiple and loop edges) are returned.
+      #' @return A list with all the possible paths between exposure and disease.
+      get_causal_path = function(from, to, shortest_paths = FALSE) {
+        nm <- V(private$causality_structure)$name
+        from <- which(nm == from)
+        to <- which(nm == to)
+        if (shortest_paths) {
+          out <- get.all.shortest.paths(
+            private$causality_structure,
+            from,
+            to,
+            mode = "out"
+          )
+        } else {
+          out <- all_simple_paths(
+            private$causality_structure,
+            from,
+            to,
+            mode = "out"
+          )
+        }
+        return(out)
+      },
+
+      # update_design ----
+
+      #' @description Updates the Design object that is stored in the Simulation
+      #'   object.
+      #' @param new_design A design object with the simulation parameters.
+      #' @return The invisible self for chaining.
+      update_design = function(new_design) {
+        if (!inherits(new_design, "Design")) {
+          stop("Argument new_design needs to be a Design object.")
+        }
+
+        self$design <- new_design
+
+        invisible(self)
+      },
+
+      # del_outputs ----
+
+      #' @description Delete all output files and folders below the first level.
+      #' @return The invisible self for chaining.
+      del_outputs = function() {
+        if (dir.exists(self$design$sim_prm$output_dir)) {
+          # Get all files in output_dir (including nested files)
+            fl <- list.files(
+              self$design$sim_prm$output_dir,
+              full.names = TRUE,
+              recursive = TRUE
+            )
+
+          # Remove all files
+            file.remove(fl)
+
+          # Get first-level directories (e.g., summaries/, logs/, tables/)
+          first_level_dirs <- list.dirs(
+            self$design$sim_prm$output_dir,
+            full.names = TRUE,
+            recursive = FALSE
+          )
+          # Remove the output_dir itself from the list
+          first_level_dirs <- first_level_dirs[
+            first_level_dirs != self$design$sim_prm$output_dir
+          ]
+
+          # For each first-level directory, get and remove all subdirectories
+          subdirs_removed <- 0
+          for (dir in first_level_dirs) {
+            subdirs <- list.dirs(
+              dir,
+              full.names = TRUE,
+              recursive = TRUE
+            )
+            # Remove the parent directory itself from the list (keep only subdirectories)
+            subdirs <- subdirs[subdirs != dir]
+
+            if (length(subdirs) > 0) {
+              unlink(subdirs, recursive = TRUE)
+              subdirs_removed <- subdirs_removed + length(subdirs)
+            }
+          }
+
+          if (
+            (length(fl) > 0 || subdirs_removed > 0) && self$design$sim_prm$logs
+          ) {
+            message(paste(
+              "Output files deleted:",
+              length(fl),
+              "| Subdirectories removed:",
+              subdirs_removed,
+              "| First-level directories preserved:",
+              length(first_level_dirs)
+            ))
+          }
+        } else {
+          message("Output folder doesn't exist.")
+        }
+
+        invisible(self)
+      },
+
+      # del_summaries ----
+      #' @description Delete all output summary files and subdirectories while preserving first-level directory structure.
+      #' @return The invisible self for chaining.
+      del_summaries = function() {
+        pth <- file.path(self$design$sim_prm$output_dir, "summaries")
+        if (dir.exists(pth)) {
+          # Get all items in the summaries directory
+          all_items <- list.files(pth, full.names = TRUE, include.dirs = TRUE)
+
+          # Separate files and directories
+          files <- all_items[!dir.exists(all_items)]
+          dirs <- all_items[dir.exists(all_items)]
+
+          files_deleted <- 0
+          subdirs_removed <- 0
+
+          # Remove all files in the main summaries directory
+          if (length(files) > 0) {
+            file.remove(files)
+            files_deleted <- length(files)
+          }
+
+          # For each subdirectory, remove it entirely (including all contents)
+          if (length(dirs) > 0) {
+            for (dir_path in dirs) {
+              unlink(dir_path, recursive = TRUE)
+              subdirs_removed <- subdirs_removed + 1
+            }
+          }
+
+          if (
+            self$design$sim_prm$logs &&
+              (files_deleted > 0 || subdirs_removed > 0)
+          ) {
+            msg_parts <- character()
+            if (files_deleted > 0) {
+              msg_parts <- c(msg_parts, paste(files_deleted, "files deleted"))
+            }
+            if (subdirs_removed > 0) {
+              msg_parts <- c(
+                msg_parts,
+                paste(subdirs_removed, "subdirectories removed")
+              )
+            }
+            msg_parts <- c(msg_parts, "summaries directory preserved")
+            message(
+              "Output summary cleanup: ",
+              paste(msg_parts, collapse = ", "),
+              "."
+            )
+          }
+        } else {
+          message("Output summaries folder doesn't exist.")
+        }
+
+        invisible(self)
+      },
+
+      # del_logs ----
+      #' @description Delete log files.
+      #' @return The invisible self for chaining.
+      del_logs = function() {
+        fl <- list.files(private$output_dir("logs/"), full.names = TRUE)
+
+        file.remove(fl)
+
+        if (length(fl) > 0 && self$design$sim_prm$logs) {
+          message("Log files deleted.")
+        }
+
+        invisible(self)
+      },
+
+      # del_parfs ----
+      #' @description Delete all files in the ./simulation/parf folder.
+      #' @return The invisible self for chaining.
+      del_parfs = function() {
+        fl <- list.files("./simulation/parf", full.names = TRUE)
+
+        file.remove(fl)
+
+        if (length(fl) > 0 && self$design$sim_prm$logs) {
+          message("Parf files deleted.")
+        }
+
+        invisible(self)
+      },
+
+      # del_RR_cache ----
+      #' @description Delete all files in the ./simulation/rr folder.
+      #' @return The invisible self for chaining.
+      del_RR_cache = function() {
+        fl <- list.files("./simulation/rr", full.names = TRUE)
+
+        file.remove(fl)
+
+        if (length(fl) > 0 && self$design$sim_prm$logs) {
+          message("RR cache files deleted.")
+        }
+
+        invisible(self)
+      },
+
+      # del_synthpops ----
+      #' @description Delete all files in the synthpop folder.
+      #' @return The invisible self for chaining.
+      del_synthpops = function() {
+        fl <- list.files(self$design$sim_prm$synthpop_dir, full.names = TRUE)
+
+        file.remove(fl)
+
+        if (length(fl) > 0 && self$design$sim_prm$logs) {
+          message("Synthpop files deleted.")
+        }
+
+        invisible(self)
+      },
+
+      # get_esp ----
+
+      #' @description Get the European Standardised Population 2013 by sex and
+      #'   dimd.
+      #' @return A data.table with the European Standardised Population 2013.
+      get_esp = function() {
+        private$esp_weights
+      },
+      # get_mm_weights ----
+
+      #' @description Get the disease multimorbidity weights (i.e. Cambridge
+      #'   Morbidity Score weights).
+      #' @return A named vector with disease weights.
+      get_mm_weights = function() {
+        unlist(sapply(self$design$diseases, function(x) x$meta$diagnosis$mm_wt))
+      },
+
+      #' @description Internal validation of the disease burden.
+      #' @return The invisible self for chaining.
+      # validate ----
       validate = function() {
         HEIGHT <- 5
         WIDTH <- 10
@@ -1117,801 +2078,6 @@ Simulation <-
         invisible(self)
       },
 
-      # run ----
-      #' @description Runs a simulation
-      #' @param mc A positive sequential integer vector with the Monte Carlo
-      #'   iterations of synthetic population to simulate, or a scalar.
-      #' @param multicore If TRUE run the simulation in parallel.
-      #' @param scenario_nam A string for the scenario name (i.e. sc1)
-      #' @return The invisible self for chaining.
-      run = function(mc, multicore = TRUE, scenario_nam) {
-        if (!is.integer(mc)) {
-          stop("mc need to be an integer")
-        }
-        if (any(mc <= 0)) {
-          stop("mc need to be positive integer")
-        }
-
-        # check if sequential vector. Necessary if
-        # design$sim_prm$n_synthpop_aggregation > 1
-        if (
-          anyNA(mc) ||
-            any(is.infinite(mc)) ||
-            length(mc) < 1L ||
-            (length(mc) > 1L && diff(mc[1:2]) == 0) ||
-            (length(mc) > 1L &&
-              diff(range(diff(mc))) > sqrt(.Machine$double.eps))
-        ) {
-          stop("mc need to be a sequential integer vector, or a scalar")
-        }
-        # NOTE mc is in fact mc_aggr. mc_ is the mc of the synthpop
-        mc_sp <-
-          (min(mc) *
-            self$design$sim_prm$n_synthpop_aggregation -
-            self$design$sim_prm$n_synthpop_aggregation +
-            1L):(max(mc) * self$design$sim_prm$n_synthpop_aggregation)
-
-        # Create folders if don't exist (necessary for when output_dir in the
-        # design.yaml is changed between scenarios i.e.)
-        private$create_output_folder_structure()
-
-        # TODO better logic as this is always true for the non baseline scenario
-        if (
-          any(file.exists(
-            # TODO fix when lifecourse is not saved
-            file.path(
-              self$design$sim_prm$output_dir,
-              "lifecourse",
-              paste0(mc, "_lifecourse.csv.gz")
-            )
-          ))
-        ) {
-          # stop("Results from a previous simulation exists in the output
-          #      folder. Please remove them before run a new one.")
-          message(
-            "Results from a previous simulation exists in the output folder. This is usually results from a previous scenario. Please remove them if this was unintentional."
-          )
-        }
-
-        # Generate PARF files if they don't exist. Note that generation is
-        # multicore
-        lapply(self$design$diseases, function(x) {
-          x$gen_parf_files(self$design, self$design$diseases)
-        })
-
-        if (multicore) {
-          if (self$design$sim_prm$logs) {
-            private$time_mark("Start of parallelisation")
-          }
-
-          arrow::set_cpu_count(1L)
-          data.table::setDTthreads(
-            threads = 1L,
-            restore_after_fork = NULL
-          )
-          fst::threads_fst(
-            nr_of_threads = 1L,
-            reset_after_fork = NULL
-          )
-
-          if (.Platform$OS.type == "windows") {
-            cl <-
-              makeClusterPSOCK(
-                self$design$sim_prm$clusternumber,
-                dryrun = FALSE,
-                quiet = FALSE,
-                rscript_startup = quote(local({
-                  library(CKutils)
-                  library(IMPACTncdEngland)
-                  library(digest)
-                  library(fst)
-                  library(qs2)
-                  library(wrswoR)
-                  library(gamlss.dist)
-                  library(dqrng)
-                  library(data.table)
-                })),
-                rscript_args = c(
-                  "--no-init-file",
-                  "--no-site-file",
-                  "--no-environ"
-                ),
-                setup_strategy = "parallel"
-              ) # used for clustering. Windows compatible
-
-            on.exit(if (exists("cl")) stopCluster(cl))
-
-            xps_dt <- parLapplyLB(
-              cl = cl,
-              X = mc_sp,
-              fun = function(x) private$run_sim(mc_ = x, scenario_nam)
-            )
-          } else {
-            # used for forking. Only Linux/OSX compatible
-            registerDoParallel(self$design$sim_prm$clusternumber)
-
-            xps_dt <- foreach(
-              mc_iter = mc_sp,
-              .inorder = FALSE,
-              .options.multicore = list(preschedule = FALSE),
-              .verbose = self$design$sim_prm$logs,
-              .packages = c(
-                "R6",
-                "digest",
-                "qs2",
-                "wrswoR",
-                "gamlss.dist",
-                "dqrng",
-                "CKutils",
-                "IMPACTncdEngland",
-                "fst",
-                "data.table"
-              ),
-              .export = ls(envir = globalenv()),
-              .noexport = NULL # c("time_mark")
-            ) %dopar%
-              {
-                private$run_sim(mc_ = mc_iter, scenario_nam)
-              }
-          }
-          if (self$design$sim_prm$logs) {
-            private$time_mark("End of parallelisation")
-          }
-        } else {
-          # if multicore = FALSE
-          if (self$design$sim_prm$logs) {
-            private$time_mark("Start of single-core run")
-          }
-
-          lapply(mc_sp, private$run_sim, scenario_nam)
-
-          if (self$design$sim_prm$logs) {
-            private$time_mark("End of single-core run")
-          }
-        }
-
-        if (self$design$sim_prm$avoid_appending_csv) {
-          message(
-            "Collecting the fragmented lifecourse files. This may take some time. Please be patient..."
-          )
-          private$collect_files(
-            "lifecourse",
-            "_lifecourse.csv$",
-            to_mc_aggr = TRUE
-          )
-
-          if (self$design$sim_prm$export_xps) {
-            private$collect_files("xps", "_xps20.csv$", to_mc_aggr = FALSE)
-            private$collect_files("xps", "_xps_esp.csv$", to_mc_aggr = FALSE)
-          }
-
-          if (self$design$sim_prm$logs) {
-            private$time_mark("End of collecting mc lifecourse files")
-          }
-        }
-
-        while (sink.number() > 0L) {
-          sink()
-        }
-
-        invisible(self)
-      },
-
-      # export_summaries ----
-
-      #' @description Process the lifecourse files
-      #' @param multicore If TRUE run the simulation in parallel.
-      #' @param type The type of summary to extract.
-      #' @param single_year_of_age Export summaries by single year of age. Useful for the calibration proccess.
-      #' @return The invisible self for chaining.
-      export_summaries = function(
-        multicore = TRUE,
-        type = c(
-          "le",
-          "hle",
-          "dis_char",
-          "prvl",
-          "incd",
-          "dis_mrtl",
-          "mrtl",
-          "allcause_mrtl_by_dis",
-          "cms"
-        ),
-        single_year_of_age = FALSE
-      ) {
-        fl <- list.files(private$output_dir("lifecourse"), full.names = TRUE)
-
-        # logic to avoid inappropriate dual processing of already processed mcs
-        # TODO take into account scenarios
-        if ("le" %in% type) {
-          file_pth <- private$output_dir("summaries/le_scaled_up.csv.gz")
-        } else if ("hle" %in% type) {
-          file_pth <- private$output_dir(
-            "summaries/hle_1st_cond_scaled_up.csv.gz"
-          )
-        } else if ("cms" %in% type) {
-          file_pth <- private$output_dir("summaries/cms_count_scaled_up.csv.gz")
-        } else if ("mrtl" %in% type) {
-          file_pth <- private$output_dir("summaries/mrtl_scaled_up.csv.gz")
-        } else if ("dis_mrtl" %in% type) {
-          file_pth <- private$output_dir("summaries/dis_mrtl_scaled_up.csv.gz")
-        } else if ("dis_char" %in% type) {
-          file_pth <- private$output_dir(
-            "summaries/dis_characteristics_scaled_up.csv.gz"
-          )
-        } else if ("incd" %in% type) {
-          file_pth <- private$output_dir("summaries/incd_scaled_up.csv.gz")
-        } else if ("prvl" %in% type) {
-          file_pth <- private$output_dir("summaries/prvl_scaled_up.csv.gz")
-        } else if ("allcause_mrtl_by_dis" %in% type) {
-          file_pth <- private$output_dir(
-            "summaries/all_cause_mrtl_by_dis_scaled_up.csv.gz"
-          )
-        }
-
-        if (file.exists(file_pth)) {
-          tt <- unique(fread(file_pth, select = "mc")$mc)
-          for (i in seq_along(tt)) {
-            fl <- grep(
-              paste0("/", tt[[i]], "_lifecourse.csv.gz$"),
-              fl,
-              value = TRUE,
-              invert = TRUE
-            )
-          }
-        }
-        # end of logic
-
-        if (multicore) {
-          if (self$design$sim_prm$logs) {
-            private$time_mark("Start exporting summaries")
-          }
-
-          arrow::set_cpu_count(1L)
-          data.table::setDTthreads(
-            threads = 1L,
-            restore_after_fork = NULL
-          )
-          fst::threads_fst(
-            nr_of_threads = 1L,
-            reset_after_fork = NULL
-          )
-
-          if (.Platform$OS.type == "windows") {
-            cl <-
-              makeClusterPSOCK(
-                self$design$sim_prm$clusternumber_export,
-                dryrun = FALSE,
-                quiet = FALSE,
-                rscript_startup = quote(local({
-                  library(CKutils)
-                  library(IMPACTncdEngland)
-                  library(digest)
-                  library(fst)
-                  library(qs2)
-                  library(wrswoR)
-                  library(gamlss.dist)
-                  library(dqrng)
-                  library(data.table)
-                })),
-                rscript_args = c(
-                  "--no-init-file",
-                  "--no-site-file",
-                  "--no-environ"
-                ),
-                setup_strategy = "parallel"
-              ) # used for clustering. Windows compatible
-
-            on.exit(if (exists("cl")) stopCluster(cl))
-
-            parLapplyLB(
-              cl = cl,
-              X = seq_along(fl),
-              fun = function(i) {
-                lc <- fread(
-                  fl[i],
-                  stringsAsFactors = TRUE,
-                  key = c("scenario", "pid", "year")
-                )
-                private$export_summaries_hlpr(
-                  lc,
-                  type = type,
-                  single_year_of_age = single_year_of_age
-                )
-                NULL
-              }
-            )
-          } else {
-            registerDoParallel(self$design$sim_prm$clusternumber_export) # used for forking. Only Linux/OSX compatible
-            xps_dt <- foreach(
-              i = seq_along(fl),
-              .inorder = TRUE,
-              .options.multicore = list(preschedule = FALSE),
-              .verbose = self$design$sim_prm$logs,
-              .packages = c(
-                "R6",
-                "CKutils",
-                "IMPACTncdEngland",
-                "data.table"
-              ),
-              .export = NULL,
-              .noexport = NULL # c("time_mark")
-            ) %dopar%
-              {
-                lc <- fread(
-                  fl[i],
-                  stringsAsFactors = TRUE,
-                  key = c("scenario", "pid", "year")
-                )
-                private$export_summaries_hlpr(
-                  lc,
-                  type = type,
-                  single_year_of_age = single_year_of_age
-                )
-                NULL
-              }
-          }
-
-          if (self$design$sim_prm$logs) {
-            private$time_mark("End of exporting summuries")
-          }
-        } else {
-          if (self$design$sim_prm$logs) {
-            private$time_mark("Start of single-core run")
-          }
-
-          lapply(seq_along(fl), function(i) {
-            lc <- fread(fl[i], stringsAsFactors = TRUE, key = c("pid", "year"))
-            private$export_summaries_hlpr(
-              lc,
-              type = type,
-              single_year_of_age = single_year_of_age
-            )
-            NULL
-          })
-
-          if (self$design$sim_prm$logs) {
-            private$time_mark("End of single-core run")
-          }
-        }
-
-        if (self$design$sim_prm$avoid_appending_csv) {
-          # collect the summary fragmentrd file
-          if ("le" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_le_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_le_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_le60_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_le60_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-          if ("hle" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_hle_1st_cond_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_hle_1st_cond_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_hle_cmsmm1.5_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_hle_cmsmm1.5_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-          if ("cms" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_cms_score_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_cms_score_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_cms_score_by_age_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_cms_score_by_age_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_cms_count_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_cms_count_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-          if ("mrtl" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_mrtl_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_mrtl_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-          if ("dis_mrtl" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_dis_mrtl_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_dis_mrtl_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-          if ("dis_char" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_dis_characteristics_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_dis_characteristics_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-          if ("incd" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_incd_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_incd_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-          if ("prvl" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_prvl_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_prvl_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-          if ("allcause_mrtl_by_dis" %in% type) {
-            private$collect_files(
-              "summaries",
-              "_all_cause_mrtl_by_dis_scaled_up.csv$",
-              to_mc_aggr = FALSE
-            )
-            private$collect_files(
-              "summaries",
-              "_all_cause_mrtl_by_dis_esp.csv$",
-              to_mc_aggr = FALSE
-            )
-          }
-
-          if (self$design$sim_prm$logs) {
-            private$time_mark("End of collecting mc_aggr summary files")
-          }
-        }
-
-        while (sink.number() > 0L) {
-          sink()
-        }
-
-        invisible(self)
-      },
-
-      # get_causal_structure ----
-
-      #' @description Returns the causality matrix and optionally plots the
-      #'   causality structure.
-      #' @param processed If `TRUE` generates the causality matrix from the
-      #'   graph.
-      #' @param print_plot If `TRUE` prints the causal structure graph.
-      #' @param focus If missing the whole causal structure is returned.
-      #'  Otherwise, if a named node only the subgraph of the 1st order
-      #'  neighbours that point to the given vertrice is returned.
-      #' @return The processed causality matrix if `processed = TRUE` or the
-      #'   graph otherwise.
-      get_causal_structure = function(
-        processed = TRUE,
-        print_plot = FALSE,
-        focus = FALSE
-      ) {
-        if (missing(focus)) {
-          graph <- private$causality_structure
-        } else {
-          if (length(focus) > 1L) {
-            stop("focus need to be scalar string.")
-          }
-          if (!focus %in% self$get_node_names()) {
-            stop(
-              "focus need to be a node name. Use get_node_names() to get the list of eligible values."
-            )
-          }
-          graph <- make_ego_graph(
-            private$causality_structure,
-            order = 1,
-            nodes = focus,
-            mode = "in"
-          )[[1]]
-        }
-        if (print_plot) {
-          print(
-            plot(
-              graph,
-              vertex.shape = "none",
-              edge.arrow.size = .3,
-              vertex.label.font = 2,
-              vertex.label.color = "gray40",
-              edge.arrow.width = .5,
-              vertex.label.cex = .7,
-              edge.color = "gray85",
-              layout = layout_components
-            )
-          )
-        }
-
-        if (processed) {
-          graph <- as.matrix(as_adjacency_matrix(graph))
-          n <- sapply(self$design$diseases, `[[`, "name")
-          graph <- graph[rowSums(graph) > 0, colnames(graph) %in% n]
-        }
-
-        return(graph)
-      },
-
-      # get_node_names ----
-
-      #' @description Returns the names of all exposures and diseases.
-      #' @return A string vector.
-      get_node_names = function() {
-        return(V(private$causality_structure)$name)
-      },
-
-      # get_causal_path ----
-
-      #' @description Returns the causal paths between an exposure and an outcome (disease).
-      #' @param from the beginning of the path (an exposure) as a string. Use `get_node_names` for available nodes.
-      #' @param to the end of the path (a disease) as a string. Use `get_node_names` for available nodes.
-      #' @param shortest_paths Boolean. If true, only returns the paths with the smallest number of nodes. Else, all possible paths (excluding multiple and loop edges) are returned.
-      #' @return A list with all the possible paths between exposure and disease.
-      get_causal_path = function(from, to, shortest_paths = FALSE) {
-        nm <- V(private$causality_structure)$name
-        from <- which(nm == from)
-        to <- which(nm == to)
-        if (shortest_paths) {
-          out <- get.all.shortest.paths(
-            private$causality_structure,
-            from,
-            to,
-            mode = "out"
-          )
-        } else {
-          out <- all_simple_paths(
-            private$causality_structure,
-            from,
-            to,
-            mode = "out"
-          )
-        }
-        return(out)
-      },
-
-      # update_design ----
-
-      #' @description Updates the Design object that is stored in the Simulation
-      #'   object.
-      #' @param new_design A design object with the simulation parameters.
-      #' @return The invisible self for chaining.
-      update_design = function(new_design) {
-        if (!inherits(new_design, "Design")) {
-          stop("Argument new_design needs to be a Design object.")
-        }
-
-        self$design <- new_design
-
-        invisible(self)
-      },
-
-      # del_outputs ----
-
-      #' @description Delete all output files.
-      #' @return The invisible self for chaining.
-      del_outputs = function() {
-        if (dir.exists(self$design$sim_prm$output_dir)) {
-          # Check for safety that folders /lifecourse, /tables, /plots, and /summaries exist to avoid accidental deletes of other folders
-          if (
-            dir.exists(file.path(
-              self$design$sim_prm$output_dir,
-              "lifecourse"
-            )) &&
-              dir.exists(file.path(
-                self$design$sim_prm$output_dir,
-                "summaries"
-              )) &&
-              dir.exists(file.path(self$design$sim_prm$output_dir, "tables")) &&
-              dir.exists(file.path(self$design$sim_prm$output_dir, "plots"))
-          ) {
-            fl <- list.files(
-              self$design$sim_prm$output_dir,
-              full.names = TRUE,
-              recursive = TRUE
-            )
-            file.remove(fl)
-
-            if (length(fl) > 0 && self$design$sim_prm$logs) {
-              message("Output files deleted.")
-            }
-          } else {
-            message(
-              "Output folder doesn't contain the expected subfolders. Please check the output folder path."
-            )
-          }
-        } else {
-          # If output folder doesn't exist
-          message("Output folder doesn't exist.")
-        }
-
-        invisible(self)
-      },
-
-      # del_logs ----
-
-      #' @description Delete log files.
-      #' @return The invisible self for chaining.
-      del_logs = function() {
-        fl <- list.files(private$output_dir("logs/"), full.names = TRUE)
-
-        file.remove(fl)
-
-        if (length(fl) > 0 && self$design$sim_prm$logs) {
-          message("Log files deleted.")
-        }
-
-        invisible(self)
-      },
-
-      # del_parfs ----
-      #' @description Delete all files in the ./simulation/parf folder.
-      #' @return The invisible self for chaining.
-      del_parfs = function() {
-        fl <- list.files("./simulation/parf", full.names = TRUE)
-
-        file.remove(fl)
-
-        if (length(fl) > 0 && self$design$sim_prm$logs) {
-          message("Parf files deleted.")
-        }
-
-        invisible(self)
-      },
-
-      # del_synthpops ----
-      #' @description Delete all files in the synthpop folder.
-      #' @return The invisible self for chaining.
-      del_synthpops = function() {
-        fl <- list.files(self$design$sim_prm$synthpop_dir, full.names = TRUE)
-
-        file.remove(fl)
-
-        if (length(fl) > 0 && self$design$sim_prm$logs) {
-          message("Synthpop files deleted.")
-        }
-
-        invisible(self)
-      },
-
-      # del_summaries ----
-      #' @description Delete all output summary files and subdirectories while preserving first-level directory structure.
-      #' @return The invisible self for chaining.
-      del_summaries = function() {
-        pth <- file.path(self$design$sim_prm$output_dir, "summaries")
-        if (dir.exists(pth)) {
-          # Get all items in the summaries directory
-          all_items <- list.files(pth, full.names = TRUE, include.dirs = TRUE)
-
-          # Separate files and directories
-          files <- all_items[!dir.exists(all_items)]
-          dirs <- all_items[dir.exists(all_items)]
-
-          files_deleted <- 0
-          subdirs_removed <- 0
-
-          # Remove all files in the main summaries directory
-          if (length(files) > 0) {
-            file.remove(files)
-            files_deleted <- length(files)
-          }
-
-          # For each subdirectory, remove it entirely (including all contents)
-          if (length(dirs) > 0) {
-            for (dir_path in dirs) {
-              unlink(dir_path, recursive = TRUE)
-              subdirs_removed <- subdirs_removed + 1
-            }
-          }
-
-          if (
-            self$design$sim_prm$logs &&
-              (files_deleted > 0 || subdirs_removed > 0)
-          ) {
-            msg_parts <- character()
-            if (files_deleted > 0) {
-              msg_parts <- c(msg_parts, paste(files_deleted, "files deleted"))
-            }
-            if (subdirs_removed > 0) {
-              msg_parts <- c(
-                msg_parts,
-                paste(subdirs_removed, "subdirectories removed")
-              )
-            }
-            msg_parts <- c(msg_parts, "summaries directory preserved")
-            message(
-              "Output summary cleanup: ",
-              paste(msg_parts, collapse = ", "),
-              "."
-            )
-          }
-        } else {
-          message("Output summaries folder doesn't exist.")
-        }
-
-        invisible(self)
-      },
-
-      # del_RR_cache ----
-      #' @description Delete all files in the ./simulation/rr folder.
-      #' @return The invisible self for chaining.
-      del_RR_cache = function() {
-        fl <- list.files("./simulation/rr", full.names = TRUE)
-
-        file.remove(fl)
-
-        if (length(fl) > 0 && self$design$sim_prm$logs) {
-          message("RR cache files deleted.")
-        }
-
-        invisible(self)
-      },
-
       # split_large_files ----
       #' @description Splits files larger than 50Mb into chunks of 49Mb.
       #' @details The function splits files larger than 50Mb into chunks of 49Mb
@@ -2025,79 +2191,15 @@ Simulation <-
         invisible(self)
       },
 
-      # get_esp ----
-
-      #' @description Get the European Standardised Population 2013 by sex and
-      #'   dimd.
-      #' @return A data.table with the European Standardised Population 2013.
-      get_esp = function() {
-        private$esp_weights
-      },
-
-      # get_mm_weights ----
-
-      #' @description Get the disease multimorbidity weights (i.e. Cambridge
-      #'   Morbidity Score weights).
-      #' @return A named vector with disease weights.
-      get_mm_weights = function() {
-        unlist(sapply(self$design$diseases, function(x) x$meta$diagnosis$mm_wt))
-      },
-
-      # export_tables ----
-      #' @description
-      #' Export summary tables for the simulation results.
-      #'
-      #' This method generates and exports summary tables for the main simulation outputs,
-      #' including prevalence, incidence, mortality, disease characteristics, and exposures.
-      #' It calls modular helper methods for each type of summary, ensuring output directories
-      #' are created as needed and that all tables are written to the appropriate locations.
-      #'
-      #' @param baseline_year_for_change_outputs Integer. The baseline year to use for change outputs (default: 2019L).
-      #' @param prbl Numeric vector. The quantiles to use for summary statistics (default: c(0.5, 0.025, 0.975, 0.1, 0.9)).
-      #'
-      #' @details
-      #' This method is a high-level wrapper that orchestrates the export of all main summary tables.
-      #' It delegates the actual export logic to the following private helper methods:
-      #' - \code{private$export_main_tables}
-      #' - \code{private$export_all_cause_mrtl_tables}
-      #' - \code{private$export_disease_characteristics_tables}
-      #' - \code{private$export_xps_tables}
-      #'
-      #' Each helper method is responsible for a specific set of outputs and ensures that
-      #' the results are saved in the correct format and location.
-      #'
-      #' @return The invisible self for chaining.
-      #'
-      #' @examples
-      #' IMPACTncd$export_tables()
-      export_tables = function(
-        baseline_year_for_change_outputs = 2019L,
-        prbl = c(0.5, 0.025, 0.975, 0.1, 0.9)
-      ) {
-        private$export_main_tables(
-          prbl,
-          baseline_year_for_change_outputs,
-          private$output_dir()
-        )
-        private$export_all_cause_mrtl_tables(
-          prbl,
-          private$output_dir("summaries"),
-          private$output_dir("tables")
-        )
-        private$export_disease_characteristics_tables(
-          prbl,
-          private$output_dir("summaries"),
-          private$output_dir("tables")
-        )
-        private$export_xps_tables(
-          prbl,
-          private$output_dir(),
-          private$output_dir("tables")
-        )
-
+      # print ----
+      #' @description Prints the simulation object metadata.
+      #' @return The invisible `Simulation` object.
+      print = function() {
+        print(c(
+          "TODO..."
+        ))
         invisible(self)
       },
-
       # allow_universal_output_folder_access ----
 
       #' @description Make output folder available to all users (Linux specific).
@@ -2110,7 +2212,6 @@ Simulation <-
         }
         invisible(self)
       },
-
       # allow_universal_synthpop_folder_access ----
 
       #' @description Make synthpop folder available to all users (Linux specific).
@@ -2123,7 +2224,6 @@ Simulation <-
         }
         invisible(self)
       },
-
       # update_output_path ----
 
       #' @description Updates the output path.
@@ -2169,7 +2269,6 @@ Simulation <-
         }
         invisible(self)
       },
-
       # update_synthpop_path ----
 
       #' @description Updates the synthpop path.
@@ -2181,20 +2280,8 @@ Simulation <-
         }
         self$design$sim_prm$synthpop_dir <- new_path
         invisible(self)
-      },
-
-      # print ----
-
-      #' @description Prints the simulation object metadata.
-      #' @return The invisible `Simulation` object.
-      print = function() {
-        print(c(
-          "TODO..."
-        ))
-        invisible(self)
       }
     ),
-
     # private -----------------------------------------------------------------
     private = list(
       synthpop_dir = NA,
@@ -2202,29 +2289,317 @@ Simulation <-
       death_codes = NA,
       # diseasenam_hlp = NA,
       esp_weights = data.table(),
-      #Models a primary prevention policy scenario
+      # Models a primary prevention policy scenario
       primary_prevention_scn = NULL,
-      #Models a secondary prevention policy scenario
+      # Models a secondary prevention policy scenario
       secondary_prevention_scn = NULL,
 
-      # create_empty_calibration_prms_file ----
-      # Helper function to create an empty calibration parameters file
-      create_empty_calibration_prms_file = function(replace = FALSE) {
-        if (replace || !file.exists("./simulation/calibration_prms.csv")) {
-          clbr <- CJ(
-            year = self$design$sim_prm$init_year_long:self$design$sim_prm$sim_horizon_max,
-            age = self$design$sim_prm$ageL:self$design$sim_prm$ageH,
-            sex = c("men", "women")
-          )
-          clbr[, `:=`(
-            chd_incd_clbr_fctr = 1,
-            stroke_incd_clbr_fctr = 1,
-            chd_ftlt_clbr_fctr = 1,
-            stroke_ftlt_clbr_fctr = 1,
-            nonmodelled_ftlt_clbr_fctr = 1
-          )]
-          fwrite(clbr, "./simulation/calibration_prms.csv")
+      # Helper function to execute database query and write to disk with retry logic
+      # execute_db_diskwrite_with_retry ----
+      execute_db_diskwrite_with_retry = function(
+        duckdb_con,
+        query,
+        output_path,
+        max_retries = 5
+      ) {
+        retry_count <- 0
+        success <- FALSE
+
+        # Normalize path for cross-platform compatibility
+        output_path <- normalizePath(output_path, mustWork = FALSE)
+
+        # Ensure parent directory exists and is accessible
+        parent_dir <- dirname(output_path)
+        if (!dir.exists(parent_dir)) {
+          dir.create(parent_dir, recursive = TRUE, showWarnings = FALSE)
         }
+
+        # Add a small delay to ensure directory is fully created (Windows issue)
+        Sys.sleep(0.05)
+
+        # Check if we're running in Docker on Windows (SMB/Plan9 mount issue)
+        # Docker Desktop on Windows uses SMB/Plan9 mounts which don't support atomic operations
+        is_docker_env <- file.exists("/.dockerenv")
+        is_docker_windows <- (is_docker_env &&
+          (.Platform$OS.type == "unix" ||
+            Sys.getenv("DOCKER_DESKTOP") != "" ||
+            # Check for typical Windows Docker mount patterns
+            any(grepl("/host_mnt/", getwd(), fixed = TRUE))))
+
+        # Use safer method for Docker environments (especially Windows Docker Desktop)
+        # or any Windows environment where atomic operations might not be reliable
+        if (
+          is_docker_windows || is_docker_env || .Platform$OS.type == "windows"
+        ) {
+          env_type <- if (is_docker_windows) {
+            "Docker on Windows"
+          } else if (is_docker_env) {
+            "Docker"
+          } else {
+            "Windows"
+          }
+          if (self$design$sim_prm$logs) {
+            cat(sprintf(
+              "Using safe write method for %s (%s environment detected)\n",
+              basename(output_path),
+              env_type
+            ))
+          }
+
+          # Use dbGetQuery + arrow::write_parquet instead of DuckDB COPY
+          # This avoids the atomic rename issue with SMB/Plan9 mounts
+          while (!success && retry_count < max_retries) {
+            retry_count <- retry_count + 1
+            if (self$design$sim_prm$logs) {
+              cat(sprintf(
+                "Safe write attempt %d for %s\n",
+                retry_count,
+                basename(output_path)
+              ))
+            }
+
+            tryCatch(
+              {
+                # Get the data directly into R
+                result_data <- private$query_sql(duckdb_con, query)
+                if (self$design$sim_prm$logs) {
+                  cat(sprintf(
+                    "Query returned %d rows for %s\n",
+                    nrow(result_data),
+                    basename(output_path)
+                  ))
+                }
+
+                if (nrow(result_data) > 0) {
+                  # Write directly with arrow, avoiding DuckDB's temporary file mechanism
+                  arrow::write_parquet(result_data, output_path)
+
+                  # Verify the write with multiple checks
+                  Sys.sleep(0.3) # Allow SMB sync time
+
+                  if (file.exists(output_path)) {
+                    file_size <- file.size(output_path)
+                    if (file_size > 0) {
+                      # Additional verification: try to read back a sample
+                      tryCatch(
+                        {
+                          test_read <- arrow::read_parquet(
+                            output_path,
+                            as_data_frame = FALSE
+                          )
+                          if (test_read$num_rows > 0) {
+                            success <- TRUE
+                            if (self$design$sim_prm$logs) {
+                              cat(sprintf(
+                                "Successfully wrote %s (%d bytes, %d rows)\n",
+                                basename(output_path),
+                                file_size,
+                                nrow(result_data)
+                              ))
+                            }
+                          }
+                        },
+                        error = function(e) {
+                          warning(sprintf(
+                            "File %s exists but failed verification read: %s",
+                            basename(output_path),
+                            e$message
+                          ))
+                        }
+                      )
+                    } else {
+                      warning(sprintf(
+                        "File %s exists but has 0 bytes",
+                        basename(output_path)
+                      ))
+                    }
+                  }
+                } else {
+                  # Handle empty results properly
+                  if (self$design$sim_prm$logs) {
+                    cat(sprintf(
+                      "Query returned 0 rows for %s - creating empty file\n",
+                      basename(output_path)
+                    ))
+                  }
+
+                  # Get column structure by limiting to 0 rows
+                  empty_structure <- private$query_sql(
+                    duckdb_con,
+                    sprintf("SELECT * FROM (%s) subq LIMIT 0", query)
+                  )
+                  arrow::write_parquet(empty_structure, output_path)
+
+                  if (file.exists(output_path)) {
+                    success <- TRUE
+                    if (self$design$sim_prm$logs) {
+                      cat(sprintf(
+                        "Created empty parquet file %s\n",
+                        basename(output_path)
+                      ))
+                    }
+                  }
+                }
+              },
+              error = function(e) {
+                warning(sprintf(
+                  "Safe write attempt %d failed for %s: %s",
+                  retry_count,
+                  basename(output_path),
+                  e$message
+                ))
+
+                # Clean up failed file
+                if (file.exists(output_path)) {
+                  try(file.remove(output_path), silent = TRUE)
+                }
+
+                # Progressive backoff
+                Sys.sleep(0.5 * retry_count)
+              }
+            )
+          }
+        } else {
+          # Use original DuckDB COPY method for native Linux environments
+          cat(sprintf(
+            "Using DuckDB COPY method for %s (native Linux environment)\n",
+            basename(output_path)
+          ))
+
+          while (!success && retry_count < max_retries) {
+            retry_count <- retry_count + 1
+            if (self$design$sim_prm$logs) {
+              cat(sprintf(
+                "DuckDB COPY attempt %d for %s\n",
+                retry_count,
+                basename(output_path)
+              ))
+            }
+
+            tryCatch(
+              {
+                # Use forward slashes for DuckDB COPY command
+                db_path <- gsub("\\\\", "/", output_path)
+
+                copy_command <- sprintf(
+                  "COPY (%s) TO '%s' (FORMAT PARQUET);",
+                  query,
+                  db_path
+                )
+                result <- private$execute_sql(duckdb_con, copy_command)
+
+                Sys.sleep(0.2) # Allow file system sync
+
+                if (file.exists(output_path) && file.size(output_path) > 0) {
+                  success <- TRUE
+                  if (self$design$sim_prm$logs) {
+                    cat(sprintf(
+                      "DuckDB COPY succeeded for %s\n",
+                      basename(output_path)
+                    ))
+                  }
+                }
+              },
+              error = function(e) {
+                warning(sprintf(
+                  "DuckDB COPY attempt %d failed for %s: %s",
+                  retry_count,
+                  basename(output_path),
+                  e$message
+                ))
+
+                if (file.exists(output_path) && file.size(output_path) == 0) {
+                  try(file.remove(output_path), silent = TRUE)
+                }
+
+                Sys.sleep(0.2 * retry_count)
+              }
+            )
+          }
+        }
+
+        # Final validation
+        if (!success) {
+          final_check_exists <- file.exists(output_path)
+          final_check_size <- if (final_check_exists) {
+            file.size(output_path)
+          } else {
+            0
+          }
+
+          error_msg <- sprintf(
+            "Failed to write output to %s after %d attempts. Final state: exists=%s, size=%d",
+            output_path,
+            max_retries,
+            final_check_exists,
+            final_check_size
+          )
+
+          if (self$design$sim_prm$logs) {
+            cat(paste("ERROR:", error_msg, "\n"))
+          }
+          stop(error_msg)
+        }
+
+        return(invisible(TRUE))
+      },
+
+      # Helper function to execute SQL, with error reporting
+      # execute_sql ----
+      execute_sql = function(con, sql, context = "") {
+        tryCatch(
+          {
+            dbExecute(con, sql)
+          },
+          error = function(e) {
+            stop(paste(
+              "Error executing SQL for",
+              context,
+              ":",
+              e$message,
+              "\nSQL:\n",
+              sql
+            ))
+          }
+        )
+      },
+
+      # Helper function to query SQL, with error reporting
+      # query_sql ----
+      query_sql = function(con, sql, context = "") {
+        tryCatch(
+          {
+            dbGetQuery(con, sql)
+          },
+          error = function(e) {
+            stop(paste(
+              "Error querying SQL for",
+              context,
+              ":",
+              e$message,
+              "\nSQL:\n",
+              sql
+            ))
+          }
+        )
+      },
+
+      # profile_sql_view ----
+      profile_sql_view = function(con, view_name) {
+        private$query_sql(
+          con = con,
+          sql = paste0("EXPLAIN ANALYZE SELECT * FROM ", view_name),
+          context = ""
+        )
+      },
+
+      # profile_sql_query ----
+      profile_sql_query = function(con, sql_query) {
+        private$query_sql(
+          con = con,
+          sql = paste0("EXPLAIN ANALYZE ", sql_query),
+          context = ""
+        )
       },
 
       # run_sim ----
@@ -2268,7 +2643,30 @@ Simulation <-
           )
         })
 
-        private$primary_prevention_scn(sp) # apply primary pevention scenario
+        # make pop weight available to scenarios
+        # message("Updating weights")
+        if (scenario_nam != "sc0") {
+          sp$update_pop_weights(scenario_nam)
+        }
+        # message("Updating weights finished")
+
+        # Isolate tha rng state for the user defines scenarios
+        rs <- .Random.seed
+        dqrs <- dqrng_get_state()
+        sdn <- digest2int(paste0("primary", scenario_nam), sp$mc_aggr) # sp$mc_aggr ensures same seed for sp batches that stem from the same sp.
+        # consequently if the user needs different seeds for different batches
+        # they have to explicitly use a new seed, generate rn and then restore
+        # the seed.
+        set.seed(sdn) # set seed based on scenario name
+        dqset.seed(sdn)
+        # Note that above does nor guarantee that different scenario_name/sp$mc combination
+        # always generate different seed. But the probability of collision is
+        # very low. export_summaries() checks if collision happened and warns user.
+
+        private$primary_prevention_scn(sp) # apply primary prevention scenario
+        # message("scenario finished")
+        set.seed(rs)
+        dqrng_set_state(dqrs)
 
         lapply(self$design$diseases, function(x) {
           x$set_rr(sp, self$design)$set_incd_prb(sp, self$design)$set_dgns_prb(
@@ -2276,14 +2674,42 @@ Simulation <-
             self$design
           )$set_mrtl_prb(sp, self$design)
         })
+        # message("incd finished")
 
+        # Isolate tha rng state for the user defines scenarios
+        rs <- .Random.seed
+        dqrs <- dqrng_get_state()
+        sdn <- digest2int(paste0("secondary", scenario_nam), sp$mc_aggr) # sp$mc_aggr ensures same seed for sp batches that stem from the same sp.
+        # consequently if the user needs different seeds for different batches
+        # they have to explicitly use a new seed, generate rn and then restore
+        # the seed.
+        set.seed(sdn) # set seed based on scenario name
+        dqset.seed(sdn) # Note that above does nor guarantee that different scenario_name/sp$mc combination
+        # always generate different seed. But the probability of collision is
+        # very low. export_summaries() checks if collision happened and warns user.
         private$secondary_prevention_scn(sp) # apply secondary pevention scenario
+        # message("2nd scenario finished")
+        # message("scenario finished")
+        set.seed(rs)
+        dqrng_set_state(dqrs)
+
+        # ds <- copy(self$diseases) # Necessary for parallelisation
+        # lapply(self$diseases, function(x) {
+        #   if (self$design$sim_prm$logs) print(x$name)
+        #   x$gen_parf(sp, self$design, self$diseases)$
+        #     set_init_prvl(sp, self$design)$
+        #     set_rr(sp, self$design)$
+        #     set_incd_prb(sp, self$design)$
+        #     set_dgns_prb(sp, self$design)$
+        #     set_mrtl_prb(sp, self$design)
+        # })
 
         l <- private$mk_scenario_init(sp, scenario_nam)
         if (!identical(key(sp$pop), c("pid", "year"))) {
           stop("synthpop key is not as expected")
         }
         simcpp(sp$pop, l, sp$mc)
+        # message("cpp finished")
         # it doesn't matter if mc or mc_aggr is used in the above, because it is
         # only used for the RNG stream and the pid are different in each mc_aggr
         # pop
@@ -2302,7 +2728,7 @@ Simulation <-
 
         # apply ESP weights
         to_agegrp(sp$pop, 5, 99)
-        absorb_dt(sp$pop, private$esp_weights)
+        absorb_dt(sp$pop, private$esp_weights, exclude_col = "wt_esp")
         sp$pop[,
           wt_esp := wt_esp * unique(wt_esp) / sum(wt_esp),
           by = .(year, agegrp, sex, dimd)
@@ -2363,7 +2789,7 @@ Simulation <-
           )
         )]
 
-        sp$pop[, scenario := scenario_nam]
+        # sp$pop[, scenario := scenario_nam]
 
         setkeyv(sp$pop, c("pid", "year"))
 
@@ -2372,22 +2798,15 @@ Simulation <-
           message("Exporting lifecourse...")
         }
 
-        if (self$design$sim_prm$avoid_appending_csv) {
-          fnam <- private$output_dir(paste0(
-            "lifecourse/",
-            sp$mc_aggr,
-            "_",
-            sp$mc,
-            "_lifecourse.csv"
-          ))
-        } else {
-          fnam <- private$output_dir(paste0(
-            "lifecourse/",
-            sp$mc_aggr,
-            "_lifecourse.csv.gz"
-          ))
-        }
-        fwrite_safe(sp$pop, fnam)
+        fileformat <- "parquet"
+        fnam <- private$output_dir(file.path(
+          "lifecourse",
+          paste0("mc=", sp$mc_aggr),
+          paste0("scenario=", scenario_nam),
+          paste0(sp$mc, "_lifecourse.", fileformat)
+        ))
+        # NOTE parquet format about 30 times smaller but about 50% slower in writting to disk
+        write_dataset(dataset = sp$pop, path = fnam, format = fileformat)
 
         if (self$design$sim_prm$logs) {
           private$time_mark(paste0("End mc iteration ", mc_))
@@ -2401,13 +2820,6 @@ Simulation <-
       # to_cpp()
 
       # mk_scenario_init ----
-      # functions - ⁠carry_forward_inc;
-      # Create initialization parameters for a simulation scenario.
-      # @param sp A SynthPop object.
-      # @param scenario_name A character string specifying the name of the scenario.
-      #
-      # @return A list of initialization parameters for the scenario.
-      #
       mk_scenario_init = function(sp, scenario_name) {
         # scenario_suffix_for_pop <- paste0("_", scenario_name)
 
@@ -2436,16 +2848,7 @@ Simulation <-
           })
         )
       },
-
       # export_xps ----
-      # ? ARU check details
-      # Export Exposure Data
-      # @param sp A SynthPop object.
-      # @param scenario_nam A character string specifying the scenario name.
-      # @return NULL
-      #
-      # @details This function exports exposure data from a SynthPop object to CSV files.
-      #
       export_xps = function(sp, scenario_nam) {
         # NOTE no need to check validity of inputs here as it is only used
         # internally
@@ -2517,14 +2920,18 @@ Simulation <-
           set(out_xps20, which(is.na(out_xps20[[j]])), j, "All")
         }
         setkey(out_xps20, year)
-        if (self$design$sim_prm$avoid_appending_csv) {
-          fwrite_safe(
-            out_xps20,
-            private$output_dir(paste0("xps/", sp$mc, "_xps20.csv"))
-          )
-        } else {
-          fwrite_safe(out_xps20, private$output_dir("xps/xps20.csv.gz"))
-        }
+
+        fileformat <- "parquet"
+        fnam <- private$output_dir(file.path(
+          "xps",
+          "xps20",
+          paste0("mc=", sp$mc_aggr),
+          paste0("scenario=", scenario_nam),
+          paste0(sp$mc, "_xps20.", fileformat)
+        ))
+
+        # NOTE parquet format about 30 times smaller but about 50% slower in writting to disk
+        write_dataset(dataset = out_xps20, path = fnam, format = fileformat)
 
         # TODO link strata in the outputs to the design.yaml
         out_xps5 <- groupingsets(
@@ -2549,14 +2956,20 @@ Simulation <-
           set(out_xps5, which(is.na(out_xps5[[j]])), j, "All")
         }
         setkey(out_xps5, year)
-        if (self$design$sim_prm$avoid_appending_csv) {
-          fwrite_safe(
-            out_xps5,
-            private$output_dir(paste0("xps/", sp$mc, "_xps_esp.csv"))
-          )
-        } else {
-          fwrite_safe(out_xps5, private$output_dir("xps/xps_esp.csv.gz"))
-        }
+
+        fnam <- private$output_dir(file.path(
+          "xps",
+          "xps5",
+          paste0("mc=", sp$mc_aggr),
+          paste0("scenario=", scenario_nam),
+          paste0(sp$mc, "_xps_esp.", fileformat)
+        ))
+
+        # NOTE parquet format about 30 times smaller but about 50% slower in writting to disk
+        write_dataset(dataset = out_xps5, path = fnam, format = fileformat)
+
+
+
 
         # Tidy up
         sp$pop[,
@@ -2585,17 +2998,7 @@ Simulation <-
         NULL
       },
 
-      # time_mark ----
       # Function for timing log
-      # @param text_id A character string representing the text identifier.
-      # @return NULL
-      #
-      # @details
-      # The function logs a timestamp, along with the provided text identifier, to a file.
-      # The file is specified as "logs/times.txt" within the output directory. The logging
-      # is done in append mode, meaning new entries are added to the end of the existing file.
-      # The logged information includes the text identifier, timestamp, and a newline character.
-      #
       time_mark = function(text_id) {
         sink(
           file = private$output_dir("logs/times.txt"),
@@ -2606,29 +3009,16 @@ Simulation <-
         cat(paste0(text_id, " at: ", Sys.time(), "\n"))
         sink()
       },
-
-      # output_dir ----
       output_dir = function(x = "") {
         file.path(self$design$sim_prm$output_dir, x)
       },
 
-      # export_summaries_hlpr ----
       # function to export summaries from lifecourse files.
-      # lc is a lifecourse file
-      # ? ARU check short forms
-      # Export Summaries Helper Function
-      # @param lc Data table containing lifecourse information.
-      # @param type Character vector specifying the types of summaries to export. Possible values include "le" (life expectancy), "hle" (healthy life expectancy), "dis_char" (disease characteristics), "prvl" (prevalence), "incd" (incidence), "mrtl" (mortality), "dis_mrtl" (disease-specific mortality), "allcause_mrtl_by_dis" (all-cause mortality by disease), and "cms" (CMS - Chronic Multimorbidity Score).
-      # @param design An object representing the design of the simulation. It should contain simulation parameters.
-      #
-      # @details
-      # The function exports various summaries based on the specified types. For example, it exports life expectancy, healthy life expectancy, disease characteristics, prevalence, incidence, mortality, disease-specific mortality, all-cause mortality by disease, and Chronic Multimorbidity Score (CMS) information.
-      #
-      # @return
-      # Returns an invisible updated simulation object.
-      #
+      # mcaggr is the mc iteration
+      # single_year_of_age export summaries by single year of age to be used for calibration
+      # export_summaries_hlpr ----
       export_summaries_hlpr = function(
-        lc,
+        mcaggr,
         type = c(
           "le",
           "hle",
@@ -2637,14 +3027,75 @@ Simulation <-
           "incd",
           "mrtl",
           "dis_mrtl",
-          "allcause_mrtl_by_dis",
-          "cms"
+          "all_cause_mrtl_by_dis",
+          "cms",
+          "qalys",
+          "costs"
         ),
-        single_year_of_age = FALSE
+        single_year_of_age = FALSE,
+        implicit_parallelism
       ) {
+        if (self$design$sim_prm$logs) {
+          private$time_mark(paste0(
+            "Start mc iteration (summary export) ",
+            mcaggr
+          ))
+          sink(
+            file = private$output_dir(paste0("logs/log", mcaggr, ".txt")),
+            append = TRUE,
+            type = "output",
+            split = FALSE
+          )
+        }
+
         if (self$design$sim_prm$logs) {
           message("Exporting summaries...")
         }
+
+        if (implicit_parallelism) {
+          arrow::set_cpu_count(self$design$sim_prm$clusternumber_export)
+          data.table::setDTthreads(
+            threads = self$design$sim_prm$clusternumber_export,
+            restore_after_fork = NULL
+          )
+          fst::threads_fst(
+            nr_of_threads = self$design$sim_prm$clusternumber_export,
+            reset_after_fork = NULL
+          )
+        } else {
+          # if not explicit parallelism
+          arrow::set_cpu_count(1L)
+          data.table::setDTthreads(threads = 1L, restore_after_fork = NULL)
+          fst::threads_fst(nr_of_threads = 1L, reset_after_fork = NULL)
+        }
+
+        lc <- open_dataset(private$output_dir(file.path(
+          "lifecourse",
+          paste0("mc=", mcaggr)
+        )))
+
+        # Connect DuckDB and register the Arrow dataset as a DuckDB view
+        duckdb_con <- dbConnect(duckdb::duckdb(), ":memory:", read_only = FALSE) # not read only to allow creation of VIEWS etc
+        on.exit(dbDisconnect(duckdb_con, shutdown = FALSE), add = TRUE)
+        if (implicit_parallelism) {
+          private$execute_sql(
+            duckdb_con,
+            paste0("PRAGMA threads=", self$design$sim_prm$clusternumber_export)
+          )
+        } else {
+          # if not explicit parallelism
+          private$execute_sql(duckdb_con, "PRAGMA threads=1")
+        }
+        duckdb::duckdb_register_arrow(duckdb_con, "lc_table_raw", lc)
+
+        # Create enhanced view with mc column
+        private$execute_sql(
+          duckdb_con,
+          sprintf(
+            "CREATE VIEW lc_table AS SELECT *, %d::INTEGER AS mc FROM lc_table_raw",
+            mcaggr
+          )
+        )
 
         strata <- c("mc", self$design$sim_prm$strata_for_output)
         strata_noagegrp <- c(
@@ -2657,743 +3108,66 @@ Simulation <-
           strata <- strata_age
         } # used for calibrate_incd_ftlt
 
-        setkeyv(lc, c("scenario", "pid", "year")) # necessary for age_onset
+        ext <- "parquet"
 
-        mcaggr <- ifelse(
-          self$design$sim_prm$avoid_appending_csv,
-          paste0(lc$mc[1], "_"),
-          ""
-        )
-        ext <- ifelse(
-          self$design$sim_prm$avoid_appending_csv,
-          ".csv",
-          ".csv.gz"
-        )
-
-        # Life expectancy ----
-        # NOTE for scaled_up LE weights need to apply from the very beginning.
-        # Also note that currently this ignores the deaths for people younger
-        # than min_age so not a true LE at birth
         if ("le" %in% type) {
-          # fwrite_safe(lc[all_cause_mrtl > 0, .("popsize" = (.N), LE = mean(age)),
-          #                keyby = strata_noagegrp],
-          #             private$output_dir(paste0("summaries/", "le_out.csv.gz"
-          #             )))
-          fwrite_safe(
-            lc[
-              all_cause_mrtl > 0,
-              .("popsize" = sum(wt), LE = weighted.mean(age, wt)),
-              keyby = strata_noagegrp
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "le_scaled_up",
-              ext
-            ))
-          )
-          fwrite_safe(
-            lc[
-              all_cause_mrtl > 0,
-              .("popsize" = sum(wt_esp), LE = weighted.mean(age, wt_esp)),
-              keyby = strata_noagegrp
-            ],
-            private$output_dir(paste0("summaries/", mcaggr, "le_esp", ext))
-          )
-          # Life expectancy at 60 ----
-
-          if (
-            self$design$sim_prm$ageL < 60L && self$design$sim_prm$ageH > 60L
-          ) {
-            # fwrite_safe(lc[all_cause_mrtl > 0 & age > 60, .("popsize" = (.N), LE60 = mean(age)),  keyby = strata_noagegrp],
-            #             private$output_dir(paste0("summaries/", "le60_out", ext
-            #             )))
-            fwrite_safe(
-              lc[
-                all_cause_mrtl > 0 & age > 60,
-                .("popsize" = sum(wt), LE60 = weighted.mean(age, wt)),
-                keyby = strata_noagegrp
-              ],
-              private$output_dir(paste0(
-                "summaries/",
-                mcaggr,
-                "le60_scaled_up",
-                ext
-              ))
-            )
-            fwrite_safe(
-              lc[
-                all_cause_mrtl > 0 & age > 60,
-                .("popsize" = sum(wt_esp), LE60 = weighted.mean(age, wt_esp)),
-                keyby = strata_noagegrp
-              ],
-              private$output_dir(paste0("summaries/", mcaggr, "le60_esp", ext))
-            )
+          private$export_le_summaries(duckdb_con, mcaggr, strata_noagegrp, ext)
           }
-          # Note: for less aggregation use wtd.mean with popsize i.e le_out[,
-          # weighted.mean(LE, popsize), keyby = year]
-        }
-
-        # Healthy life expectancy ----
         if ("hle" %in% type) {
-          # TODO currently some individuals are counted more than once because
-          # disease counter and score can be reduced.
-          # Ideally only the first reach to the threshold should be counted
-          # fwrite_safe(lc[cms_count == 1L, .("popsize" = (.N), HLE = mean(age)),
-          #                keyby = strata_noagegrp],
-          #             private$output_dir(paste0("summaries/", "hle_1st_cond_out", ext)))
-          # fwrite_safe(lc[cms_count == 1L | (cms_count == 0L & all_cause_mrtl > 0),
-          #                .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
-          #                keyby = strata_noagegrp],
-          #             private$output_dir(paste0(
-          #               "summaries/", mcaggr, "hle_old_1st_cond_scaled_up", ext
-          #             )))
-          # fwrite_safe(lc[cms_count == 1L | (cms_count == 0L & all_cause_mrtl > 0),
-          #                .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
-          #                keyby = strata_noagegrp],
-          #             private$output_dir(paste0("summaries/", mcaggr, "hle_old_1st_cond_esp", ext
-          #             )))
-
-          # # fwrite_safe(lc[cmsmm1.5_prvl == 1L, .("popsize" = (.N), HLE = mean(age)),
-          # #                keyby = strata_noagegrp],
-          # #             private$output_dir(paste0("summaries/", "hle_cmsmm1.5_out", ext)))
-          # fwrite_safe(lc[cmsmm1.5_prvl == 1L | (cmsmm1.5_prvl == 0L & all_cause_mrtl > 0),
-          #                .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
-          #                keyby = strata_noagegrp],
-          #             private$output_dir(paste0(
-          #               "summaries/", mcaggr, "hle_old_cmsmm1.5_scaled_up", ext
-          #             )))
-          # fwrite_safe(lc[cmsmm1.5_prvl == 1L | (cmsmm1.5_prvl == 0L & all_cause_mrtl > 0),
-          #                .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
-          #                keyby = strata_noagegrp],
-          #             private$output_dir(paste0("summaries/", mcaggr, "hle_old_cmsmm1.5_esp", ext
-          #             )))
-
-          fwrite_safe(
-            lc[
-              cms_count == 0L,
-              .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
-              keyby = strata_noagegrp
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "hle_1st_cond_scaled_up",
-              ext
-            ))
-          )
-          fwrite_safe(
-            lc[
-              cms_count == 0L,
-              .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
-              keyby = strata_noagegrp
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "hle_1st_cond_esp",
-              ext
-            ))
-          )
-
-          # fwrite_safe(lc[cmsmm1.5_prvl == 1L, .("popsize" = (.N), HLE = mean(age)),
-          #                keyby = strata_noagegrp],
-          #             private$output_dir(paste0("summaries/", "hle_cmsmm1.5_out", ext)))
-          fwrite_safe(
-            lc[
-              cmsmm1.5_prvl == 0L,
-              .("popsize" = sum(wt), HLE = weighted.mean(age, wt)),
-              keyby = strata_noagegrp
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "hle_cmsmm1.5_scaled_up",
-              ext
-            ))
-          )
-          fwrite_safe(
-            lc[
-              cmsmm1.5_prvl == 0L,
-              .("popsize" = sum(wt_esp), HLE = weighted.mean(age, wt_esp)),
-              keyby = strata_noagegrp
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "hle_cmsmm1.5_esp",
-              ext
-            ))
-          )
+          private$export_hle_summaries(duckdb_con, mcaggr, strata_noagegrp, ext)
         }
-
-        # Disease characteristics----
         if ("dis_char" %in% type) {
-          nm <- grep("_prvl$", names(lc), value = TRUE)
-
-          # tt <- rbindlist(lapply(nm, function(x) {
-          #   # sr are the rows the 1st episode occurs per pid
-          #   # Need to be sorted on year
-          #   sr <- lc[get(x) > 0L, .I[match(1L, get(x))], by = .(pid, scenario)]$V1
-          #   sr <- sr[!is.na(sr)]
-          #   lc[sr, age_onset := age] # age at 1st ever event
-          #
-          #   lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x),
-          #                     "cases" = (.N),
-          #                     "mean_age_incd" = mean(age[get(x) == 1L]),
-          #                     "mean_age_1st_onset" = mean(age_onset, na.rm = TRUE),
-          #                     "mean_age_prvl" = mean(age),
-          #                     "mean_duration" = mean(get(x)), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
-          #                     "mean_cms_score" = mean(cms_score),
-          #                     "mean_cms_count" = mean(cms_count)),
-          #      keyby = strata_noagegrp]
-          #   lc[, age_onset := NULL]
-          # }))
-          # tt <- rbindlist(lapply(nm, function(x) {
-          #   lc[get(x) > 0L, lapply(.SD, mean), .SDcols = c(x, "age", "cms_score", "cms_count"), keyby = strata_noagegrp]
-          # })) # Fast but without cases
-          # tt <-
-          #   dcast(tt, as.formula(paste0(paste(strata_noagegrp, collapse = "+"), "~disease")),
-          #         fill = 0L, value.var = c("cases", "mean_duration", "mean_age_incd",
-          #                                  "mean_age_prvl", "mean_cms_score",
-          #                                  "mean_cms_count"))
-          # fwrite_safe(tt,
-          #             private$output_dir(paste0("summaries/", "dis_characteristics_out", ext
-          #             )))
-
-          tt <- rbindlist(lapply(nm, function(x) {
-            # sr are the rows the 1st episode occurs per pid
-            # Need to be sorted on year
-            sr <- lc[
-              get(x) > 0L,
-              .I[match(1L, get(x))],
-              by = .(pid, scenario)
-            ]$V1
-            sr <- sr[!is.na(sr)]
-            lc[, wt1st := 0]
-            lc[sr, `:=`(age_onset = age, wt1st = wt)] # age at 1st ever event
-
-            ans <- lc[
-              get(x) > 0L,
-              .(
-                "disease" = gsub("_prvl$", "", x),
-                "cases" = sum(wt),
-                "mean_age_incd" = weighted.mean(
-                  age[get(x) == 1L],
-                  wt[get(x) == 1L]
-                ),
-                "mean_age_1st_onset" = weighted.mean(
-                  age_onset,
-                  wt1st,
-                  na.rm = TRUE
-                ),
-
-                "mean_age_prvl" = weighted.mean(age, wt),
-                "mean_duration" = weighted.mean(get(x), wt), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
-                "mean_cms_score" = weighted.mean(cms_score, wt),
-                "mean_cms_count" = weighted.mean(cms_count, wt)
-              ),
-              keyby = strata_noagegrp
-            ]
-            lc[, c("age_onset", "wt1st") := NULL]
-            ans
-          }))
-          tt <-
-            dcast(
-              tt,
-              as.formula(paste0(
-                paste(strata_noagegrp, collapse = "+"),
-                "~disease"
-              )),
-              fill = 0L,
-              value.var = c(
-                "cases",
-                "mean_duration",
-                "mean_age_incd",
-                "mean_age_1st_onset",
-                "mean_age_prvl",
-                "mean_cms_score",
-                "mean_cms_count"
-              )
-            )
-          fwrite_safe(
-            tt,
-            private$output_dir(paste0(
-              "summaries/",
+          private$export_dis_char_summaries(
+            duckdb_con,
               mcaggr,
-              "dis_characteristics_scaled_up",
-              ext
-            ))
+            strata_noagegrp,
+            ext
           )
-
-          tt <- rbindlist(lapply(nm, function(x) {
-            # sr are the rows the 1st episode occurs per pid
-            # Need to be sorted on year
-            sr <- lc[
-              get(x) > 0L,
-              .I[match(1L, get(x))],
-              by = .(pid, scenario)
-            ]$V1
-            sr <- sr[!is.na(sr)]
-            lc[, wt1st := 0]
-            lc[sr, `:=`(age_onset = age, wt1st = wt_esp)] # age at 1st ever event
-
-            ans <- lc[
-              get(x) > 0L,
-              .(
-                "disease" = gsub("_prvl$", "", x),
-                "cases" = sum(wt_esp),
-                "mean_age_incd" = weighted.mean(
-                  age[get(x) == 1L],
-                  wt_esp[get(x) == 1L]
-                ),
-                "mean_age_1st_onset" = weighted.mean(
-                  age_onset,
-                  wt1st,
-                  na.rm = TRUE
-                ),
-                "mean_age_prvl" = weighted.mean(age, wt_esp),
-                "mean_duration" = weighted.mean(get(x), wt_esp), # Note get(x) very slow here. Implementation with .SDcols also slow because of cases
-                "mean_cms_score" = weighted.mean(cms_score, wt_esp),
-                "mean_cms_count" = weighted.mean(cms_count, wt_esp)
-              ),
-              keyby = strata_noagegrp
-            ]
-            lc[, c("age_onset", "wt1st") := NULL]
-            ans
-          }))
-          tt <-
-            dcast(
-              tt,
-              as.formula(paste0(
-                paste(strata_noagegrp, collapse = "+"),
-                "~disease"
-              )),
-              fill = 0L,
-              value.var = c(
-                "cases",
-                "mean_duration",
-                "mean_age_incd",
-                "mean_age_1st_onset",
-                "mean_age_prvl",
-                "mean_cms_score",
-                "mean_cms_count"
-              )
-            )
-          fwrite_safe(
-            tt,
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "dis_characteristics_esp",
-              ext
-            ))
-          )
-          rm(tt)
         }
-
-        # prvl ----
         if ("prvl" %in% type) {
-          # Note for mortality this exports qx directly. mx is defined as the
-          # number of deaths during the year divided by the average number alive
-          # during the year, i.e. This differs slightly from qx , which is the
-          # number of deaths during the year divided by the number alive at the
-          # beginning of the year.
-          # fwrite_safe(lc[, c("popsize" = (.N),
-          #                    lapply(.SD, function(x) sum(x > 0))),
-          #                .SDcols = patterns("_prvl$"), keyby = strata],
-          #             private$output_dir(paste0("summaries/", "prvl_out", ext
-          #             )))
-          fwrite_safe(
-            lc[,
-              c(
-                "popsize" = sum(wt),
-                lapply(.SD, function(x, wt) sum((x > 0) * wt), wt)
-              ),
-              .SDcols = patterns("_prvl$"),
-              keyby = strata
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "prvl_scaled_up",
-              ext
-            ))
-          )
-          fwrite_safe(
-            lc[,
-              c(
-                "popsize" = sum(wt_esp),
-                lapply(.SD, function(x, wt) sum((x > 0) * wt), wt_esp)
-              ),
-              .SDcols = patterns("_prvl$"),
-              keyby = strata
-            ],
-            private$output_dir(paste0("summaries/", mcaggr, "prvl_esp", ext))
-          )
+          private$export_prvl_summaries(duckdb_con, mcaggr, strata, ext)
         }
-
-        # incd ----
         if ("incd" %in% type) {
-          # NOTE incd includes prevalent cases in denominator
-          # fwrite_safe(lc[, c("popsize" = (.N),
-          #                    lapply(.SD, function(x) sum(x == 1))),
-          #                .SDcols = patterns("_prvl$"), keyby = strata],
-          #             private$output_dir(paste0("summaries/", "incd_out", ext
-          #             )))
-          incdtbl <- lc[,
-            c(
-              "popsize" = sum(wt),
-              lapply(.SD, function(x, wt) sum((x == 1) * wt), wt)
-            ),
-            .SDcols = patterns("_prvl$"),
-            keyby = strata
-          ]
-          nm <- grep("_prvl$", names(incdtbl), value = TRUE)
-          setnames(incdtbl, nm, gsub("_prvl$", "_incd", nm))
-          fwrite_safe(
-            incdtbl,
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "incd_scaled_up",
-              ext
-            ))
-          )
-
-          incdtbl <- lc[,
-            c(
-              "popsize" = sum(wt_esp),
-              lapply(.SD, function(x, wt) sum((x == 1) * wt), wt_esp)
-            ),
-            .SDcols = patterns("_prvl$"),
-            keyby = strata
-          ]
-          nm <- grep("_prvl$", names(incdtbl), value = TRUE)
-          setnames(incdtbl, nm, gsub("_prvl$", "_incd", nm))
-          fwrite_safe(
-            incdtbl,
-            private$output_dir(paste0("summaries/", mcaggr, "incd_esp", ext))
-          )
-
-          rm(incdtbl, nm)
+          private$export_incd_summaries(duckdb_con, mcaggr, strata, ext)
         }
-
-        # mrtl ----
         if ("mrtl" %in% type) {
-          # fwrite_safe(lc[, .("popsize" = (.N),
-          #                    "all_cause_mrtl" = sum(all_cause_mrtl > 0)),
-          #                keyby = strata],
-          #             private$output_dir(paste0("summaries/", "mrtl_out", ext
-          #             )))
-          fwrite_safe(
-            lc[,
-              .(
-                "popsize" = sum(wt),
-                "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt)
-              ),
-              keyby = strata
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "mrtl_scaled_up",
-              ext
-            ))
-          )
-          fwrite_safe(
-            lc[,
-              .(
-                "popsize" = sum(wt_esp),
-                "all_cause_mrtl" = sum((all_cause_mrtl > 0) * wt_esp)
-              ),
-              keyby = strata
-            ],
-            private$output_dir(paste0("summaries/", mcaggr, "mrtl_esp", ext))
-          )
+          private$export_mrtl_summaries(duckdb_con, mcaggr, strata, ext)
         }
-
-        # disease specific mortality ----
         if ("dis_mrtl" %in% type) {
-          # dis_mrtl_out <-
-          #   dcast(
-          #     lc[, .("deaths" = (.N)),
-          #        keyby = c(strata, "all_cause_mrtl")],
-          #     formula = as.formula(paste0(
-          #       paste(strata, collapse = "+"), "~all_cause_mrtl"
-          #     )),
-          #     fill = 0L,
-          #     value.var = "deaths"
-          #   )
-          #
-          # setnames(dis_mrtl_out, as.character(private$death_codes),
-          #          names(private$death_codes), skip_absent = TRUE)
-          # dis_mrtl_out[, `:=` (
-          #   popsize = Reduce(`+`, .SD),
-          #   alive = NULL
-          # ), .SDcols = !strata]
-          # fwrite_safe(dis_mrtl_out,
-          #             private$output_dir(paste0("summaries/", "dis_mrtl_out", ext
-          #             )))
-
-          dis_mrtl_out <- # scale up
-            dcast(
-              lc[, .("deaths" = sum(wt)), keyby = c(strata, "all_cause_mrtl")],
-              formula = as.formula(paste0(
-                paste(strata, collapse = "+"),
-                "~all_cause_mrtl"
-              )),
-              fill = 0L,
-              value.var = "deaths"
-            )
-
-          setnames(
-            dis_mrtl_out,
-            as.character(private$death_codes),
-            paste0(names(private$death_codes), "_deaths"),
-            skip_absent = TRUE
-          )
-          dis_mrtl_out[,
-            `:=`(
-              popsize = Reduce(`+`, .SD), # it includes alive so it is the pop at the start of the year
-              alive_deaths = NULL
-            ),
-            .SDcols = !strata
-          ]
-          fwrite_safe(
-            dis_mrtl_out,
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "dis_mrtl_scaled_up",
-              ext
-            ))
-          )
-
-          dis_mrtl_out <- # scale up esp
-            dcast(
-              lc[,
-                .("deaths" = sum(wt_esp)),
-                keyby = c(strata, "all_cause_mrtl")
-              ],
-              formula = as.formula(paste0(
-                paste(strata, collapse = "+"),
-                "~all_cause_mrtl"
-              )),
-              fill = 0L,
-              value.var = "deaths"
-            )
-
-          setnames(
-            dis_mrtl_out,
-            as.character(private$death_codes),
-            paste0(names(private$death_codes), "_deaths"),
-            skip_absent = TRUE
-          )
-          dis_mrtl_out[,
-            `:=`(
-              popsize = Reduce(`+`, .SD),
-              alive_deaths = NULL
-            ),
-            .SDcols = !strata
-          ]
-          fwrite_safe(
-            dis_mrtl_out,
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "dis_mrtl_esp",
-              ext
-            ))
-          )
-          rm(dis_mrtl_out)
+          private$export_dis_mrtl_summaries(duckdb_con, mcaggr, strata, ext)
         }
-
-        # All-cause mrtl by disease ----
-        if ("allcause_mrtl_by_dis" %in% type) {
-          nm <- grep("_prvl$", names(lc), value = TRUE)
-
-          # tt <- lapply(nm, function(x) {
-          #   lc[get(x) > 0L, .("disease" = gsub("_prvl$", "", x), "cases" = (.N), "deaths" = sum(all_cause_mrtl > 0)), keyby = strata]
-          # })
-          # tt <-
-          # dcast(rbindlist(tt), as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
-          #       fill = 0L, value.var = c("deaths", "cases"))
-          # fwrite_safe(tt,
-          #             private$output_dir(paste0("summaries/", "all_cause_mrtl_by_dis_out", ext
-          #             )))
-
-          tt <- lapply(nm, function(x) {
-            lc[
-              get(x) > 0L,
-              .(
-                "disease" = gsub("_prvl$", "", x),
-                "cases" = sum(wt),
-                "deaths" = sum(wt * (all_cause_mrtl > 0))
-              ),
-              keyby = strata
-            ]
-          })
-          tt <-
-            dcast(
-              rbindlist(tt),
-              as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
-              fill = 0L,
-              value.var = c("deaths", "cases")
-            )
-          fwrite_safe(
-            tt,
-            private$output_dir(paste0(
-              "summaries/",
+        if ("all_cause_mrtl_by_dis" %in% type) {
+          private$export_all_cause_mrtl_by_dis_summaries(
+            duckdb_con,
               mcaggr,
-              "all_cause_mrtl_by_dis_scaled_up",
+            strata,
               ext
-            ))
           )
-
-          tt <- lapply(nm, function(x) {
-            lc[
-              get(x) > 0L,
-              .(
-                "disease" = gsub("_prvl$", "", x),
-                "cases" = sum(wt_esp),
-                "deaths" = sum(wt_esp * (all_cause_mrtl > 0))
-              ),
-              keyby = strata
-            ]
-          })
-          tt <-
-            dcast(
-              rbindlist(tt),
-              as.formula(paste0(paste(strata, collapse = "+"), "~disease")),
-              fill = 0L,
-              value.var = c("deaths", "cases")
-            )
-          fwrite_safe(
-            tt,
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "all_cause_mrtl_by_dis_esp",
-              ext
-            ))
-          )
-          rm(tt)
         }
-
-        # CMS mean ----
         if ("cms" %in% type) {
-          # fwrite_safe(lc[, .("popsize" = (.N), cms_score = mean(cms_score)), keyby = strata],
-          #             private$output_dir(paste0("summaries/", "cms_score_out", ext
-          #             )))
-          fwrite_safe(
-            lc[,
-              .("popsize" = sum(wt), cms_score = weighted.mean(cms_score, wt)),
-              keyby = strata
-            ],
-            private$output_dir(paste0(
-              "summaries/",
+          private$export_cms_summaries(
+            duckdb_con,
               mcaggr,
-              "cms_score_scaled_up",
+            strata,
+            strata_age,
               ext
-            ))
-          )
-          fwrite_safe(
-            lc[,
-              .("popsize" = sum(wt), cms_score = weighted.mean(cms_score, wt)),
-              keyby = strata_age
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "cms_score_by_age_scaled_up",
-              ext
-            ))
-          )
-
-          fwrite_safe(
-            lc[,
-              .(
-                "popsize" = sum(wt_esp),
-                cms_score = weighted.mean(cms_score, wt_esp)
-              ),
-              keyby = strata
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "cms_score_esp",
-              ext
-            ))
-          )
-
-          fwrite_safe(
-            lc[,
-              .(
-                "popsize" = sum(wt_esp),
-                cms_score = weighted.mean(cms_score, wt_esp)
-              ),
-              keyby = strata_age
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "cms_score_by_age_esp",
-              ext
-            ))
-          )
-
-          # CMS count ----
-          # fwrite_safe(lc[, .("popsize" = (.N), cms_count = mean(cms_count)), keyby = strata],
-          #             private$output_dir(paste0("summaries/", "cms_count_out", ext
-          #             )))
-          fwrite_safe(
-            lc[,
-              .("popsize" = sum(wt), cms_count = weighted.mean(cms_count, wt)),
-              keyby = strata
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "cms_count_scaled_up",
-              ext
-            ))
-          )
-          fwrite_safe(
-            lc[,
-              .(
-                "popsize" = sum(wt_esp),
-                cms_count = weighted.mean(cms_count, wt_esp)
-              ),
-              keyby = strata
-            ],
-            private$output_dir(paste0(
-              "summaries/",
-              mcaggr,
-              "cms_count_esp",
-              ext
-            ))
           )
         }
-
-        if (!self$design$sim_prm$keep_lifecourse) {
-          file.remove(pth)
+        if ("qalys" %in% type) {
+          private$export_qalys_summaries(duckdb_con, mcaggr, strata, ext)
         }
+        if ("costs" %in% type) {
+          private$export_costs_summaries(duckdb_con, mcaggr, strata, ext)
+        }
+
+        sink()
 
         return(invisible(self))
-      },
+      }, # end of export_summaries_hlpr
 
+      # deep_clone ----
       # Special deep copy for data.table. Use POP$clone(deep = TRUE) to
       # dispatch. Otherwise a reference is created
-      # @param name A character string representing the name or identifier of the object being cloned.
-      # @param value The object to be cloned.
-      #
-      # @details
-      # The function checks the class of the input object and performs the appropriate cloning method. For data tables, it uses data.table::copy, and for R6 objects, it calls the clone() method. For other object types, a shallow copy is returned.
-      #
-      # @return
-      # A deep clone of the input object.
-      #
       deep_clone = function(name, value) {
         if ("data.table" %in% class(value)) {
           data.table::copy(value)
@@ -3407,9 +3181,25 @@ Simulation <-
       },
 
       # calc_QALYs ----
-      # Memory-optimised version of calc_QALYs using DuckDB SQL.
-      # Creates a temporary view named 'output_view_name' in DuckDB,
-      # which is the 'input_table_name' (filtered by mcaggr) augmented with EQ5D5L and HUI3 columns.
+      # Calculate QALYs based on Table 4 of the paper, Shiroiwa 2021, titled with
+      # "Japanese Population Norms of EQ-5D-5L and Health Utilities Index Mark 3:
+      # Disutility Catalog by Disease and Symptom in Community Settings"
+
+      # NOTE an implementation with join is slower because the prvl cols need to be transformed to 0 and 1
+      # Even with lc[, lapply(.SD, fclamp_int, inplace = TRUE), .SDcols = patterns("_prvl")] this is slow,
+      # and destrucive to the original data
+
+      # Calculates QALYs (EQ5D5L and HUI3) and creates a new temporary view in DuckDB
+      # with these additional columns.
+      #
+      # Args:
+      #   duckdb_con: A DuckDB connection object.
+      #   input_table_name: Name of the input table/view in DuckDB (e.g., "lc_table").
+      #   output_view_name: Name for the temporary output view that will include QALY columns.
+      #   include_non_significant: Boolean, whether to include non-significant decrements.
+      #
+      # Returns:
+      #   NULL. Modifies DuckDB state by creating output_view_name.
       calc_QALYs = function(
         duckdb_con,
         mcaggr,
@@ -3495,8 +3285,6 @@ Simulation <-
       # Memory-optimised version of calc_costs using DuckDB SQL.
       # Creates a temporary view named 'output_view_name' in DuckDB,
       # which is the 'input_table_name' (filtered by mcaggr) augmented with calculated cost columns.
-      # NOTE: This is adapted from the Japan model. You may need to update the
-      # input file paths and cost parameters to match England-specific data.
       calc_costs = function(
         duckdb_con,
         mcaggr,
@@ -3513,6 +3301,15 @@ Simulation <-
             recursive = FALSE
           )
         )
+        # Safer but slow
+        # scnam <- private$query_sql(
+        #   duckdb_con,
+        #   sprintf(
+        #     "SELECT DISTINCT scenario FROM %s WHERE mc = %d;",
+        #     input_table_name,
+        #     mcaggr
+        #   )
+        # )
 
         # --- Inflation Factors ---
         prod_informal_inflation_factor <- 1.025
@@ -4040,417 +3837,149 @@ Simulation <-
           )
         })
 
+        # final_view_creation_sql <- paste(final_view_creation_sql, collapse = "\n")
+
+        # private$execute_sql(
+        #   duckdb_con,
+        #   final_view_creation_sql,
+        #   paste0("Final cost views per scenario:", output_view_name, "_scn_view")
+        # )
+
+        # Do not clean up intermediate tables/views to save memory. They are needed during runtime
+
         return(invisible(NULL))
       }, # end calc_costs
 
-      # collect_files ----
-      # Collect files written by mc_aggr or mc_aggr_mc in a folder and combine
-      # them into one file
-      # @param folder_name A character string specifying the name of the folder containing the files to be collected.
-      # @param pattern A regular expression pattern to filter files for collection. Only files matching this pattern will be considered.
-      # @param to_mc_aggr Logical, indicating whether to aggregate files for Monte Carlo iteration (to_mc_aggr = TRUE) or not.
-      #
-      # @details
-      # The function reads each file from the specified folder, aggregates its content, and, if needed, compresses the aggregated result. The aggregation process involves rewriting the files by applying certain string patterns to the filenames.
-      #
-      # @return
-      # This function does not return a value directly. It collects and aggregates files, and compresses them if specified, cleaning up the original files in the process.
-      #
-      collect_files = function(
-        folder_name,
-        pattern = NULL,
-        to_mc_aggr = FALSE
-      ) {
-        if (self$design$sim_prm$logs) {
-          message("Collecting mc files...")
+      # create_empty_calibration_prms_file ----
+      # if replace is FALSE then it creates a calibration parameters when it is
+      # missing, file filed with 1. If replace = TRUE it overwrites the existin
+      # file
+      # returns invisible(self)
+      # TODO Automate based on diseases in design.yaml
+      create_empty_calibration_prms_file = function(replace = FALSE) {
+        if (replace || !file.exists("./simulation/calibration_prms.csv")) {
+          clbr <- CJ(
+            year = self$design$sim_prm$init_year_long:self$design$sim_prm$sim_horizon_max,
+            age = self$design$sim_prm$ageL:self$design$sim_prm$ageH,
+            sex = c("men", "women"),
+            chd_incd_clbr_fctr = 1,
+            stroke_incd_clbr_fctr = 1,
+            chd_ftlt_clbr_fctr = 1,
+            stroke_ftlt_clbr_fctr = 1,
+            nonmodelled_ftlt_clbr_fctr = 1
+          )
+          fwrite(clbr, "./simulation/calibration_prms.csv")
         }
-        if (to_mc_aggr) {
-          string1 <- "_[0-9]+_"
-          string2 <- "_"
-        } else {
-          string1 <- "[0-9]+_"
-          string2 <- ""
-        }
-        sapply(
-          list.files(
-            path = private$output_dir(folder_name),
-            pattern = pattern,
-            full.names = TRUE
-          ),
-          function(fnam) {
-            fwrite_safe(fread(fnam), file = sub(string1, string2, fnam))
-            file.remove(fnam)
-          }
-        )
-        # gzip the .csv files to .csv.gz (faster than using gzip() and same speed/compression as with fst 80. But fst reads faster)
-        if (self$design$sim_prm$logs) {
-          message("Compressing aggregated files...")
-        }
-        sapply(
-          list.files(
-            path = private$output_dir(folder_name),
-            pattern = sub("^_", "", pattern),
-            full.names = TRUE
-          ),
-          function(fnam) {
-            fwrite_safe(fread(fnam), file = gsub(".csv$", ".csv.gz", fnam))
-            file.remove(fnam)
-          }
-        )
-        NULL
+        invisible(self)
       },
 
       # create_new_folder ----
-      # @details
-      # The function checks if the specified folder exists. If it does not exist, it creates the directory using the \code{dir.create} function. The \code{recursive} argument is set to TRUE to create parent directories if needed.
-      #
-      # @return
-      # This function does not return a value directly. It creates the specified folder and reports the status if specified.
-      #
       # @description Create folder if doesn't exist. Stops on failure.
       # @param sDirPathName String folder path and name.
-      # @param bReport Bool report folder creation.
-      create_new_folder = function(sDirPathName, bReport) {
+      # @param bReport Bool report folder creation. Default is design$sim_prm$logs.
+      create_new_folder = function(
+        sDirPathName,
+        bReport = self$design$sim_prm$logs
+      ) {
+        # Normalize path for cross-platform compatibility
+        sDirPathName <- normalizePath(sDirPathName, mustWork = FALSE)
+
         if (!dir.exists(sDirPathName)) {
+          # Try creating directory with retries for Windows compatibility
+          max_retries <- 3
+          retry_count <- 0
+          bSuccess <- FALSE
+
+          while (!bSuccess && retry_count < max_retries) {
+            retry_count <- retry_count + 1
+
+            tryCatch(
+              {
           bSuccess <- dir.create(sDirPathName, recursive = TRUE)
-          if (!bSuccess) {
-            stop(paste("Failed creating directory", sDirPathName))
+
+                # If creation returned FALSE, check if it exists (race condition handling)
+                if (!bSuccess && dir.exists(sDirPathName)) {
+                  bSuccess <- TRUE
+                }
+
+                # Add small delay for Windows file system sync
+                if (.Platform$OS.type == "windows") {
+                  Sys.sleep(0.05)
+                }
+
+                # Verify directory was actually created
+                if (!dir.exists(sDirPathName)) {
+                  bSuccess <- FALSE
+                }
+              },
+              error = function(e) {
+                warning(sprintf(
+                  "Directory creation attempt %d failed: %s",
+                  retry_count,
+                  e$message
+                ))
+                bSuccess <- FALSE
+              }
+            )
+
+            if (!bSuccess && retry_count < max_retries) {
+              Sys.sleep(0.1 * retry_count) # Progressive backoff
+            }
           }
-          if (bReport) message(paste0("Folder ", sDirPathName, " was created"))
+
+          if (!bSuccess) {
+            stop(paste0(
+              "Failed creating directory ",
+              sDirPathName,
+              " after ",
+              max_retries,
+              " attempts. Check permissions."
+            ))
+          } else {
+            if (bReport) {
+              message(paste0("Folder ", sDirPathName, " was created"))
         }
+          }
+        }
+        
+        # Check if directory is writable
+        if (file.access(sDirPathName, mode = 2) != 0) {
+          stop(paste0(
+            "Directory ",
+            sDirPathName,
+            " exists but is not writable. Check permissions."
+          ))
+        }
+        
+        invisible(TRUE)
       },
 
       # create_output_folder_structure ----
       # Create output folder structure
       create_output_folder_structure = function() {
-        if (self$design$sim_prm$logs) {
-          message("Creating output subfolders.")
+        if (self$design$sim_prm$logs) message("Creating output subfolders.")
+        if (file.exists(self$design$sim_prm$output_dir) && file.access(self$design$sim_prm$output_dir, mode = 2) == -1L) {
+          stop("You don't have write access to the output folder. Please change the permissions or the path. If you are using Linux you can use i.e. IMPACTncd$allow_universal_output_folder_access() to allow write access to the output folder.")
         }
-        if (
-          file.exists(self$design$sim_prm$output_dir) &&
-            file.access(self$design$sim_prm$output_dir, mode = 2) == -1L
-        ) {
-          stop(
-            "You don't have write access to the output folder. Please change the permissions or the path. If you are using Linux you can use i.e. IMPACTncd$allow_universal_output_folder_access() to allow write access to the output folder."
-          )
+        if (file.exists(self$design$sim_prm$synthpop_dir) && file.access(self$design$sim_prm$synthpop_dir, mode = 2) == -1L) {
+          stop("You don't have write access to the synthpop folder. Please change the permissions or the path.  If you are using Linux you can use i.e. IMPACTncd$allow_universal_synthpop_folder_access() to allow write access to the synthpop folder.")
         }
-        if (
-          file.exists(self$design$sim_prm$synthpop_dir) &&
-            file.access(self$design$sim_prm$synthpop_dir, mode = 2) == -1L
-        ) {
-          stop(
-            "You don't have write access to the synthpop folder. Please change the permissions or the path.  If you are using Linux you can use i.e. IMPACTncd$allow_universal_synthpop_folder_access() to allow write access to the synthpop folder."
-          )
-        }
-        private$create_new_folder(
-          self$design$sim_prm$output_dir,
-          self$design$sim_prm$logs
-        )
-        private$create_new_folder(
-          private$output_dir("summaries/"),
-          self$design$sim_prm$logs
-        )
-        private$create_new_folder(
-          private$output_dir("tables/"),
-          self$design$sim_prm$logs
-        )
-        private$create_new_folder(
-          private$output_dir("plots/"),
-          self$design$sim_prm$logs
-        )
-        private$create_new_folder(
-          private$output_dir("lifecourse/"),
-          self$design$sim_prm$logs
-        )
+        private$create_new_folder(self$design$sim_prm$output_dir, self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("summaries/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("tables/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("plots/"), self$design$sim_prm$logs)
+        private$create_new_folder(private$output_dir("lifecourse/"), self$design$sim_prm$logs)
         if (self$design$sim_prm$export_PARF) {
-          private$create_new_folder(
-            private$output_dir("parf/"),
-            self$design$sim_prm$logs
-          )
+           private$create_new_folder(private$output_dir("parf/"), self$design$sim_prm$logs)
         }
         if (self$design$sim_prm$export_xps) {
-          private$create_new_folder(
-            private$output_dir("xps/"),
-            self$design$sim_prm$logs
-          )
+           private$create_new_folder(private$output_dir("xps/"), self$design$sim_prm$logs)
         }
         if (self$design$sim_prm$logs) {
-          private$create_new_folder(
-            private$output_dir("logs/"),
-            self$design$sim_prm$logs
-          )
+           private$create_new_folder(private$output_dir("logs/"), self$design$sim_prm$logs)
         }
         # NOTE code below is duplicated in Synthpop class. This is intentional
-        private$create_new_folder(
-          self$design$sim_prm$synthpop_dir,
-          self$design$sim_prm$logs
-        )
-      },
-
-      # Helper function to execute database query and write to disk with retry logic
-      # execute_db_diskwrite_with_retry ----
-      execute_db_diskwrite_with_retry = function(
-        duckdb_con,
-        query,
-        output_path,
-        max_retries = 5
-      ) {
-        retry_count <- 0
-        success <- FALSE
-
-        # Normalize path for cross-platform compatibility
-        output_path <- normalizePath(output_path, mustWork = FALSE)
-
-        # Ensure parent directory exists and is accessible
-        parent_dir <- dirname(output_path)
-        if (!dir.exists(parent_dir)) {
-          dir.create(parent_dir, recursive = TRUE, showWarnings = FALSE)
-        }
-
-        # Add a small delay to ensure directory is fully created (Windows issue)
-        Sys.sleep(0.05)
-
-        # Check if we're running in Docker on Windows (SMB/Plan9 mount issue)
-        is_docker_env <- file.exists("/.dockerenv")
-        is_docker_windows <- (is_docker_env &&
-          (.Platform$OS.type == "unix" ||
-            Sys.getenv("DOCKER_DESKTOP") != "" ||
-            any(grepl("/host_mnt/", getwd(), fixed = TRUE))))
-
-        # Use safer method for Docker environments (especially Windows Docker Desktop)
-        if (
-          is_docker_windows || is_docker_env || .Platform$OS.type == "windows"
-        ) {
-          env_type <- if (is_docker_windows) {
-            "Docker on Windows"
-          } else if (is_docker_env) {
-            "Docker"
-          } else {
-            "Windows"
-          }
-          if (self$design$sim_prm$logs) {
-            cat(sprintf(
-              "Using safe write method for %s (%s environment detected)\n",
-              basename(output_path),
-              env_type
-            ))
-          }
-
-          while (!success && retry_count < max_retries) {
-            retry_count <- retry_count + 1
-            if (self$design$sim_prm$logs) {
-              cat(sprintf(
-                "Safe write attempt %d for %s\n",
-                retry_count,
-                basename(output_path)
-              ))
-            }
-
-            tryCatch(
-              {
-                result_data <- private$query_sql(duckdb_con, query)
-                if (self$design$sim_prm$logs) {
-                  cat(sprintf(
-                    "Query returned %d rows for %s\n",
-                    nrow(result_data),
-                    basename(output_path)
-                  ))
-                }
-
-                if (nrow(result_data) > 0) {
-                  arrow::write_parquet(result_data, output_path)
-                  Sys.sleep(0.3)
-
-                  if (file.exists(output_path)) {
-                    file_size <- file.size(output_path)
-                    if (file_size > 0) {
-                      tryCatch(
-                        {
-                          test_read <- arrow::read_parquet(
-                            output_path,
-                            as_data_frame = FALSE
-                          )
-                          if (test_read$num_rows > 0) {
-                            success <- TRUE
-                            if (self$design$sim_prm$logs) {
-                              cat(sprintf(
-                                "Successfully wrote %s (%d bytes, %d rows)\n",
-                                basename(output_path),
-                                file_size,
-                                nrow(result_data)
-                              ))
-                            }
-                          }
-                        },
-                        error = function(e) {
-                          warning(sprintf(
-                            "File %s exists but failed verification read: %s",
-                            basename(output_path),
-                            e$message
-                          ))
-                        }
-                      )
-                    }
-                  }
-                } else {
-                  if (self$design$sim_prm$logs) {
-                    cat(sprintf(
-                      "Query returned 0 rows for %s - creating empty file\n",
-                      basename(output_path)
-                    ))
-                  }
-                  empty_structure <- private$query_sql(
-                    duckdb_con,
-                    sprintf("SELECT * FROM (%s) subq LIMIT 0", query)
-                  )
-                  arrow::write_parquet(empty_structure, output_path)
-                  if (file.exists(output_path)) {
-                    success <- TRUE
-                  }
-                }
-              },
-              error = function(e) {
-                warning(sprintf(
-                  "Safe write attempt %d failed for %s: %s",
-                  retry_count,
-                  basename(output_path),
-                  e$message
-                ))
-                if (file.exists(output_path)) {
-                  try(file.remove(output_path), silent = TRUE)
-                }
-                Sys.sleep(0.5 * retry_count)
-              }
-            )
-          }
-        } else {
-          # Use original DuckDB COPY method for native Linux environments
-          while (!success && retry_count < max_retries) {
-            retry_count <- retry_count + 1
-            if (self$design$sim_prm$logs) {
-              cat(sprintf(
-                "DuckDB COPY attempt %d for %s\n",
-                retry_count,
-                basename(output_path)
-              ))
-            }
-
-            tryCatch(
-              {
-                db_path <- gsub("\\\\", "/", output_path)
-                copy_command <- sprintf(
-                  "COPY (%s) TO '%s' (FORMAT PARQUET);",
-                  query,
-                  db_path
-                )
-                result <- private$execute_sql(duckdb_con, copy_command)
-                Sys.sleep(0.2)
-
-                if (file.exists(output_path) && file.size(output_path) > 0) {
-                  success <- TRUE
-                  if (self$design$sim_prm$logs) {
-                    cat(sprintf(
-                      "DuckDB COPY succeeded for %s\n",
-                      basename(output_path)
-                    ))
-                  }
-                }
-              },
-              error = function(e) {
-                warning(sprintf(
-                  "DuckDB COPY attempt %d failed for %s: %s",
-                  retry_count,
-                  basename(output_path),
-                  e$message
-                ))
-                if (file.exists(output_path) && file.size(output_path) == 0) {
-                  try(file.remove(output_path), silent = TRUE)
-                }
-                Sys.sleep(0.2 * retry_count)
-              }
-            )
-          }
-        }
-
-        if (!success) {
-          final_check_exists <- file.exists(output_path)
-          final_check_size <- if (final_check_exists) {
-            file.size(output_path)
-          } else {
-            0
-          }
-          error_msg <- sprintf(
-            "Failed to write output to %s after %d attempts. Final state: exists=%s, size=%d",
-            output_path,
-            max_retries,
-            final_check_exists,
-            final_check_size
-          )
-          if (self$design$sim_prm$logs) {
-            cat(paste("ERROR:", error_msg, "\n"))
-          }
-          stop(error_msg)
-        }
-
-        return(invisible(TRUE))
-      },
-
-      # Helper function to execute SQL, with error reporting
-      # execute_sql ----
-      execute_sql = function(con, sql, context = "") {
-        tryCatch(
-          {
-            dbExecute(con, sql)
-          },
-          error = function(e) {
-            stop(paste(
-              "Error executing SQL for",
-              context,
-              ":",
-              e$message,
-              "\nSQL:\n",
-              sql
-            ))
-          }
-        )
-      },
-
-      # Helper function to query SQL, with error reporting
-      # query_sql ----
-      query_sql = function(con, sql, context = "") {
-        tryCatch(
-          {
-            dbGetQuery(con, sql)
-          },
-          error = function(e) {
-            stop(paste(
-              "Error querying SQL for",
-              context,
-              ":",
-              e$message,
-              "\nSQL:\n",
-              sql
-            ))
-          }
-        )
-      },
-
-      # profile_sql_view ----
-      profile_sql_view = function(con, view_name) {
-        private$query_sql(
-          con = con,
-          sql = paste0("EXPLAIN ANALYZE SELECT * FROM ", view_name),
-          context = ""
-        )
-      },
-
-      # profile_sql_query ----
-      profile_sql_query = function(con, sql_query) {
-        private$query_sql(
-          con = con,
-          sql = paste0("EXPLAIN ANALYZE ", sql_query),
-          context = ""
-        )
+        private$create_new_folder(self$design$sim_prm$synthpop_dir, self$design$sim_prm$logs)
       },
 
       # Life Expectancy (LE) Export Section
@@ -5251,7 +4780,7 @@ Simulation <-
         )
 
         NULL
-      }, # end of export_dis_mrtl_summaries
+      }, # end of export_mrtl_summaries
 
       # export_all_cause_mrtl_by_dis_summaries ----
       export_all_cause_mrtl_by_dis_summaries = function(
@@ -5362,7 +4891,7 @@ Simulation <-
         )
 
         NULL
-      }, # end of export_all_cause_mrtl_by_dis_summaries
+      }, # end of export_mrtl_summaries
 
       # export_cms_summaries ----
       export_cms_summaries = function(
@@ -5607,6 +5136,15 @@ Simulation <-
             recursive = FALSE
           )
         )
+        # Safer but slow
+        # scnam <- private$query_sql(
+        #   duckdb_con,
+        #   sprintf(
+        #     "SELECT DISTINCT scenario FROM %s WHERE mc = %d;",
+        #     input_table_name,
+        #     mcaggr
+        #   )
+        # )
 
         lc_table_name <- "lc_table"
 
@@ -5750,44 +5288,6 @@ Simulation <-
         })
 
         NULL
-      }, # end of export_costs_summaries
-
-      # Stub methods for export_tables - to be implemented
-      # export_main_tables ----
-      export_main_tables = function(prbl, baseline_year, output_dir) {
-        # TODO: Implement main tables export
-        if (self$design$sim_prm$logs) {
-          message("export_main_tables: Not yet implemented")
-        }
-        NULL
-      },
-
-      # export_all_cause_mrtl_tables ----
-      export_all_cause_mrtl_tables = function(prbl, summaries_dir, tables_dir) {
-        # TODO: Implement all-cause mortality tables export
-        if (self$design$sim_prm$logs) {
-          message("export_all_cause_mrtl_tables: Not yet implemented")
-        }
-        NULL
-      },
-
-      # export_disease_characteristics_tables ----
-      export_disease_characteristics_tables = function(prbl, summaries_dir, tables_dir) {
-        # TODO: Implement disease characteristics tables export
-        if (self$design$sim_prm$logs) {
-          message("export_disease_characteristics_tables: Not yet implemented")
-        }
-        NULL
-      },
-
-      # export_xps_tables ----
-      export_xps_tables = function(prbl, output_dir, tables_dir) {
-        # TODO: Implement exposures tables export
-        if (self$design$sim_prm$logs) {
-          message("export_xps_tables: Not yet implemented")
-        }
-        NULL
       }
-    )
-  )
-
+    ) # End of private methods
+  ) # End of class

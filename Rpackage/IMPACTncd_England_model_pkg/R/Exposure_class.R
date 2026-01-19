@@ -602,18 +602,22 @@ Exposure <-
               warning(
                 "No valid partition columns found. Writing without partitioning."
               )
-              arrow::write_parquet(
+              valid_partition_cols <- NULL
+            }
+            
+            # Write using CKutils
+            if (is.null(valid_partition_cols)) {
+              # Write as single file when no partitioning
+              CKutils::write_parquet_dt(
                 tbl,
                 file.path(self$file_path, "part-0.parquet")
               )
             } else {
               # Write as partitioned dataset
-              arrow::write_dataset(
+              CKutils::write_parquet_dt(
                 tbl,
-                path = self$file_path,
-                format = "parquet",
-                partitioning = valid_partition_cols,
-                existing_data_behavior = "overwrite"
+                self$file_path,
+                partition = valid_partition_cols
               )
             }
 

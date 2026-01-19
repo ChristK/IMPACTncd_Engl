@@ -146,7 +146,7 @@ SynthPop <-
 
         self$mc <- mc_
         self$mc_aggr <-
-          as.integer(ceiling(mc_ / design_$sim_prm$n_synthpop_aggregation))
+          as.integer(ceiling(mc_ / design_$sim_prm$num_chunks))
 
         private$design <- design_
         private$synthpop_dir <- design_$sim_prm$synthpop_dir
@@ -262,13 +262,13 @@ SynthPop <-
           self$pop[all_cause_mrtl >= 0, wt := .N, by = strata] # Long deads are NAs and those died in the year need to be counted
           absorb_dt(self$pop, tt)
           self$pop[,
-            wt := pops / (wt * private$design$sim_prm$n_synthpop_aggregation)
+            wt := pops / (wt * private$design$sim_prm$num_chunks)
           ]
           self$pop[is.na(all_cause_mrtl), wt := 0]
           self$pop[, pops := NULL]
 
           # NOTE that the sum of the weights in the above may be smaller that
-          # the total population/private$design$sim_prm$n_synthpop_aggregation
+          # the total population/private$design$sim_prm$num_chunks
           # if n is small because not all year/age/sex/(LAD17CD) are represented
           # in the sample. The recent change to stratified sampling by age sex
           # should reduce the chance of this issue but is almost certainly
@@ -295,7 +295,7 @@ SynthPop <-
               ttt,
               on = c("year", "age", "sex"),
               correction := pops /
-                (i.V1 * private$design$sim_prm$n_synthpop_aggregation)
+                (i.V1 * private$design$sim_prm$num_chunks)
             ]
             self$pop[
               refpop,
@@ -341,7 +341,7 @@ SynthPop <-
               ttt,
               on = c("year", "age", "sex"),
               correction := pops /
-                (i.V1 * private$design$sim_prm$n_synthpop_aggregation)
+                (i.V1 * private$design$sim_prm$num_chunks)
             ]
             self$pop[
               refpop,
@@ -370,7 +370,7 @@ SynthPop <-
               ttt,
               on = c("year", "age", "sex"),
               correction := pops /
-                (i.V1 * private$design$sim_prm$n_synthpop_aggregation)
+                (i.V1 * private$design$sim_prm$num_chunks)
             ]
             self$pop[
               refpop,
@@ -2157,7 +2157,7 @@ SynthPop <-
         # Ensure pid does not overlap for files from different mc
         new_n <-
           it <- as.integer(ceiling(
-            self$mc %% private$design$sim_prm$n_synthpop_aggregation
+            self$mc %% private$design$sim_prm$num_chunks
           ))
         if ((max(dtb$pid) + it * 1e8) >= .Machine$integer.max) {
           stop("pid larger than int32 limit.")
@@ -2293,7 +2293,7 @@ SynthPop <-
         # sp$pop[, c("pops", "wt", "annual_pops", "mpops") := NULL]
         # tt[, `:=` (wt = pops / sum(pops), annual_pops = sum(pops)), by = year]
         # absorb_dt(sp$pop, tt)
-        # sp$pop[, mpops := (wt * unique(annual_pops) / sum(wt)) / private$design$sim_prm$n_synthpop_aggregation, by = year] # mpops are the new weights
+        # sp$pop[, mpops := (wt * unique(annual_pops) / sum(wt)) / private$design$sim_prm$num_chunks, by = year] # mpops are the new weights
         # sp$pop[, .(unique(annual_pops), sum(mpops), sum(wt_immrtl)), by = year]
         # sp$pop[, summary(mpops/mpops2)]
         # setnames(sp$pop, "mpops", "mpops2")
@@ -2301,7 +2301,7 @@ SynthPop <-
         # ttt <- sp$pop[, .N, keyby = strata]
         # absorb_dt(tt, ttt)
         # setnafill(tt, "c", 0L, cols = "N")
-        # tt[, wt_immrtl := pops / (N * private$design$sim_prm$n_synthpop_aggregation)]
+        # tt[, wt_immrtl := pops / (N * private$design$sim_prm$num_chunks)]
 
         invisible(tt)
       }

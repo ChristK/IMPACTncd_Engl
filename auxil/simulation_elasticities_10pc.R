@@ -199,5 +199,5 @@ IMPACTncd$
   run(1:n_runs, multicore = TRUE, "all_10pc") $
     export_summaries(multicore = TRUE, type = c("dis_char", "prvl",
                      "incd", "dis_mrtl", "mrtl",
-                     "allcause_mrtl_by_dis", "cms"))
+                     "all_cause_mrtl_by_dis", "cms"))
 

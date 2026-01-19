@@ -6,7 +6,7 @@ export_xps: yes
 keep_lifecourse: yes
 export_PARF: no
 'n': 10000 # number of individuals in simulation
-n_synthpop_aggregation: 2 # number of synthpops to aggregate together (avoid values above 20) 
+num_chunks: 2 # number of synthpops to aggregate together (avoid values above 20) 
 init_year_long: 2013 # 2008 to 2020, but be careful with max lags
 sim_horizon_max: 2043 # population projections do not support longer horizon 
 ageL: 30
