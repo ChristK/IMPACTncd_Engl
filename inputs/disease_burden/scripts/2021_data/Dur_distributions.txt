@@ -1,0 +1,52 @@
+# Disease Duration Models - distributions: all ZINBI
+
+# CHD - ZINBI
+
+# Type 2 Diabetes Mellitus - ZINBI
+
+# Stroke - ZINBI
+
+# "Anxiety_Depression - spell" - ZINBI
+
+# "Asthma - spell" - ZINBI
+
+# "Atrial Fibrillation" - ZINBI         
+
+#"Chronic Kidney Disease" - ZINBI (ckd 345 altogether)
+
+# "COPD" - ZINBI                        
+
+# "Dementia" - ZINBI.                  
+
+#"Heart failure" - ZINBI       
+
+# "Hypertension"     - ZINBI                
+
+# "Obesity"   - ZINBI       
+
+# "Other cancers"    - ZINBI             
+
+#"Primary Malignancy_Breast" - ZINBI    
+
+# "Primary Malignancy_Colorectal" - ZINBI    
+
+#"Primary Malignancy_Lung" - ZINBI    
+
+# "Primary Malignancy_Prostate" - ZINBI    
+
+# Alcohol problems - ZINBI.
+
+#Connective tissue disorder  - ZINBI        
+
+#Diabetes excl Type 2  - ZINBI           
+
+#Epilepsy  - ZINBI          
+
+#Hearing loss - ZINBI       
+
+#IBS  - ZINBI           
+
+#Psychosis  - ZINBI           
+
+#Rheumatoid arthritis - ZINBI     
+
