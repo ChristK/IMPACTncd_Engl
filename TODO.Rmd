@@ -10,7 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # transition
-- r
+- Methods NOT Added (require Japan-specific adaptations):
+- add calibrate_incd_ftlt() - Calibration method that requires Japan-specific disease burden files
+- add validate() - Validation method that uses Japan population files and Japan-specific paths
 
 
 

@@ -7,10 +7,12 @@
 .RData
 *.xls
 *.xlsx
+*.parquet
 # Rcpp
 **/src/*.o
 **/src/*.so
 **/src/*.dll
+*.parquet
 # User-specific files
 .Ruserdata
 # Example code in package build process
@@ -55,4 +57,3 @@ auxil/lifecourse_recalibration.R
 inputs/sim_design_elast.yaml
 docker_setup/.env
 lad17_proj_byDIMD
-*.parquet
