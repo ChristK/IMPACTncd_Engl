@@ -1,0 +1,56 @@
+FROM rocker/r-ver:4.5.1
+
+LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>"
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Copy R package list early to improve layer caching
+COPY r-packages.txt /tmp/r-packages.txt
+
+# Copy apt package list early to improve layer caching
+COPY apt-packages.txt /tmp/apt-packages.txt
+
+# Copy the intelligent package installer script
+COPY install_packages.sh /tmp/install_packages.sh
+
+# System packages pinned as of 2025-07-31 for reproducibility
+# get version of packages i.e. for libicu-dev  with 
+# docker run --rm -it rocker/r-ver:4.5.0 bash -c "apt-get update -qq && apt-cache policy libicu-dev"
+RUN apt-get update -qq && \
+  chmod +x /tmp/install_packages.sh && \
+  /tmp/install_packages.sh && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/* && \
+  rm /tmp/install_packages.sh
+
+# Extract CRAN snapshot date from r-packages.txt and install R packages
+# The date is automatically extracted from the comment at the top of r-packages.txt
+# This handles files with or without BOM (Byte Order Mark)
+RUN sed -i '1s/^\xEF\xBB\xBF//' /tmp/r-packages.txt && \
+  CRAN_DATE=$(sed -n '1s/.*# CRAN snapshot date: \([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\).*/\1/p' /tmp/r-packages.txt | tr -d '\000-\037' | tr -d '\200-\377') && \
+  echo "Using CRAN snapshot date: $CRAN_DATE" && \
+  CRAN_REPO="https://packagemanager.posit.co/cran/__linux__/noble/$CRAN_DATE" && \
+  echo "CRAN repository URL: $CRAN_REPO" && \
+  PACKAGES=$(sed 's/^\xEF\xBB\xBF//' /tmp/r-packages.txt | grep -v '^#' | grep -v '^[[:space:]]*$' | tr '\n' ' ') && \
+  echo "Installing packages: $PACKAGES" && \
+  install2.r --error --skipinstalled \
+  -r "$CRAN_REPO" \
+  -n $(nproc) \
+  $PACKAGES \
+    && rm -rf /tmp/downloaded_packages \
+    && strip /usr/local/lib/R/site-library/*/libs/*.so
+
+# RUN installGithub.r "ChristK/CKutils@master"
+RUN installGithub.r "ChristK/CKutils@3229b9408352ea599c2a1da4937fa2b0b0991eb5" # the HEAD as of 18/081/2026
+
+# The following commented out lines are an example on how to load a specific version of a package
+# RUN wget http://cran.r-project.org/src/contrib/Archive/data.table/data.table_1.16.4.tar.gz
+# RUN R CMD INSTALL data.table_1.16.4.tar.gz && rm data.table_1.16.4.tar.gz
+
+# Create a script to handle dynamic user creation for non-root execution
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["/bin/bash"]
+
+# docker run -it --name my_new_container chriskypri/impactncd-r-prerequisite.IMPACTncdENGL /bin/bash

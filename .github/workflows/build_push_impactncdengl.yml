@@ -1,0 +1,219 @@
+# =============================================================================
+# Build Push IMPACTncdEngl Workflow
+# =============================================================================
+#
+# PURPOSE:
+# This workflow builds and pushes the main IMPACTncd England Docker image that
+# contains the complete application with all dependencies, source code, and
+# R packages installed. This image is used to run the IMPACTncd England model
+# simulations in containerized environments.
+#
+# TRIGGER STRATEGY:
+# This workflow uses a single push trigger to avoid duplicate runs:
+#
+# 1. PUSH TRIGGER: Runs on every push to any branch
+#
+# COORDINATION WITH PREREQUISITE:
+# The workflow coordinates with the prerequisite workflow by waiting for
+# it to complete before proceeding. This ensures builds happen in the
+# correct order without running the same workflow twice.
+#
+# WORKFLOW SYNCHRONIZATION:
+# - Uses conditional logic to handle different trigger types
+# - Implements waiting mechanisms to prevent race conditions
+# - Ensures proper sequencing of prerequisite → main image builds
+# - Handles failures gracefully by proceeding with existing images
+#
+# =============================================================================
+
+name: Build Push IMPACTncdEngl
+
+# WORKFLOW TRIGGERS:
+# This workflow uses a dual-trigger strategy for comprehensive coverage
+# and proper coordination with the prerequisite workflow.
+
+on:
+  # TRIGGER: Push Events Only
+  # Runs on every push to any branch to ensure the main image is always
+  # built after code changes. Coordination with prerequisite workflow
+  # is handled internally through the wait step.
+  push:
+
+jobs:
+  # JOB: build
+  # Builds and pushes the main IMPACTncd England Docker image
+  # Handles coordination with prerequisite workflow through conditional logic
+  build:
+    runs-on: ubuntu-latest
+    
+    # CONDITIONAL EXECUTION LOGIC:
+    # Since we only use push events now, this condition is simplified
+    # to always proceed for push events.
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      # STEP 1: Prerequisite Workflow Coordination
+      # Wait for any running prerequisite workflow to complete.
+      # This prevents race conditions where both workflows might run simultaneously
+      # and ensures we use the latest prerequisite image if it's being updated.
+      - name: Wait for prerequisite workflow
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: "run_if_needed"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          allowed-conclusions: success,failure,cancelled,skipped
+
+      # STEP 2: Source Code Checkout
+      # Checkout the repository source code using the current commit being pushed
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Use the current commit for push events
+          ref: ${{ github.sha }}
+
+      # STEP 3: Dynamic Dockerfile Configuration
+      # Updates the Dockerfile to use the correct prerequisite image tag and
+      # clone the correct branch. The Dockerfile contains:
+      # 1. A default ':local' tag that needs to be replaced with the branch name
+      # 2. A git clone command that needs to target the specific branch
+      #
+      # Branch name selection logic:
+      # - For WORKFLOW_RUN events: Use the branch that triggered prerequisite
+      # - For PUSH events: Use the current branch being pushed
+      #
+      # This ensures the main image builds against the correct prerequisite
+      # image version AND contains code from the same branch, maintaining
+      # complete branch-specific isolation.
+      #
+      # Updates performed:
+      # - FROM prerequisite.impactncdengl:local → FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}
+      # - FROM chriskypri/prerequisite.impactncdengl:local → FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}
+      # - git clone → git clone -b ${BRANCH_NAME} (within the conditional RUN command)
+      #
+      # Note: These changes are ephemeral (only in the workflow runner) and
+      # do not modify the repository's Dockerfile.
+      - name: Update base image tag and git clone branch
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          sed -i "s|^FROM prerequisite.impactncdengl:.*|FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}|" docker_setup/Dockerfile.IMPACTncdENGL
+          sed -i "s|^FROM chriskypri/prerequisite.impactncdengl:.*|FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}|" docker_setup/Dockerfile.IMPACTncdENGL
+          sed -i "s|git clone https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_Engl|git clone -b ${BRANCH_NAME} https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_Engl|" docker_setup/Dockerfile.IMPACTncdENGL
+
+      # STEP 4: Docker Environment Setup
+      # Configure Docker Buildx for enhanced build capabilities including:
+      # - Multi-platform builds (if needed)
+      # - Advanced caching strategies
+      # - Build output options
+      # - Extended build features
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # STEP 5: Docker Registry Authentication
+      # Authenticate with Docker Hub using stored repository secrets.
+      # Required for pushing the built image to the registry.
+      # Secrets should be configured in repository settings:
+      # - DOCKERHUB_USERNAME: Docker Hub username
+      # - DOCKERHUB_TOKEN: Docker Hub access token (not password)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # STEP 6: Docker Image Build and Push
+      # Build the main IMPACTncd England Docker image and push to Docker Hub.
+      # This creates the complete application image that includes:
+      # - All source code from the repository
+      # - Built R package with documentation
+      # - Configured environment for running simulations
+      # - All dependencies from the prerequisite image
+      #
+      # Build configuration:
+      # - Uses docker_setup as build context (contains Dockerfiles and configs)
+      # - Forces no-cache rebuild to ensure latest code and dependencies
+      # - Tags with branch name for branch-specific image versions
+      # - Uses the main application Dockerfile
+      # - Sets SOURCE_METHOD=git to use git clone approach
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: docker_setup # Build context directory containing Dockerfile and configurations
+          push: true # Push the built image to Docker Hub registry
+          no-cache: true # Force complete rebuild without using cached layers
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/impactncdengl:${{ github.ref_name }}
+          file: docker_setup/Dockerfile.IMPACTncdEngl # Main application Dockerfile
+          build-args: |
+            SOURCE_METHOD=git
+
+# =============================================================================
+# WORKFLOW COMPLETION AND OUTCOMES:
+#
+# SUCCESSFUL COMPLETION RESULTS:
+# Upon successful completion, this workflow produces:
+# 1. A new main application Docker image at:
+#    chriskypri/impactncdengl:<branch_name>
+#
+# 2. The image contains:
+#    - Complete IMPACTncd England application source code
+#    - Built and installed R package with documentation
+#    - All system dependencies and R packages from prerequisite image
+#    - Configured environment ready for simulation execution
+#
+# BRANCH-SPECIFIC IMAGES:
+# - Each branch gets its own image tag for isolated development
+# - Main/production branch images can be used for stable deployments
+# - Feature branch images allow testing without affecting main deployments
+#
+# USAGE SCENARIOS:
+# The resulting Docker images can be used for:
+# - Running IMPACTncd England model simulations in containers
+# - Deploying the application in cloud environments
+# - Creating reproducible research environments
+# - Distributing the application to collaborators
+# - Setting up development environments
+#
+# WORKFLOW COORDINATION SUCCESS:
+# When both prerequisite and main workflows run successfully:
+# 1. Latest system dependencies and R packages are included
+# 2. Application code is built against updated environment
+# 3. Resulting image has all latest components
+# 4. Branch consistency is maintained across image layers
+#
+# TROUBLESHOOTING:
+#
+# Common Issues and Solutions:
+# 
+# 1. Prerequisite Workflow Failures:
+#    - Check prerequisite workflow logs for dependency issues
+#    - Verify R package installations in prerequisite build
+#    - Main workflow will proceed with existing prerequisite image
+#
+# 2. Authentication Issues:
+#    - Verify DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets
+#    - Ensure Docker Hub token has push permissions
+#    - Check that repository secrets are properly configured
+#
+# 3. Build Failures:
+#    - Check Dockerfile syntax and build context
+#    - Verify that prerequisite image exists for the branch
+#    - Review application code for compilation errors
+#    - Check available disk space and build resources
+#
+# 4. Coordination Issues:
+#    - Verify prerequisite workflow name matches exactly
+#    - Check that both workflows are enabled
+#    - Review trigger conditions and branch filters
+#
+# 5. Resource Issues:
+#    - R package compilation can be memory-intensive
+#    - Large file reconstruction may require additional disk space
+#    - Consider using build caching for development branches
+#
+# MONITORING:
+# - Monitor workflow execution times for performance issues
+# - Track image sizes to identify bloat
+# - Review logs for deprecated dependencies or warnings
+# - Set up notifications for workflow failures
+#
+# ============================================================================= # Main application Dockerfile

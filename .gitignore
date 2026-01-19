@@ -5,8 +5,6 @@
 .vscode
 # Session Data files
 .RData
-*.fst
-*.qs
 *.xls
 *.xlsx
 # Rcpp
@@ -40,6 +38,7 @@ vignettes/*.pdf
 /outputs/
 /secure_data/
 /past_results/
+/inputs/exposure_distributions/AH_2003-19
 DELETEme*
 *.png
 .history
@@ -55,3 +54,4 @@ auxil/lifecourse_recalibration.R
 /documents/
 inputs/sim_design_elast.yaml
 docker_setup/.env
+lad17_proj_byDIMD

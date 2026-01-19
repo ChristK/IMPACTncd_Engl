@@ -32,7 +32,7 @@ if (!require(CKutils)) {
   if (!require(remotes)) install.packages("remotes")
   remotes::install_github("ChristK/CKutils")
 }
-if (!require(IMPACTncdEngl)) {
+if (!require(IMPACTncdEngland)) {
   if (!require(remotes)) install.packages("remotes")
   remotes::install_local("./Rpackage/IMPACTncd_Engl_model_pkg/",
                          force = TRUE,

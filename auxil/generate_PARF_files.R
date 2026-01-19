@@ -3,12 +3,12 @@ design <- Design$new("./inputs/sim_design.yaml")
 # RR ----
 # Create a named list of Exposure objects for the files in ./inputs/RR
 fl <- list.files(path = "./inputs/RR", pattern = ".csvy$", full.names = TRUE)
-# RR <- lapply(fl, Exposure$new, design)
+# RR <- lapply(fl, ExposureEffect$new, design)
 # names(RR) <- sapply(RR, function(x) x$get_name())
 # lapply(RR, function(x) {
 #     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
 # })
-RR <- future_lapply(fl, Exposure$new, design,future.seed = 950480304L)
+RR <- future_lapply(fl, ExposureEffect$new, design,future.seed = 950480304L)
 names(RR) <- sapply(RR, function(x) x$get_name())
 invisible(future_lapply(RR, function(x) {
   x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)

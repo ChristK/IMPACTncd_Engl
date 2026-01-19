@@ -12,7 +12,7 @@ fl <-
              pattern = ".csvy$",
              full.names = TRUE)
 RR <-
-  future_lapply(fl, Exposure$new, design, future.seed = 950480304L)
+  future_lapply(fl, ExposureEffect$new, design, future.seed = 950480304L)
 names(RR) <- sapply(RR, function(x)
   x$get_name())
 
@@ -30,7 +30,7 @@ for (i in it) {
   # RR ----
   # Create a named list of Exposure objects for the files in ./inputs/RR
   RR <-
-    future_lapply(fl, Exposure$new, design, future.seed = 950480304L)
+    future_lapply(fl, ExposureEffect$new, design, future.seed = 950480304L)
   names(RR) <- sapply(RR, function(x)
     x$get_name())
   invisible(future_lapply(RR, function(x) {

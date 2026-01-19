@@ -24,7 +24,7 @@ if (exists("IMPACTncd")) {
   out_pth <- paste0(design$sim_prm$output_dir, "/plots/validation/")
 
 } else if (file.exists("./inputs/sim_design.yaml")) {
-  design <- IMPACTncdEngl::Design$new("./inputs/sim_design.yaml")
+  design <- IMPACTncdEngland::Design$new("./inputs/sim_design.yaml")
   workers = design$sim_prm$clusternumber
   dsnm <- names(design$sim_prm$diseases)
   mdl_rslts_pth <- paste0(design$sim_prm$output_dir, "/tables/")
@@ -205,7 +205,7 @@ validation_plot <- function(outstrata, suffix) {
       .packages = c(
         "R6",
         "CKutils",
-        "IMPACTncdEngl",
+        "IMPACTncdEngland",
         "data.table",
         "ggplot2"
       ),

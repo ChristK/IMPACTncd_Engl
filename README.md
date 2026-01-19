@@ -40,7 +40,7 @@ The microsimulation can then estimate the effectiveness and equity of the modell
 
 The IMPACT<sub>NCD_Engl</sub> distribution is usually installed directly from [GitHub](https://github.com/ChristK/IMPACTncd_Engl/) via the [Git](https://git-scm.com/) version control system, which should be installed on the target system. While not absolutely required, Git eases installation of future updates and previous releases. While earlier versions will suffice, Git 2.40.0 was the latest at release time.
 
-The IMPACT<sub>NCD_Engl</sub> model is written primarily in, and so requires installation of, the [R programming language](https://cran.r-project.org/), for which version 4.2.3 was the latest at release time. Additional R packages (listed in `dependencies.yaml`) will be installed automatically if missing at execution time, e.g. `data.table`, `piggyback`, `foreach`.
+The IMPACT<sub>NCD_Engl</sub> model is written primarily in, and so requires installation of, the [R programming language](https://cran.r-project.org/), for which version 4.2.3 was the latest at release time. Additional R packages (listed in `dependencies.yaml`) will be installed automatically if missing at execution time, e.g. `data.table`, `foreach`.
 
 ## Installation
 
@@ -83,31 +83,31 @@ As the installation requires downloading numerous files from GitHub, you will ne
 1. All vignettes can be viewed using the code below 
 
 ```{r}
-vignette(package = "IMPACTncdEngl")
+vignette(package = "IMPACTncdEngland")
 ```
 
 2. The next steps can be found in the vignette which can be accessed using the code below
 
 ```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngl")
+vignette("how_to_test_run", package = "IMPACTncdEngland")
 ```
 
 3. Use the following code to open the vignette to run different policy scenarios
 
 ```{r}
-vignette("how_to_run_scenarios", package = "IMPACTncdEngl")
+vignette("how_to_run_scenarios", package = "IMPACTncdEngland")
 ```
 
 4. Use the following code to open the vignette to understand model outputs 
 
 ```{r}
-vignette("understanding_model_outputs", package = "IMPACTncdEngl")
+vignette("understanding_model_outputs", package = "IMPACTncdEngland")
 ```
 
-5. To completely delete the package IMPACTncdEngl is explained in a section called **How to remove IMPACTncdEngl installed package** in the vignette mentioned below
+5. To completely delete the package IMPACTncdEngland is explained in a section called **How to remove IMPACTncdEngland installed package** in the vignette mentioned below
 
 ```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngl")
+vignette("how_to_test_run", package = "IMPACTncdEngland")
 ```
 
 ## Further notes and references

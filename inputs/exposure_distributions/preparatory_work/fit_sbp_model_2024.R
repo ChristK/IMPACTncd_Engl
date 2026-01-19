@@ -27,7 +27,7 @@ library(scales) # for alpha
 library(reldist)
 library(qs) # save R objects to disk
 library(fst) # save R tabular objects to disk
-library(IMPACTncdEngl)
+library(IMPACTncdEngland)
 library(CKutils)
 
 # Set some variables we will use later in automation

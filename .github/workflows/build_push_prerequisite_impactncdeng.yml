@@ -1,0 +1,204 @@
+# =============================================================================
+# Build Push prerequisite.IMPACTncdEngl Workflow
+# =============================================================================
+#
+# PURPOSE:
+# This workflow builds and pushes the prerequisite Docker image that contains
+# the base R environment, system dependencies, and R packages needed for the
+# IMPACTncd Engl model. This image serves as the base for the main application
+# Docker image.
+#
+# WORKFLOW LOGIC:
+# - Triggers on every push to any branch
+# - Uses reliable file change detection to determine if build is needed
+# - Executes Docker build steps if:
+#   * Specific prerequisite files are modified, OR
+#   * Branch-specific image doesn't exist (for new branches)
+# - Coordinates with the main workflow (build_push_impactncdengl.yml) which
+#   waits for this workflow to complete when both are triggered simultaneously
+#
+# IMPROVED CHANGE DETECTION:
+# Uses tj-actions/changed-files action for reliable file change detection
+# instead of GitHub's commits.*.modified property which can be unreliable
+# for documentation changes or certain push scenarios.
+#
+# COORDINATION WITH MAIN WORKFLOW:
+# 1. Both workflows can trigger on the same push
+# 2. Main workflow waits for this prerequisite workflow to complete
+# 3. Main workflow then uses the updated prerequisite image as its base
+# 4. If prerequisite files aren't changed, this workflow skips execution
+#    and the main workflow proceeds with the existing prerequisite image
+#
+# MONITORED FILES:
+# The workflow only builds when these files are modified:
+# - docker_setup/Dockerfile.prerequisite.IMPACTncdENGL (base Dockerfile)
+# - docker_setup/apt-packages.txt (system packages)
+# - docker_setup/r-packages.txt (R packages)
+# - docker_setup/entrypoint.sh (container startup script)
+# - .github/workflows/build_push_prerequisite_impactncdENGL.yml (this workflow)
+#
+# OUTPUT:
+# Builds and pushes Docker image to:
+# chriskypri/prerequisite.impactncdengl:<branch_name>
+#
+# =============================================================================
+
+name: Build Push prerequisite.IMPACTncdENGL
+
+# WORKFLOW TRIGGERS:
+# Currently triggers on every push, but only executes if prerequisite files change.
+# The commented-out section below shows the preferred approach using path filters,
+# but this was disabled because it couldn't properly coordinate with the main workflow.
+# With path filters, the main workflow couldn't reliably detect if this workflow
+# was triggered, leading to synchronization issues.
+
+# DISABLED PATH-BASED TRIGGERING (kept for reference):
+# The ideal approach would be to use path-based triggers to only run when
+# relevant files change, but this creates coordination problems with the
+# main workflow that needs to know if this workflow is running.
+
+# on:
+#   push:
+#     paths:
+#       - docker_setup/Dockerfile.prerequisite.IMPACTncdEngl
+#       - docker_setup/apt-packages.txt
+#       - docker_setup/r-packages.txt
+#       - docker_setup/entrypoint.sh
+#       - .github/workflows/setup_dev_docker_env.yml
+
+# CURRENT APPROACH:
+# Run on every push but use conditional job execution based on file changes.
+# This allows the main workflow to always see this workflow in the run history
+# and properly coordinate execution timing.
+on:
+  push:
+
+jobs:
+  # JOB: run_if_needed
+  # This job executes if:
+  # 1. Prerequisite-related files have been modified in the current push, OR
+  # 2. The branch-specific Docker image doesn't exist (for new branches)
+  # This ensures new branches always have their prerequisite image built
+  # to prevent crashes in dependent workflows.
+  run_if_needed:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # STEP 1: Source Code Checkout
+      # Get the repository source code to analyze file changes
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for change detection
+
+      # STEP 2: Detect File Changes
+      # Use a reliable action to detect if prerequisite files have changed
+      # This approach is more reliable than GitHub's commits.*.modified property
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            docker_setup/Dockerfile.prerequisite.IMPACTncdEngl
+            docker_setup/apt-packages.txt
+            docker_setup/r-packages.txt
+            docker_setup/entrypoint.sh
+            .github/workflows/build_push_prerequisite_impactncdengl.yml
+
+      # STEP 3: Check if branch image exists
+      # For new branches, we need to build even if no files changed
+      - name: Check if branch image exists
+        id: image-check
+        if: steps.changed-files.outputs.any_changed != 'true'
+        run: |
+          # Check if Docker image exists for this branch
+          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/prerequisite.impactncdengl:${{ github.ref_name }} > /dev/null 2>&1; then
+            echo "image_exists=true" >> $GITHUB_OUTPUT
+            echo "Image exists for branch ${{ github.ref_name }}"
+          else
+            echo "image_exists=false" >> $GITHUB_OUTPUT
+            echo "Image does not exist for branch ${{ github.ref_name }} - will build"
+          fi
+
+      # STEP 4: Notification (conditional)
+      # Log that the workflow is running due to prerequisite file changes
+      - name: Log prerequisite files changed
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          echo "Build Push prerequisite.impactncdengl is running because relevant files changed:"
+          echo "${{ steps.changed-files.outputs.all_changed_files }}"
+
+      # STEP 5: Log new branch build (conditional)
+      # Log when building for a new branch without file changes
+      - name: Log new branch build
+        if: steps.changed-files.outputs.any_changed != 'true' && steps.image-check.outputs.image_exists == 'false'
+        run: echo "Building prerequisite image for new branch ${{ github.ref_name }}"
+
+      # STEP 6: Skip notification (conditional)
+      # Log when no prerequisite files were changed and image exists
+      - name: Log no prerequisite files changed
+        if: steps.changed-files.outputs.any_changed != 'true' && steps.image-check.outputs.image_exists == 'true'
+        run: echo "No prerequisite files changed and image exists for branch. Skipping build."
+
+      # STEP 7: Docker Environment Setup (conditional)
+      # Configure Docker Buildx for multi-platform builds and advanced features
+      # Run if prerequisite files changed OR if branch image doesn't exist
+      - name: Set up Docker Buildx
+        if: steps.changed-files.outputs.any_changed == 'true' || steps.image-check.outputs.image_exists == 'false'
+        uses: docker/setup-buildx-action@v3
+
+      # STEP 8: Docker Registry Authentication (conditional)
+      # Log into Docker Hub using stored secrets for pushing the built image
+      # Run if prerequisite files changed OR if branch image doesn't exist
+      - name: Log in to Docker Hub
+        if: steps.changed-files.outputs.any_changed == 'true' || steps.image-check.outputs.image_exists == 'false'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # STEP 9: Docker Image Build and Push (conditional)
+      # Build the prerequisite Docker image and push to Docker Hub
+      # This image contains the R environment and system dependencies
+      # needed by the main IMPACTncd Engl application
+      # Run if prerequisite files changed OR if branch image doesn't exist
+      - name: Build and push Docker image
+        if: steps.changed-files.outputs.any_changed == 'true' || steps.image-check.outputs.image_exists == 'false'
+        uses: docker/build-push-action@v5
+        with:
+          context: docker_setup # Build context directory containing Dockerfile and dependencies
+          push: true # Push the built image to Docker Hub
+          no-cache: true # Force rebuild without using cache to ensure latest dependencies
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/prerequisite.impactncdENGL:${{ github.ref_name }} # Tag with branch name
+          file: docker_setup/Dockerfile.prerequisite.IMPACTncdENGL # Specific Dockerfile for prerequisites
+
+# =============================================================================
+# WORKFLOW COMPLETION AND NEXT STEPS:
+#
+# Upon successful completion of this workflow:
+# 1. A new prerequisite Docker image is available at:
+#    chriskypri/prerequisite.impactncdengl:<branch_name>
+#
+# 2. The main workflow (build_push_impactncdengl.yml) will automatically:
+#    - Detect this workflow's completion via workflow_run trigger
+#    - Use the updated prerequisite image as its base
+#    - Build and push the main application image
+#
+# 3. If this workflow fails:
+#    - The main workflow will proceed with the existing prerequisite image
+#    - Check the build logs for dependency or configuration issues
+#
+# TROUBLESHOOTING:
+# - Verify Docker Hub credentials are correctly configured in repository secrets
+# - Check that prerequisite files (Dockerfile, package lists) are valid
+# - Ensure the docker_setup directory structure is correct
+# - Monitor resource usage as R package installation can be memory-intensive
+# - If workflow doesn't trigger on file changes, check the file paths in the changed-files action
+# - Review workflow logs to see which files were detected as changed
+#
+# CHANGE DETECTION IMPROVEMENTS:
+# This workflow now uses tj-actions/changed-files for reliable change detection
+# instead of GitHub's commits.*.modified property which was causing issues
+# with documentation updates and certain push scenarios.
+#
+# =============================================================================

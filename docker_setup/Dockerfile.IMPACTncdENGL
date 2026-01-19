@@ -1,0 +1,89 @@
+# Base image with R and prerequisites
+FROM prerequisite.impactncdengl:local
+# Maintainer information
+LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>" 
+
+# Build argument to control source method: "copy" or "git"
+ARG SOURCE_METHOD=copy
+
+# Method 1: Copy from build context (only when using copy method)
+# Build context should be the parent directory that contains docker_setup: docker build -f Dockerfile.IMPACTncdENGL -t impactncd_england ..
+# Note: For git method, you can use an empty build context or the docker_setup directory to minimize copying
+RUN if [ "$SOURCE_METHOD" = "copy" ]; then \
+        echo "Copy method selected - will copy build context"; \
+    else \
+        echo "Git method selected - will clone from GitHub"; \
+    fi
+
+# Copy build context (unavoidable in Docker, but minimize impact for git method)
+# Build context should be the parent directory containing the entire project
+# The docker_build_push.sh script needs to be updated to use ".." as build context for copy method
+COPY . /tmp/build_context/
+
+# Process the copied content only if using copy method
+RUN if [ "$SOURCE_METHOD" = "copy" ]; then \
+        echo "Using copy method - setting up from build context" && \
+        mkdir -p /IMPACTncd_England && \
+        mv /tmp/build_context/* /IMPACTncd_England/ && \
+        echo "Local files moved successfully"; \
+    fi && \
+    rm -rf /tmp/build_context
+
+# Method 2: Clone from GitHub (when using git method)
+# This will be dynamically updated by GitHub Actions to clone the correct branch
+RUN if [ "$SOURCE_METHOD" = "git" ]; then \
+        echo "Using git method - cloning from GitHub" && \
+        git clone https://github.com/ChristK/IMPACTncd_England.git /IMPACTncd_England && \
+        echo "Repository cloned successfully"; \
+    fi
+
+
+# Reconstruct large files from their chunks that are stored on GitHub
+RUN cd /IMPACTncd_England && \
+    if [ -f "./simulation/large_files_indx.csv" ]; then \
+        tail -n +2 "./simulation/large_files_indx.csv" | while IFS=, read -r pths rest; do \
+            file=$(echo "$pths" | tr -d '"'); \
+            if [ ! -f "$file" ]; then \
+                if ls "${file}".chunk* 1> /dev/null 2>&1; then \
+                    cat "${file}".chunk* > "$file" && \
+                    rm "${file}".chunk*; \
+                fi; \
+            fi; \
+        done; \
+    fi
+# Add littler tools to PATH
+ENV PATH="/usr/local/lib/R/site-library/littler/bin:${PATH}" 
+# Add littler examples to PATH
+ENV PATH="/usr/local/lib/R/site-library/littler/examples:${PATH}" 
+# Create directories for outputs and synthpop
+RUN mkdir -p /outputs
+RUN mkdir -p /synthpop
+# Change working directory to the package directory
+WORKDIR /IMPACTncd_England/Rpackage/IMPACTncd_England_model_pkg
+# Generate documentation using Roxygen 
+RUN roxy.r 
+# Build the package
+RUN build.r 
+# Dynamically construct the .tar.gz filename for the local R package from its DESCRIPTION file and install it 
+RUN PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}') && \ 
+    VERSION=$(grep "^Version:" DESCRIPTION | awk '{print $2}') && \ 
+    TARBALL="${PACKAGE}_${VERSION}.tar.gz" && \
+    install2.r "$TARBALL"
+
+WORKDIR /IMPACTncd_England/
+
+CMD ["/bin/bash"]
+
+# Build commands:
+# 
+# Using docker_build_push.sh script (recommended):
+# ./docker_build_push.sh Dockerfile.IMPACTncdENGL  # Uses copy method by default
+# ./docker_build_push.sh Dockerfile.IMPACTncdENGL --source-method git  # Uses git method
+# 
+# Manual build commands (run from docker_setup directory):
+# Copy method: docker build --no-cache -f Dockerfile.IMPACTncdENGL -t impactncd_england ..
+# Git method: docker build --no-cache --build-arg SOURCE_METHOD=git -f Dockerfile.IMPACTncdENGL -t impactncd_england ..
+#
+# Run commands:
+# docker run -it --name test impactncd_england /bin/bash
+# docker run -it --name test chriskypri/impactncd_england /bin/bash

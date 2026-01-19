@@ -19,7 +19,7 @@
 ## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ## Boston, MA 02110-1301 USA.
 
-library(IMPACTncdEngl)
+library(IMPACTncdEngland)
 library(data.table)
 library(gamlss)
 library(scales) # for alpha

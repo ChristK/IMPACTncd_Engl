@@ -14,6 +14,7 @@ ageH: 99
 apply_RR_to_mrtl2: yes # Is disease mortality influenced by exposures like incidence? NOTE: it affects nonmodelled as well
 model_trends_in_residual_incd: no # Model trends in non-attributable incidence? (NOTE: implementation needs further refinement)
 avoid_appending_csv: yes #  Do not append on existing .csv. Rather, write separately and join later. To bypass problems with Docker on Windows
+keep_simulants_rn: no # keep the random numbers used in synthpop for scenarios
 maxlag: 10
 jumpiness: 1.0 # increase for more erratic jumps in trajectories
 smoking_relapse_limit: 3
@@ -697,3 +698,95 @@ exposures:
 - bmi
 - sbp
 - tchol
+
+# Exposure generation definitions for synthetic population
+exposure_definitions:
+  - name: income
+    file_name: income_table.fst
+    var_name: income
+    rank_var: rank_income
+    distribution: ordinal
+    factorise:
+      levels: [1, 2, 3, 4, 5]
+      labels: ['1 Highest', '2', '3', '4', '5 Lowest']
+  
+  - name: active days
+    file_name: active_days_table.fst
+    var_name: active_days
+    rank_var: rank_pa
+    distribution: ordinal
+    offset: -1  # Shift from 1:8 to 0:7
+  
+  - name: fruit consumption
+    file_name: frtpor_table.fst
+    var_name: fruit
+    rank_var: rank_fruit
+    distribution: continuous
+    qfun: fZISICHEL
+    qargs:
+      n_cpu: 1
+    transform_fn: 80
+  
+  - name: veg consumption
+    file_name: vegpor_table.fst
+    var_name: veg
+    rank_var: rank_veg
+    distribution: continuous
+    qfun: fDEL
+    qargs:
+      n_cpu: 1
+    transform_fn: 80
+  
+  - name: ETS
+    file_name: ets_table.fst
+    var_name: ets
+    rank_var: rank_ets
+    distribution: binary
+    invert: yes
+  
+  - name: alcohol
+    file_name: alcohol_table.fst
+    var_name: alcohol
+    rank_var: rank_alcohol
+    distribution: continuous
+    qfun: qZINBI
+    cast_to_int: yes
+  
+  - name: BMI
+    file_name: bmi_table.fst
+    var_name: bmi
+    rank_var: rank_bmi
+    distribution: continuous
+    qfun: fBCPEo
+    min_value: 14
+    max_value: 70
+    qargs:
+      n_cpu: 1
+  
+  - name: SBP
+    file_name: sbp_table.fst
+    var_name: sbp
+    rank_var: rank_sbp
+    distribution: continuous
+    qfun: fBCPEo
+    min_value: 75
+    max_value: 250
+    qargs:
+      n_cpu: 1
+  
+  - name: tchol
+    file_name: tchol_table.fst
+    var_name: tchol
+    rank_var: rank_tchol
+    distribution: continuous
+    qfun: fBCT
+    qargs:
+      n_cpu: 1
+  
+  - name: HDL (to tchol ratio)
+    file_name: hdl_to_tchol_table.fst
+    var_name: tchol_hdl_ratio
+    rank_var: rank_hdl
+    distribution: continuous
+    qfun: qGB1
+    invert_ratio: yes

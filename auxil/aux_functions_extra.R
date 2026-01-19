@@ -119,7 +119,7 @@ get_lifetable_all <-
 
     lifetable_all <-
       read_fst(
-        "./inputs/exposure_distributions/mortality_projections.fst",
+        "./inputs/mortality/mortality_projections.fst",
         colnam,
         from = indx$from,
         to = indx$to,

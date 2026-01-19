@@ -1,0 +1,7 @@
+# C++17 is required for constexpr if and std::is_same_v
+CXX_STD = CXX17
+
+# Avoid overriding user/site settings by appending to CXXFLAGS explicitly
+CXXFLAGS = $(CXXFLAGS) -O2 -Wall
+PKG_CXXFLAGS = $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript.exe" -e "Rcpp:::CxxFlags()") $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript.exe" -e "cat(paste0('-I\"', system.file('include', package='data.table'), '\"'))")
+PKG_LIBS = $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript.exe" -e "Rcpp:::LdFlags()")

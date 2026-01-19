@@ -26,7 +26,7 @@
 # For ages 20 to 90
 # Only used to impute HSE_ts during HSE_ts correlation structure extraction
 
-library(IMPACTncdEngl)
+library(IMPACTncdEngland)
 library(data.table)
 library(gamlss)
 library(scales) # for alpha
