@@ -46,10 +46,11 @@
 #' @importFrom foreach foreach %dopar%
 #' @importFrom doParallel registerDoParallel
 #' @importFrom parallelly makeClusterPSOCK
-#' @importFrom parallel parLapplyLB
+#' @importFrom parallel parLapplyLB stopCluster
 #' @importFrom igraph make_graph is_dag V neighbors all_simple_paths topo_sort
 #' @importFrom qs2 qs_read qs_save
 #' @importFrom arrow write_dataset open_dataset
+#' @importFrom DBI dbConnect dbDisconnect dbExecute dbGetQuery
 #' @useDynLib IMPACTncdEngland
 #' @name IMPACTncdEngland
 

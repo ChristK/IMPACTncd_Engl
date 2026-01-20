@@ -251,34 +251,39 @@ Design <-
         # Clean up registry if it exists
         if (file.exists(registry_path)) {
           registry <- fread(registry_path)
-          registry_files <- normalizePath(registry$file_path, mustWork = FALSE)
+          
+          # Only consider RR file entries (physical files), not virtual keys like disease_snapshot:*
+          rr_registry_entries <- registry[grepl("^/|^\\./|^[A-Za-z]:", file_path) & !grepl("^disease_snapshot:", file_path)]
+          if (nrow(rr_registry_entries) > 0) {
+            registry_files <- normalizePath(rr_registry_entries$file_path, mustWork = FALSE)
 
-          # Find obsolete entries in registry
-          obsolete_registry_files <- setdiff(registry_files, valid_files)
+            # Find obsolete entries in registry
+            obsolete_registry_files <- setdiff(registry_files, valid_files)
 
-          if (length(obsolete_registry_files) > 0) {
-            if (self$sim_prm$logs) {
-              message(
-                "Removing ",
-                length(obsolete_registry_files),
-                " obsolete RR file entries from registry."
-              )
-            }
+            if (length(obsolete_registry_files) > 0) {
+              if (self$sim_prm$logs) {
+                message(
+                  "Removing ",
+                  length(obsolete_registry_files),
+                  " obsolete RR file entries from registry."
+                )
+              }
 
-            # Remove obsolete files from disk
-            existing_obsolete <- obsolete_registry_files[file.exists(
-              obsolete_registry_files
-            )]
-            if (length(existing_obsolete) > 0) {
-              file.remove(existing_obsolete)
-            }
-
-            # Update registry
-            registry <- registry[
-              !normalizePath(file_path, mustWork = FALSE) %in%
+              # Remove obsolete files from disk
+              existing_obsolete <- obsolete_registry_files[file.exists(
                 obsolete_registry_files
-            ]
-            fwrite(registry, registry_path)
+              )]
+              if (length(existing_obsolete) > 0) {
+                file.remove(existing_obsolete)
+              }
+
+              # Update registry - only remove the obsolete RR files, keep all other entries
+              registry <- registry[
+                !normalizePath(file_path, mustWork = FALSE) %in%
+                  obsolete_registry_files
+              ]
+              fwrite(registry, registry_path)
+            }
           }
         }
 

@@ -691,7 +691,7 @@ library(jsonlite)
 
 fst_files <- list.files(
   path = file.path("inputs", "exposure_distributions"),
-  pattern = "\\.fst$",
+  pattern = "^exposure.*\\.fst$",
   recursive = FALSE,
   full.names = TRUE
 )
@@ -703,16 +703,7 @@ for (i in seq_along(fst_files)) {
   print(fout)
   tbl <- fst::read_fst(f, as.data.table = TRUE)
   print(key(tbl))
-  kc <- sort(
-    names(tbl)[
-      !names(tbl) %in% c("mu", "sigma", "nu", "tau", "maxq", "minq") &
-        !grepl("[0-9]$", names(tbl))
-    ]
-  )
-  kc <- kc[order(match(kc, "year"))]
-  print(kc)
-  setcolorder(tbl, kc)
-  setkeyv(tbl, kc)
+  kc <- NULL
 
   tbl <- arrow_table(tbl)
   

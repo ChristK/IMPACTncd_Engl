@@ -6,6 +6,7 @@ IMPACTncd$
   # del_synthpops()$
   # del_parfs()$
 run(1:2, multicore = TRUE, "sc0")
+IMPACTncd$export_summaries(multicore = TRUE)
 
 # library(data.table)
 # tbl <- read_parquet_dt(design$exposures$smok_dur_ex$file_path)

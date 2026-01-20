@@ -1080,6 +1080,22 @@ ExposureEffect <-
         out
       },
 
+      # get_rr_file_path ----
+      #' @description
+      #' Get the file path to the RR CSVY file for this exposure-outcome relationship.
+      #' This is used for tracking source file changes for PARF recalculation.
+      #'
+      #' @return A character string with the absolute path to the RR CSVY file.
+      #'
+      #' @examples
+      #' \dontrun{
+      #' # Get RR file path for dependency tracking
+      #' rr_file <- bmi_chd$get_rr_file_path()
+      #' }
+      get_rr_file_path = function() {
+        private$xps_prm_file
+      },
+
       # get_metadata ----
       #' @description
       #' Get the original metadata associated with the exposure-disease relationship.

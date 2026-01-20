@@ -11,6 +11,7 @@ libmpfr-dev=4.2.1-1build1.1
 libpng-dev=1.6.43-5build1
 libssh2-1-dev=1.11.0-4.1build2
 libssl-dev=3.0.13-0ubuntu3.5
+libtbb-dev=2021.11.0-2ubuntu2
 libxml2-dev=2.9.14+dfsg-1.3ubuntu3.3
 make=4.3-4.1build2
 mc=3.4.1-1ubuntu1 # User friendly text editor and file manager

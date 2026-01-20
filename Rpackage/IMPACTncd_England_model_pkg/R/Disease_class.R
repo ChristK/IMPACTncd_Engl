@@ -139,6 +139,22 @@ Disease <-
         # TODO add logic to avoid recalculating parf files if years/ages are
         # already included in the existing parf files. I.e. when horizon goes
         # from 2043 to 2040.
+        
+        # Get RR file paths and compute their checksums for stable hashing
+        # Using file checksums instead of get_input_rr() data to avoid 
+        # instability from data.table attributes
+        # Sort by exposure name to ensure consistent ordering across runs
+        rr_names <- vapply(private$rr, `[[`, "name", FUN.VALUE = character(1))
+        rr_order <- order(rr_names)
+        
+        rr_file_checksums <- vapply(private$rr[rr_order], function(x) {
+          fp <- x$get_rr_file_path()
+          if (!is.na(fp) && file.exists(fp)) digest(file = fp, algo = "md5") else ""
+        }, character(1))
+        
+        rr_lags <- vapply(private$rr[rr_order], `[[`, "lag", FUN.VALUE = integer(1))
+        rr_distributions <- vapply(private$rr[rr_order], `[[`, "distribution", FUN.VALUE = character(1))
+        
         private$chksum <-
           digest(list(
             design_$sim_prm[c(
@@ -149,11 +165,9 @@ Disease <-
               "apply_RR_to_mrtl2",
               "model_trends_in_redidual_incd"
             )],
-            lapply(private$rr, function(x) {
-              x$get_input_rr()
-            }),
-            lapply(private$rr, `[[`, "lag"),
-            lapply(private$rr, `[[`, "distribution")
+            rr_file_checksums,
+            rr_lags,
+            rr_distributions
           ))
 
         private$parf_dir <- file.path(getwd(), "simulation", "parf")
@@ -223,6 +237,15 @@ Disease <-
           return(NULL)
         } # nothing to do
 
+        # Use file checksums for stable intermediate cache file naming
+        # Sort by exposure name for deterministic ordering
+        rr_names_tmp <- vapply(private$rr, `[[`, "name", FUN.VALUE = character(1))
+        rr_order_tmp <- order(rr_names_tmp)
+        rr_file_checksums_tmp <- vapply(private$rr[rr_order_tmp], function(x) {
+          fp <- x$get_rr_file_path()
+          if (!is.na(fp) && file.exists(fp)) digest(file = fp, algo = "md5") else ""
+        }, character(1))
+        
         tmpfile <- file.path(
           private$parf_dir,
           paste0(
@@ -231,11 +254,9 @@ Disease <-
             "_",
             digest(
               list(
-                lapply(private$rr, function(x) {
-                  x$get_input_rr()
-                }),
-                lapply(private$rr, `[[`, "lag"),
-                lapply(private$rr, `[[`, "distribution")
+                rr_file_checksums_tmp,
+                vapply(private$rr[rr_order_tmp], `[[`, "lag", FUN.VALUE = integer(1)),
+                vapply(private$rr[rr_order_tmp], `[[`, "distribution", FUN.VALUE = character(1))
               )
             ),
             ".qs"
@@ -2108,7 +2129,7 @@ Disease <-
       },
       
       # Get source files for disease snapshot based on bParfSnapshot flag
-      # @param bParfSnapshot Logical. If TRUE, only PARF-related files (incd/ftlt), 
+      # @param bParfSnapshot Logical. If TRUE, only PARF-related files (incd/ftlt + RR files), 
       #   otherwise all disease files.
       # @return character vector of source file paths
       get_disease_source_files = function(bParfSnapshot) {
@@ -2139,6 +2160,18 @@ Disease <-
           } else {
             source_files <- c(source_files, f)
           }
+        }
+        
+        # For PARF snapshots, also include the RR source files
+        if (bParfSnapshot && length(private$rr) > 0) {
+          rr_files <- vapply(
+            private$rr,
+            function(x) x$get_rr_file_path(),
+            character(1)
+          )
+          # Only include files that exist
+          rr_files <- rr_files[file.exists(rr_files)]
+          source_files <- c(source_files, rr_files)
         }
         
         source_files
@@ -2190,9 +2223,16 @@ Disease <-
           return(FALSE)
         }
         
-        # Compute current checksum of source files
-        source_files <- private$get_disease_source_files(bParfSnapshot)
-        current_checksum <- private$compute_source_checksum(source_files)
+        # For PARF snapshots, use the already-computed private$chksum 
+        # which includes design params + RR file checksums
+        # This ensures consistency with the PARF filename checksum
+        if (bParfSnapshot) {
+          current_checksum <- private$chksum
+        } else {
+          # For full disease snapshots, compute from source files
+          source_files <- private$get_disease_source_files(bParfSnapshot)
+          current_checksum <- private$compute_source_checksum(source_files)
+        }
         
         identical(entry$checksum[1], current_checksum)
       },
@@ -2207,9 +2247,17 @@ Disease <-
         # Remove existing entry for this snapshot
         registry <- registry[file_path != registry_key]
         
-        # Compute current checksum of source files
-        source_files <- private$get_disease_source_files(bParfSnapshot)
-        current_checksum <- private$compute_source_checksum(source_files)
+        # For PARF snapshots, use the already-computed private$chksum
+        # which includes design params + RR file checksums
+        # This ensures consistency with the PARF filename checksum
+        if (bParfSnapshot) {
+          source_files <- private$get_disease_source_files(bParfSnapshot)
+          current_checksum <- private$chksum
+        } else {
+          # For full disease snapshots, compute from source files
+          source_files <- private$get_disease_source_files(bParfSnapshot)
+          current_checksum <- private$compute_source_checksum(source_files)
+        }
         
         # Add new entry
         new_entry <- data.table(
@@ -2335,7 +2383,7 @@ Disease <-
         dqset.seed(private$seed, mc_)
 
         cm_mean <- as.matrix(
-          read_parquet_dt("./inputs/exposure_distributions/exposure_corr_mean/part-0.parquet"),
+          read_parquet_dt("./inputs/exposure_distributions/exposure_corr_mean/part-0.parquet",),
           rownames = "rn"
         )
 
@@ -2354,7 +2402,16 @@ Disease <-
               )
           )
 
-        rank_mtx <- generate_corr_unifs(nrow(ff), cm_mean[-r, -r])
+        # Subset the correlation matrix
+        cm_subset <- cm_mean[-r, -r]
+        
+        # Ensure the subsetted matrix is positive definite
+        # Removing rows/columns can break positive definiteness
+        if (min(eigen(cm_subset, only.values = TRUE)$values) < 0) {
+          cm_subset <- as.matrix(Matrix::nearPD(cm_subset, corr = TRUE)$mat)
+        }
+        
+        rank_mtx <- generate_corr_unifs(nrow(ff), cm_subset)
 
         # Restrict the range of some RNs to avoid unrealistic exposures
         # This scaling does not affect correlations

@@ -10,9 +10,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # transition
-- Methods NOT Added (require Japan-specific adaptations):
-- add calibrate_incd_ftlt() - Calibration method that requires Japan-specific disease burden files
-- add validate() - Validation method that uses Japan population files and Japan-specific paths
-
+- Fix logic to include exposure files to parf generation when required
+- Fix logic to include synthpop files to parf generation when required
+- make sure qs2 in docker is multithreaded ( R -q -e "install.packages(
+    \"qs2\",
+    type = \"source\",
+    lib = \"/usr/lib64/R/library\",
+    repos = \"https://cloud.r-project.org\",
+    configure.args = \"--with-TBB --with-simd=AVX2\"
+  )")
 
 

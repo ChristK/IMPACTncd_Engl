@@ -381,8 +381,12 @@ Simulation <-
           }
         }
 
-        while (sink.number() > 0L) {
-          sink()
+        # Close any lingering sinks (safety cleanup)
+        while (sink.number(type = "message") > 0L) {
+          sink(type = "message")
+        }
+        while (sink.number(type = "output") > 0L) {
+          sink(type = "output")
         }
 
         invisible(self)
@@ -1114,7 +1118,7 @@ Simulation <-
                 quiet = !self$design$sim_prm$logs,
                 rscript_startup = quote(local({
                   library(CKutils)
-                  library(IMPACTncdJapan)
+                  library(IMPACTncdEngland)
                   library(R6)
                   library(arrow)
                   library(duckdb)
@@ -1196,8 +1200,12 @@ Simulation <-
           }
         } # end of multicore = FALSE
 
-        while (sink.number() > 0L) {
-          sink()
+        # Close any lingering sinks (safety cleanup)
+        while (sink.number(type = "message") > 0L) {
+          sink(type = "message")
+        }
+        while (sink.number(type = "output") > 0L) {
+          sink(type = "output")
         }
 
         invisible(self)
@@ -2611,12 +2619,10 @@ Simulation <-
 
         if (self$design$sim_prm$logs) {
           private$time_mark(paste0("Start mc iteration ", mc_))
-          sink(
-            file = private$output_dir(paste0("logs/log", mc_, ".txt")),
-            append = TRUE,
-            type = "output",
-            split = FALSE
-          )
+          log_file <- private$output_dir(paste0("logs/log", mc_, ".txt"))
+          log_con <- file(log_file, open = "at")  # append text
+          sink(log_con, type = "output", split = FALSE)
+          sink(log_con, type = "message")
         }
 
         sp <- SynthPop$new(mc_, self$design)
@@ -2810,7 +2816,11 @@ Simulation <-
 
         if (self$design$sim_prm$logs) {
           private$time_mark(paste0("End mc iteration ", mc_))
-          sink()
+          sink(type = "message")  # close message sink first
+          sink(type = "output")   # close output sink
+          if (exists("log_con") && inherits(log_con, "connection") && isOpen(log_con)) {
+            close(log_con)
+          }
         }
 
         NULL
@@ -3040,12 +3050,10 @@ Simulation <-
             "Start mc iteration (summary export) ",
             mcaggr
           ))
-          sink(
-            file = private$output_dir(paste0("logs/log", mcaggr, ".txt")),
-            append = TRUE,
-            type = "output",
-            split = FALSE
-          )
+          log_file <- private$output_dir(paste0("logs/log", mcaggr, ".txt"))
+          log_con <- file(log_file, open = "at")  # append text
+          sink(log_con, type = "output", split = FALSE)
+          sink(log_con, type = "message")
         }
 
         if (self$design$sim_prm$logs) {
@@ -3160,7 +3168,13 @@ Simulation <-
           private$export_costs_summaries(duckdb_con, mcaggr, strata, ext)
         }
 
-        sink()
+        if (self$design$sim_prm$logs) {
+          sink(type = "message")  # close message sink first
+          sink(type = "output")   # close output sink
+          if (exists("log_con") && inherits(log_con, "connection") && isOpen(log_con)) {
+            close(log_con)
+          }
+        }
 
         return(invisible(self))
       }, # end of export_summaries_hlpr
@@ -3353,17 +3367,16 @@ Simulation <-
 
         # Load observed population (minimal columns)
         obs_pop_2016 <- read_fst(
-          "inputs/pop_estimates/observed_population_england.fst",
+          "inputs/pop_estimates_lsoa/national_pop_est.fst",
           columns = c("year", "age", "sex", "pops"),
           as.data.table = TRUE
         )[year == 2016L]
 
-        # Process CHD mortality efficiently
-        chd_ftlt_2016 <- read_fst(
-          "inputs/disease_burden/chd_ftlt.fst",
-          columns = c("year", "age", "sex", "mu2"),
-          as.data.table = TRUE
-        )[year == 2016]
+        # Process CHD mortality efficiently (parquet dataset)
+        chd_ftlt_2016 <- read_parquet_dt(
+          "inputs/disease_burden/chd_ftlt",
+          filter = arrow_in("year", 2016L)
+        )[, .(year, age, sex, mu2)]
 
         chd_joined <- chd_ftlt_2016[
           obs_pop_2016,
@@ -3417,12 +3430,11 @@ Simulation <-
         )
         rm(chd_joined) # Immediate cleanup
 
-        # Process stroke mortality efficiently
-        stroke_ftlt_2016 <- read_fst(
-          "inputs/disease_burden/stroke_ftlt.fst",
-          columns = c("year", "age", "sex", "mu2"),
-          as.data.table = TRUE
-        )[year == 2016]
+        # Process stroke mortality efficiently (parquet dataset)
+        stroke_ftlt_2016 <- read_parquet_dt(
+          "inputs/disease_burden/stroke_ftlt",
+          filter = arrow_in("year", 2016L)
+        )[, .(year, age, sex, mu2)]
 
         stroke_joined <- stroke_ftlt_2016[
           obs_pop_2016,
@@ -3740,7 +3752,7 @@ Simulation <-
           "
           CREATE OR REPLACE TEMP VIEW %s AS
           WITH base_filtered AS (
-            SELECT mc, scenario, year, agegrp, sex, chd_dgns, all_cause_mrtl, stroke_dgns, wt, wt_esp
+            SELECT mc, scenario, year, agegrp, sex, dimd, chd_dgns, all_cause_mrtl, stroke_dgns, wt, wt_esp
             FROM %s 
             WHERE mc = %d AND scenario = %s
             ),
@@ -3768,7 +3780,7 @@ Simulation <-
             ),
             basic_costs AS (
               SELECT
-                m.mc, m.scenario, m.year, m.agegrp, m.sex,
+                m.mc, m.scenario, m.year, m.agegrp, m.sex, m.dimd,
                 m.wt, m.wt_esp,
               
                 -- CHD basic cost components
@@ -3788,7 +3800,7 @@ Simulation <-
               LEFT JOIN stroke_costs sc ON m.agegrp = sc.agegrp AND m.sex = sc.sex
             )
             SELECT
-              mc, scenario, year, agegrp, sex, wt, wt_esp,
+              mc, scenario, year, agegrp, sex, dimd, wt, wt_esp,
             
               -- Basic cost components (already calculated)
               chd_prvl_prdv_costs,

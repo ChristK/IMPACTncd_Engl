@@ -254,6 +254,15 @@ stoch_rr <- bmi_chd$get_rr(mc = 1, design)
 }
 
 ## ------------------------------------------------
+## Method `ExposureEffect$get_rr_file_path`
+## ------------------------------------------------
+
+\dontrun{
+# Get RR file path for dependency tracking
+rr_file <- bmi_chd$get_rr_file_path()
+}
+
+## ------------------------------------------------
 ## Method `ExposureEffect$get_metadata`
 ## ------------------------------------------------
 
@@ -417,6 +426,7 @@ Currently lognormal and normal are supported.}
 \item \href{#method-ExposureEffect-xps_to_rr}{\code{ExposureEffect$xps_to_rr()}}
 \item \href{#method-ExposureEffect-validate_rr}{\code{ExposureEffect$validate_rr()}}
 \item \href{#method-ExposureEffect-get_input_rr}{\code{ExposureEffect$get_input_rr()}}
+\item \href{#method-ExposureEffect-get_rr_file_path}{\code{ExposureEffect$get_rr_file_path()}}
 \item \href{#method-ExposureEffect-get_metadata}{\code{ExposureEffect$get_metadata()}}
 \item \href{#method-ExposureEffect-get_seed}{\code{ExposureEffect$get_seed()}}
 \item \href{#method-ExposureEffect-write_xps_tmplte_file}{\code{ExposureEffect$write_xps_tmplte_file()}}
@@ -854,6 +864,31 @@ original_rr <- bmi_chd$get_input_rr()
 
 # Compare with stochastic version
 stoch_rr <- bmi_chd$get_rr(mc = 1, design)
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-ExposureEffect-get_rr_file_path"></a>}}
+\if{latex}{\out{\hypertarget{method-ExposureEffect-get_rr_file_path}{}}}
+\subsection{Method \code{get_rr_file_path()}}{
+Get the file path to the RR CSVY file for this exposure-outcome relationship.
+This is used for tracking source file changes for PARF recalculation.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{ExposureEffect$get_rr_file_path()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A character string with the absolute path to the RR CSVY file.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+# Get RR file path for dependency tracking
+rr_file <- bmi_chd$get_rr_file_path()
 }
 }
 \if{html}{\out{</div>}}
