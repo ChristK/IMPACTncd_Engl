@@ -166,6 +166,7 @@ Exposure <-
       #' @param qargs List. Additional arguments for quantile function
       #' @param thresholds Character vector. Threshold names for ordinal distributions (auto-detected from parquet if NULL)
       #' @param invert Logical. For binary: use (1 - mu) instead of mu
+      #' @param lower_tail Logical. For binary: if TRUE uses rank < threshold, if FALSE uses rank > threshold
       #' @param custom_fn Function. Custom generation function for complex cases
       #' @param transform_fn Numeric or function. Multiplier or transformation function
       #' @param offset Numeric. Value to add after transform_fn (e.g., -1 to shift 1:8 to 0:7)
@@ -309,7 +310,6 @@ Exposure <-
         # Read distribution table from partitioned parquet
         tbl <- read_parquet_dt(self$file_path)
 
-
         # Add qmin/qmax columns if needed (for continuous distributions)
         if (self$distribution == "continuous") {
           self$add_qmin_qmax(tbl)
@@ -438,19 +438,20 @@ Exposure <-
       #' @description
       #' Apply post-generation transformation (factorisation, scaling, etc.)
       #'
-      #' @param transform_fn Function. Function that transforms the generated exposure
+      #' @param pop data.table. The synthetic population data to transform
+      #' @param transform_fn Function. Function that takes pop as argument and transforms it
       #'
       #' @return Self (invisibly) for method chaining
       #'
       #' @examples
       #' \dontrun{
-      #' Exposure$new(...)$generate(pop, design)$transform(function() {
-      #'     pop[, income := factor(income, levels = 1:5)]
+      #' Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
+      #'     p[, income := factor(income, levels = 1:5)]
       #'   })
       #' }
       # transform ----
-      transform = function(transform_fn) {
-        transform_fn()
+      transform = function(pop, transform_fn) {
+        transform_fn(pop)
         invisible(self)
       },
 
@@ -648,6 +649,12 @@ Exposure <-
       # read_col_names ----
       read_col_names = function() {
         # Omit partitioning to let Arrow auto-detect Hive-style partitions
+        if (!dir.exists(self$file_path) && !file.exists(self$file_path)) {
+          stop(
+            "Exposure distribution file not found: ", self$file_path,
+            "\nPlease ensure the file exists or check the file_name parameter."
+          )
+        }
         ds <- arrow::open_dataset(self$file_path, format = "parquet")
         private$col_names <- names(ds)
         invisible(self)

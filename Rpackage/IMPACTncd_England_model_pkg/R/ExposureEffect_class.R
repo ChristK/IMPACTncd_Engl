@@ -1011,8 +1011,6 @@ ExposureEffect <-
         out <-
           read_fst(private$filenam, as.data.table = TRUE)
         out[, mc := NULL]
-
-        layout(matrix(1:2))
         out[
           sex == "men",
           plot(

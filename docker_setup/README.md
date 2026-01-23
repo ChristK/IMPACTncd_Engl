@@ -1,12 +1,23 @@
 # IMPACTncd_England Docker Setup - Complete Guide
 
-This repository contains the Docker configuration and cross-platform setup scripts for the **IMPACTncd England** project. The system provides robust, reproducible containerized environments using pre-built Docker images.
+This directory contains Docker configuration and cross-platform setup scripts for the **IMPACTncd England** microsimulation project. The system provides reproducible containerized environments using pre-built Docker images from Docker Hub.
+
+---
+
+## 📋 Table of Contents
+
+- [Prerequisites](#-prerequisites)
+- [Quick Start](#-quick-start)
+- [Directory Structure](#-directory-structure)
+- [Docker Images](#-docker-images)
+- [Troubleshooting](#-troubleshooting)
+- [Developer Documentation](#-developer-documentation)
 
 ---
 
 ## 💾 Prerequisites
 
-First, install Docker for your operating system:
+### Install Docker
 
 - **Windows:** [Docker Desktop for Windows](https://docs.docker.com/desktop/install/windows-install/)
 - **macOS:** [Docker Desktop for Mac](https://docs.docker.com/desktop/install/mac-install/)
@@ -14,391 +25,358 @@ First, install Docker for your operating system:
   - [Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
   - [Debian](https://docs.docker.com/engine/install/debian/)
   - [Fedora](https://docs.docker.com/engine/install/fedora/)
-  - [CentOS](https://docs.docker.com/engine/install/centos/)
+  - [CentOS/Rocky Linux](https://docs.docker.com/engine/install/centos/)
 
-**Additional Platform Requirements:**
+### Platform-Specific Requirements
 
 **Windows:**
-- PowerShell 5.1+ (usually pre-installed)
+- PowerShell 5.1+ (pre-installed on Windows 10/11)
+- WSL2 backend recommended for Docker Desktop
 
 **macOS:**
 ```bash
-# Install coreutils which provides gsha256sum (only needed for certain operations)
+# Install coreutils for gsha256sum (optional, for certain operations)
 brew install coreutils
 ```
 
 **Linux:**
 ```bash
-# Ubuntu/Debian - ensure Docker is installed
-sudo apt-get update && sudo apt-get install docker.io
-
-# Add user to docker group (optional, requires logout/login)
+# Add user to docker group (avoids needing sudo for docker commands)
 sudo usermod -aG docker $USER
+# Log out and back in for the change to take effect
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### Container Selection
+### For End Users (Running Simulations)
 
-The scripts now use pre-built Docker images instead of building locally:
+The easiest way to get started is using the pre-built Docker images:
 
-- **Default (main):** `chriskypri/impactncdengl:main` - pulls from Docker Hub
-- **Local images:** `impactncdengl:local` - uses local Docker registry (when tag="local")
-- **Remote images:** `chriskypri/impactncdengl:<tag>` - pulls from Docker Hub
-
-### Basic Usage
-
-Choose your platform and run the setup:
-
-### Windows (PowerShell)
-```powershell
-# Default main image
-.\setup_user_docker_env.ps1
-
-# Use local image
-.\setup_user_docker_env.ps1 -Tag "local"
-
-# Use specific remote tag
-.\setup_user_docker_env.ps1 -Tag "v1.2.3"
-
-# Use volumes for better performance
-.\setup_user_docker_env.ps1 -Tag "latest" -UseVolumes
-
-# Custom YAML with remote image
-.\setup_user_docker_env.ps1 -Tag "v1.2.3" -SimDesignYaml "C:\path\to\custom_sim_design.yaml"
-```
-
-### macOS/Linux (Bash)
+**Linux/macOS:**
 ```bash
-# Default main image
+cd docker_setup
+
+# Run with default settings (pulls chriskypri/impactncdengl:main from Docker Hub)
 ./setup_user_docker_env.sh
 
-# Use local image
-./setup_user_docker_env.sh local
+# Use a specific version tag
+./setup_user_docker_env.sh -Tag v1.0.0
 
-# Use specific remote tag
-./setup_user_docker_env.sh v1.2.3
+# Use a locally built image
+./setup_user_docker_env.sh -Tag local
 
-# Use volumes for better performance
-./setup_user_docker_env.sh latest --UseVolumes
+# Use Docker volumes for better I/O performance (recommended for macOS/Windows)
+./setup_user_docker_env.sh --UseVolumes
 
-# Custom YAML with remote image
-./setup_user_docker_env.sh v1.2.3 /path/to/custom_sim_design.yaml
+# Specify custom simulation design YAML
+./setup_user_docker_env.sh -SimDesignYaml /path/to/my_sim_design.yaml
+
+# Mount a custom scenarios directory
+./setup_user_docker_env.sh -ScenariosDir /path/to/my_scenarios
 ```
 
-### Script Parameters
+**Windows (PowerShell):**
+```powershell
+cd docker_setup
 
-**Bash Script (`setup_user_docker_env.sh`):**
-- `[tag]`: Optional Docker image tag (default: "main") - first positional argument
-- `[path_to_yaml]`: Optional path to simulation design YAML file
-- `--UseVolumes`: Use Docker volumes for enhanced I/O performance
+# Run with default settings
+.\setup_user_docker_env.ps1
 
-**PowerShell Script (`setup_user_docker_env.ps1`):**
-- `-Tag <tag>`: Docker image tag (default: "main") - first parameter
-- `-SimDesignYaml <path>`: Optional path to simulation design YAML file
-- `-UseVolumes`: Switch for Docker volumes
+# Use a specific version tag
+.\setup_user_docker_env.ps1 -Tag v1.0.0
+
+# Use Docker volumes for better performance
+.\setup_user_docker_env.ps1 -UseVolumes
+
+# Specify custom simulation design YAML
+.\setup_user_docker_env.ps1 -SimDesignYaml "C:\path\to\my_sim_design.yaml"
+```
+
+### What Happens When You Run the Script
+
+1. **Pulls the Docker image** from Docker Hub (if not already cached)
+2. **Reads your `sim_design.yaml`** to find output and synthpop directories
+3. **Creates those directories** on your host if they don't exist
+4. **Starts an interactive container** with your directories mounted
+5. **Runs as your user** (not root) to avoid permission issues
+
+Once inside the container, you can run simulations:
+```r
+source("global.R")
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+IMPACTncd$run(1:10, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)
+```
 
 ---
 
 ## 📁 Directory Structure
 
-When you run the setup, the following directories are mounted:
+### Files in This Directory
 
-| Host Path | Container Mount | Description |
-|-----------|-----------------|-------------|
-| **Pre-built in image** | `/IMPACTncd_England` | Main project directory (already in Docker image) |
-| `output_dir` from `sim_design.yaml` | `/output` | Simulation outputs |
-| `synthpop_dir` from `sim_design.yaml` | `/synthpop` | Synthetic population data |
+| File | Description |
+|------|-------------|
+| `setup_user_docker_env.sh` | **Main script** for Linux/macOS users to run simulations |
+| `setup_user_docker_env.ps1` | **Main script** for Windows users to run simulations |
+| `docker_build_push.sh` | Build and push Docker images (developers) |
+| `docker_build_push.ps1` | Build and push Docker images (Windows developers) |
+| `Dockerfile.prerequisite.IMPACTncdENGL` | Base image with R and dependencies |
+| `Dockerfile.IMPACTncdENGL` | Main image with project code and data |
+| `apt-packages.txt` | System packages with pinned versions |
+| `r-packages.txt` | R packages to install |
+| `install_packages.sh` | Intelligent package installer |
+| `entrypoint.sh` | Container entrypoint script |
+| `update-apt-packages.sh` | Update package versions from build logs |
 
-**Note:** The Docker images already contain the `/IMPACTncd_England` project folder, so no project directory mounting or copying is required.
+### Container Directory Mounts
+
+When you run the setup script, these directories are mounted:
+
+| Host Path | Container Path | Description |
+|-----------|----------------|-------------|
+| `output_dir` from YAML | `/output` | Simulation outputs (lifecourse, summaries, etc.) |
+| `synthpop_dir` from YAML | `/synthpop` | Synthetic population cache |
+| `scenarios/` (if specified) | `/IMPACTncd_England/scenarios` | Custom scenario scripts |
+
+> **Note:** The project code (`/IMPACTncd_England`) and input data are already baked into the Docker image. Only output directories need to be mounted.
+
+---
 
 ## 🐳 Docker Images
 
 ### Image Selection Logic
-- **Tag = "local"** → Uses `impactncdengl:local`
-- **Tag = "main" (default)** → Uses `chriskypri/impactncdengl:main`
-- **Tag = anything else** → Uses `chriskypri/impactncdengl:<tag>`
+
+| Tag | Image Used | Source |
+|-----|------------|--------|
+| `main` (default) | `chriskypri/impactncdengl:main` | Docker Hub |
+| `local` | `impactncdengl:local` | Local Docker registry |
+| `v1.0.0`, etc. | `chriskypri/impactncdengl:<tag>` | Docker Hub |
 
 ### Available Tags
+
 Check Docker Hub for available tags: https://hub.docker.com/r/chriskypri/impactncdengl/tags
 
-### Volume vs Bind Mount Modes
+### Bind Mount vs Volume Mode
 
-**Volume Mode (`--UseVolumes` / `-UseVolumes`):**
-- Recommended for Windows and macOS
-- Better I/O performance
-- Creates temporary Docker volumes
-- Syncs data back to host after container exit
-
-**Bind Mount Mode (default):**
-- Recommended for Linux
-- Direct filesystem access
-- Real-time file visibility
-- Lower overhead on Linux
+| Mode | Flag | Best For | Description |
+|------|------|----------|-------------|
+| **Bind Mount** (default) | none | Linux | Direct filesystem access, real-time file visibility |
+| **Volume Mode** | `--UseVolumes` | macOS, Windows | Better I/O performance, syncs data after container exit |
 
 ---
 
 ## ❓ Troubleshooting
 
-### Common Issues
+### "Cannot connect to the Docker daemon"
 
-**"Cannot connect to the Docker daemon"**
-- **Windows/macOS:** Make sure Docker Desktop is running (check system tray)
-- **Linux:** Start Docker service: `sudo systemctl start docker`
-- **Test:** Run `docker info` to verify Docker is accessible
+**Windows/macOS:**
+- Ensure Docker Desktop is running (check system tray icon)
 
-**"Failed to pull Docker image"**
-- **Check image exists:** Verify the tag exists on Docker Hub or locally
-- **Network connectivity:** Ensure internet connection for remote images
-- **Authentication:** For private repositories, run `docker login`
-- **Manual test:** Try `docker pull impactncdengl:local` or `docker pull chriskypri/impactncdengl:latest`
+**Linux:**
+```bash
+# Check Docker status
+sudo systemctl status docker
 
-**Windows: "Execution policy" error**  
-- Run in PowerShell: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+# Start Docker if not running
+sudo systemctl start docker
 
-**Linux: Permission denied**
-- Add user to docker group: `sudo usermod -aG docker $USER` (then logout/login)
-- Or use `sudo docker` commands
+# Verify Docker works
+docker info
+```
+
+### "Permission denied" (Linux)
+
+```bash
+# Add your user to the docker group
+sudo usermod -aG docker $USER
+
+# Log out and back in, then verify
+groups  # should show 'docker'
+```
+
+### "Failed to pull Docker image"
+
+- **Check internet connection** for remote images
+- **Verify the tag exists:** `docker pull chriskypri/impactncdengl:main`
+- **For private repos:** Run `docker login` first
+
+### Windows: "Execution policy" error
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+### Container runs out of memory
+
+Edit your `sim_design.yaml` and reduce:
+- `clusternumber` (fewer parallel cores = less RAM needed)
+- `n` and `num_chunks` (smaller synthetic population)
 
 ---
 
-## 🧼 Cleanup
-
-When you're done, you can clean up Docker resources:
+## 🧹 Cleanup
 
 ```bash
-# Remove the Docker image
-docker rmi impactncd-england-r-prerequisite:latest
+# Remove a specific image
+docker rmi chriskypri/impactncdengl:main
 
-# Clean up unused containers/images
+# Remove all unused images and containers
 docker system prune
+
+# Remove everything including volumes (⚠️ destructive)
+docker system prune -a --volumes
 ```
 
 ---
 
 ## 📬 Need Help?
 
-For assistance or issues:
-- Check the troubleshooting section above
-- Open an issue in this repository
+- Check the [main project README](../README.md)
+- Review the [vignettes](../Rpackage/IMPACTncd_England_model_pkg/vignettes/) for simulation guidance
+- Open an issue on GitHub
 - Contact project maintainers
 
 ---
 
-# 🔧 Technical Details & Developer Documentation
+# 🔧 Developer Documentation
 
-The following sections contain technical details, advanced usage, and developer information.
-
-## 🌟 Intelligent Package Management System
+The following sections are for developers who need to build Docker images or maintain the package system.
 
 ---
 
-## 🐳 Docker Configuration
+## 🏗️ Building Docker Images
+
+There are two Docker images in a layered architecture:
+
+1. **Prerequisite image** (`prerequisite.impactncdengl:local`): Base R environment with all dependencies
+2. **Main image** (`impactncdengl:local`): Prerequisite + project code + input data (~15GB)
+
+### Build Commands
+
+```bash
+cd docker_setup
+
+# Build prerequisite image first (base R environment with packages)
+./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
+
+# Build main image (includes project code and 14GB of input data)
+./docker_build_push.sh Dockerfile.IMPACTncdENGL
+
+# Build and push to Docker Hub
+./docker_build_push.sh Dockerfile.IMPACTncdENGL --push
+```
+
+### Build Script Options
+
+```bash
+./docker_build_push.sh <Dockerfile> [--image-name <name>] [--image-tag <tag>] [--push]
+```
+
+| Option | Description |
+|--------|-------------|
+| `<Dockerfile>` | Required. The Dockerfile to build |
+| `--image-name` | Custom image name (default: derived from Dockerfile) |
+| `--image-tag` | Custom tag (default: `local`) |
+| `--push` | Push to Docker Hub after building |
+
+### Docker Storage Requirements
+
+The main image is large (~20GB) due to input data. Ensure you have sufficient disk space:
+- **Linux:** Check `/var` partition or configure Docker's `data-root` in `/etc/docker/daemon.json`
+- **Windows/macOS:** Check Docker Desktop disk allocation in settings
+
+---
+
+## 📦 Package Management
 
 ### Container Specifications
-- **Image Name:** `impactncd-england-r-prerequisite:latest`
+
 - **Base Image:** [rocker/r-ver:4.5.1](https://hub.docker.com/r/rocker/r-ver)
-- **R Version:** 4.5.1 with packages frozen as of July 20, 2025
-- **Package Manager:** [RStudio Package Manager](https://packagemanager.posit.co/client/#/)
-
-### File Structure
-- **`Dockerfile.prerequisite.IMPACTncdENGL`**: Main Docker configuration with intelligent installer
-- **`apt-packages.txt`**: System packages with pinned versions
-- **`r-packages.txt`**: R packages list
-- **`install_packages.sh`**: Intelligent package installer script
-- **`entrypoint.sh`**: Container entrypoint for dynamic user creation
-
----
-
-## � Usage Guide
-
-### Basic Docker Build
-```bash
-# All platforms
-docker build -f Dockerfile.prerequisite.IMPACTncdENGL -t impactncd-england .
-```
-
-### Verbose Build (See Package Updates)
-```bash
-# Windows PowerShell
-docker build -f Dockerfile.prerequisite.IMPACTncdENGL --progress=plain --no-cache -t my-image . 2>&1 | Select-String -Pattern "(Processing package|Successfully installed|Version.*not available|Installing available|PACKAGE VERSION)"
-
-# macOS/Linux Bash  
-docker build -f Dockerfile.prerequisite.IMPACTncdENGL --progress=plain --no-cache -t my-image . 2>&1 | grep -E "(Processing package|Successfully installed|Version.*not available|Installing available|PACKAGE VERSION)"
-```
-
-### Update Package Versions
-
-When you see package version updates in build output:
-
-**Windows:**
-```powershell
-# Interactive update
-.\update-apt-packages.ps1 -Interactive
-
-# From build log file
-.\update-apt-packages.ps1 -BuildLogFile "build.log"
-```
-
-**macOS/Linux:**
-```bash
-# Make executable (first time only)
-chmod +x update-apt-packages.sh
-
-# Interactive update
-./update-apt-packages.sh --interactive
-
-# From build log file  
-./update-apt-packages.sh --file build.log
-
-# Pipe directly from build
-docker build ... 2>&1 | ./update-apt-packages.sh
-```
-
-## 🏗 Environment Setup Modes
-
-### Bind Mount Mode (Default)
-- Direct bind mounts between host and container
-- Real-time interaction between host and container
-- More flexible but potentially slower
-
-### Volume Mode (Recommended for Large Simulations)
-Use `--UseVolumes` (Bash) or `-UseVolumes` (PowerShell):
-- Project directory copied to Docker-managed volume
-- Better performance for large datasets
-- Includes post-simulation sync back to host
-
-## 🔄 Development Workflow
-
-The same workflow applies across all platforms:
-
-1. **Edit Code**: Modify R code or dependencies
-2. **Build Image**: Run `docker build` command  
-3. **Check Updates**: Look for package version update messages
-4. **Update Versions**: Use appropriate update script for your platform
-5. **Rebuild**: Build again with updated versions for reproducibility
-
-### Multi-Platform Team Example
-```bash
-# Developer on macOS
-./update-apt-packages.sh --interactive
-git add apt-packages.txt
-git commit -m "Update git package version"
-git push
-
-# Developer on Windows
-git pull
-.\update-apt-packages.ps1 -Interactive  # Shows no updates needed
-
-# Developer on Linux  
-git pull
-./update-apt-packages.sh --interactive  # Shows no updates needed
-```
-
-## 🛠 Build and Push Scripts
-
-Build and optionally push Docker images:
-
-**Prerequisite Container:**
-- Linux/macOS: `./build_push_prerequisite.sh [--push]`
-- Windows: `build_push_prerequisite.ps1 [-Push]`
-
-**IMPACTncd Container:**
-- Linux/macOS: `./build_push_IMPACTncdENGL.sh [--push]`
-- Windows: `build_push_IMPACTncdENGL.ps1 [-Push]`
-
-## 🔍 Advanced Troubleshooting
-
-### General Docker Issues
-- **Check Docker Status:** Run `docker info`
-- **Expected:** Detailed Docker installation info without errors
-- **Common Error:** "Cannot connect to the Docker daemon"
-
-**Solutions:**
-- **Windows/macOS:** Ensure Docker Desktop is running
-- **Linux:** Check service with `sudo systemctl status docker`
-  - Start if needed: `sudo systemctl start docker`
-  - Add user to docker group: `sudo usermod -aG docker $USER` (then logout/login)
-
-### Platform-Specific Issues
-
-**Windows:**
-- Use PowerShell (not Command Prompt) for best compatibility
-- May need to adjust execution policy: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
-- Check WSL2 configuration for Docker Desktop
-
-**macOS:**
-- Install required tools: `brew install coreutils`
-- Make scripts executable: `chmod +x update-apt-packages.sh`
-- Check Docker Desktop permissions in System Preferences
-
-**Linux:**
-- Ensure Docker service is running: `sudo systemctl start docker`
-- Make scripts executable: `chmod +x update-apt-packages.sh`
-- May need `sudo docker` if user not in docker group
-
-### Package Update Issues
-- If specific versions fail, the intelligent installer automatically uses available versions
-- Check build output for "PACKAGE VERSION UPDATES DETECTED" section
-- Update `apt-packages.txt` with new versions for reproducibility
-
-## 📦 Package Management Details
+- **R Version:** 4.5.1
+- **CRAN Snapshot:** July 20, 2025
+- **Package Manager:** [Posit Package Manager](https://packagemanager.posit.co/)
 
 ### System Packages (`apt-packages.txt`)
-Contains Ubuntu packages with pinned versions:
+
+Ubuntu/Debian packages with pinned versions:
 ```
 automake=1:1.16.5-1.3ubuntu1
 cmake=3.28.3-1build7
 git=1:2.43.0-1ubuntu7.3
-# ... more packages
 ```
 
-### R Packages (`r-packages.txt`)  
-R packages from CRAN snapshot (July 20, 2025):
+### R Packages (`r-packages.txt`)
+
+R packages installed from the frozen CRAN snapshot:
 ```
+# CRAN snapshot date: 2025-07-20
 data.table
 ggplot2
-dplyr
-# ... more packages
+fst
 ```
 
-### Version Update Workflow
-1. **Automatic Detection**: Build detects unavailable versions
-2. **Clear Reporting**: Shows which packages were updated
-3. **Manual Update**: Update package files with new versions
-4. **Automation**: Use provided scripts to streamline updates
+### Updating Package Versions
 
-## 🎯 Benefits
+When Docker builds detect version mismatches, the intelligent installer (`install_packages.sh`) will:
+1. Try to install the pinned version
+2. Fall back to the latest available version if pinned version is unavailable
+3. Report which packages were updated
 
-1. **Reproducible Builds**: Version pinning where possible, intelligent fallback when needed
-2. **Cross-Platform**: Identical behavior on Windows, macOS, and Linux
-3. **Resilient**: Builds don't fail due to outdated package versions
-4. **Clear Feedback**: Visual indicators show exactly what happened
-5. **Easy Maintenance**: Automated tools for version management
-6. **Team Collaboration**: Consistent environment across different platforms
+To update `apt-packages.txt` with new versions:
 
-## 📝 Reproducibility Notes
+```bash
+# Interactive mode
+./update-apt-packages.sh -i
 
-While pinning versions with `<package>=<version>` is the standard apt method, package repositories don't guarantee indefinite availability of historical versions. Security updates and repository cleanup can affect older versions.
-
-**Advanced Options for Maximum Reproducibility:**
-
-1. **Repository Mirroring**: Create local mirrors of Ubuntu repositories at specific points in time (complex but complete control)
-
-2. **Multi-Stage Builds with .deb Files**: Store specific .deb files alongside Dockerfile and install using `dpkg -i` (harder dependency management)
-
-The intelligent package system balances reproducibility with practical build reliability by maintaining version pinning where possible while gracefully handling unavailable versions.
-
-## 🏷 Project Details
-
-- **Supported Branch:** master of IMPACTncd England model
-- **R Version:** 4.5.1
-- **Package Snapshot:** July 20, 2025
-- **Base Image:** rocker/r-ver:4.5.1
-- **Supported Platforms:** Windows 10/11, macOS, Linux (Ubuntu/Debian/CentOS/Fedora)
+# From a build log file
+./update-apt-packages.sh -f build.log
+```
 
 ---
 
-*This documentation combines intelligent package management, cross-platform compatibility, and comprehensive setup instructions for the IMPACTncd_England Docker environment.*
+## 🔄 Development Workflow
+
+1. **Make code changes** in the R package or project files
+2. **Rebuild the main image:**
+   ```bash
+   ./docker_build_push.sh Dockerfile.IMPACTncdENGL
+   ```
+3. **Test locally:**
+   ```bash
+   ./setup_user_docker_env.sh -Tag local
+   ```
+4. **Push to Docker Hub when ready:**
+   ```bash
+   ./docker_build_push.sh Dockerfile.IMPACTncdENGL --push
+   ```
+
+### Updating R or System Dependencies
+
+If you need to add new packages:
+
+1. Edit `r-packages.txt` or `apt-packages.txt`
+2. Rebuild the prerequisite image:
+   ```bash
+   ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
+   ```
+3. Rebuild the main image:
+   ```bash
+   ./docker_build_push.sh Dockerfile.IMPACTncdENGL
+   ```
+
+---
+
+## 🏷️ Project Details
+
+| Property | Value |
+|----------|-------|
+| R Version | 4.5.1 |
+| CRAN Snapshot | January 20, 2026 |
+| Base Image | rocker/r-ver:4.5.2 |
+| Docker Hub | [chriskypri/impactncdengl](https://hub.docker.com/r/chriskypri/impactncdengl) |
+| Platforms | Windows 10/11, macOS, Linux |
+
+---
+
+*Last updated: January 2026*

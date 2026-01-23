@@ -1,17 +1,17 @@
 ---
-title: "How to run a test of IMPACTncdEngl"
+title: "How to run a test of IMPACTncdEngland"
 author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
 date: "11 March, 2024"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{How to run a test of IMPACTncdEngl}
+  %\VignetteIndexEntry{How to run a test of IMPACTncdEngland}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 #### Setting the working directory 
 
-Whether using IMPACTncdEngl in Rstudio or in a terminal, we need to ensure that the working directory is set to where the model is downloaded. 
+Whether using IMPACTncdEngland in Rstudio or in a terminal, we need to ensure that the working directory is set to where the model is downloaded. 
 
 If using Rstudio, we would recommend setting up a project for IMPACTncd in the directory where you have downloaded the model. Instructions on how to start a new project in an existing directory are available [here](https://bookdown.org/introrbook/intro2r/files-and-projects.html#:~:text=3.2.2)
 The model should then always be run from within this project when using Rstudio.  
@@ -20,7 +20,7 @@ If running the model in the terminal, you will need to set the working directory
 
 #### How to run the model 
 
-Two main files are used to run IMPACTncdEngl: 
+Two main files are used to run IMPACTncdEngland: 
 
 - `simulation.R `- deploys assets, sets the parameters for the baseline and alternative scenarios, including number of iterations to be run. 
 
@@ -94,7 +94,7 @@ We have also selected `multicore = FALSE` here so that parallel processing is no
 knitr::include_graphics("img/output_folder.jpg")
 ```
 
-#### How to remove IMPACTncdEngl installed package 
+#### How to remove IMPACTncdEngland installed package 
 
 1. First and foremost we need to permanently delete the files from the project folder of `IMPACTncd_Engl` which can be identified from in `inputs/sim_design.yaml` : `RootDirPath.` 
 2. Then we need to permanently delete the output and synthpop folder as mentioned in `inputs/sim_design.yaml` : `output_dir` and `synthpop_dir`. 
@@ -106,12 +106,12 @@ knitr::include_graphics("img/output_folder.jpg")
 - Use the following code to open the vignette to run different policy scenarios
 
 ```{r}
-vignette("how_to_run_scenarios", package = "IMPACTncdEngl")
+vignette("how_to_run_scenarios", package = "IMPACTncdEngland")
 ```
 
 - Use the following code to open the vignette to understand model outputs 
 
 ```{r}
-vignette("understanding_model_outputs", package = "IMPACTncdEngl")
+vignette("understanding_model_outputs", package = "IMPACTncdEngland")
 ```
 

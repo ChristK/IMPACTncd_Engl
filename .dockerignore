@@ -1,4 +1,5 @@
 # Exclude folders named secure_data and docker_setup
+.git/
 .history/
 .Rproj.user/
 .vscode/

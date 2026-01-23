@@ -51,6 +51,7 @@
 #' @importFrom qs2 qs_read qs_save
 #' @importFrom arrow write_dataset open_dataset
 #' @importFrom DBI dbConnect dbDisconnect dbExecute dbGetQuery
+#' @importFrom wrswoR sample_int_expj
 #' @useDynLib IMPACTncdEngland
 #' @name IMPACTncdEngland
 

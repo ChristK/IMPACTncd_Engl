@@ -105,6 +105,14 @@ IMPACTncd$export_tables()
 \item \href{#method-Simulation-split_large_files}{\code{Simulation$split_large_files()}}
 \item \href{#method-Simulation-reconstruct_large_files}{\code{Simulation$reconstruct_large_files()}}
 \item \href{#method-Simulation-del_large_files}{\code{Simulation$del_large_files()}}
+\item \href{#method-Simulation-zenodo_connect}{\code{Simulation$zenodo_connect()}}
+\item \href{#method-Simulation-zenodo_set_doi}{\code{Simulation$zenodo_set_doi()}}
+\item \href{#method-Simulation-zenodo_check_inputs}{\code{Simulation$zenodo_check_inputs()}}
+\item \href{#method-Simulation-zenodo_download_inputs}{\code{Simulation$zenodo_download_inputs()}}
+\item \href{#method-Simulation-zenodo_upload_inputs}{\code{Simulation$zenodo_upload_inputs()}}
+\item \href{#method-Simulation-zenodo_publish}{\code{Simulation$zenodo_publish()}}
+\item \href{#method-Simulation-zenodo_get_versions}{\code{Simulation$zenodo_get_versions()}}
+\item \href{#method-Simulation-zenodo_create_manifest}{\code{Simulation$zenodo_create_manifest()}}
 \item \href{#method-Simulation-print}{\code{Simulation$print()}}
 \item \href{#method-Simulation-allow_universal_output_folder_access}{\code{Simulation$allow_universal_output_folder_access()}}
 \item \href{#method-Simulation-allow_universal_synthpop_folder_access}{\code{Simulation$allow_universal_synthpop_folder_access()}}
@@ -615,6 +623,222 @@ The path of the files are stored in
 
 \subsection{Returns}{
 The invisible \code{Simulation} object.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_connect"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_connect}{}}}
+\subsection{Method \code{zenodo_connect()}}{
+Connect to Zenodo for asset management.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$zenodo_connect(token = NULL, concept_doi = NULL, sandbox = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{token}}{Zenodo personal access token. If NULL, reads from ZENODO_TOKEN env var.}
+
+\item{\code{concept_doi}}{Optional concept DOI for the data record.}
+
+\item{\code{sandbox}}{Use Zenodo sandbox for testing.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Details}{
+This method initializes the Zenodo asset manager for uploading/downloading
+input data files. Get your token at: https://zenodo.org/account/settings/applications/tokens/new/
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_set_doi"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_set_doi}{}}}
+\subsection{Method \code{zenodo_set_doi()}}{
+Set the Zenodo concept DOI for data assets.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$zenodo_set_doi(concept_doi)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{concept_doi}}{The concept DOI (shared across all versions of a record).}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_check_inputs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_check_inputs}{}}}
+\subsection{Method \code{zenodo_check_inputs()}}{
+Check sync status of local inputs with Zenodo.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$zenodo_check_inputs(input_base = "./inputs", directories = NULL)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{input_base}}{Base directory containing inputs (default: "./inputs").}
+
+\item{\code{directories}}{Specific subdirectories to check. If NULL, checks all.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Details}{
+Compares local input directories against the Zenodo record to identify
+missing or potentially modified files. Requires prior call to zenodo_connect()
+and zenodo_set_doi().
+}
+
+\subsection{Returns}{
+A data.table with sync status information.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_download_inputs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_download_inputs}{}}}
+\subsection{Method \code{zenodo_download_inputs()}}{
+Download input data from Zenodo.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$zenodo_download_inputs(
+  input_base = "./inputs",
+  directories = NULL,
+  overwrite = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{input_base}}{Base directory for inputs (default: "./inputs").}
+
+\item{\code{directories}}{Specific subdirectories to download. If NULL, downloads all.}
+
+\item{\code{overwrite}}{If TRUE, overwrite existing local directories.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Details}{
+Downloads and extracts input data archives from the Zenodo record.
+Only downloads missing directories unless overwrite=TRUE.
+Use zenodo_check_inputs() first to see what would be downloaded.
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_upload_inputs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_upload_inputs}{}}}
+\subsection{Method \code{zenodo_upload_inputs()}}{
+Upload input data to Zenodo.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$zenodo_upload_inputs(
+  input_base = "./inputs",
+  directories = NULL,
+  version = NULL,
+  title = NULL,
+  description = NULL,
+  creators = NULL,
+  publish = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{input_base}}{Base directory containing inputs (default: "./inputs").}
+
+\item{\code{directories}}{Specific subdirectories to upload. If NULL, uploads all.}
+
+\item{\code{version}}{Version string for the new upload (required for new versions).}
+
+\item{\code{title}}{Record title (required for new records).}
+
+\item{\code{description}}{Record description (required for new records).}
+
+\item{\code{creators}}{List of creators for new records.}
+
+\item{\code{publish}}{If TRUE, publish the record after upload. Use with caution!}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Details}{
+Creates zip archives of input directories and uploads them to Zenodo.
+For new records, provide title, description, and creators.
+For new versions of existing records, just provide version.
+The record remains in DRAFT state unless publish=TRUE.
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_publish"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_publish}{}}}
+\subsection{Method \code{zenodo_publish()}}{
+Publish the current Zenodo record.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$zenodo_publish()}\if{html}{\out{</div>}}
+}
+
+\subsection{Details}{
+CAUTION: Publishing is irreversible. Once published, the DOI is
+permanent and files cannot be modified (only new versions can be created).
+}
+
+\subsection{Returns}{
+The invisible self for chaining.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_get_versions"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_get_versions}{}}}
+\subsection{Method \code{zenodo_get_versions()}}{
+Get all versions of the Zenodo record.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$zenodo_get_versions()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+A data.frame with version information (date, version, DOI).
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_create_manifest"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_create_manifest}{}}}
+\subsection{Method \code{zenodo_create_manifest()}}{
+Create a hash manifest for input files.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Simulation$zenodo_create_manifest(input_base = "./inputs", save = TRUE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{input_base}}{Base directory containing inputs.}
+
+\item{\code{save}}{If TRUE, save the manifest to disk.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Details}{
+Creates a manifest file containing hashes of all input files.
+This is used to detect changes between local and remote files.
+}
+
+\subsection{Returns}{
+A data.table with file hashes.
 }
 }
 \if{html}{\out{<hr>}}

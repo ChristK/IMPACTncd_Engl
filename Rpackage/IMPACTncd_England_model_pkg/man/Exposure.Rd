@@ -106,8 +106,8 @@ Exposure$new("BMI", "bmi",
 ## ------------------------------------------------
 
 \dontrun{
-Exposure$new(...)$generate(pop, design)$transform(function() {
-    pop[, income := factor(income, levels = 1:5)]
+Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
+    p[, income := factor(income, levels = 1:5)]
   })
 }
 }
@@ -234,6 +234,8 @@ Initialize a new Exposure generator
 
 \item{\code{invert}}{Logical. For binary: use (1 - mu) instead of mu}
 
+\item{\code{lower_tail}}{Logical. For binary: if TRUE uses rank < threshold, if FALSE uses rank > threshold}
+
 \item{\code{custom_fn}}{Function. Custom generation function for complex cases}
 
 \item{\code{transform_fn}}{Numeric or function. Multiplier or transformation function}
@@ -346,13 +348,15 @@ Exposure$new("BMI", "bmi",
 \subsection{Method \code{transform()}}{
 Apply post-generation transformation (factorisation, scaling, etc.)
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$transform(transform_fn)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Exposure$transform(pop, transform_fn)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{transform_fn}}{Function. Function that transforms the generated exposure}
+\item{\code{pop}}{data.table. The synthetic population data to transform}
+
+\item{\code{transform_fn}}{Function. Function that takes pop as argument and transforms it}
 }
 \if{html}{\out{</div>}}
 }
@@ -362,8 +366,8 @@ Self (invisibly) for method chaining
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{\dontrun{
-Exposure$new(...)$generate(pop, design)$transform(function() {
-    pop[, income := factor(income, levels = 1:5)]
+Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
+    p[, income := factor(income, levels = 1:5)]
   })
 }
 }

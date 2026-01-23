@@ -104,14 +104,12 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 }
 
 # Ensure 'CKutils' is installed from GitHub if missing
-if (!requireNamespace("CKutils", quietly = TRUE)) {
-  remotes::install_github(
-    "ChristK/CKutils",
-    upgrade = "never",
-    force = TRUE,
-    quiet = TRUE
-  )
-}
+remotes::install_github(
+  "ChristK/CKutils",
+  upgrade = "never",
+  force = FALSE,
+  quiet = !dev_mode
+)
 if (dev_mode) {
   library(CKutils)
 } else {

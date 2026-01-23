@@ -1,4 +1,4 @@
-FROM rocker/r-ver:4.5.1
+FROM rocker/r-ver:4.5.2
 
 LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>"
 ARG DEBIAN_FRONTEND=noninteractive
@@ -40,7 +40,7 @@ RUN sed -i '1s/^\xEF\xBB\xBF//' /tmp/r-packages.txt && \
     && strip /usr/local/lib/R/site-library/*/libs/*.so
 
 # RUN installGithub.r "ChristK/CKutils@master"
-RUN installGithub.r "ChristK/CKutils@3229b9408352ea599c2a1da4937fa2b0b0991eb5" # the HEAD as of 18/081/2026
+RUN installGithub.r "ChristK/CKutils@2987390f23c55cc172f72e7cd9754d8fdb0ad47a" # the HEAD as of 20/01/2026
 
 # The following commented out lines are an example on how to load a specific version of a package
 # RUN wget http://cran.r-project.org/src/contrib/Archive/data.table/data.table_1.16.4.tar.gz

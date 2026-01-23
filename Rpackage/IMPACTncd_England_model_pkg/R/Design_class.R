@@ -146,13 +146,13 @@ Design <-
 
         stopifnot(
           required_params %in% names(sim_prm),
-          sapply(sim_prm, function(x) {
+          vapply(sim_prm, function(x) {
             if (is.numeric(x)) {
-              x >= 0
+              all(x >= 0)
             } else {
               TRUE
             }
-          })
+          }, FUN.VALUE = logical(1))
         )
 
         sim_prm$sim_horizon_max <- as.integer(sim_prm$sim_horizon_max -
@@ -225,7 +225,7 @@ Design <-
           full.names = TRUE
         )
         self$RR <- lapply(fl, ExposureEffect$new, design = self)
-        names(self$RR) <- sapply(self$RR, function(x) x$get_name())
+        names(self$RR) <- vapply(self$RR, function(x) x$get_name(), FUN.VALUE = character(1))
 
         # Generate stochastic effects sequentially to avoid registry race conditions
         # This is a one-time initialization cost, and the files are cached afterward
@@ -394,7 +394,7 @@ Design <-
             exp_obj
           }
         )
-        names(self$exposures) <- sapply(self$exposures, function(x) x$name)
+        names(self$exposures) <- vapply(self$exposures, function(x) x$name, FUN.VALUE = character(1))
 
         # Reorder exposures based on dependencies (topological sort)
         self$exposures <- private$reorder_exposures(self$exposures)
@@ -413,7 +413,7 @@ Design <-
           x[["RR"]] <- self$RR
           do.call(Disease$new, x)
         })
-        names(self$diseases) <- sapply(self$sim_prm$diseases, `[[`, "name")
+        names(self$diseases) <- vapply(self$sim_prm$diseases, `[[`, "name", FUN.VALUE = character(1))
 
         invisible(self)
       },
@@ -473,27 +473,25 @@ Design <-
 
         # Build dependency graph edges
         # An edge from B -> A means A depends on B (B must come before A)
-        edges <- vector()
-        dep_messages <- vector()
-
-        for (exp_name in exp_var_names) {
+        edge_list <- lapply(exp_var_names, function(exp_name) {
           exp_obj <- exposures[[exp_name]]
           col_names <- exp_obj$get_col_names()
 
           # Check which other exposure var_names appear in this exposure's columns
-          dependencies <- intersect(col_names, exp_var_names)
-          # Remove self-reference
-          dependencies <- setdiff(dependencies, exp_name)
+          dependencies <- setdiff(intersect(col_names, exp_var_names), exp_name)
 
-          # Add edges: dependency -> this exposure
-          for (dep in dependencies) {
-            edges <- c(edges, dep, exp_name)
-            dep_messages <- c(
-              dep_messages,
-              paste0(exp_name, " depends on ", dep)
+          if (length(dependencies) > 0) {
+            # Return list with edges and messages
+            list(
+              edges = as.vector(rbind(dependencies, exp_name)),
+              messages = paste0(exp_name, " depends on ", dependencies)
             )
+          } else {
+            list(edges = character(0), messages = character(0))
           }
-        }
+        })
+        edges <- do.call(c, lapply(edge_list, `[[`, "edges"))
+        dep_messages <- do.call(c, lapply(edge_list, `[[`, "messages"))
 
         # If no dependencies, return as-is
         if (length(edges) == 0) {
@@ -526,17 +524,18 @@ Design <-
         }
         # Remove duplicates
         if (length(Cycles) > 0) {
-          Cycles <- Cycles[sapply(Cycles, min) == sapply(Cycles, `[`, 1)]
-          cycles_of_interest <- Cycles[which(sapply(Cycles, length) >= 3)]
+          cycle_mins <- vapply(Cycles, min, FUN.VALUE = integer(1))
+          cycle_firsts <- vapply(Cycles, `[`, 1, FUN.VALUE = integer(1))
+          Cycles <- Cycles[cycle_mins == cycle_firsts]
+          cycle_lengths <- vapply(Cycles, length, FUN.VALUE = integer(1))
+          cycles_of_interest <- Cycles[which(cycle_lengths >= 3)]
           if (length(cycles_of_interest) > 0) {
+            cycle_strs <- vapply(cycles_of_interest, function(c) {
+              paste(names(c), collapse = " -> ")
+            }, FUN.VALUE = character(1))
             warning(
               "Circular dependencies found in exposures: ",
-              paste(
-                sapply(cycles_of_interest, function(c) {
-                  paste(names(c), collapse = " -> ")
-                }),
-                collapse = "; "
-              )
+              paste(cycle_strs, collapse = "; ")
             )
           }
         }
@@ -581,26 +580,29 @@ Design <-
         sim_prm$diseases <-
           setNames(
             sim_prm$diseases,
-            sapply(sim_prm$diseases, function(x) {
-              x$name
-            })
+            vapply(sim_prm$diseases, function(x) x$name, FUN.VALUE = character(1))
           )
 
-        out <- vector() # will hold graph structure
+        # Build graph structure using lapply to avoid vector growth
         ds <- names(sim_prm$diseases)
-        for (i in seq_along(ds)) {
-          ds_ <- ds[i]
-          dep <-
-            sim_prm[["diseases"]][[i]][["meta"]][["incidence"]][[
-              "influenced_by_disease_name"
-            ]]
+        edge_list <- lapply(seq_along(ds), function(i) {
+          dep <- sim_prm[["diseases"]][[i]][["meta"]][["incidence"]][[
+            "influenced_by_disease_name"
+          ]]
           if (length(dep) > 0L) {
-            # dep <- gsub("_prvl", "", dep)
-            for (j in seq_along(dep)) {
-              out <- c(out, dep[[j]], ds_)
-            }
+            # Create edge pairs: dep -> ds[i] for each dependency
+            as.vector(rbind(dep, ds[i]))
+          } else {
+            character(0)
           }
+        })
+        out <- do.call(c, edge_list)
+
+        # Handle case where no dependencies exist
+        if (length(out) == 0) {
+          return(sim_prm$diseases)
         }
+
         g <- make_graph(out, directed = TRUE)
         # stopifnot(is_dag(g)) # Removed for diseases depend on diseases
         # get all cycles in the graph
@@ -617,9 +619,14 @@ Design <-
           }
         }
         # remove duplicates
-        Cycles <- Cycles[sapply(Cycles, min) == sapply(Cycles, `[`, 1)]
-        # find cycles of length i.e. 3 (i.e. chd -> t2dm -> chd)
-        Cycles[which(sapply(Cycles, length) >= 3)]
+        if (length(Cycles) > 0) {
+          cycle_mins <- vapply(Cycles, min, FUN.VALUE = integer(1))
+          cycle_firsts <- vapply(Cycles, `[`, 1, FUN.VALUE = integer(1))
+          Cycles <- Cycles[cycle_mins == cycle_firsts]
+          # find cycles of length i.e. 3 (i.e. chd -> t2dm -> chd)
+          cycle_lengths <- vapply(Cycles, length, FUN.VALUE = integer(1))
+          Cycles[which(cycle_lengths >= 3)]
+        }
 
         if (sim_prm$logs && length(Cycles) > 0) {
           message("Cycles found: ", Cycles)
@@ -672,7 +679,12 @@ Design <-
             "DOCKER_HOST",
             "DOCKER_MACHINE_NAME"
           )
-          if (any(sapply(docker_vars, function(x) Sys.getenv(x) != ""))) {
+          has_docker_var <- vapply(
+            docker_vars,
+            function(x) Sys.getenv(x) != "",
+            FUN.VALUE = logical(1)
+          )
+          if (any(has_docker_var)) {
             return(TRUE)
           }
 
@@ -680,11 +692,11 @@ Design <-
           tryCatch(
             {
               # Check if running in Windows container by looking for container-specific registry
-              system_output <- system(
+              system_output <- suppressWarnings(system(
                 "reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\ContainerManager",
                 intern = TRUE,
                 ignore.stderr = TRUE
-              )
+              ))
               return(
                 length(system_output) > 0 && !any(grepl("ERROR", system_output))
               )
@@ -700,7 +712,12 @@ Design <-
             "DOCKER_HOST",
             "DOCKER_MACHINE_NAME"
           )
-          if (any(sapply(docker_vars, function(x) Sys.getenv(x) != ""))) {
+          has_docker_var <- vapply(
+            docker_vars,
+            function(x) Sys.getenv(x) != "",
+            FUN.VALUE = logical(1)
+          )
+          if (any(has_docker_var)) {
             return(TRUE)
           }
 
@@ -730,7 +747,12 @@ Design <-
           "CONTAINER",
           "KUBERNETES_SERVICE_HOST"
         )
-        return(any(sapply(docker_env_vars, function(x) Sys.getenv(x) != "")))
+        has_env_var <- vapply(
+          docker_env_vars,
+          function(x) Sys.getenv(x) != "",
+          FUN.VALUE = logical(1)
+        )
+        return(any(has_env_var))
       }
     ) # end of private
   ) # end of R6Class

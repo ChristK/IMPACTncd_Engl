@@ -382,7 +382,9 @@ Simulation <-
         }
 
         # Close any lingering sinks (safety cleanup)
-        while (sink.number(type = "message") > 0L) {
+        # Note: sink.number(type = "message") returns 0 or 2 (not a count),
+        # so we use a single conditional call, not a while loop
+        if (sink.number(type = "message") > 0L) {
           sink(type = "message")
         }
         while (sink.number(type = "output") > 0L) {
@@ -1201,7 +1203,9 @@ Simulation <-
         } # end of multicore = FALSE
 
         # Close any lingering sinks (safety cleanup)
-        while (sink.number(type = "message") > 0L) {
+        # Note: sink.number(type = "message") returns 0 or 2 (not a count),
+        # so we use a single conditional call, not a while loop
+        if (sink.number(type = "message") > 0L) {
           sink(type = "message")
         }
         while (sink.number(type = "output") > 0L) {
@@ -1349,7 +1353,7 @@ Simulation <-
 
         if (processed) {
           graph <- as.matrix(as_adjacency_matrix(graph))
-          n <- sapply(self$design$diseases, `[[`, "name")
+          n <- vapply(self$design$diseases, `[[`, "name", FUN.VALUE = character(1))
           graph <- graph[rowSums(graph) > 0, colnames(graph) %in% n]
         }
 
@@ -1551,7 +1555,7 @@ Simulation <-
       del_parfs = function() {
         fl <- list.files("./simulation/parf", full.names = TRUE)
 
-        file.remove(fl)
+        unlink(fl, recursive = TRUE)
 
         if (length(fl) > 0 && self$design$sim_prm$logs) {
           message("Parf files deleted.")
@@ -1581,7 +1585,7 @@ Simulation <-
       del_synthpops = function() {
         fl <- list.files(self$design$sim_prm$synthpop_dir, full.names = TRUE)
 
-        file.remove(fl)
+        unlink(fl, recursive = TRUE)
 
         if (length(fl) > 0 && self$design$sim_prm$logs) {
           message("Synthpop files deleted.")
@@ -2126,7 +2130,7 @@ Simulation <-
 
         # add large files to .gitignore
         excl <- readLines("./.gitignore")
-        for (i in 1:length(fl)) {
+        for (i in seq_along(fl)) {
           file <- gsub("^./", "", fl[i])
           if (file %in% excl) {
             next
@@ -2135,7 +2139,7 @@ Simulation <-
         }
 
         # split the files into 50MB chunks
-        for (i in 1:length(fl)) {
+        for (i in seq_along(fl)) {
           file <- fl[i]
           if (!file.exists(file)) {
             next
@@ -2151,7 +2155,7 @@ Simulation <-
             stop("Operating system is not supported.")
           }
           # remove the original file
-          file.remove(file)
+          unlink(file, recursive = TRUE)
         }
 
         invisible(self)
@@ -2166,7 +2170,7 @@ Simulation <-
       reconstruct_large_files = function() {
         if (file.exists("./simulation/large_files_indx.csv")) {
           fl <- fread("./simulation/large_files_indx.csv")$pths
-          for (i in 1:length(fl)) {
+          for (i in seq_along(fl)) {
             if (file.exists(fl[i])) {
               next
             }
@@ -2194,9 +2198,279 @@ Simulation <-
       del_large_files = function() {
         if (file.exists("./simulation/large_files_indx.csv")) {
           fl <- fread("./simulation/large_files_indx.csv")$pths
-          file.remove(fl)
+          unlink(fl, recursive = TRUE)
         }
         invisible(self)
+      },
+
+      # zenodo_connect ----
+      #' @description Connect to Zenodo for asset management.
+      #' @param token Zenodo personal access token. If NULL, reads from ZENODO_TOKEN env var.
+      #' @param concept_doi Optional concept DOI for the data record.
+      #' @param sandbox Use Zenodo sandbox for testing.
+      #' @return The invisible self for chaining.
+      #' @details This method initializes the Zenodo asset manager for uploading/downloading
+      #'   input data files. Get your token at: https://zenodo.org/account/settings/applications/tokens/new/
+      zenodo_connect = function(token = NULL, concept_doi = NULL, sandbox = FALSE) {
+        if (is.null(private$zenodo_manager)) {
+          private$zenodo_manager <- ZenodoAssetManager$new(
+            hash_file = "./simulation/zenodo_manifest.csv",
+            logs = self$design$sim_prm$logs,
+            sandbox = sandbox
+          )
+        }
+
+        private$zenodo_manager$connect(token = token, sandbox = sandbox)
+
+        if (!is.null(concept_doi)) {
+          private$zenodo_manager$set_concept_doi(concept_doi)
+        }
+
+        invisible(self)
+      },
+
+      # zenodo_set_doi ----
+      #' @description Set the Zenodo concept DOI for data assets.
+      #' @param concept_doi The concept DOI (shared across all versions of a record).
+      #' @return The invisible self for chaining.
+      zenodo_set_doi = function(concept_doi) {
+        if (is.null(private$zenodo_manager)) {
+          stop("Not connected to Zenodo. Call zenodo_connect() first.")
+        }
+        private$zenodo_manager$set_concept_doi(concept_doi)
+        invisible(self)
+      },
+
+      # zenodo_check_inputs ----
+      #' @description Check sync status of local inputs with Zenodo.
+      #' @param input_base Base directory containing inputs (default: "./inputs").
+      #' @param directories Specific subdirectories to check. If NULL, checks all.
+      #' @return A data.table with sync status information.
+      #' @details Compares local input directories against the Zenodo record to identify
+      #'   missing or potentially modified files. Requires prior call to zenodo_connect()
+
+      #'   and zenodo_set_doi().
+      zenodo_check_inputs = function(
+        input_base = "./inputs",
+        directories = NULL
+      ) {
+        if (is.null(private$zenodo_manager)) {
+          stop("Not connected to Zenodo. Call zenodo_connect() first.")
+        }
+        private$zenodo_manager$sync_inputs(
+          input_base = input_base,
+          directories = directories,
+          action = "check"
+        )
+      },
+
+      # zenodo_download_inputs ----
+      #' @description Download input data from Zenodo.
+      #' @param input_base Base directory for inputs (default: "./inputs").
+      #' @param directories Specific subdirectories to download. If NULL, downloads all.
+      #' @param overwrite If TRUE, overwrite existing local directories.
+      #' @return The invisible self for chaining.
+      #' @details Downloads and extracts input data archives from the Zenodo record.
+      #'   Only downloads missing directories unless overwrite=TRUE.
+      #'   Use zenodo_check_inputs() first to see what would be downloaded.
+      zenodo_download_inputs = function(
+        input_base = "./inputs",
+        directories = NULL,
+        overwrite = FALSE
+      ) {
+        if (is.null(private$zenodo_manager)) {
+          stop("Not connected to Zenodo. Call zenodo_connect() first.")
+        }
+
+        if (self$design$sim_prm$logs) {
+          message("Downloading inputs from Zenodo...")
+        }
+
+        # Check current status
+        status <- private$zenodo_manager$sync_inputs(
+          input_base = input_base,
+          directories = directories,
+          action = "check"
+        )
+
+        # Warn about existing directories
+        if (any(status$local_exists) && !overwrite) {
+          existing_dirs <- status[local_exists == TRUE, directory]
+          message(
+            "The following directories already exist and will be SKIPPED:\n  ",
+            paste(existing_dirs, collapse = "\n  "),
+            "\nUse overwrite=TRUE to replace them."
+          )
+        }
+
+        # Download missing/all
+        private$zenodo_manager$sync_inputs(
+          input_base = input_base,
+          directories = directories,
+          action = "download",
+          overwrite = overwrite
+        )
+
+        if (self$design$sim_prm$logs) {
+          message("Input download complete.")
+        }
+
+        invisible(self)
+      },
+
+      # zenodo_upload_inputs ----
+      #' @description Upload input data to Zenodo.
+      #' @param input_base Base directory containing inputs (default: "./inputs").
+      #' @param directories Specific subdirectories to upload. If NULL, uploads all.
+      #' @param version Version string for the new upload (required for new versions).
+      #' @param title Record title (required for new records).
+      #' @param description Record description (required for new records).
+      #' @param creators List of creators for new records.
+      #' @param publish If TRUE, publish the record after upload. Use with caution!
+      #' @return The invisible self for chaining.
+      #' @details Creates zip archives of input directories and uploads them to Zenodo.
+      #'   For new records, provide title, description, and creators.
+      #'   For new versions of existing records, just provide version.
+      #'   The record remains in DRAFT state unless publish=TRUE.
+      zenodo_upload_inputs = function(
+        input_base = "./inputs",
+        directories = NULL,
+        version = NULL,
+        title = NULL,
+        description = NULL,
+        creators = NULL,
+        publish = FALSE
+      ) {
+        if (is.null(private$zenodo_manager)) {
+          stop("Not connected to Zenodo. Call zenodo_connect() first.")
+        }
+
+        # Check if we need to create a new record or a new version
+        has_doi <- !is.null(private$zenodo_manager$concept_doi)
+
+        if (!has_doi) {
+          # Creating a new record
+          if (is.null(title) || is.null(description) || is.null(creators)) {
+            stop(
+              "For new records, you must provide: title, description, and creators.\n",
+              "Example:\n",
+              "  creators = list(\n",
+              "    list(firstname = 'Chris', lastname = 'Kypridemos', orcid = '0000-0002-0746-9229')\n",
+              "  )"
+            )
+          }
+
+          if (self$design$sim_prm$logs) {
+            message("Creating new Zenodo record...")
+          }
+
+          private$zenodo_manager$create_new_record(
+            title = title,
+            description = description,
+            creators = creators,
+            version = version %||% "1.0.0"
+          )
+        } else if (!is.null(version)) {
+          # Creating new version of existing record
+          if (self$design$sim_prm$logs) {
+            message("Creating new version of existing record...")
+          }
+          private$zenodo_manager$get_record()
+          private$zenodo_manager$create_new_version(
+            version = version,
+            delete_previous_files = TRUE
+          )
+        }
+
+        # Upload the archives
+        if (self$design$sim_prm$logs) {
+          message("Uploading input archives to Zenodo...")
+        }
+
+        archives <- private$zenodo_manager$sync_inputs(
+          input_base = input_base,
+          directories = directories,
+          action = "upload",
+          version = version
+        )
+
+        if (publish) {
+          if (self$design$sim_prm$logs) {
+            message("Publishing record (this is IRREVERSIBLE)...")
+          }
+          private$zenodo_manager$publish_record()
+        } else {
+          if (self$design$sim_prm$logs) {
+            message(
+              "\nRecord is in DRAFT state.",
+              "\nReview at Zenodo, then call:",
+              "\n  IMPACTncd$zenodo_publish()",
+              "\nto make it publicly available."
+            )
+          }
+        }
+
+        invisible(self)
+      },
+
+      # zenodo_publish ----
+      #' @description Publish the current Zenodo record.
+      #' @return The invisible self for chaining.
+      #' @details CAUTION: Publishing is irreversible. Once published, the DOI is
+      #'   permanent and files cannot be modified (only new versions can be created).
+      zenodo_publish = function() {
+        if (is.null(private$zenodo_manager)) {
+          stop("Not connected to Zenodo. Call zenodo_connect() first.")
+        }
+
+        if (self$design$sim_prm$logs) {
+          message("WARNING: Publishing is IRREVERSIBLE!")
+          message("The DOI will be permanent and files cannot be modified.")
+        }
+
+        private$zenodo_manager$publish_record()
+
+        if (self$design$sim_prm$logs) {
+          message("Record published successfully.")
+          message("DOI: ", private$zenodo_manager$record$pids$doi$identifier)
+        }
+
+        invisible(self)
+      },
+
+      # zenodo_get_versions ----
+      #' @description Get all versions of the Zenodo record.
+      #' @return A data.frame with version information (date, version, DOI).
+      zenodo_get_versions = function() {
+        if (is.null(private$zenodo_manager)) {
+          stop("Not connected to Zenodo. Call zenodo_connect() first.")
+        }
+        private$zenodo_manager$get_versions()
+      },
+
+      # zenodo_create_manifest ----
+      #' @description Create a hash manifest for input files.
+      #' @param input_base Base directory containing inputs.
+      #' @param save If TRUE, save the manifest to disk.
+      #' @return A data.table with file hashes.
+      #' @details Creates a manifest file containing hashes of all input files.
+      #'   This is used to detect changes between local and remote files.
+      zenodo_create_manifest = function(input_base = "./inputs", save = TRUE) {
+        if (is.null(private$zenodo_manager)) {
+          # Create manager without connection for local operations
+          private$zenodo_manager <- ZenodoAssetManager$new(
+            hash_file = "./simulation/zenodo_manifest.csv",
+            logs = self$design$sim_prm$logs
+          )
+        }
+
+        manifest <- private$zenodo_manager$compute_manifest(input_base)
+
+        if (save) {
+          private$zenodo_manager$save_manifest(manifest)
+        }
+
+        manifest
       },
 
       # print ----
@@ -2301,6 +2575,8 @@ Simulation <-
       primary_prevention_scn = NULL,
       # Models a secondary prevention policy scenario
       secondary_prevention_scn = NULL,
+      # Zenodo asset manager for input data
+      zenodo_manager = NULL,
 
       # Helper function to execute database query and write to disk with retry logic
       # execute_db_diskwrite_with_retry ----
@@ -2459,7 +2735,7 @@ Simulation <-
 
                 # Clean up failed file
                 if (file.exists(output_path)) {
-                  try(file.remove(output_path), silent = TRUE)
+                  try(unlink(output_path, recursive = TRUE), silent = TRUE)
                 }
 
                 # Progressive backoff
@@ -2517,7 +2793,7 @@ Simulation <-
                 ))
 
                 if (file.exists(output_path) && file.size(output_path) == 0) {
-                  try(file.remove(output_path), silent = TRUE)
+                  try(unlink(output_path, recursive = TRUE), silent = TRUE)
                 }
 
                 Sys.sleep(0.2 * retry_count)
@@ -3375,8 +3651,9 @@ Simulation <-
         # Process CHD mortality efficiently (parquet dataset)
         chd_ftlt_2016 <- read_parquet_dt(
           "inputs/disease_burden/chd_ftlt",
+          cols = c("year", "age", "sex", "mu2"),
           filter = arrow_in("year", 2016L)
-        )[, .(year, age, sex, mu2)]
+        )
 
         chd_joined <- chd_ftlt_2016[
           obs_pop_2016,
@@ -3433,8 +3710,9 @@ Simulation <-
         # Process stroke mortality efficiently (parquet dataset)
         stroke_ftlt_2016 <- read_parquet_dt(
           "inputs/disease_burden/stroke_ftlt",
+          cols = c("year", "age", "sex", "mu2"),
           filter = arrow_in("year", 2016L)
-        )[, .(year, age, sex, mu2)]
+        )
 
         stroke_joined <- stroke_ftlt_2016[
           obs_pop_2016,
@@ -4360,7 +4638,7 @@ Simulation <-
           if (length(disease_results_scaled_up) > 0) {
             # Remove NULL entries
             disease_results_scaled_up <- disease_results_scaled_up[
-              !sapply(disease_results_scaled_up, is.null)
+              !vapply(disease_results_scaled_up, is.null, FUN.VALUE = logical(1))
             ]
 
             if (length(disease_results_scaled_up) > 0) {
@@ -4408,7 +4686,7 @@ Simulation <-
           if (length(disease_results_esp) > 0) {
             # Remove NULL entries
             disease_results_esp <- disease_results_esp[
-              !sapply(disease_results_esp, is.null)
+              !vapply(disease_results_esp, is.null, FUN.VALUE = logical(1))
             ]
 
             if (length(disease_results_esp) > 0) {
@@ -4829,23 +5107,23 @@ Simulation <-
         strata_cols_sql <- paste(quoted_strata, collapse = ", ")
 
         # Construct CASE WHEN statements for each disease's cases and deaths
-        case_statements <- sapply(disease_names, function(dis) {
+        case_statements <- vapply(disease_names, function(dis) {
           prvl_col <- paste0('"', dis, '_prvl"')
           sprintf(
             'SUM(CASE WHEN %s > 0 THEN wt ELSE 0 END) AS "cases_%s"',
             prvl_col,
             dis
           )
-        })
+        }, FUN.VALUE = character(1))
 
-        death_statements <- sapply(disease_names, function(dis) {
+        death_statements <- vapply(disease_names, function(dis) {
           prvl_col <- paste0('"', dis, '_prvl"')
           sprintf(
             'SUM(CASE WHEN %s > 0 AND all_cause_mrtl > 0 THEN wt ELSE 0 END) AS "deaths_%s"',
             prvl_col,
             dis
           )
-        })
+        }, FUN.VALUE = character(1))
 
         # Combine all select parts
         select_parts_sql <- paste(

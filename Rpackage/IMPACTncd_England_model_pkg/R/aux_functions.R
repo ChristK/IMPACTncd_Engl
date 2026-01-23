@@ -23,6 +23,20 @@
 `:=` = function(...)
   NULL # due to NSE notes in R CMD check
 
+#' Null coalescing operator
+#'
+#' @description Returns the left-hand side if it is not NULL, otherwise returns the right-hand side.
+#' @param x Left-hand side value.
+#' @param y Right-hand side value (default).
+#' @return x if not NULL, otherwise y.
+#' @examples
+#' NULL %||% "default"
+#' "value" %||% "default"
+#' @export
+`%||%` <- function(x, y) {
+  if (is.null(x)) y else x
+}
+
 .onUnload <- function(libpath) {
   library.dynam.unload("IMPACTncdEngland", libpath)
 }

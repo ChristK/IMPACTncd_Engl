@@ -159,7 +159,9 @@ SynthPop <-
             design_
           )
           # logic for the synthpop load
-          files_exist <- sapply(private$filename, file.exists)
+          files_exist <- vapply(
+            private$filename, file.exists, FUN.VALUE = logical(1)
+          )
           if (all(!files_exist)) {
             # No files exist. Create the synthpop and store the file on disk (no
             # parallelism)
@@ -172,7 +174,9 @@ SynthPop <-
             # a generate_synthpop() is still running. So the function waits
             # until the file is created before it proceeds to load it. Note that
             # if this is not the case then the loop is infinite!!!
-            while (!all(sapply(private$filename, file.exists))) {
+            while (!all(vapply(
+              private$filename, file.exists, FUN.VALUE = logical(1)
+            ))) {
               # Sys.sleep(5)
               # if (design_$sim_prm$logs) {
               #   message(
@@ -227,7 +231,7 @@ SynthPop <-
       #' @return The invisible self for chaining.
 
       update_design = function(design_) {
-        if (!inherits(design, "Design")) {
+        if (!inherits(design_, "Design")) {
           stop("Argument design_ needs to be a Design object.")
         }
 
@@ -382,80 +386,43 @@ SynthPop <-
           # NOTE no correction is needed for ICBs
         } else if (scenario_nam != "sc0") {
           # & !"wt" %in% names(self$pop)
-          # For policy scenarios
-          fnam <- file.path(
+          # For policy scenarios - read from partitioned parquet format
+            fnam <- file.path(
             private$design$sim_prm$output_dir,
-            paste0("lifecourse/", self$mc_aggr, "_lifecourse.csv.gz")
+            "lifecourse",
+            paste0("mc=", self$mc_aggr),
+            "scenario=sc0"
           )
-
-          t0 <- fread(
+          t0 <- read_parquet_dt(
             fnam,
-            select = list(
-              integer = c("year", "age", "mc_chunk"),
-              factor = c("scenario", "sex", "LAD17CD"),
-              numeric = "wt"
-            ),
-          )[scenario == "sc0" & mc_chunk == self$mc, ][, scenario := NULL] # wt for sc0
-          # Based on the fact that wt by strata is unique i.e. the following should return 1
-          # sp$pop[, uniqueN(wt), keyby = .(year, age, sex, LAD17CD)][, unique(V1)]
-          # TODO check that this works with kismet = FALSE
-          if (
-            private$design$sim_prm$logs &&
-              t0[, length(unique(wt)), keyby = strata][, uniqueN(V1)] != 1L
-          ) {
-            stop(paste0(
-              "Population weights are not unique by ",
-              paste(strata, collapse = ", "),
-              "."
-            ))
-          }
-          t0 <- t0[, .(wt = first(wt)), keyby = strata]
-
-          fullTable <- CJ(
-            year = private$design$sim_prm$init_year:(private$design$sim_prm$init_year +
-              private$design$sim_prm$sim_horizon_max),
-            age = private$design$sim_prm$ageL:private$design$sim_prm$ageH,
-            sex = c("men", "women"),
-            LAD17CD = unique(t0$LAD17CD)
+            cols = c("pid", "year", "wt", "wt_esp")
           )
-          absorb_dt(fullTable, t0)
-          # Variation of weights is primarily because of age and year. LADs have more or
-          # less similar weights for specificc year/age/sex. Therefore I will fill missing
-          # values with the average accross LADs for specific year/age/sex.
-          if (anyNA(fullTable$wt)) {
-            fillTable <- fullTable[,
-              mean(wt, na.rm = TRUE),
-              keyby = .(year, age, sex)
-            ]
-            absorb_dt(fullTable, fillTable)
-            fullTable[is.na(wt), wt := V1]
-            fullTable[, V1 := NULL]
+          # For some reason pid and year get read incorrectly as character sometimes
+          # TODO check if this is still necessary
+          if (!is.integer(t0$pid)) {
+            t0[, pid := as.integer(pid)]
           }
-          if (anyNA(fullTable$wt)) {
-            fillTable <- fullTable[,
-              mean(wt, na.rm = TRUE),
-              keyby = .(year, age)
-            ]
-            absorb_dt(fullTable, fillTable)
-            fullTable[is.na(wt), wt := V1]
-            fullTable[, V1 := NULL]
+          if (!is.integer(self$pop$pid)) {
+            self$pop[, pid := as.integer(pid)]
           }
-          if (anyNA(fullTable$wt)) {
-            # TODO although this should happen very rarely except when n is too small a
-            # better way to do this might exist
-            fillTable <- fullTable[, mean(wt, na.rm = TRUE), keyby = .(age)]
-            absorb_dt(fullTable, fillTable)
-            fullTable[is.na(wt), wt := V1]
-            fullTable[, V1 := NULL]
+          if (!is.integer(t0$year)) {
+            t0[, year := as.integer(year)]
           }
-          if (anyNA(fullTable$wt)) {
-            # TODO although this should happen very rarely except when n is too small a
-            # better way to do this might exist
-            setnafill(fullTable, "locf", cols = "wt")
+          if (!is.integer(self$pop$year)) {
+            self$pop[, year := as.integer(year)]
           }
 
-          absorb_dt(self$pop, fullTable)
-          self$pop[is.na(all_cause_mrtl), wt := 0]
+          setkeyv(t0, c("pid", "year"))
+          self$pop[
+            t0,
+            on = c("pid", "year"),
+            `:=`(wt = i.wt, wt_esp = i.wt_esp)
+          ]
+
+          # New way of calculating policy scenario population weights
+          setkeyv(self$pop, c("pid", "year"))
+          setnafill(self$pop, type = "locf", cols = c("wt", "wt_esp"))
+          self$pop[is.na(all_cause_mrtl), `:=`(wt = 0, wt_esp = 0)]
         } else {
           stop(
             "The baseline scenario need to be named 'sc0' and simulated first, before any policy scenarios."
@@ -598,13 +565,13 @@ SynthPop <-
         files <-
           list.files(private$synthpop_dir, pat, full.names = TRUE)
         if (length(files) > 0L) {
-          malformed <- sapply(
+          malformed <- vapply(
             files,
             function(x) {
               out <- try(metadata_fst(x), silent = TRUE)
-              out <- inherits(out, "try-error")
-              out
+              inherits(out, "try-error")
             },
+            FUN.VALUE = logical(1),
             USE.NAMES = FALSE
           )
 
@@ -652,7 +619,7 @@ SynthPop <-
         files <-
           list.files(private$synthpop_dir, full.names = TRUE)
         if (length(files) > 0L) {
-          vect_size <- sapply(files, file.size)
+          vect_size <- vapply(files, file.size, FUN.VALUE = numeric(1))
           out$`synthpop folder size (Gb)` <-
             signif(sum(vect_size) / (1024^3), 4) # Gb
 
@@ -975,7 +942,9 @@ SynthPop <-
                       )
 
             # logic for the synthpop load
-            files_exist <- sapply(filename, file.exists)
+            files_exist <- vapply(
+              filename, file.exists, FUN.VALUE = logical(1)
+            )
             if (all(!files_exist)) {
               # No files exist. Create the synthpop and store
               # the file on disk
@@ -989,7 +958,9 @@ SynthPop <-
               # function waits until the file is created before it proceeds to
               # load it. Note that if this is not the case then the loop is
               # infinite!!!
-              while (!all(sapply(filename, file.exists))) {
+              while (!all(vapply(
+                filename, file.exists, FUN.VALUE = logical(1)
+              ))) {
                 Sys.sleep(5)
               }
 
@@ -1280,14 +1251,16 @@ SynthPop <-
       #
       # @details
       # The function checks if the metafile exists and the synthpop file does not exist. If these conditions are met,
-      # it deletes both files using \code{sapply(filename_, file.remove)}.
+      # it deletes both files using \code{vapply(filename_, file.remove, logical(1))}.
       #
       del_incomplete = function(filename_) {
         if (
           file.exists(filename_$metafile) &&
             (!file.exists(filename_$synthpop))
         ) {
-          suppressWarnings(sapply(filename_, file.remove))
+          suppressWarnings(vapply(
+            filename_, file.remove, FUN.VALUE = logical(1)
+          ))
         }
       },
 

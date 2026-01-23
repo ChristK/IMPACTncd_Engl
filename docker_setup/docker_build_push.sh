@@ -22,6 +22,8 @@
 #
 #    Use the '--push' flag to push the Docker image to Docker Hub. Without the flag, the script will only build the image.
 #    Use '--image-name' and '--image-tag' to specify the Docker image name and tag.
+# Example: ./docker_build_push.sh prerequisite.impactncdeng local Dockerfile.prerequisite.IMPACTncdENGL --push
+# Example: ./docker_build_push.sh impactncdeng local Dockerfile.IMPACTncdENGL --push
 
 set -euo pipefail
 

@@ -9,6 +9,7 @@ libglpk-dev=5.0-1build2
 libjpeg-dev=8c-2ubuntu11
 libmpfr-dev=4.2.1-1build1.1
 libpng-dev=1.6.43-5build1
+libsodium-dev=1.0.18-1ubuntu0.24.04.1 
 libssh2-1-dev=1.11.0-4.1build2
 libssl-dev=3.0.13-0ubuntu3.5
 libtbb-dev=2021.11.0-2ubuntu2

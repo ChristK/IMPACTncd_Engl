@@ -1,0 +1,480 @@
+---
+title: "Managing Input Data with Zenodo"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Managing Input Data with Zenodo}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Overview
+
+IMPACTncdEngland includes a robust pipeline for managing input data files via [Zenodo](https://zenodo.org/), a general-purpose open repository. This enables:
+
+- **Reproducibility**: DOI-based versioning ensures you always know which data version was used
+- **Collaboration**: Easy sharing of input datasets across team members
+- **Archiving**: Long-term preservation of input data with persistent identifiers
+- **Version Control**: Track changes to input data over time
+
+The pipeline uses the `zen4R` package to interact with the Zenodo REST API, and supports both **parquet** and **fst** file formats commonly used in the simulation.
+
+## Prerequisites
+
+### 1. Install Required Packages
+
+The following packages are required:
+
+```{r install-packages}
+install.packages(c("zen4R", "zip", "digest"))
+```
+
+### 2. Get a Zenodo Access Token
+
+1. Create a Zenodo account at [zenodo.org](https://zenodo.org/)
+2. Go to [Applications > Personal access tokens](https://zenodo.org/account/settings/applications/tokens/new/)
+3. Create a new token with **deposit:write** and **deposit:actions** scopes
+4. Save the token securely (see below)
+
+### 3. Secure Token Management
+
+Your Zenodo token grants full access to your Zenodo deposits. **Never commit tokens to version control!**
+
+#### Option A: `.Renviron` File (Recommended for Personal Use)
+
+The `.Renviron` file stores environment variables that R loads at startup:
+
+```r
+# Open .Renviron for editing
+usethis::edit_r_environ()
+```
+
+Add this line to the file:
+```
+ZENODO_TOKEN=your_token_here
+```
+
+Save and restart R. The token is now available via `Sys.getenv("ZENODO_TOKEN")`.
+
+**Security considerations:**
+
+- The `.Renviron` file is stored in your home directory (`~/.Renviron`)
+- It is **not** in your project folder, so it won't be accidentally committed to git
+- Set restrictive permissions: `chmod 600 ~/.Renviron` (Linux/macOS)
+
+#### Option B: `keyring` Package (Most Secure)
+ 
+The `keyring` package stores secrets in your operating system's secure credential store
+(Windows Credential Manager, macOS Keychain, or Linux Secret Service):
+
+```r
+# Install keyring
+install.packages("keyring")
+
+# Store the token (you'll be prompted to enter it securely)
+keyring::key_set("zenodo", "token")
+
+# Retrieve the token in your scripts
+token <- keyring::key_get("zenodo", "token")
+IMPACTncd$zenodo_connect(token = token)
+```
+
+**Advantages:**
+
+- Tokens are encrypted by the OS
+- Works across R sessions without configuration files
+- Integrates with system authentication (fingerprint, password, etc.)
+
+#### Option C: Environment Variable in Session (Temporary)
+
+For one-time use, set the token in your current R session only:
+
+```r
+Sys.setenv(ZENODO_TOKEN = "your_token_here")
+```
+
+**Note:** This does not persist after the session ends and requires re-entry each time.
+
+#### Option D: CI/CD Secrets (For Automated Workflows)
+
+For GitHub Actions or other CI/CD systems:
+
+1. Add `ZENODO_TOKEN` as a repository secret in GitHub Settings > Secrets
+2. Reference it in your workflow:
+
+```yaml
+env:
+  ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+```
+
+#### Security Best Practices
+
+| Do | Don't |
+|-----|--------|
+| ✅ Use `.Renviron` or `keyring` | ❌ Hardcode tokens in scripts |
+| ✅ Add `.Renviron` to `.gitignore` if project-local | ❌ Commit tokens to git |
+| ✅ Use separate tokens for sandbox vs production | ❌ Share tokens between users |
+| ✅ Regenerate tokens periodically | ❌ Use tokens with excessive permissions |
+| ✅ Revoke tokens you no longer need | ❌ Log or print tokens in output |
+
+#### Verifying Your Setup
+
+```r
+# Check if token is available (without printing it!)
+if (nzchar(Sys.getenv("ZENODO_TOKEN"))) {
+  message("Zenodo token is configured")
+} else {
+  message("Zenodo token is NOT configured")
+}
+```
+
+## Quick Start
+
+### Downloading Input Data
+
+If you're setting up the model for the first time, download the input data from Zenodo:
+
+```{r download-example}
+library(IMPACTncdEngland)
+
+# Create simulation object
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+
+# Connect to Zenodo and set the concept DOI
+IMPACTncd$zenodo_connect(concept_doi = "10.5281/zenodo.XXXXXXX")
+
+# Check what's available
+IMPACTncd$zenodo_check_inputs()
+
+# Download all missing inputs
+IMPACTncd$zenodo_download_inputs()
+
+# Or download specific directories
+IMPACTncd$zenodo_download_inputs(directories = c("exposure_distributions", "disease_burden"))
+```
+
+### Uploading Input Data
+
+To share your input data via Zenodo:
+        
+```{r upload-example}
+# Connect to Zenodo
+IMPACTncd$zenodo_connect()
+
+# For a NEW record (first time):
+IMPACTncd$zenodo_upload_inputs(
+  title = "IMPACTncd England Input Data",
+  description = "Input data files for the IMPACTncd England microsimulation model, including exposure distributions, disease burden estimates, and mortality data.",
+  creators = list(
+    list(
+      firstname = "Chris",
+      lastname = "Kypridemos", 
+      orcid = "0000-0002-0746-9229"
+    )
+  ),
+  version = "1.0.0"
+)
+
+# For a NEW VERSION of existing record:
+IMPACTncd$zenodo_connect(concept_doi = "10.5281/zenodo.XXXXXXX")
+IMPACTncd$zenodo_upload_inputs(version = "1.1.0")
+
+# When ready, publish the record (IRREVERSIBLE!)
+IMPACTncd$zenodo_publish()
+```
+
+## Detailed Usage
+
+### The ZenodoAssetManager Class
+
+Under the hood, the Simulation class uses a `ZenodoAssetManager` R6 class that handles all Zenodo operations. You can also use it directly for more control:
+
+```{r direct-manager}
+library(IMPACTncdEngland)
+
+# Create manager directly
+zam <- ZenodoAssetManager$new(
+  hash_file = "./simulation/zenodo_manifest.csv",
+  logs = TRUE,
+  sandbox = FALSE  # Set TRUE for testing
+)
+
+# Connect
+zam$connect()
+
+# Set concept DOI
+zam$set_concept_doi("10.5281/zenodo.XXXXXXX")
+
+# Get record info
+record <- zam$get_record()
+print(record)
+
+# List remote files
+files <- zam$list_remote_files()
+print(files)
+
+# Get all versions
+versions <- zam$get_versions()
+print(versions)
+```
+
+### Creating Archives
+
+The pipeline groups files into zip archives by directory for efficient storage.
+Zip format is used for cross-platform compatibility (works on Linux, Windows, and macOS):
+
+```{r create-archives}
+# Create zip archives for all input directories
+archives <- zam$create_input_archives(input_base = "./inputs")
+print(archives)
+
+# Create archive for specific directory
+archive_path <- zam$create_archive(
+  input_dir = "./inputs/exposure_distributions",
+  archive_name = "exposure_distributions"
+)
+```
+
+### Hash Manifests
+
+The pipeline uses file hashes to detect changes:
+
+```{r manifests}
+# Create a manifest of all input files
+manifest <- zam$compute_manifest(
+  input_dir = "./inputs",
+  recursive = TRUE
+)
+print(manifest)
+
+# Save manifest
+zam$save_manifest(manifest)
+
+# Load existing manifest
+old_manifest <- zam$load_manifest()
+
+# Compare manifests
+diff <- zam$compare_manifests(manifest, old_manifest)
+print(diff$modified)  # Files that changed
+print(diff$added)     # New files
+print(diff$removed)   # Deleted files
+```
+
+## Input Directory Structure
+
+The pipeline archives each top-level directory in `./inputs/` separately:
+
+```
+inputs/
+├── exposure_distributions/    → exposure_distributions.zip
+│   ├── bmi/
+│   ├── smoking/
+│   └── ...
+├── disease_burden/            → disease_burden.zip
+│   ├── chd_incd/
+│   ├── stroke_prvl/
+│   └── ...
+├── mortality/                 → mortality.zip
+├── RR/                        → RR.zip
+├── pop_estimates_lsoa/        → pop_estimates_lsoa.zip
+├── pop_projections/           → pop_projections.zip
+└── aux_data/                  → aux_data.zip
+```
+
+Each archive contains the full directory structure, so extraction recreates the correct paths.
+
+## Version Control with DOIs
+
+Zenodo provides two types of DOIs:
+
+1. **Concept DOI**: Resolves to the *latest* version of a record. Use this for sharing.
+2. **Version DOI**: Points to a *specific* version. Use this for reproducibility.
+
+```{r dois}
+# Get both DOIs
+record <- zam$get_record()
+concept_doi <- record$conceptdoi      # e.g., 10.5281/zenodo.1234567
+version_doi <- record$pids$doi$identifier  # e.g., 10.5281/zenodo.1234568
+
+# Get version history
+versions <- zam$get_versions()
+# Returns: date, version, doi for each version
+```
+
+### Best Practices for Versioning
+
+1. **Use semantic versioning**: `MAJOR.MINOR.PATCH`
+   - MAJOR: Breaking changes (e.g., restructured directories)
+   - MINOR: New data added (e.g., new disease)
+   - PATCH: Bug fixes (e.g., corrected values)
+
+2. **Document changes**: Update the record description with changelog
+
+3. **Pin versions in publications**: Always cite the version DOI, not concept DOI
+
+## Testing with Sandbox
+
+For testing, use the Zenodo sandbox environment:
+
+```{r sandbox}
+# Connect to sandbox
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+
+# Or with manager directly
+zam <- ZenodoAssetManager$new(sandbox = TRUE)
+zam$connect(token = Sys.getenv("ZENODO_SANDBOX_TOKEN"))
+```
+
+Note: The sandbox requires a separate account and token from [sandbox.zenodo.org](https://sandbox.zenodo.org/).
+
+## Handling Conflicts
+
+When local files differ from remote:
+
+```{r conflicts}
+# Check status first
+status <- IMPACTncd$zenodo_check_inputs()
+print(status)
+
+# If local directories exist but differ, you can:
+
+# Option 1: Keep local (do nothing)
+IMPACTncd$zenodo_download_inputs(overwrite = FALSE)  # Skips existing
+
+# Option 2: Overwrite with remote
+IMPACTncd$zenodo_download_inputs(overwrite = TRUE)
+
+# Option 3: Backup local and download
+# (Manual process)
+file.rename("./inputs/disease_burden", "./inputs/disease_burden_backup")
+IMPACTncd$zenodo_download_inputs(directories = "disease_burden")
+```
+
+## Cross-Platform Compatibility
+
+The pipeline uses the `zip` format exclusively for cross-platform compatibility:
+
+- **Linux**: Uses the `zip` R package
+- **macOS**: Uses the `zip` R package  
+- **Windows**: Uses the `zip` R package
+- **Docker**: Works in containerized environments
+
+The `zip` package is a pure R implementation that works identically on all platforms,
+ensuring that archives created on one system can be extracted on another.
+
+## Troubleshooting
+
+### Common Issues
+
+**1. "Not connected to Zenodo"**
+```{r}
+# Solution: Call connect() first
+IMPACTncd$zenodo_connect()
+```
+
+**2. "Zenodo token not provided"**
+```{r}
+# Solution: Set environment variable or pass token directly
+Sys.setenv(ZENODO_TOKEN = "your_token")
+IMPACTncd$zenodo_connect()
+# Or
+IMPACTncd$zenodo_connect(token = "your_token")
+```
+
+**3. "Record not found for DOI"**
+```{r}
+# Solution: Verify DOI format (should be the concept DOI)
+# Correct: "10.5281/zenodo.1234567"
+# Wrong:   "https://doi.org/10.5281/zenodo.1234567"
+IMPACTncd$zenodo_set_doi("10.5281/zenodo.1234567")
+```
+
+**4. Upload fails with large files**
+```{r}
+# Zenodo has a 50GB limit per record
+# Consider splitting into multiple records for very large datasets
+```
+
+### Network Issues
+
+For slow connections or large files:
+
+```{r}
+# The zen4R package handles retries automatically
+# For persistent issues, try downloading specific directories
+IMPACTncd$zenodo_download_inputs(
+  directories = c("mortality", "RR")  # Start with smaller directories
+)
+```
+
+## Complete Example Workflow
+
+### Initial Setup (New Project)
+
+```{r workflow-new}
+library(IMPACTncdEngland)
+
+# 1. Create simulation object
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+
+# 2. Connect to Zenodo
+IMPACTncd$zenodo_connect(concept_doi = "10.5281/zenodo.XXXXXXX")
+
+# 3. Check available data
+status <- IMPACTncd$zenodo_check_inputs()
+
+# 4. Download all inputs
+IMPACTncd$zenodo_download_inputs()
+
+# 5. Run simulation
+IMPACTncd$run(mc = 1:10, multicore = TRUE, scenario_nam = "sc0")
+```
+
+### Publishing Updated Data
+
+```{r workflow-update}
+# 1. Connect with existing DOI
+IMPACTncd$zenodo_connect(concept_doi = "10.5281/zenodo.XXXXXXX")
+
+# 2. Create manifest to track changes
+manifest <- IMPACTncd$zenodo_create_manifest()
+
+# 3. Upload new version
+IMPACTncd$zenodo_upload_inputs(version = "1.2.0")
+
+# 4. Review at Zenodo web interface
+# 5. When ready, publish
+IMPACTncd$zenodo_publish()
+```
+
+## API Reference
+
+### Simulation Class Methods
+
+| Method | Description |
+|--------|-------------|
+| `zenodo_connect(token, concept_doi, sandbox)` | Connect to Zenodo API |
+| `zenodo_set_doi(concept_doi)` | Set the concept DOI for the record |
+| `zenodo_check_inputs(input_base, directories)` | Check sync status |
+| `zenodo_download_inputs(input_base, directories, overwrite)` | Download data |
+| `zenodo_upload_inputs(input_base, directories, version, ...)` | Upload data |
+| `zenodo_publish()` | Publish the record (irreversible!) |
+| `zenodo_get_versions()` | Get version history |
+| `zenodo_create_manifest(input_base, save)` | Create file hash manifest |
+
+### ZenodoAssetManager Class
+
+See `?ZenodoAssetManager` for full documentation.
+
+## References
+
+- [Zenodo](https://zenodo.org/) - Open repository
+- [zen4R package](https://github.com/eblondel/zen4R) - R interface to Zenodo API
+- [Zenodo REST API](https://developers.zenodo.org/) - API documentation
