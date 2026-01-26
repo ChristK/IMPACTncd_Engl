@@ -1,3 +1,6 @@
+# remove.packages("IMPACTncdEngland")
+# # Also delete snapshot so installLocalPackageIfChanged() will reinstall
+# unlink("./Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")
 source("./global.R")
 IMPACTncd <- Simulation$new("testing/sim_design_testing.yaml")
 IMPACTncd$del_RR_cache()
