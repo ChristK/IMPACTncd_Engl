@@ -2326,6 +2326,19 @@ Disease <-
       # pressure medication.
       #
       gen_sp_forPARF = function(mc_, ff, design_, diseases_) {
+        # Staggered worker startup to reduce memory pressure during parallel runs.
+        # Only apply to the first batch of workers (iterations 1 to clusternumber).
+        # After the first batch, workers finish at different times and naturally
+        # pick up new iterations in a staggered manner.
+        n_cores <- design_$sim_prm$clusternumber
+        if (n_cores > 1L && mc_ <= n_cores) {
+          stagger_delay_sec <- 2L  # seconds between worker startups
+          worker_position <- mc_ - 1L
+          if (worker_position > 0L) {
+            Sys.sleep(worker_position * stagger_delay_sec)
+          }
+        }
+
         dqRNGkind("pcg64")
         set.seed(private$seed + mc_)
         dqset.seed(private$seed, mc_)

@@ -3,10 +3,150 @@
 \name{ZenodoAssetManager}
 \alias{ZenodoAssetManager}
 \title{R6 Class for managing Zenodo data archives}
+\arguments{
+\item{hash_file}{Path to store/read hash manifest (default: "./simulation/zenodo_manifest.csv").}
+
+\item{archive_dir}{Temporary directory for archives (default: tempdir()).}
+
+\item{logs}{Enable verbose logging.}
+
+\item{token}{Zenodo personal access token. If NULL, reads from ZENODO_TOKEN env var.}
+
+\item{sandbox}{Use Zenodo sandbox for testing.}
+
+\item{concept_doi}{Optional concept DOI.}
+
+\item{archive_name}{Name of the archive file (without extension).}
+
+\item{include_patterns}{File patterns to include (default: all files).}
+
+\item{input_dir}{Directory to scan.}
+
+\item{recursive}{Scan recursively.}
+
+\item{file_patterns}{File patterns to include.}
+
+\item{manifest}{A data.table manifest.}
+
+\item{path}{Path to load (default: self$hash_file).}
+
+\item{local_manifest}{Local file manifest.}
+
+\item{remote_manifest}{Remote file manifest.}
+
+\item{record}{Zenodo record object. If NULL, uses self$record.}
+
+\item{filename}{Name of the file to download.}
+
+\item{archive_path}{Path to the zip archive.}
+
+\item{dest_dir}{Destination directory.}
+
+\item{title}{Record title.}
+
+\item{description}{Record description.}
+
+\item{creators}{List of creators (each with firstname, lastname, optional orcid).}
+
+\item{keywords}{Vector of keywords.}
+
+\item{license}{License identifier (default: "cc-by-4.0").}
+
+\item{delete_previous_files}{Delete files from previous version.}
+
+\item{input_base}{Base input directory.}
+
+\item{directories}{Directories to sync (NULL for all).}
+
+\item{action}{Action to perform: "check", "download", "upload".}
+
+\item{overwrite}{Overwrite local files when downloading.}
+
+\item{version}{Version for new uploads.}
+}
+\value{
+A new \code{ZenodoAssetManager} object.
+
+The invisible self for chaining.
+
+The invisible self for chaining.
+
+The Zenodo record object.
+
+A data.table with file information (name, size, checksum).
+
+Path to the created archive.
+
+A data.table with archive information.
+
+A data.table with file hashes.
+
+The invisible self for chaining.
+
+A data.table manifest or NULL if file doesn't exist.
+
+A list with added, removed, and modified files.
+
+The invisible self for chaining.
+
+Path to downloaded file.
+
+Path to extracted directory.
+
+The created record object.
+
+The new version record object.
+
+The published record object.
+
+A data.frame with version information.
+
+Sync status information.
+}
 \description{
 The \code{ZenodoAssetManager} class provides a complete pipeline for managing
 input data assets via Zenodo. It supports uploading, downloading, hashing,
 and versioning of parquet and other data files.
+
+Create a new ZenodoAssetManager object.
+
+Connect to Zenodo API.
+
+Set the concept DOI for the record.
+
+Get the Zenodo record by concept DOI.
+
+List files in the current Zenodo record.
+
+Create a compressed zip archive from a directory.
+
+Create zip archives for all input directories.
+
+Compute hash manifest for a directory.
+
+Save manifest to file.
+
+Load manifest from file.
+
+Compare two manifests to find differences.
+
+Upload an archive to Zenodo.
+
+Download a file from Zenodo record.
+
+Extract a zip archive to a directory.
+
+Create a new Zenodo record (deposit).
+
+Create a new version of an existing record.
+
+Publish the current record.
+
+Get all versions of the current record.
+
+Synchronize local inputs with Zenodo.
+
+Print summary of the manager.
 }
 \details{
 This class wraps the zen4R package to provide:
@@ -17,19 +157,8 @@ This class wraps the zen4R package to provide:
 \item \strong{Cross-Platform}: Works on Linux, Windows, and macOS
 }
 }
-\section{Zenodo Authentication}{
+\section{Fields}{
 
-Requires a Zenodo personal access token. Set via:
-\itemize{
-\item Environment variable: \code{ZENODO_TOKEN}
-\item Or pass directly to \code{connect()} method
-}
-
-Get your token at: https://zenodo.org/account/settings/applications/tokens/new/
-}
-
-\section{Public fields}{
-\if{html}{\out{<div class="r6-fields">}}
 \describe{
 \item{\code{zenodo}}{A ZenodoManager object from zen4R package.}
 
@@ -44,508 +173,16 @@ Get your token at: https://zenodo.org/account/settings/applications/tokens/new/
 \item{\code{logs}}{Enable verbose logging.}
 
 \item{\code{sandbox}}{Use Zenodo sandbox for testing.}
-}
-\if{html}{\out{</div>}}
-}
-\section{Methods}{
-\subsection{Public methods}{
+}}
+
+\section{Zenodo Authentication}{
+
+Requires a Zenodo personal access token. Set via:
 \itemize{
-\item \href{#method-ZenodoAssetManager-new}{\code{ZenodoAssetManager$new()}}
-\item \href{#method-ZenodoAssetManager-connect}{\code{ZenodoAssetManager$connect()}}
-\item \href{#method-ZenodoAssetManager-set_concept_doi}{\code{ZenodoAssetManager$set_concept_doi()}}
-\item \href{#method-ZenodoAssetManager-get_record}{\code{ZenodoAssetManager$get_record()}}
-\item \href{#method-ZenodoAssetManager-list_remote_files}{\code{ZenodoAssetManager$list_remote_files()}}
-\item \href{#method-ZenodoAssetManager-create_archive}{\code{ZenodoAssetManager$create_archive()}}
-\item \href{#method-ZenodoAssetManager-create_input_archives}{\code{ZenodoAssetManager$create_input_archives()}}
-\item \href{#method-ZenodoAssetManager-compute_manifest}{\code{ZenodoAssetManager$compute_manifest()}}
-\item \href{#method-ZenodoAssetManager-save_manifest}{\code{ZenodoAssetManager$save_manifest()}}
-\item \href{#method-ZenodoAssetManager-load_manifest}{\code{ZenodoAssetManager$load_manifest()}}
-\item \href{#method-ZenodoAssetManager-compare_manifests}{\code{ZenodoAssetManager$compare_manifests()}}
-\item \href{#method-ZenodoAssetManager-upload_archive}{\code{ZenodoAssetManager$upload_archive()}}
-\item \href{#method-ZenodoAssetManager-download_file}{\code{ZenodoAssetManager$download_file()}}
-\item \href{#method-ZenodoAssetManager-extract_archive}{\code{ZenodoAssetManager$extract_archive()}}
-\item \href{#method-ZenodoAssetManager-create_new_record}{\code{ZenodoAssetManager$create_new_record()}}
-\item \href{#method-ZenodoAssetManager-create_new_version}{\code{ZenodoAssetManager$create_new_version()}}
-\item \href{#method-ZenodoAssetManager-publish_record}{\code{ZenodoAssetManager$publish_record()}}
-\item \href{#method-ZenodoAssetManager-get_versions}{\code{ZenodoAssetManager$get_versions()}}
-\item \href{#method-ZenodoAssetManager-sync_inputs}{\code{ZenodoAssetManager$sync_inputs()}}
-\item \href{#method-ZenodoAssetManager-print}{\code{ZenodoAssetManager$print()}}
-\item \href{#method-ZenodoAssetManager-clone}{\code{ZenodoAssetManager$clone()}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-new"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-new}{}}}
-\subsection{Method \code{new()}}{
-Create a new ZenodoAssetManager object.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$new(
-  hash_file = "./simulation/zenodo_manifest.csv",
-  archive_dir = NULL,
-  logs = TRUE,
-  sandbox = FALSE
-)}\if{html}{\out{</div>}}
+\item Environment variable: \code{ZENODO_TOKEN}
+\item Or pass directly to \code{connect()} method
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{hash_file}}{Path to store/read hash manifest (default: "./simulation/zenodo_manifest.csv").}
-
-\item{\code{archive_dir}}{Temporary directory for archives (default: tempdir()).}
-
-\item{\code{logs}}{Enable verbose logging.}
-
-\item{\code{sandbox}}{Use Zenodo sandbox (for testing).}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A new \code{ZenodoAssetManager} object.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-connect"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-connect}{}}}
-\subsection{Method \code{connect()}}{
-Connect to Zenodo API.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$connect(token = NULL, sandbox = NULL)}\if{html}{\out{</div>}}
+Get your token at: https://zenodo.org/account/settings/applications/tokens/new/
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{token}}{Zenodo personal access token. If NULL, reads from ZENODO_TOKEN env var.}
-
-\item{\code{sandbox}}{Use Zenodo sandbox for testing.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-set_concept_doi"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-set_concept_doi}{}}}
-\subsection{Method \code{set_concept_doi()}}{
-Set the concept DOI for the record.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$set_concept_doi(concept_doi)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{concept_doi}}{The concept DOI (shared across all versions of a record).}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-get_record"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-get_record}{}}}
-\subsection{Method \code{get_record()}}{
-Get the Zenodo record by concept DOI.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$get_record(concept_doi = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{concept_doi}}{Optional concept DOI. Uses stored value if not provided.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The Zenodo record object.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-list_remote_files"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-list_remote_files}{}}}
-\subsection{Method \code{list_remote_files()}}{
-List files in the current Zenodo record.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$list_remote_files(concept_doi = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{concept_doi}}{Optional concept DOI.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A data.table with file information (name, size, checksum).
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-create_archive"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-create_archive}{}}}
-\subsection{Method \code{create_archive()}}{
-Create a compressed zip archive from a directory.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$create_archive(
-  input_dir,
-  archive_name = NULL,
-  include_patterns = NULL
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{input_dir}}{Path to the directory to archive.}
-
-\item{\code{archive_name}}{Name of the archive file (without extension).}
-
-\item{\code{include_patterns}}{File patterns to include (default: all files).}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Path to the created archive.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-create_input_archives"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-create_input_archives}{}}}
-\subsection{Method \code{create_input_archives()}}{
-Create zip archives for all input directories.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$create_input_archives(
-  input_base = "./inputs",
-  directories = NULL
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{input_base}}{Base directory containing inputs (default: "./inputs").}
-
-\item{\code{directories}}{Specific subdirectories to archive. If NULL, archives all.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A data.table with archive information.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-compute_manifest"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-compute_manifest}{}}}
-\subsection{Method \code{compute_manifest()}}{
-Compute hash manifest for a directory.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$compute_manifest(
-  input_dir,
-  recursive = TRUE,
-  file_patterns = c("\\\\.parquet$", "\\\\.fst$", "\\\\.csv$", "\\\\.csvy$",
-    "\\\\.yaml$")
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{input_dir}}{Directory to scan.}
-
-\item{\code{recursive}}{Scan recursively.}
-
-\item{\code{file_patterns}}{File patterns to include.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A data.table with file hashes.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-save_manifest"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-save_manifest}{}}}
-\subsection{Method \code{save_manifest()}}{
-Save manifest to file.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$save_manifest(manifest, path = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{manifest}}{A data.table manifest.}
-
-\item{\code{path}}{Path to save (default: self$hash_file).}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-load_manifest"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-load_manifest}{}}}
-\subsection{Method \code{load_manifest()}}{
-Load manifest from file.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$load_manifest(path = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{path}}{Path to load (default: self$hash_file).}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A data.table manifest or NULL if file doesn't exist.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-compare_manifests"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-compare_manifests}{}}}
-\subsection{Method \code{compare_manifests()}}{
-Compare two manifests to find differences.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$compare_manifests(local_manifest, remote_manifest)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{local_manifest}}{Local file manifest.}
-
-\item{\code{remote_manifest}}{Remote file manifest.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A list with added, removed, and modified files.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-upload_archive"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-upload_archive}{}}}
-\subsection{Method \code{upload_archive()}}{
-Upload an archive to Zenodo.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$upload_archive(archive_path, record = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{archive_path}}{Path to the archive file.}
-
-\item{\code{record}}{Zenodo record object. If NULL, uses self$record.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-download_file"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-download_file}{}}}
-\subsection{Method \code{download_file()}}{
-Download a file from Zenodo record.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$download_file(filename, dest_dir, overwrite = FALSE)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{filename}}{Name of the file to download.}
-
-\item{\code{dest_dir}}{Destination directory.}
-
-\item{\code{overwrite}}{Overwrite existing files.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Path to downloaded file.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-extract_archive"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-extract_archive}{}}}
-\subsection{Method \code{extract_archive()}}{
-Extract a zip archive to a directory.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$extract_archive(archive_path, dest_dir, overwrite = FALSE)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{archive_path}}{Path to the zip archive.}
-
-\item{\code{dest_dir}}{Destination directory.}
-
-\item{\code{overwrite}}{Overwrite existing files.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Path to extracted directory.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-create_new_record"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-create_new_record}{}}}
-\subsection{Method \code{create_new_record()}}{
-Create a new Zenodo record (deposit).
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$create_new_record(
-  title,
-  description,
-  creators,
-  version = "1.0.0",
-  keywords = c("microsimulation", "health", "IMPACTncd"),
-  license = "cc-by-4.0"
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{title}}{Record title.}
-
-\item{\code{description}}{Record description.}
-
-\item{\code{creators}}{List of creators (each with firstname, lastname, optional orcid).}
-
-\item{\code{version}}{Version string.}
-
-\item{\code{keywords}}{Vector of keywords.}
-
-\item{\code{license}}{License identifier (default: "cc-by-4.0").}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The created record object.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-create_new_version"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-create_new_version}{}}}
-\subsection{Method \code{create_new_version()}}{
-Create a new version of an existing record.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$create_new_version(version, delete_previous_files = TRUE)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{version}}{New version string.}
-
-\item{\code{delete_previous_files}}{Delete files from previous version.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The new version record object.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-publish_record"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-publish_record}{}}}
-\subsection{Method \code{publish_record()}}{
-Publish the current record.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$publish_record()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-The published record object.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-get_versions"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-get_versions}{}}}
-\subsection{Method \code{get_versions()}}{
-Get all versions of the current record.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$get_versions()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-A data.frame with version information.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-sync_inputs"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-sync_inputs}{}}}
-\subsection{Method \code{sync_inputs()}}{
-Synchronize local inputs with Zenodo.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$sync_inputs(
-  input_base = "./inputs",
-  directories = NULL,
-  action = c("check", "download", "upload"),
-  overwrite = FALSE,
-  version = NULL
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{input_base}}{Base input directory.}
-
-\item{\code{directories}}{Directories to sync (NULL for all).}
-
-\item{\code{action}}{Action to perform: "check", "download", "upload".}
-
-\item{\code{overwrite}}{Overwrite local files when downloading.}
-
-\item{\code{version}}{Version for new uploads.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Sync status information.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-print"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-print}{}}}
-\subsection{Method \code{print()}}{
-Print summary of the manager.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$print()}\if{html}{\out{</div>}}
-}
-
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-ZenodoAssetManager-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{ZenodoAssetManager$clone(deep = FALSE)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
-}
-}

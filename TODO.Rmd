@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # transition
+- Why ram peaks at the start of the simulation?
 - Fix logic to include exposure files to parf generation when required
 - Fix logic to include synthpop files to parf generation when required
 - make sure qs2 in docker is multithreaded ( R -q -e "install.packages(

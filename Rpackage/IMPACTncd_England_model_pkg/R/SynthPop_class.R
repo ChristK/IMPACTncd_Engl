@@ -926,6 +926,19 @@ SynthPop <-
           .noexport = NULL # c("time_mark")
         ) %dopar%
           {
+          # Staggered worker startup to reduce memory pressure during parallel runs.
+          # Only apply to the first batch of workers (iterations 1 to clusternumber).
+          # After the first batch, workers finish at different times and naturally
+          # pick up new iterations in a staggered manner.
+          n_cores <- private$design$sim_prm$clusternumber
+          if (n_cores > 1L && mc_iter <= n_cores) {
+            stagger_delay_sec <- 2L  # seconds between worker startups
+            worker_position <- mc_iter - 1L
+            if (worker_position > 0L) {
+              Sys.sleep(worker_position * stagger_delay_sec)
+            }
+          }
+
           arrow::set_cpu_count(1L)
           data.table::setDTthreads(
             threads = 1L,
@@ -934,7 +947,7 @@ SynthPop <-
           fst::threads_fst(
             nr_of_threads = 1L,
             reset_after_fork = NULL
-          )            
+          )
           filename <- private$gen_synthpop_filename(
                       mc_iter,
                       private$checksum,

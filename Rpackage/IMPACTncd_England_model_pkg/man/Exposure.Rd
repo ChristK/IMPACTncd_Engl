@@ -3,11 +3,106 @@
 \name{Exposure}
 \alias{Exposure}
 \title{Exposure Variable Generator}
+\arguments{
+\item{name}{Character. Name of the exposure variable (for logging)}
+
+\item{file_name}{Character. Directory name of the partitioned parquet dataset in inputs/exposure_distributions/}
+
+\item{var_name}{Character. Variable name to create in data.table}
+
+\item{rank_var}{Character. Name of rank variable}
+
+\item{distribution}{Character. Distribution type: "ordinal", "continuous", "binary", or "custom"}
+
+\item{qfun}{Character. Quantile function name for continuous distributions}
+
+\item{pfun}{Character. Probability function name (derived from qfun if NULL, e.g., my_qBCPEo -> my_pBCPEo)}
+
+\item{min_value}{Numeric. Minimum value for qmin calculation (e.g., 75 for BMI)}
+
+\item{max_value}{Numeric. Maximum value for qmax calculation (e.g., 250 for BMI)}
+
+\item{qparams}{Character vector. Parameter names for quantile function (auto-detected from parquet if NULL)}
+
+\item{qargs}{List. Additional arguments for quantile function}
+
+\item{thresholds}{Character vector. Threshold names for ordinal distributions (auto-detected from parquet if NULL)}
+
+\item{invert}{Logical. For binary: use (1 - mu) instead of mu}
+
+\item{lower_tail}{Logical. For binary: if TRUE uses rank < threshold, if FALSE uses rank > threshold}
+
+\item{custom_fn}{Function. Custom generation function for complex cases}
+
+\item{offset}{Numeric. Value to add after transform_fn (e.g., -1 to shift 1:8 to 0:7)}
+
+\item{additional_rank_vars}{Character vector. Additional rank vars to remove}
+
+\item{join_fn}{Character. Join function: "lookup_dt" or "absorb_dt"}
+
+\item{base_path}{Character. Base path to exposure distributions directory}
+
+\item{...}{Additional arguments passed to read_parquet_dt()
+(e.g., filter, columns, as_data_table).}
+
+\item{idx}{integer vector. Select rows in pop to generate exposure for (optional)}
+
+\item{design}{Design object. The simulation design}
+
+\item{transform_fn}{Function. Function that takes pop as argument and transforms it}
+
+\item{pop}{data.table. The synthetic population data}
+
+\item{levels}{Levels for the factor}
+
+\item{labels}{Labels for the factor}
+
+\item{tbl}{data.table. The distribution table}
+
+\item{force}{Logical. If TRUE, recalculate even if columns exist and are valid}
+
+\item{write_to_disk}{Logical. If TRUE, write updated table back to disk as partitioned parquet}
+
+\item{partition_cols}{Character vector. Column names to use for partitioning when writing}
+
+\item{tolerance}{Numeric. Tolerance for comparing existing vs expected values (default 1e-8)}
+}
+\value{
+A new Exposure object
+
+The object returned by read_parquet_dt().
+
+Self (invisibly) for method chaining
+
+Self (invisibly) for method chaining
+
+Self (invisibly) for method chaining
+
+Self (invisibly) for method chaining
+
+Character vector of column names
+}
 \description{
 An R6 class for generating exposure variables in synthetic populations.
 This class encapsulates the repetitive logic of reading distribution files,
 joining with population data, generating exposure values from quantile functions,
 and managing temporary column cleanup.
+
+Initialize a new Exposure generator
+
+Read the exposure distribution table from disk.
+
+Generate exposure variable in population data.table
+
+Apply post-generation transformation (factorisation, scaling, etc.)
+
+Factorise the generated variable (convenience method)
+
+Add qmin and qmax columns to distribution table if missing or incorrect.
+Validates existing values by sampling 0.01\% of rows and comparing with expected values.
+Can optionally write the updated table back to disk as partitioned parquet.
+
+Get cached column names from the parquet dataset
 }
 \details{
 The \code{Exposure} class standardizes exposure variable generation by:
@@ -21,98 +116,8 @@ The \code{Exposure} class standardizes exposure variable generation by:
 \item Providing consistent logging
 }
 }
-\section{Distribution Types}{
+\section{Fields}{
 
-\describe{
-\item{ordinal}{Discrete ordered categories using threshold comparisons}
-\item{continuous}{Continuous distributions using quantile functions}
-\item{binary}{Binary (0/1) outcomes from probability thresholds}
-\item{custom}{User-defined generation function}
-}
-}
-
-\section{Usage Pattern}{
-
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Ordinal exposure with thresholds
-# Note: thresholds auto-detected from parquet columns not in synthpop
-Exposure$new("income", "income",
-             var_name = "income", rank_var = "rank_income",
-             distribution = "ordinal")$
-  generate(pop, design)$
-  factorise(levels = 1:5, labels = c("1 Highest", "2", "3", "4", "5 Lowest"))
-
-# Continuous exposure with quantile function
-# Note: qparams auto-detected from parquet columns (mu, sigma, nu, tau)
-Exposure$new("BMI", "bmi",
-             var_name = "bmi", rank_var = "rank_bmi",
-             distribution = "continuous",
-             qfun = "my_qBCPEo",
-             qargs = list(n_cpu = 1L))$
-  generate(pop, design)
-
-# Binary exposure
-Exposure$new("ETS", "ets",
-             var_name = "ets", rank_var = "rank_ets",
-             distribution = "binary",
-             invert = TRUE)$  # rank_ets >= (1 - mu)
-  generate(pop, design)
-}\if{html}{\out{</div>}}
-}
-
-\examples{
-
-## ------------------------------------------------
-## Method `Exposure$new`
-## ------------------------------------------------
-
-\dontrun{
-# Ordinal
-income_exp <- Exposure$new("income", "income",
-                           var_name = "income", rank_var = "rank_income",
-                           distribution = "ordinal",
-                           thresholds = c("inc1", "inc2", "inc3", "inc4"))
-# Continuous
-bmi_exp <- Exposure$new("BMI", "bmi",
-                        var_name = "bmi", rank_var = "rank_bmi",
-                        distribution = "continuous",
-                        qfun = "my_qBCPEo",
-                        qparams = c("mu", "sigma", "nu", "tau"))
-}
-
-## ------------------------------------------------
-## Method `Exposure$generate`
-## ------------------------------------------------
-
-\dontrun{
-# Ordinal exposure
-Exposure$new("income", "income",
-             var_name = "income", rank_var = "rank_income",
-             distribution = "ordinal",
-             thresholds = c("inc1", "inc2", "inc3", "inc4"))$
-  generate(pop, design)
-
-# Continuous exposure
-Exposure$new("BMI", "bmi",
-             var_name = "bmi", rank_var = "rank_bmi",
-             distribution = "continuous",
-             qfun = "my_qBCPEo",
-             qparams = c("mu", "sigma", "nu", "tau"))$
-  generate(pop, design)
-}
-
-## ------------------------------------------------
-## Method `Exposure$transform`
-## ------------------------------------------------
-
-\dontrun{
-Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
-    p[, income := factor(income, levels = 1:5)]
-  })
-}
-}
-\section{Public fields}{
-\if{html}{\out{<div class="r6-fields">}}
 \describe{
 \item{\code{name}}{The name of the exposure variable being generated (for logging)}
 
@@ -159,103 +164,49 @@ Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
 \item{\code{cast_to_int}}{Whether to cast result to integer}
 
 \item{\code{invert_ratio}}{Whether to invert ratio (1/x)}
-}
-\if{html}{\out{</div>}}
-}
-\section{Methods}{
-\subsection{Public methods}{
-\itemize{
-\item \href{#method-Exposure-new}{\code{Exposure$new()}}
-\item \href{#method-Exposure-get_table}{\code{Exposure$get_table()}}
-\item \href{#method-Exposure-generate}{\code{Exposure$generate()}}
-\item \href{#method-Exposure-transform}{\code{Exposure$transform()}}
-\item \href{#method-Exposure-factorise}{\code{Exposure$factorise()}}
-\item \href{#method-Exposure-add_qmin_qmax}{\code{Exposure$add_qmin_qmax()}}
-\item \href{#method-Exposure-get_col_names}{\code{Exposure$get_col_names()}}
-\item \href{#method-Exposure-clone}{\code{Exposure$clone()}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Exposure-new"></a>}}
-\if{latex}{\out{\hypertarget{method-Exposure-new}{}}}
-\subsection{Method \code{new()}}{
-Initialize a new Exposure generator
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$new(
-  name,
-  file_name,
-  var_name = NULL,
-  rank_var = NULL,
-  distribution = c("ordinal", "continuous", "binary", "custom"),
-  qfun = NULL,
-  pfun = NULL,
-  min_value = NULL,
-  max_value = NULL,
-  qparams = NULL,
-  qargs = NULL,
-  thresholds = NULL,
-  invert = FALSE,
-  lower_tail = FALSE,
-  custom_fn = NULL,
-  transform_fn = NULL,
-  offset = NULL,
-  additional_rank_vars = NULL,
-  join_fn = c("lookup_dt", "absorb_dt"),
-  base_path = "./inputs/exposure_distributions/"
-)}\if{html}{\out{</div>}}
-}
+}}
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
+\section{Distribution Types}{
+
 \describe{
-\item{\code{name}}{Character. Name of the exposure variable (for logging)}
-
-\item{\code{file_name}}{Character. Directory name of the partitioned parquet dataset in inputs/exposure_distributions/}
-
-\item{\code{var_name}}{Character. Variable name to create in data.table}
-
-\item{\code{rank_var}}{Character. Name of rank variable}
-
-\item{\code{distribution}}{Character. Distribution type: "ordinal", "continuous", "binary", or "custom"}
-
-\item{\code{qfun}}{Character. Quantile function name for continuous distributions}
-
-\item{\code{pfun}}{Character. Probability function name (derived from qfun if NULL, e.g., my_qBCPEo -> my_pBCPEo)}
-
-\item{\code{min_value}}{Numeric. Minimum value for qmin calculation (e.g., 75 for BMI)}
-
-\item{\code{max_value}}{Numeric. Maximum value for qmax calculation (e.g., 250 for BMI)}
-
-\item{\code{qparams}}{Character vector. Parameter names for quantile function (auto-detected from parquet if NULL)}
-
-\item{\code{qargs}}{List. Additional arguments for quantile function}
-
-\item{\code{thresholds}}{Character vector. Threshold names for ordinal distributions (auto-detected from parquet if NULL)}
-
-\item{\code{invert}}{Logical. For binary: use (1 - mu) instead of mu}
-
-\item{\code{lower_tail}}{Logical. For binary: if TRUE uses rank < threshold, if FALSE uses rank > threshold}
-
-\item{\code{custom_fn}}{Function. Custom generation function for complex cases}
-
-\item{\code{transform_fn}}{Numeric or function. Multiplier or transformation function}
-
-\item{\code{offset}}{Numeric. Value to add after transform_fn (e.g., -1 to shift 1:8 to 0:7)}
-
-\item{\code{additional_rank_vars}}{Character vector. Additional rank vars to remove}
-
-\item{\code{join_fn}}{Character. Join function: "lookup_dt" or "absorb_dt"}
-
-\item{\code{base_path}}{Character. Base path to exposure distributions directory}
+\item{ordinal}{Discrete ordered categories using threshold comparisons}
+\item{continuous}{Continuous distributions using quantile functions}
+\item{binary}{Binary (0/1) outcomes from probability thresholds}
+\item{custom}{User-defined generation function}
 }
-\if{html}{\out{</div>}}
 }
-\subsection{Returns}{
-A new Exposure object
+
+\section{Usage Pattern}{
+
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Ordinal exposure with thresholds
+# Note: thresholds auto-detected from parquet columns not in synthpop
+Exposure$new("income", "income",
+             var_name = "income", rank_var = "rank_income",
+             distribution = "ordinal")$
+  generate(pop, design)$
+  factorise(levels = 1:5, labels = c("1 Highest", "2", "3", "4", "5 Lowest"))
+
+# Continuous exposure with quantile function
+# Note: qparams auto-detected from parquet columns (mu, sigma, nu, tau)
+Exposure$new("BMI", "bmi",
+             var_name = "bmi", rank_var = "rank_bmi",
+             distribution = "continuous",
+             qfun = "my_qBCPEo",
+             qargs = list(n_cpu = 1L))$
+  generate(pop, design)
+
+# Binary exposure
+Exposure$new("ETS", "ets",
+             var_name = "ets", rank_var = "rank_ets",
+             distribution = "binary",
+             invert = TRUE)$  # rank_ets >= (1 - mu)
+  generate(pop, design)
+}\if{html}{\out{</div>}}
 }
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{\dontrun{
+
+\examples{
+\dontrun{
 # Ordinal
 income_exp <- Exposure$new("income", "income",
                            var_name = "income", rank_var = "rank_income",
@@ -268,59 +219,7 @@ bmi_exp <- Exposure$new("BMI", "bmi",
                         qfun = "my_qBCPEo",
                         qparams = c("mu", "sigma", "nu", "tau"))
 }
-}
-\if{html}{\out{</div>}}
-
-}
-
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Exposure-get_table"></a>}}
-\if{latex}{\out{\hypertarget{method-Exposure-get_table}{}}}
-\subsection{Method \code{get_table()}}{
-Read the exposure distribution table from disk.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$get_table(...)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{...}}{Additional arguments passed to read_parquet_dt()
-(e.g., filter, columns, as_data_table).}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-The object returned by read_parquet_dt().
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Exposure-generate"></a>}}
-\if{latex}{\out{\hypertarget{method-Exposure-generate}{}}}
-\subsection{Method \code{generate()}}{
-Generate exposure variable in population data.table
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$generate(pop, design, idx)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{pop}}{data.table. The synthetic population data}
-
-\item{\code{design}}{Design object. The simulation design}
-
-\item{\code{idx}}{integer vector. Select rows in pop to generate exposure for (optional)}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Self (invisibly) for method chaining
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{\dontrun{
+\dontrun{
 # Ordinal exposure
 Exposure$new("income", "income",
              var_name = "income", rank_var = "rank_income",
@@ -336,134 +235,9 @@ Exposure$new("BMI", "bmi",
              qparams = c("mu", "sigma", "nu", "tau"))$
   generate(pop, design)
 }
-}
-\if{html}{\out{</div>}}
-
-}
-
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Exposure-transform"></a>}}
-\if{latex}{\out{\hypertarget{method-Exposure-transform}{}}}
-\subsection{Method \code{transform()}}{
-Apply post-generation transformation (factorisation, scaling, etc.)
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$transform(pop, transform_fn)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{pop}}{data.table. The synthetic population data to transform}
-
-\item{\code{transform_fn}}{Function. Function that takes pop as argument and transforms it}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Self (invisibly) for method chaining
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{\dontrun{
+\dontrun{
 Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
     p[, income := factor(income, levels = 1:5)]
   })
-}
-}
-\if{html}{\out{</div>}}
-
-}
-
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Exposure-factorise"></a>}}
-\if{latex}{\out{\hypertarget{method-Exposure-factorise}{}}}
-\subsection{Method \code{factorise()}}{
-Factorise the generated variable (convenience method)
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$factorise(pop, levels, labels)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{pop}}{data.table. The synthetic population data}
-
-\item{\code{levels}}{Levels for the factor}
-
-\item{\code{labels}}{Labels for the factor}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Self (invisibly) for method chaining
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Exposure-add_qmin_qmax"></a>}}
-\if{latex}{\out{\hypertarget{method-Exposure-add_qmin_qmax}{}}}
-\subsection{Method \code{add_qmin_qmax()}}{
-Add qmin and qmax columns to distribution table if missing or incorrect.
-Validates existing values by sampling 0.01\% of rows and comparing with expected values.
-Can optionally write the updated table back to disk as partitioned parquet.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$add_qmin_qmax(
-  tbl,
-  force = FALSE,
-  write_to_disk = FALSE,
-  partition_cols = "year",
-  tolerance = 1e-08
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{tbl}}{data.table. The distribution table}
-
-\item{\code{force}}{Logical. If TRUE, recalculate even if columns exist and are valid}
-
-\item{\code{write_to_disk}}{Logical. If TRUE, write updated table back to disk as partitioned parquet}
-
-\item{\code{partition_cols}}{Character vector. Column names to use for partitioning when writing}
-
-\item{\code{tolerance}}{Numeric. Tolerance for comparing existing vs expected values (default 1e-8)}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Self (invisibly) for method chaining
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Exposure-get_col_names"></a>}}
-\if{latex}{\out{\hypertarget{method-Exposure-get_col_names}{}}}
-\subsection{Method \code{get_col_names()}}{
-Get cached column names from the parquet dataset
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$get_col_names()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-Character vector of column names
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Exposure-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-Exposure-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Exposure$clone(deep = FALSE)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
 }
 }

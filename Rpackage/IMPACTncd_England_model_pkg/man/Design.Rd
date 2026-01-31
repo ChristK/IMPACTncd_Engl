@@ -3,77 +3,8 @@
 \name{Design}
 \alias{Design}
 \title{R6 Class representing a simulation design}
-\description{
-The \code{Design} class is responsible for managing the configuration and parameters of the simulation.
-It handles the loading of parameters from a YAML file or a list, validates them, and performs
-necessary preprocessing such as topological sorting of diseases based on their dependencies.
-}
-\details{
-The \code{Design} class ensures that the simulation is set up correctly before execution.
-It performs the following key tasks:
-\itemize{
-\item \strong{Parameter Loading:} Reads simulation parameters from a YAML file or a list.
-\item \strong{Validation:} Checks for the existence of required parameters and validates their values (e.g., non-negative numbers).
-\item \strong{Environment Configuration:} Detects if the simulation is running inside a Docker container and adjusts output directories accordingly.
-\item \strong{Dependency Management:} Reorders the list of diseases based on their dependencies (topological sort) to ensure correct initialization order.
-}
-}
-\examples{
-
-## ------------------------------------------------
-## Method `Design$new`
-## ------------------------------------------------
-
-\dontrun{
-design <- Design$new("./validation/design_for_trends_validation.yaml")
-}
-
-## ------------------------------------------------
-## Method `Design$save_to_disk`
-## ------------------------------------------------
-
-design <- Design$new("inputs/sim_design.yaml")
-design$save_to_disk("outputs/saved_sim_design.yaml")
-
-}
-\section{Public fields}{
-\if{html}{\out{<div class="r6-fields">}}
-\describe{
-\item{\code{sim_prm}}{A list containing all the simulation parameters.}
-
-\item{\code{exposures}}{A named list of Exposure objects for generating synthetic population exposures.}
-
-\item{\code{RR}}{A named list of ExposureEffect objects for relative risk effects.}
-
-\item{\code{diseases}}{A named list of Disease objects.}
-}
-\if{html}{\out{</div>}}
-}
-\section{Methods}{
-\subsection{Public methods}{
-\itemize{
-\item \href{#method-Design-new}{\code{Design$new()}}
-\item \href{#method-Design-load_exposure_effects}{\code{Design$load_exposure_effects()}}
-\item \href{#method-Design-load_exposures}{\code{Design$load_exposures()}}
-\item \href{#method-Design-load_diseases}{\code{Design$load_diseases()}}
-\item \href{#method-Design-save_to_disk}{\code{Design$save_to_disk()}}
-\item \href{#method-Design-print}{\code{Design$print()}}
-\item \href{#method-Design-clone}{\code{Design$clone()}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-new"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-new}{}}}
-\subsection{Method \code{new()}}{
-Create a new \code{Design} object.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$new(sim_prm)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{sim_prm}}{Either a path to a YAML configuration file or a list containing the simulation parameters.
+\arguments{
+\item{sim_prm}{Either a path to a YAML configuration file or a list containing the simulation parameters.
 The parameters must include the following keys:
 \itemize{
 \item \code{clusternumber}: Integer. Number of CPU cores/clusters to use for parallel processing.
@@ -110,123 +41,69 @@ The parameters must include the following keys:
 \item \code{strata_for_output}: Character vector. Variables to stratify the output by (e.g., "sex", "age_group").
 \item \code{exposures_for_output}: List. Definitions of risk factor exposures included in the model.
 }}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A new \code{Design} object.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{\dontrun{
-design <- Design$new("./validation/design_for_trends_validation.yaml")
-}
-}
-\if{html}{\out{</div>}}
 
-}
-
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-load_exposure_effects"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-load_exposure_effects}{}}}
-\subsection{Method \code{load_exposure_effects()}}{
-Load exposure effects from RR files
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$load_exposure_effects()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-load_exposures"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-load_exposures}{}}}
-\subsection{Method \code{load_exposures()}}{
-Create Exposure objects from YAML configuration
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$load_exposures()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-The invisible self for chaining.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-load_diseases"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-load_diseases}{}}}
-\subsection{Method \code{load_diseases()}}{
-Create Disease objects from YAML configuration
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$load_diseases()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-The invisible self for chaining.
-Save Simulation Design to Disk
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-save_to_disk"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-save_to_disk}{}}}
-\subsection{Method \code{save_to_disk()}}{
-Serializes the current simulation parameters (\code{sim_prm}) and writes them to a YAML file.
-This can be useful for saving configurations that can later be reloaded or shared.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$save_to_disk(path)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{path}}{A character string specifying the full file path (including filename and extension)
+\item{path}{A character string specifying the full file path (including filename and extension)
 where the simulation design should be saved.}
 }
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
+\value{
+A new \code{Design} object.
+
+The invisible self for chaining.
+
+The invisible self for chaining.
+
+The invisible self for chaining.
+Save Simulation Design to Disk
+
+The \code{Design} object, invisibly.
+
 The \code{Design} object, invisibly.
 }
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{design <- Design$new("inputs/sim_design.yaml")
+\description{
+The \code{Design} class is responsible for managing the configuration and parameters of the simulation.
+It handles the loading of parameters from a YAML file or a list, validates them, and performs
+necessary preprocessing such as topological sorting of diseases based on their dependencies.
+
+Create a new \code{Design} object.
+
+Load exposure effects from RR files
+
+Create Exposure objects from YAML configuration
+
+Create Disease objects from YAML configuration
+
+Serializes the current simulation parameters (\code{sim_prm}) and writes them to a YAML file.
+This can be useful for saving configurations that can later be reloaded or shared.
+
+Print the simulation parameters.
+}
+\details{
+The \code{Design} class ensures that the simulation is set up correctly before execution.
+It performs the following key tasks:
+\itemize{
+\item \strong{Parameter Loading:} Reads simulation parameters from a YAML file or a list.
+\item \strong{Validation:} Checks for the existence of required parameters and validates their values (e.g., non-negative numbers).
+\item \strong{Environment Configuration:} Detects if the simulation is running inside a Docker container and adjusts output directories accordingly.
+\item \strong{Dependency Management:} Reorders the list of diseases based on their dependencies (topological sort) to ensure correct initialization order.
+}
+}
+\section{Fields}{
+
+\describe{
+\item{\code{sim_prm}}{A list containing all the simulation parameters.}
+
+\item{\code{exposures}}{A named list of Exposure objects for generating synthetic population exposures.}
+
+\item{\code{RR}}{A named list of ExposureEffect objects for relative risk effects.}
+
+\item{\code{diseases}}{A named list of Disease objects.}
+}}
+
+\examples{
+\dontrun{
+design <- Design$new("./validation/design_for_trends_validation.yaml")
+}
+design <- Design$new("inputs/sim_design.yaml")
 design$save_to_disk("outputs/saved_sim_design.yaml")
 
-}
-\if{html}{\out{</div>}}
-
-}
-
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-print"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-print}{}}}
-\subsection{Method \code{print()}}{
-Print the simulation parameters.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$print()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-The \code{Design} object, invisibly.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Design-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-Design-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Design$clone(deep = FALSE)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
-}
 }
