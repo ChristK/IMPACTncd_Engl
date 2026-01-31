@@ -49,6 +49,11 @@ Simulation$set("public", "export_tables", function(
     comparator_scenario = "sc0",
     two_agegrps = FALSE
 ) {
+  # Convert full year to short year format used in simulation data (e.g., 2019 -> 19)
+  if (baseline_year_for_change_outputs > 100) {
+    baseline_year_for_change_outputs <- baseline_year_for_change_outputs %% 100L
+  }
+
   tables_subdir <- if (two_agegrps) "tables2agegrps" else "tables"
   tables_dir <- private$output_dir(tables_subdir)
   private$create_new_folder(tables_dir)
@@ -101,7 +106,10 @@ Simulation$set("private", "tbl_smmrs_core", function(
     comparator_scenario,   # for comparison metrics
     comparison_starting_year,
     tables_dir,            # output directory
-    two_agegrps = FALSE
+    two_agegrps = FALSE,
+    qaly_discount_rate = 0,    # annual discount rate for QALYs (%)
+    cost_discount_rate = 0,    # annual discount rate for costs (%)
+    discount_from_year = NULL  # first year from which discounting starts
 ) {
   # String mappings for file paths and column patterns (from process_out_Bradford.R)
   str0 <- c(
@@ -124,8 +132,8 @@ Simulation$set("private", "tbl_smmrs_core", function(
     "mrtl" = "_mrtl$|^popsize$", "mrtl_change" = "_mrtl$|^popsize$",
     "dis_mrtl" = "^nonmodelled_deaths$|^chd_deaths$|^stroke_deaths$|^popsize$",
     "dis_mrtl_change" = "^nonmodelled_deaths$|^chd_deaths$|^stroke_deaths$|^popsize$",
-    "qalys" = "^EQ5D5L$|^HUI3$", "net_qalys" = "^EQ5D5L$|^HUI3$",
-    "costs" = "_costs$", "net_costs" = "_costs$",
+    "qalys" = "^EQ5D5L$", "net_qalys" = "^EQ5D5L$",
+    "costs" = "_cost$|^economic_output$", "net_costs" = "_cost$|^economic_output$",
     "cypp" = "_prvl$", "cpp" = "_incd$", "dpp" = "_mrtl$",
     "pop" = "^popsize$"
   )
@@ -165,10 +173,14 @@ Simulation$set("private", "tbl_smmrs_core", function(
   # Process each strata combination
   lapply(strata, function(x) {
     if (grepl("^qalys$", what)) {
-      # QALYs processing
-      d <- tt[, .("EQ5D5L" = sum(EQ5D5L), "HUI3" = sum(HUI3)), keyby = eval(x)]
+      # QALYs processing (EQ5D5L only - HUI3 not implemented)
+      d <- tt[, .("EQ5D5L" = sum(EQ5D5L)), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "scale", value.name = "QALYs")
       setkeyv(d, c(x[x != "year"], "scale", "year"))
+      # Apply discounting: PV = FV / (1 + r)^(year - discount_from_year)
+      if (qaly_discount_rate > 0 && !is.null(discount_from_year)) {
+        d[, QALYs := QALYs / (1 + qaly_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
+      }
       d[, cumulative := cumsum(QALYs), keyby = c(setdiff(x, "year"), "scale")]
       d <- melt(d, id.vars = c(x, "scale"), variable.name = "type")
       d[, type := fifelse(type == "cumulative", "QALYs_cuml", "QALYs")]
@@ -180,9 +192,13 @@ Simulation$set("private", "tbl_smmrs_core", function(
       setcolorder(d, setdiff(c(x, "scale"), "mc"))
 
     } else if (grepl("^net_qalys$", what)) {
-      # Net QALYs (intervention - baseline)
-      d <- tt[, .("EQ5D5L" = sum(EQ5D5L), "HUI3" = sum(HUI3)), keyby = eval(x)]
+      # Net QALYs (intervention - baseline, EQ5D5L only - HUI3 not implemented)
+      d <- tt[, .("EQ5D5L" = sum(EQ5D5L)), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "scale", value.name = "QALYs")
+      # Apply discounting before calculating net QALYs
+      if (qaly_discount_rate > 0 && !is.null(discount_from_year)) {
+        d[, QALYs := QALYs / (1 + qaly_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
+      }
       d_sc0 <- d[scenario == comparator_scenario & year >= comparison_starting_year][, scenario := NULL]
       d <- d[scenario != comparator_scenario & year >= comparison_starting_year][
         d_sc0, on = c(setdiff(x, "scenario"), "scale"), net_QALYs := QALYs - i.QALYs]
@@ -201,13 +217,17 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
     } else if (grepl("^costs$", what)) {
       # Costs processing
-      d <- tt[, lapply(.SD, sum), .SDcols = patterns("_costs$"), keyby = eval(x)]
+      d <- tt[, lapply(.SD, sum), .SDcols = patterns("_cost$|^economic_output$"), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "costs_type", value.name = "costs")
+      # Apply discounting: PV = FV / (1 + r)^(year - discount_from_year)
+      if (cost_discount_rate > 0 && !is.null(discount_from_year)) {
+        d[, costs := costs / (1 + cost_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
+      }
       d[, cumulative := cumsum(costs), keyby = c(setdiff(x, "year"), "costs_type")]
       d <- melt(d, id.vars = c(x, "costs_type"), variable.name = "type")
       d[type == "cumulative", type := "costs_cuml"]
       setkey(d, "type", "costs_type")
-      d <- d[, safe_fquantile_byid(value, prbl, id = as.character(type), rounding = FALSE),
+      d <- d[, safe_fquantile_byid(value, prbl, id = as.character(type), rounding = TRUE),
              keyby = eval(setdiff(c(x, "costs_type"), "mc"))]
       setnames(d, c(setdiff(c(x, "costs_type"), "mc"), "type", scales::percent(prbl, prefix = str3[[what]])))
       setkeyv(d, c("type", setdiff(c(x, "costs_type"), "mc")))
@@ -215,8 +235,12 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
     } else if (grepl("^net_costs$", what)) {
       # Net costs (intervention - baseline)
-      d <- tt[, lapply(.SD, sum), .SDcols = patterns("_costs$"), keyby = eval(x)]
+      d <- tt[, lapply(.SD, sum), .SDcols = patterns("_cost$|^economic_output$"), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "costs_type", value.name = "value")
+      # Apply discounting before calculating net costs
+      if (cost_discount_rate > 0 && !is.null(discount_from_year)) {
+        d[, value := value / (1 + cost_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
+      }
       d_sc0 <- d[scenario == comparator_scenario & year >= comparison_starting_year][, scenario := NULL]
       d <- d[scenario != comparator_scenario & year >= comparison_starting_year][
         d_sc0, on = c(setdiff(x, "scenario"), "costs_type"), net_costs := value - i.value]
@@ -226,7 +250,7 @@ Simulation$set("private", "tbl_smmrs_core", function(
       d <- melt(d, id.vars = c(x, "costs_type"), variable.name = "type")
       d[type == "cumulative", type := "net_costs_cuml"]
       setkey(d, "type", "costs_type")
-      d <- d[, safe_fquantile_byid(value, prbl, id = as.character(type), rounding = FALSE),
+      d <- d[, safe_fquantile_byid(value, prbl, id = as.character(type), rounding = TRUE),
              keyby = eval(setdiff(c(x, "costs_type"), "mc"))]
       x <- c(x, "costs_type")
       setnames(d, c(setdiff(x, "mc"), "type", scales::percent(prbl, prefix = str3[[what]])))
@@ -443,6 +467,12 @@ Simulation$set("private", "export_main_tables", function(
           rm(t1)
         }
 
+        # Get discount settings from design (with defaults for backwards compatibility)
+        disc <- self$design$sim_prm$discounting
+        qaly_rate <- if (!is.null(disc$qaly_discount_rate)) disc$qaly_discount_rate else 0
+        cost_rate <- if (!is.null(disc$cost_discount_rate)) disc$cost_discount_rate else 0
+        disc_year <- disc$discount_from_year
+
         # Generate tables
         private$tbl_smmrs_core(
           tt = tt,
@@ -454,7 +484,10 @@ Simulation$set("private", "export_main_tables", function(
           comparator_scenario = comparator_scenario,
           comparison_starting_year = baseline_year,
           tables_dir = tables_dir,
-          two_agegrps = two_agegrps
+          two_agegrps = two_agegrps,
+          qaly_discount_rate = qaly_rate,
+          cost_discount_rate = cost_rate,
+          discount_from_year = disc_year
         )
         rm(tt)
       }

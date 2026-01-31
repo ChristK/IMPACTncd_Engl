@@ -640,9 +640,9 @@ Simulation$set("private", "calc_QALYs", function(
 
 
 # calc_costs ----
-# Comprehensive cost calculation including healthcare, social care, informal care,
-# and productivity costs. Based on methodology from Sullivan et al. 2011,
-# Janssen & Szende 2014, and UK-specific cost data.
+# Comprehensive cost and economic output calculation including healthcare, social care,
+# informal care, and economic output (productivity value). Based on methodology from
+# Sullivan et al. 2011, Janssen & Szende 2014, and UK-specific cost data.
 Simulation$set("private", "calc_costs", function(
     duckdb_con,
     mcaggr,
@@ -813,16 +813,17 @@ Simulation$set("private", "calc_costs", function(
   # --- EQ5D calculation (reuses logic from calc_QALYs for consistency) ---
   # Population utility norms by age (Janssen & Szende 2014)
   # NOTE: Age ranges based on original R implementation using (age-1) indexing
+  # Using lc.age to avoid ambiguity with socialcare_age_costs_view.age in JOIN
   utility_pop_norm_expr <- "
     CASE
-      WHEN age <= 17 THEN 1.0
-      WHEN age BETWEEN 18 AND 19 THEN 0.94
-      WHEN age BETWEEN 20 AND 26 THEN 0.922
-      WHEN age BETWEEN 27 AND 36 THEN 0.914
-      WHEN age BETWEEN 37 AND 46 THEN 0.888
-      WHEN age BETWEEN 47 AND 56 THEN 0.854
-      WHEN age BETWEEN 57 AND 66 THEN 0.814
-      WHEN age BETWEEN 67 AND 76 THEN 0.775
+      WHEN lc.age <= 17 THEN 1.0
+      WHEN lc.age BETWEEN 18 AND 19 THEN 0.94
+      WHEN lc.age BETWEEN 20 AND 26 THEN 0.922
+      WHEN lc.age BETWEEN 27 AND 36 THEN 0.914
+      WHEN lc.age BETWEEN 37 AND 46 THEN 0.888
+      WHEN lc.age BETWEEN 47 AND 56 THEN 0.854
+      WHEN lc.age BETWEEN 57 AND 66 THEN 0.814
+      WHEN lc.age BETWEEN 67 AND 76 THEN 0.775
       ELSE 0.706
     END
   "
@@ -945,54 +946,55 @@ Simulation$set("private", "calc_costs", function(
   "
 
   # --- Employment and productivity parameters by age/sex ---
+  # Using lc.age to avoid ambiguity with socialcare_age_costs_view.age in JOIN
   employment_rate_expr <- "
     CASE
-      WHEN sex = 'men' AND age BETWEEN 18 AND 24 THEN 61.1
-      WHEN sex = 'men' AND age BETWEEN 25 AND 34 THEN 88.3
-      WHEN sex = 'men' AND age BETWEEN 35 AND 49 THEN 90.1
-      WHEN sex = 'men' AND age BETWEEN 50 AND 64 THEN 75.3
-      WHEN sex = 'men' AND age BETWEEN 65 AND 70 THEN 15.6
-      WHEN sex = 'women' AND age BETWEEN 18 AND 24 THEN 60.0
-      WHEN sex = 'women' AND age BETWEEN 25 AND 34 THEN 80.5
-      WHEN sex = 'women' AND age BETWEEN 35 AND 49 THEN 81.6
-      WHEN sex = 'women' AND age BETWEEN 50 AND 64 THEN 68.0
-      WHEN sex = 'women' AND age BETWEEN 65 AND 70 THEN 10.3
+      WHEN sex = 'men' AND lc.age BETWEEN 18 AND 24 THEN 61.1
+      WHEN sex = 'men' AND lc.age BETWEEN 25 AND 34 THEN 88.3
+      WHEN sex = 'men' AND lc.age BETWEEN 35 AND 49 THEN 90.1
+      WHEN sex = 'men' AND lc.age BETWEEN 50 AND 64 THEN 75.3
+      WHEN sex = 'men' AND lc.age BETWEEN 65 AND 70 THEN 15.6
+      WHEN sex = 'women' AND lc.age BETWEEN 18 AND 24 THEN 60.0
+      WHEN sex = 'women' AND lc.age BETWEEN 25 AND 34 THEN 80.5
+      WHEN sex = 'women' AND lc.age BETWEEN 35 AND 49 THEN 81.6
+      WHEN sex = 'women' AND lc.age BETWEEN 50 AND 64 THEN 68.0
+      WHEN sex = 'women' AND lc.age BETWEEN 65 AND 70 THEN 10.3
       ELSE 0.0
     END
   "
 
   paid_hrs_week_expr <- "
     CASE
-      WHEN sex = 'men' AND age BETWEEN 18 AND 21 THEN 27.2
-      WHEN sex = 'men' AND age BETWEEN 22 AND 29 THEN 36.5
-      WHEN sex = 'men' AND age BETWEEN 30 AND 39 THEN 37.6
-      WHEN sex = 'men' AND age BETWEEN 40 AND 49 THEN 37.3
-      WHEN sex = 'men' AND age BETWEEN 50 AND 59 THEN 37.2
-      WHEN sex = 'men' AND age >= 60 THEN 33.5
-      WHEN sex = 'women' AND age BETWEEN 18 AND 21 THEN 22.1
-      WHEN sex = 'women' AND age BETWEEN 22 AND 29 THEN 33.1
-      WHEN sex = 'women' AND age BETWEEN 30 AND 39 THEN 31.4
-      WHEN sex = 'women' AND age BETWEEN 40 AND 49 THEN 30.7
-      WHEN sex = 'women' AND age BETWEEN 50 AND 59 THEN 30.2
-      WHEN sex = 'women' AND age >= 60 THEN 25.5
+      WHEN sex = 'men' AND lc.age BETWEEN 18 AND 21 THEN 27.2
+      WHEN sex = 'men' AND lc.age BETWEEN 22 AND 29 THEN 36.5
+      WHEN sex = 'men' AND lc.age BETWEEN 30 AND 39 THEN 37.6
+      WHEN sex = 'men' AND lc.age BETWEEN 40 AND 49 THEN 37.3
+      WHEN sex = 'men' AND lc.age BETWEEN 50 AND 59 THEN 37.2
+      WHEN sex = 'men' AND lc.age >= 60 THEN 33.5
+      WHEN sex = 'women' AND lc.age BETWEEN 18 AND 21 THEN 22.1
+      WHEN sex = 'women' AND lc.age BETWEEN 22 AND 29 THEN 33.1
+      WHEN sex = 'women' AND lc.age BETWEEN 30 AND 39 THEN 31.4
+      WHEN sex = 'women' AND lc.age BETWEEN 40 AND 49 THEN 30.7
+      WHEN sex = 'women' AND lc.age BETWEEN 50 AND 59 THEN 30.2
+      WHEN sex = 'women' AND lc.age >= 60 THEN 25.5
       ELSE 0.0
     END
   "
 
   hrs_pay_expr <- "
     CASE
-      WHEN sex = 'men' AND age BETWEEN 18 AND 21 THEN 12.5
-      WHEN sex = 'men' AND age BETWEEN 22 AND 29 THEN 18.1
-      WHEN sex = 'men' AND age BETWEEN 30 AND 39 THEN 23.6
-      WHEN sex = 'men' AND age BETWEEN 40 AND 49 THEN 26.7
-      WHEN sex = 'men' AND age BETWEEN 50 AND 59 THEN 26.1
-      WHEN sex = 'men' AND age >= 60 THEN 22.5
-      WHEN sex = 'women' AND age BETWEEN 18 AND 21 THEN 12.5
-      WHEN sex = 'women' AND age BETWEEN 22 AND 29 THEN 17.2
-      WHEN sex = 'women' AND age BETWEEN 30 AND 39 THEN 20.8
-      WHEN sex = 'women' AND age BETWEEN 40 AND 49 THEN 22.1
-      WHEN sex = 'women' AND age BETWEEN 50 AND 59 THEN 20.8
-      WHEN sex = 'women' AND age >= 60 THEN 18.0
+      WHEN sex = 'men' AND lc.age BETWEEN 18 AND 21 THEN 12.5
+      WHEN sex = 'men' AND lc.age BETWEEN 22 AND 29 THEN 18.1
+      WHEN sex = 'men' AND lc.age BETWEEN 30 AND 39 THEN 23.6
+      WHEN sex = 'men' AND lc.age BETWEEN 40 AND 49 THEN 26.7
+      WHEN sex = 'men' AND lc.age BETWEEN 50 AND 59 THEN 26.1
+      WHEN sex = 'men' AND lc.age >= 60 THEN 22.5
+      WHEN sex = 'women' AND lc.age BETWEEN 18 AND 21 THEN 12.5
+      WHEN sex = 'women' AND lc.age BETWEEN 22 AND 29 THEN 17.2
+      WHEN sex = 'women' AND lc.age BETWEEN 30 AND 39 THEN 20.8
+      WHEN sex = 'women' AND lc.age BETWEEN 40 AND 49 THEN 22.1
+      WHEN sex = 'women' AND lc.age BETWEEN 50 AND 59 THEN 20.8
+      WHEN sex = 'women' AND lc.age >= 60 THEN 18.0
       ELSE 0.0
     END
   "
@@ -1000,8 +1002,8 @@ Simulation$set("private", "calc_costs", function(
   # Unpaid hours per year (capped at age 70)
   unpaid_hrs_yr_expr <- "
     CASE
-      WHEN sex = 'men' THEN 12.0 * (27.92 + 1.79 * LEAST(age, 70))
-      WHEN sex = 'women' THEN 12.0 * (50.03 + 2.3 * LEAST(age, 70))
+      WHEN sex = 'men' THEN 12.0 * (27.92 + 1.79 * LEAST(lc.age, 70))
+      WHEN sex = 'women' THEN 12.0 * (50.03 + 2.3 * LEAST(lc.age, 70))
       ELSE 0.0
     END
   "
@@ -1122,7 +1124,7 @@ Simulation$set("private", "calc_costs", function(
               )
             )
           END
-        ) / CASE WHEN all_cause_mrtl > 0 THEN 2.0 ELSE 1.0 END AS productivity_cost
+        ) / CASE WHEN all_cause_mrtl > 0 THEN 2.0 ELSE 1.0 END AS economic_output
 
       FROM base_data
     )
@@ -1133,11 +1135,11 @@ Simulation$set("private", "calc_costs", function(
       healthcare_cost,
       socialcare_cost,
       informalcare_cost,
-      productivity_cost,
+      economic_output,
 
-      -- Aggregated costs
-      (socialcare_cost + informalcare_cost + productivity_cost) AS indirect_cost,
-      (healthcare_cost + socialcare_cost + informalcare_cost + productivity_cost) AS total_cost
+      -- Aggregated costs (subtracting economic_output as it represents value produced, not cost)
+      (socialcare_cost + informalcare_cost - economic_output) AS indirect_cost,
+      (healthcare_cost + socialcare_cost + informalcare_cost - economic_output) AS total_cost
 
     FROM costs_calculated;
     ",
@@ -2292,7 +2294,7 @@ Simulation$set("private", "export_costs_summaries", function(
     'SUM(healthcare_cost * wt_esp) AS healthcare_cost',
     'SUM(socialcare_cost * wt_esp) AS socialcare_cost',
     'SUM(informalcare_cost * wt_esp) AS informalcare_cost',
-    'SUM(productivity_cost * wt_esp) AS productivity_cost',
+    'SUM(economic_output * wt_esp) AS economic_output',
     'SUM(indirect_cost * wt_esp) AS indirect_cost',
     'SUM(total_cost * wt_esp) AS total_cost',
     sep = ", "

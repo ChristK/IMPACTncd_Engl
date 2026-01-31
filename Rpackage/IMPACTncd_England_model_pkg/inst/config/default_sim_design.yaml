@@ -43,6 +43,14 @@ uncertainty: # Note that uncertainties are independent
   mortality:
     upper: 0.05 # i.e. mrtl * ( 1 + 0.02)
     lower: -0.05 # i.e. mrtl * ( 1 - 0.02)
+
+# Discounting settings for QALYs and costs
+# Standard UK NICE guidance recommends 3.5% for both
+discounting:
+  qaly_discount_rate: 3.5 # annual discount rate for QALYs (%)
+  cost_discount_rate: 3.5 # annual discount rate for costs (%)
+  discount_from_year: 2019 # the first year from which discounting starts (reference year)
+
 diseases:
 - name: obesity
   friendly_name: obesity

@@ -143,7 +143,8 @@ The invisible self for chaining.
 The invisible self for chaining.
 }
 \description{
-A simulation environment.
+A simulation environment for running microsimulation models
+of chronic disease epidemiology and health economics in England.
 
 Create a new simulation object.
 
@@ -220,7 +221,10 @@ Updates the output path.
 Updates the synthpop path.
 }
 \details{
-To be completed...
+The Simulation class orchestrates the microsimulation, managing
+the synthetic population, disease modules, exposure distributions, and
+policy scenarios. It provides methods for running simulations, calibrating
+disease parameters, and exporting summary statistics including QALYs and costs.
 
 The function splits files larger than 50Mb into chunks of 49Mb
 so they can be tracked by GitHub. The large files are deleted and an
@@ -282,11 +286,107 @@ and added to this class via \code{$set()}:
 Calibrates incidence and case fatality rates. See Simulation_class_calibration.R.
 }
 \item{\code{export_summaries(multicore, type, single_year_of_age)}}{
-Exports simulation summaries. See Simulation_class_summaries.R.
+Exports simulation summaries including prevalence, incidence, mortality,
+life expectancy, QALYs, and costs. See Simulation_class_summaries.R.
 }
 \item{\code{export_tables(baseline_year_for_change_outputs, prbl, comparator_scenario, two_agegrps)}}{
-Exports summary tables. See Simulation_class_tables.R.
+Exports summary tables for policy analysis. See Simulation_class_tables.R.
 }
 }
 }
 
+\section{QALY Calculation}{
+
+QALYs are calculated using EQ-5D-5L utility values based on:
+\itemize{
+\item Janssen & Szende (2014) population utility norms by single year of age
+\url{https://link.springer.com/book/10.1007/978-94-007-7596-1} (Table 3.7)
+\item Sullivan et al. (2011) utility decrements for chronic conditions
+\url{https://doi.org/10.1177/0272989X11401031} (Supplementary Tables 4 & 5)
+}
+
+The EQ-5D-5L utility is computed as:
+\deqn{EQ5D = PopNorm(age) + Income + Education + NCC + Sex + Ethnicity - \sum Diseases}
+
+Components:
+\describe{
+\item{Population norms}{Age-specific baseline utilities (1.0 for ages 0-15,
+decreasing to 0.706 for ages 75+)}
+\item{Income}{Utility adjustment by income quintile (0 to +0.041)}
+\item{Education}{Utility adjustment by education level (0 to +0.007)}
+\item{NCC}{Number of chronic conditions adjustment based on cms_count (clamped 0-10)}
+\item{Sex}{+0.001 for men}
+\item{Ethnicity}{Decrements for non-white ethnicities (-0.00009 to -0.0015)}
+\item{Disease decrements}{27 condition-specific utility decrements including:
+T2DM (-0.071), CHD (-0.067), stroke (-0.106), dementia (-0.217),
+pain (-0.341), and others}
+}
+
+For individuals who die during the year, the QALY is halved. Final values
+are clamped to the range \verb{[0, 1]}.
+
+Required columns in lifecourse data: \code{age}, \code{sex}, \code{income},
+\code{education}, \code{ethnicity}, \code{cms_count}, \code{all_cause_mrtl},
+and disease prevalence columns (e.g., \code{chd_prvl}, \code{stroke_prvl}).
+}
+
+\section{Cost Calculation}{
+
+Costs and economic output are calculated using the following components:
+\describe{
+\item{healthcare_cost}{Direct healthcare costs based on disease prevalence,
+inflation-adjusted from 2019 values. Higher values = more healthcare spending.}
+\item{socialcare_cost}{Formal social care costs by age and disease status.
+Higher values = more social care spending.}
+\item{informalcare_cost}{Costs of unpaid care by family/friends, estimated
+using a two-stage regression model based on health utility and comorbidities.
+Higher values = greater informal care burden.}
+\item{economic_output}{Monetary value of economic production (paid and unpaid work),
+adjusted for health-related productivity based on EQ-5D utility.
+Higher values = more economic production (this is a benefit, not a cost).}
+}
+
+Aggregated metrics (from a societal perspective):
+\itemize{
+\item indirect_cost = socialcare + informalcare - economic_output
+\item total_cost = healthcare + socialcare + informalcare - economic_output
+}
+}
+
+\section{Interpreting Net Costs}{
+
+Net costs are calculated as: intervention scenario minus baseline scenario.
+\describe{
+\item{healthcare_cost, socialcare_cost, informalcare_cost}{
+Negative net value = cost savings (intervention reduces spending).
+Positive net value = additional costs (intervention increases spending).}
+\item{economic_output}{
+Positive net value = productivity gains (intervention increases economic production).
+Negative net value = productivity losses (intervention reduces economic production).}
+\item{indirect_cost, total_cost}{
+Negative net value = net societal benefit (savings exceed any lost production,
+or savings plus productivity gains).
+Positive net value = net societal cost (costs exceed benefits).}
+}
+
+For a beneficial public health intervention, you would typically expect:
+\itemize{
+\item Negative net healthcare/socialcare/informalcare costs (savings)
+\item Positive net economic_output (productivity gains from healthier population)
+\item Negative net total_cost (overall societal benefit)
+}
+}
+
+\references{
+Janssen MF, Szende A, Ramos-Goñi JM (2014). "Data and Methods." In
+\emph{Self-Reported Population Health: An International Perspective based
+on EQ-5D}, Chapter 3. Springer. \doi{10.1007/978-94-007-7596-1}
+
+Sullivan PW, Ghushchyan V (2006). "Preference-Based EQ-5D Index Scores for
+Chronic Conditions in the United States." \emph{Medical Decision Making},
+26(4), 410-420. \doi{10.1177/0272989X06290495}
+
+Sullivan PW, Slejko JF, Sculpher MJ, Ghushchyan V (2011). "Catalogue of
+EQ-5D Scores for the United Kingdom." \emph{Medical Decision Making},
+31(6), 800-804. \doi{10.1177/0272989X11401031}
+}

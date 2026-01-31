@@ -25,8 +25,16 @@ calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population proj
 simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/output/hf_real/test
-synthpop_dir: /mnt/storage_fast/synthpop/hf_real/test
+output_dir: ./outputs
+synthpop_dir: ./synthpop
+
+# Discounting settings for QALYs and costs
+# Standard UK NICE guidance recommends 3.5% for both
+discounting:
+  qaly_discount_rate: 3.5 # annual discount rate for QALYs (%)
+  cost_discount_rate: 3.5 # annual discount rate for costs (%)
+  discount_from_year: 2019 # the first year from which discounting starts (reference year)
+
 
 uncertainty: # Note that uncertainties are independent
   incidence:

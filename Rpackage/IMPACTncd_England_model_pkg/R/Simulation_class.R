@@ -78,31 +78,53 @@
 #' }
 #'
 #' For individuals who die during the year, the QALY is halved. Final values
-#' are clamped to the range [0, 1].
+#' are clamped to the range `[0, 1]`.
 #'
 #' Required columns in lifecourse data: \code{age}, \code{sex}, \code{income},
 #' \code{education}, \code{ethnicity}, \code{cms_count}, \code{all_cause_mrtl},
 #' and disease prevalence columns (e.g., \code{chd_prvl}, \code{stroke_prvl}).
 #'
 #' @section Cost Calculation:
-#' Costs are calculated for CHD and stroke using four cost components:
+#' Costs and economic output are calculated using the following components:
 #' \describe{
-#'   \item{Direct costs}{Healthcare costs by age group and sex, inflation-adjusted
-#'     from 2019 values}
-#'   \item{Productivity costs (prevalence)}{Lost productivity due to morbidity,
-#'     weighted by employment rates}
-#'   \item{Productivity costs (mortality)}{Lost productivity due to premature death,
-#'     weighted by employment rates}
-#'   \item{Informal care costs}{Costs of unpaid care by family/friends, varying
-#'     by age group}
+#'   \item{healthcare_cost}{Direct healthcare costs based on disease prevalence,
+#'     inflation-adjusted from 2019 values. Higher values = more healthcare spending.}
+#'   \item{socialcare_cost}{Formal social care costs by age and disease status.
+#'     Higher values = more social care spending.}
+#'   \item{informalcare_cost}{Costs of unpaid care by family/friends, estimated
+#'     using a two-stage regression model based on health utility and comorbidities.
+#'     Higher values = greater informal care burden.}
+#'   \item{economic_output}{Monetary value of economic production (paid and unpaid work),
+#'     adjusted for health-related productivity based on EQ-5D utility.
+#'     Higher values = more economic production (this is a benefit, not a cost).}
 #' }
 #'
-#' Cost parameters are calibrated to baseline year aggregates and applied
-#' per-capita based on disease status. Costs are aggregated to:
+#' Aggregated metrics (from a societal perspective):
 #' \itemize{
-#'   \item CHD-specific costs (direct, productivity, informal, indirect, total)
-#'   \item Stroke-specific costs (direct, productivity, informal, indirect, total)
-#'   \item CVD combined costs (sum of CHD and stroke)
+#'   \item indirect_cost = socialcare + informalcare - economic_output
+#'   \item total_cost = healthcare + socialcare + informalcare - economic_output
+#' }
+#'
+#' @section Interpreting Net Costs:
+#' Net costs are calculated as: intervention scenario minus baseline scenario.
+#' \describe{
+#'   \item{healthcare_cost, socialcare_cost, informalcare_cost}{
+#'     Negative net value = cost savings (intervention reduces spending).
+#'     Positive net value = additional costs (intervention increases spending).}
+#'   \item{economic_output}{
+#'     Positive net value = productivity gains (intervention increases economic production).
+#'     Negative net value = productivity losses (intervention reduces economic production).}
+#'   \item{indirect_cost, total_cost}{
+#'     Negative net value = net societal benefit (savings exceed any lost production,
+#'     or savings plus productivity gains).
+#'     Positive net value = net societal cost (costs exceed benefits).}
+#' }
+#'
+#' For a beneficial public health intervention, you would typically expect:
+#' \itemize{
+#'   \item Negative net healthcare/socialcare/informalcare costs (savings)
+#'   \item Positive net economic_output (productivity gains from healthier population)
+#'   \item Negative net total_cost (overall societal benefit)
 #' }
 #'
 #' @references

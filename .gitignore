@@ -1,3 +1,8 @@
+# Ignore all hidden files and folders (starting with .)
+.*
+# But keep .gitignore tracked
+!.gitignore
+
 # History files
 .Rhistory
 .Rapp.history
@@ -40,6 +45,7 @@ vignettes/*.pdf
 /outputs/
 /secure_data/
 /past_results/
+/synthpop/
 /inputs/exposure_distributions/AH_2003-19
 DELETEme*
 *.png
