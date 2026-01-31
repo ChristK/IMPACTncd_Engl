@@ -475,40 +475,147 @@ Simulation$set("private", "read_summary_dataset", function(summary_type, standar
 
 
 # calc_QALYs ----
-# Calculate QALYs based on Shiroiwa 2021 paper
+# Calculate QALYs based on Janssen & Szende 2014 (Table 3.7) and
+# Sullivan et al. 2011 (Supplementary Tables 4 & 5)
+# https://link.springer.com/book/10.1007/978-94-007-7596-1
+# https://doi.org/10.1177/0272989X11401031
 Simulation$set("private", "calc_QALYs", function(
     duckdb_con,
     mcaggr,
     input_table_name,
-    output_view_name,
-    include_non_significant = FALSE
+    output_view_name
 ) {
-  eq5d5l_expr <- "
-    0.989
-    + CASE agegrp
-        WHEN '20-24' THEN -0.018 WHEN '25-29' THEN -0.018
-        WHEN '30-34' THEN -0.019 WHEN '35-39' THEN -0.019
-        WHEN '40-44' THEN -0.018 WHEN '45-49' THEN -0.018
-        WHEN '50-54' THEN -0.028 WHEN '55-59' THEN -0.028
-        WHEN '60-64' THEN -0.021 WHEN '65-69' THEN -0.021
-        WHEN '70-74' THEN -0.057 WHEN '75-79' THEN -0.057
-        WHEN '80-84' THEN -0.129 WHEN '85-89' THEN -0.129
-        WHEN '90-94' THEN -0.129 WHEN '95-99' THEN -0.129
-        ELSE 0.0
-      END
-    + CASE WHEN sex = 'women' THEN -0.011 ELSE 0.0 END
-    + CASE WHEN chd_prvl = 0 THEN 0.0 ELSE -0.073 END
-    + CASE WHEN stroke_prvl = 0 THEN 0.0 ELSE -0.265 END
-    + CASE WHEN t2dm_prvl = 0 THEN 0.0 ELSE -0.046 END
+  # Population utility norms by age (from Janssen & Szende 2014)
+  # Ages 0-15: 1.0, 16-17: 0.94, 18-24: 0.922, 25-34: 0.914,
+  # 35-44: 0.888, 45-54: 0.854, 55-64: 0.814, 65-74: 0.775, 75+: 0.706
+  utility_pop_norm_expr <- "
+    CASE
+      WHEN age < 16 THEN 1.0
+      WHEN age BETWEEN 16 AND 17 THEN 0.94
+      WHEN age BETWEEN 18 AND 24 THEN 0.922
+      WHEN age BETWEEN 25 AND 34 THEN 0.914
+      WHEN age BETWEEN 35 AND 44 THEN 0.888
+      WHEN age BETWEEN 45 AND 54 THEN 0.854
+      WHEN age BETWEEN 55 AND 64 THEN 0.814
+      WHEN age BETWEEN 65 AND 74 THEN 0.775
+      ELSE 0.706
+    END
   "
 
-  if (!include_non_significant) {
-    eq5d5l_expr <- paste0(
-      eq5d5l_expr,
-      " + CASE WHEN htn_prvl = 0 THEN 0.0 ELSE -0.005 END",
-      " + CASE WHEN obesity_prvl = 0 THEN 0.0 ELSE -0.034 END"
-    )
-  }
+  # Income utility adjustment (Sullivan et al. 2011)
+  # near poor: 0.0150413, low income: 0.0380083, middle: 0.0396568, high: 0.0408501
+  utility_income_expr <- "
+    CASE income
+      WHEN '1 Lowest' THEN 0.0
+      WHEN '2' THEN 0.0150413
+      WHEN '3' THEN 0.0380083
+      WHEN '4' THEN 0.0396568
+      WHEN '5 Highest' THEN 0.0408501
+      ELSE 0.0
+    END
+  "
+
+  # Education utility adjustment (Sullivan et al. 2011)
+  # high_scl: 0.0028418, other_deg: 0.0056836, bachelor: 0.0060444, ma_phd: 0.0084228
+  utility_education_expr <- "
+    CASE education
+      WHEN 'NVQ4/NVQ5/Degree or equiv' THEN 0.0068372
+      WHEN 'Higher ed below degree' THEN 0.0056836
+      WHEN 'NVQ3/GCE A Level equiv' THEN 0.0028418
+      WHEN 'NVQ2/GCE O Level equiv' THEN 0.0028418
+      WHEN 'NVQ1/CSE other grade equiv' THEN 0.0028418
+      WHEN 'Foreign/other' THEN 0.0056836
+      WHEN 'No qualification' THEN 0.0
+      ELSE 0.0
+    END
+  "
+
+  # Number of chronic conditions adjustment (Sullivan et al. 2011)
+  # Based on cms_count clamped to 0-10
+  utility_ncc_expr <- "
+    CASE LEAST(GREATEST(CAST(cms_count AS INTEGER), 0), 10)
+      WHEN 0 THEN 0.0
+      WHEN 1 THEN 0.0
+      WHEN 2 THEN -0.0528484
+      WHEN 3 THEN -0.0415352
+      WHEN 4 THEN -0.0202969
+      WHEN 5 THEN 0.0083033
+      WHEN 6 THEN 0.0408673
+      WHEN 7 THEN 0.0668729
+      WHEN 8 THEN 0.1158895
+      WHEN 9 THEN 0.1344392
+      WHEN 10 THEN 0.183614
+      ELSE 0.0
+    END
+  "
+
+  # Sex adjustment: +0.0010046 for men
+  utility_sex_expr <- "
+    CASE WHEN sex = 'men' THEN 0.0010046 ELSE 0.0 END
+  "
+
+  # Ethnicity adjustment (Sullivan et al. 2011)
+  # black: -0.0000943, indian: -0.0014681, others: -0.0001887
+  utility_ethnicity_expr <- "
+    CASE
+      WHEN ethnicity = 'white' THEN 0.0
+      WHEN ethnicity IN ('black caribbean', 'black african') THEN -0.0000943
+      WHEN ethnicity = 'indian' THEN -0.0014681
+      WHEN ethnicity IN ('pakistani', 'bangladeshi', 'other asian', 'chinese', 'other') THEN -0.0001887
+      ELSE 0.0
+    END
+  "
+
+  # Disease-specific utility decrements (Sullivan et al. 2011)
+  disease_decrements_expr <- "
+    - CASE WHEN t2dm_prvl > 0 THEN 0.0714 ELSE 0.0 END
+    - CASE WHEN ra_prvl > 0 THEN 0.1568 ELSE 0.0 END
+    - CASE WHEN ckd_prvl > 0 THEN 0.1104 ELSE 0.0 END
+    - CASE WHEN htn_prvl > 0 THEN 0.0460 ELSE 0.0 END
+    - CASE WHEN asthma_prvl > 0 THEN 0.0463 ELSE 0.0 END
+    - CASE WHEN helo_prvl > 0 THEN 0.0218 ELSE 0.0 END
+    - CASE WHEN alcpr_prvl > 0 THEN 0.0315 ELSE 0.0 END
+    - CASE WHEN prostate_ca_prvl > 0 THEN 0.0494 ELSE 0.0 END
+    - CASE WHEN ibs_prvl > 0 THEN 0.0727 ELSE 0.0 END
+    - CASE WHEN copd_prvl > 0 THEN 0.10291 ELSE 0.0 END
+    - CASE WHEN t1dm_prvl > 0 THEN 0.0714 ELSE 0.0 END
+    - CASE WHEN ctd_prvl > 0 THEN 0.0833 ELSE 0.0 END
+    - CASE WHEN dementia_prvl > 0 THEN 0.2166 ELSE 0.0 END
+    - CASE WHEN colorectal_ca_prvl > 0 THEN 0.0674 ELSE 0.0 END
+    - CASE WHEN breast_ca_prvl > 0 THEN 0.0194 ELSE 0.0 END
+    - CASE WHEN lung_ca_prvl > 0 THEN 0.1192 ELSE 0.0 END
+    - CASE WHEN chd_prvl > 0 THEN 0.06713 ELSE 0.0 END
+    - CASE WHEN other_ca_prvl > 0 THEN 0.02356 ELSE 0.0 END
+    - CASE WHEN af_prvl > 0 THEN 0.0384 ELSE 0.0 END
+    - CASE WHEN hf_prvl > 0 THEN 0.1167 ELSE 0.0 END
+    - CASE WHEN pain_prvl > 0 THEN 0.34137 ELSE 0.0 END
+    - CASE WHEN stroke_prvl > 0 THEN 0.10582 ELSE 0.0 END
+    - CASE WHEN epilepsy_prvl > 0 THEN 0.0399 ELSE 0.0 END
+    - CASE WHEN andep_prvl > 0 THEN 0.10509 ELSE 0.0 END
+    - CASE WHEN psychosis_prvl > 0 THEN 0.11415 ELSE 0.0 END
+    - CASE WHEN constipation_prvl > 0 THEN 0.104 ELSE 0.0 END
+    - CASE WHEN obesity_prvl > 0 THEN 0.0709 ELSE 0.0 END
+  "
+
+  # Combine all components into the full EQ5D expression
+  # The raw EQ5D value before death adjustment and clamping
+  raw_eq5d_expr <- sprintf(
+    "(%s) + (%s) + (%s) + (%s) + (%s) + (%s) %s",
+    utility_pop_norm_expr,
+    utility_income_expr,
+    utility_education_expr,
+    utility_ncc_expr,
+    utility_sex_expr,
+    utility_ethnicity_expr,
+    disease_decrements_expr
+  )
+
+  # Apply half EQ5D for year of death and clamp to [0, 1]
+  # Divide by 2 if dead (all_cause_mrtl > 0), divide by 1 if alive
+  eq5d5l_expr <- sprintf(
+    "LEAST(GREATEST((%s) / (CASE WHEN all_cause_mrtl > 0 THEN 2.0 ELSE 1.0 END), 0.0), 1.0)",
+    raw_eq5d_expr
+  )
 
   create_view_sql <- sprintf(
     "
@@ -2075,8 +2182,7 @@ Simulation$set("private", "export_qalys_summaries", function(
     duckdb_con = duckdb_con,
     mcaggr = mcaggr,
     input_table_name = lc_table_name,
-    output_view_name = qaly_view_name,
-    include_non_significant = FALSE
+    output_view_name = qaly_view_name
   )
 
   # Prepare strata columns for SQL query (quoted)
