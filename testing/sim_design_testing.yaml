@@ -700,6 +700,8 @@ cols_for_output:
 - sex
 - dimd
 - ethnicity
+- income # needed for qaly estimation
+- education # needed for qaly estimation
 - sha
 - LAD17CD
 - wt
