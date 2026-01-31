@@ -26,8 +26,13 @@
 `[.Simulation` <- function(x, ...) x$output[...]
 
 #' R6 Class representing a simulation environment
-#' @description A simulation environment.
-#' @details To be completed...
+#' @description A simulation environment for running microsimulation models
+#'   of chronic disease epidemiology and health economics in England.
+#'
+#' @details The Simulation class orchestrates the microsimulation, managing
+#'   the synthetic population, disease modules, exposure distributions, and
+#'   policy scenarios. It provides methods for running simulations, calibrating
+#'   disease parameters, and exporting summary statistics including QALYs and costs.
 #'
 #' @section Methods defined in satellite files:
 #' The following public methods are implemented in separate files for maintainability
@@ -38,12 +43,81 @@
 #'     Calibrates incidence and case fatality rates. See Simulation_class_calibration.R.
 #'   }
 #'   \item{\code{export_summaries(multicore, type, single_year_of_age)}}{
-#'     Exports simulation summaries. See Simulation_class_summaries.R.
+#'     Exports simulation summaries including prevalence, incidence, mortality,
+#'     life expectancy, QALYs, and costs. See Simulation_class_summaries.R.
 #'   }
 #'   \item{\code{export_tables(baseline_year_for_change_outputs, prbl, comparator_scenario, two_agegrps)}}{
-#'     Exports summary tables. See Simulation_class_tables.R.
+#'     Exports summary tables for policy analysis. See Simulation_class_tables.R.
 #'   }
 #' }
+#'
+#' @section QALY Calculation:
+#' QALYs are calculated using EQ-5D-5L utility values based on:
+#' \itemize{
+#'   \item Janssen & Szende (2014) population utility norms by single year of age
+#'     \url{https://link.springer.com/book/10.1007/978-94-007-7596-1} (Table 3.7)
+#'   \item Sullivan et al. (2011) utility decrements for chronic conditions
+#'     \url{https://doi.org/10.1177/0272989X11401031} (Supplementary Tables 4 & 5)
+#' }
+#'
+#' The EQ-5D-5L utility is computed as:
+#' \deqn{EQ5D = PopNorm(age) + Income + Education + NCC + Sex + Ethnicity - \sum Diseases}
+#'
+#' Components:
+#' \describe{
+#'   \item{Population norms}{Age-specific baseline utilities (1.0 for ages 0-15,
+#'     decreasing to 0.706 for ages 75+)}
+#'   \item{Income}{Utility adjustment by income quintile (0 to +0.041)}
+#'   \item{Education}{Utility adjustment by education level (0 to +0.007)}
+#'   \item{NCC}{Number of chronic conditions adjustment based on cms_count (clamped 0-10)}
+#'   \item{Sex}{+0.001 for men}
+#'   \item{Ethnicity}{Decrements for non-white ethnicities (-0.00009 to -0.0015)}
+#'   \item{Disease decrements}{27 condition-specific utility decrements including:
+#'     T2DM (-0.071), CHD (-0.067), stroke (-0.106), dementia (-0.217),
+#'     pain (-0.341), and others}
+#' }
+#'
+#' For individuals who die during the year, the QALY is halved. Final values
+#' are clamped to the range [0, 1].
+#'
+#' Required columns in lifecourse data: \code{age}, \code{sex}, \code{income},
+#' \code{education}, \code{ethnicity}, \code{cms_count}, \code{all_cause_mrtl},
+#' and disease prevalence columns (e.g., \code{chd_prvl}, \code{stroke_prvl}).
+#'
+#' @section Cost Calculation:
+#' Costs are calculated for CHD and stroke using four cost components:
+#' \describe{
+#'   \item{Direct costs}{Healthcare costs by age group and sex, inflation-adjusted
+#'     from 2019 values}
+#'   \item{Productivity costs (prevalence)}{Lost productivity due to morbidity,
+#'     weighted by employment rates}
+#'   \item{Productivity costs (mortality)}{Lost productivity due to premature death,
+#'     weighted by employment rates}
+#'   \item{Informal care costs}{Costs of unpaid care by family/friends, varying
+#'     by age group}
+#' }
+#'
+#' Cost parameters are calibrated to baseline year aggregates and applied
+#' per-capita based on disease status. Costs are aggregated to:
+#' \itemize{
+#'   \item CHD-specific costs (direct, productivity, informal, indirect, total)
+#'   \item Stroke-specific costs (direct, productivity, informal, indirect, total)
+#'   \item CVD combined costs (sum of CHD and stroke)
+#' }
+#'
+#' @references
+#' Janssen MF, Szende A, Ramos-Goñi JM (2014). "Data and Methods." In
+#'   \emph{Self-Reported Population Health: An International Perspective based
+#'   on EQ-5D}, Chapter 3. Springer. \doi{10.1007/978-94-007-7596-1}
+#'
+#' Sullivan PW, Ghushchyan V (2006). "Preference-Based EQ-5D Index Scores for
+#'   Chronic Conditions in the United States." \emph{Medical Decision Making},
+#'   26(4), 410-420. \doi{10.1177/0272989X06290495}
+#'
+#' Sullivan PW, Slejko JF, Sculpher MJ, Ghushchyan V (2011). "Catalogue of
+#'   EQ-5D Scores for the United Kingdom." \emph{Medical Decision Making},
+#'   31(6), 800-804. \doi{10.1177/0272989X11401031}
+#'
 #' @export
 Simulation <-
   R6::R6Class(
