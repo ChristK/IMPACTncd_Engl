@@ -707,11 +707,16 @@ Simulation$set("private", "export_main_tables", function(
       # Load dataset once for this source/population combination
       tt_base <- private$read_summary_dataset(source_name, pop_key)
       if (is.null(tt_base)) next
+      # Convert year from short format (19) to full format (2019)
+      tt_base[, year := year + 2000L]
 
       # Also load prvl for ftlt metrics (case fatality denominator)
       prvl_for_ftlt <- NULL
       if (source_name == "dis_mrtl") {
         prvl_for_ftlt <- private$read_summary_dataset("prvl", pop_key)
+        if (!is.null(prvl_for_ftlt)) {
+          prvl_for_ftlt[, year := year + 2000L]
+        }
       }
 
       # Process each metric that uses this source
@@ -848,6 +853,11 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
   pp_scaled <- private$read_summary_dataset("prvl", "scaled_up")
   tt_esp <- private$read_summary_dataset("all_cause_mrtl_by_dis", "esp")
 
+  # Convert year from short format (19) to full format (2019)
+  if (!is.null(tt_scaled)) tt_scaled[, year := year + 2000L]
+  if (!is.null(pp_scaled)) pp_scaled[, year := year + 2000L]
+  if (!is.null(tt_esp)) tt_esp[, year := year + 2000L]
+
   # ---- Non-standardised with disease denominator ----
   if (!is.null(tt_scaled)) {
     strata_configs <- make_strata_configs(strata_ons, standardised = FALSE)
@@ -944,6 +954,9 @@ Simulation$set("private", "export_disease_characteristics_tables", function(
 
   tt <- private$read_summary_dataset("dis_characteristics", "scaled_up")
   if (is.null(tt)) return(invisible(NULL))
+
+  # Convert year from short format (19) to full format (2019)
+  tt[, year := year + 2000L]
 
   # Type conversion if needed
   if ("mean_cms_count_cms1st_cont" %in% names(tt)) {
@@ -1071,6 +1084,8 @@ Simulation$set("private", "export_xps_tables", function(
   xps_path <- file.path(output_dir, "xps", "xps20")
   if (dir.exists(xps_path)) {
     xps_tab <- CKutils::read_parquet_dt(xps_path)
+    # Convert year from short format (19) to full format (2019)
+    xps_tab[, year := year + 2000L]
 
     # Build strata configs based on available columns
     available_vars <- names(xps_tab)
@@ -1099,6 +1114,8 @@ Simulation$set("private", "export_xps_tables", function(
   xps_path <- file.path(output_dir, "xps", "xps5")
   if (dir.exists(xps_path)) {
     xps_tab <- CKutils::read_parquet_dt(xps_path)
+    # Convert year from short format (19) to full format (2019)
+    xps_tab[, year := year + 2000L]
 
     # Build strata configs based on available columns
     available_vars <- names(xps_tab)
