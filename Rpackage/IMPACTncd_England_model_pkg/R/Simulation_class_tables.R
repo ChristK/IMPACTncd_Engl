@@ -43,16 +43,58 @@ safe_fquantile_byid <- function(x, q, id, rounding = FALSE) {
 # export_tables ----
 # Exports summary tables from simulation summaries.
 # See main class documentation in Simulation_class.R for details.
+#
+# @param strata A named list specifying stratification levels for different table types.
+#   If NULL (default), uses built-in defaults matching process_out_for_NotinghamLA.R.
+#   The list can contain:
+#   - ons: List of character vectors for non-standardised main tables
+#   - esp: List of character vectors for standardised (ESP) main tables
+#   - mrtl_ons: List of character vectors for non-standardised all-cause mortality tables
+#   - mrtl_esp: List of character vectors for standardised all-cause mortality tables
+#   - disease_char: List of character vectors for disease characteristics tables
+#   - xps_ons: List of character vectors for non-standardised exposure tables
+#   - xps_esp: List of character vectors for standardised exposure tables
+#
+#   Valid stratification variables:
+#   - year: Simulation year (always required)
+#   - sex: Sex (men/women)
+#   - agegrp: Age groups (5-year bands)
+#   - dimd: IMD deciles (10 levels: "1 most deprived" to "10 least deprived")
+#   - agegrp20: 20-year age groups (used in xps tables)
+#   - qimd: IMD quintiles (5 levels, used in xps tables)
+#
+# @examples
+# # Use default strata (includes dimd and qimd stratification)
+# sim$export_tables()
+#
+# # Custom strata - minimal outputs
+# sim$export_tables(strata = list(
+#   ons = list("year", c("year", "sex")),
+#   esp = list("year")
+# ))
+#
+# # Full stratification with dimd
+# sim$export_tables(strata = list(
+#   ons = list("year", c("year", "sex"), c("year", "dimd"),
+#              c("year", "agegrp"), c("year", "agegrp", "sex"),
+#              c("year", "agegrp", "sex", "dimd")),
+#   esp = list("year", c("year", "sex"), c("year", "dimd"),
+#              c("year", "sex", "dimd"))
+# ))
 Simulation$set("public", "export_tables", function(
     baseline_year_for_change_outputs = 2019L,
     prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),
     comparator_scenario = "sc0",
-    two_agegrps = FALSE
+    two_agegrps = FALSE,
+    strata = NULL
 ) {
   # Convert full year to short year format used in simulation data (e.g., 2019 -> 19)
   if (baseline_year_for_change_outputs > 100) {
     baseline_year_for_change_outputs <- baseline_year_for_change_outputs %% 100L
   }
+
+  # Build strata configuration (merge user-provided with defaults)
+  strata_cfg <- private$build_strata_config(strata, two_agegrps)
 
   tables_subdir <- if (two_agegrps) "tables2agegrps" else "tables"
   tables_dir <- private$output_dir(tables_subdir)
@@ -64,32 +106,160 @@ Simulation$set("public", "export_tables", function(
     output_dir = private$output_dir(),
     tables_dir = tables_dir,
     comparator_scenario = comparator_scenario,
-    two_agegrps = two_agegrps
+    two_agegrps = two_agegrps,
+    strata_ons = strata_cfg$ons,
+    strata_esp = strata_cfg$esp
   )
   gc(verbose = FALSE)  # Cleanup after main tables
 
   private$export_all_cause_mrtl_tables(
     prbl = prbl,
     summaries_dir = private$output_dir("summaries"),
-    tables_dir = tables_dir
+    tables_dir = tables_dir,
+    strata_ons = strata_cfg$mrtl_ons,
+    strata_esp = strata_cfg$mrtl_esp
   )
   gc(verbose = FALSE)  # Cleanup after mortality tables
 
   private$export_disease_characteristics_tables(
     prbl = prbl,
     summaries_dir = private$output_dir("summaries"),
-    tables_dir = tables_dir
+    tables_dir = tables_dir,
+    strata = strata_cfg$disease_char
   )
   gc(verbose = FALSE)  # Cleanup after disease tables
 
   private$export_xps_tables(
     prbl = prbl,
     output_dir = private$output_dir(),
-    tables_dir = tables_dir
+    tables_dir = tables_dir,
+    strata_ons = strata_cfg$xps_ons,
+    strata_esp = strata_cfg$xps_esp
   )
   gc(verbose = FALSE)  # Final cleanup
 
   invisible(self)
+})
+
+
+# build_strata_config ----
+# Builds the strata configuration by merging user-provided strata with defaults.
+# Defaults match the stratification from process_out_for_NotinghamLA.R
+Simulation$set("private", "build_strata_config", function(user_strata, two_agegrps = FALSE) {
+  # Default strata configurations (from process_out_for_NotinghamLA.R)
+  if (two_agegrps) {
+    # For two_agegrps mode, only include agegrp-based strata
+    defaults <- list(
+      ons = list(
+        c("year", "agegrp"),
+        c("year", "agegrp", "sex"),
+        c("year", "agegrp", "sex", "dimd")
+      ),
+      esp = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
+      mrtl_ons = list(
+        c("year", "agegrp"),
+        c("year", "agegrp", "sex"),
+        c("year", "agegrp", "sex", "dimd")
+      ),
+      mrtl_esp = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
+      disease_char = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
+      xps_ons = list(
+        "year",
+        c("year", "agegrp20"),
+        c("year", "sex"),
+        c("year", "qimd"),
+        c("year", "agegrp20", "sex"),
+        c("year", "agegrp20", "sex", "qimd")
+      ),
+      xps_esp = list(
+        "year",
+        c("year", "sex"),
+        c("year", "qimd"),
+        c("year", "sex", "qimd")
+      )
+    )
+  } else {
+    # Standard strata configurations
+    defaults <- list(
+      ons = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "agegrp"),
+        c("year", "agegrp", "sex"),
+        c("year", "agegrp", "sex", "dimd")
+      ),
+      esp = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
+      mrtl_ons = list(
+        "year",
+        c("year", "sex"),
+        c("year", "agegrp"),
+        c("year", "agegrp", "sex"),
+        c("year", "agegrp", "sex", "dimd")
+      ),
+      mrtl_esp = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
+      disease_char = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
+      xps_ons = list(
+        "year",
+        c("year", "agegrp20"),
+        c("year", "sex"),
+        c("year", "qimd"),
+        c("year", "agegrp20", "sex"),
+        c("year", "agegrp20", "sex", "qimd")
+      ),
+      xps_esp = list(
+        "year",
+        c("year", "sex"),
+        c("year", "qimd"),
+        c("year", "sex", "qimd")
+      )
+    )
+  }
+
+  # If no user strata provided, return defaults
+  if (is.null(user_strata)) {
+    return(defaults)
+  }
+
+  # Merge user-provided strata with defaults (user overrides defaults)
+  result <- defaults
+  for (name in names(user_strata)) {
+    if (name %in% names(defaults)) {
+      result[[name]] <- user_strata[[name]]
+    }
+  }
+
+  return(result)
 })
 
 
@@ -356,7 +526,9 @@ Simulation$set("private", "export_main_tables", function(
     output_dir,
     tables_dir,
     comparator_scenario = "sc0",
-    two_agegrps = FALSE
+    two_agegrps = FALSE,
+    strata_ons = NULL,
+    strata_esp = NULL
 ) {
   if (self$design$sim_prm$logs) {
     message("Generating main summary tables...")
@@ -410,16 +582,11 @@ Simulation$set("private", "export_main_tables", function(
         if (what == "pop" && pop_name == "esp") next
         if (grepl("_age", what) && pop_name == "esp") next
 
-        # Define strata based on population
+        # Use configurable strata (already filtered by two_agegrps in build_strata_config)
         if (pop_name == "ons") {
-          if (two_agegrps) {
-            strata <- list(c("year", "agegrp"), c("year", "agegrp", "sex"))
-          } else {
-            strata <- list("year", c("year", "sex"), c("year", "agegrp"),
-                           c("year", "agegrp", "sex"))
-          }
+          strata <- strata_ons
         } else {
-          strata <- list("year", c("year", "sex"))
+          strata <- strata_esp
         }
 
         if (self$design$sim_prm$logs) {
@@ -508,9 +675,34 @@ Simulation$set("private", "export_main_tables", function(
 # export_all_cause_mrtl_tables ----
 # Generate all-cause mortality by disease tables
 # Memory-optimized: loads datasets once and reuses them
-Simulation$set("private", "export_all_cause_mrtl_tables", function(prbl, summaries_dir, tables_dir) {
+Simulation$set("private", "export_all_cause_mrtl_tables", function(
+    prbl,
+    summaries_dir,
+    tables_dir,
+    strata_ons = NULL,
+    strata_esp = NULL
+) {
   if (self$design$sim_prm$logs) {
     message("Generating all-cause mortality by disease tables...")
+  }
+
+  # Helper function to convert user strata to internal format with mc and scenario
+  make_strata_configs <- function(strata_list, standardised = FALSE) {
+    lapply(strata_list, function(s) {
+      outstrata <- c("mc", s, "scenario")
+      suffix <- paste(s, collapse = "-")
+      # Map agegrp to agegroup in suffix for backwards compatibility
+      suffix <- gsub("agegrp", "agegroup", suffix)
+      if (standardised) {
+        # Determine what was standardised by (variables NOT in strata)
+        possible_vars <- c("age", "sex", "dimd")
+        standardised_vars <- setdiff(possible_vars, s)
+        std_suffix <- paste(standardised_vars, collapse = "-")
+        list(strata = outstrata, suffix = suffix, std = std_suffix)
+      } else {
+        list(strata = outstrata, suffix = suffix)
+      }
+    })
   }
 
   # Load datasets once (avoid duplicate reads)
@@ -520,11 +712,7 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(prbl, summari
 
   # ---- Non-standardised with disease denominator ----
   if (!is.null(tt_scaled)) {
-    strata_configs <- list(
-      list(strata = c("mc", "year", "scenario"), suffix = "year"),
-      list(strata = c("mc", "year", "sex", "scenario"), suffix = "year-sex"),
-      list(strata = c("mc", "year", "agegrp", "sex", "scenario"), suffix = "year-agegroup-sex")
-    )
+    strata_configs <- make_strata_configs(strata_ons, standardised = FALSE)
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
@@ -548,11 +736,7 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(prbl, summari
 
   # ---- Non-standardised with population denominator ----
   if (!is.null(tt_scaled) && !is.null(pp_scaled)) {
-    strata_configs <- list(
-      list(strata = c("mc", "year", "scenario"), suffix = "year"),
-      list(strata = c("mc", "year", "sex", "scenario"), suffix = "year-sex"),
-      list(strata = c("mc", "year", "agegrp", "sex", "scenario"), suffix = "year-agegroup-sex")
-    )
+    strata_configs <- make_strata_configs(strata_ons, standardised = FALSE)
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
@@ -580,10 +764,7 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(prbl, summari
 
   # ---- Standardised (ESP) ----
   if (!is.null(tt_esp)) {
-    strata_configs <- list(
-      list(strata = c("mc", "year", "scenario"), suffix = "year", std = "age-sex"),
-      list(strata = c("mc", "year", "sex", "scenario"), suffix = "year-sex", std = "age")
-    )
+    strata_configs <- make_strata_configs(strata_esp, standardised = TRUE)
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
@@ -613,7 +794,12 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(prbl, summari
 
 # export_disease_characteristics_tables ----
 # Generate disease characteristics tables (duration, age metrics, CMS)
-Simulation$set("private", "export_disease_characteristics_tables", function(prbl, summaries_dir, tables_dir) {
+Simulation$set("private", "export_disease_characteristics_tables", function(
+    prbl,
+    summaries_dir,
+    tables_dir,
+    strata = NULL
+) {
   if (self$design$sim_prm$logs) {
     message("Generating disease characteristics tables...")
   }
@@ -626,30 +812,36 @@ Simulation$set("private", "export_disease_characteristics_tables", function(prbl
     tt[, mean_cms_count_cms1st_cont := as.numeric(mean_cms_count_cms1st_cont)]
   }
 
-  # Extract case counts for weighting
-  d1 <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|^cases_")]
-  d1 <- melt(d1, id.vars = c("mc", "year", "scenario", "sex"))
-  d1 <- unique(d1, by = c("mc", "year", "scenario", "sex", "variable"))
+  # Extract case counts for weighting (include dimd for stratification)
+  d1 <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^cases_")]
+  d1 <- melt(d1, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
+  d1 <- unique(d1, by = c("mc", "year", "scenario", "sex", "dimd", "variable"))
   d1[, disease := gsub("^cases_", "", variable)]
   d1[, variable := NULL]
 
-  # Extract characteristics columns
-  char_patterns <- "mc|scenario|year|sex|^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_"
+  # Extract characteristics columns (include dimd)
+  char_patterns <- "mc|scenario|year|sex|dimd|^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_"
   tt <- tt[, .SD, .SDcols = patterns(char_patterns)]
 
   if ("mean_cms_count_cmsmm1" %in% names(tt)) {
     tt[, mean_cms_count_cmsmm1 := as.double(mean_cms_count_cmsmm1)]
   }
 
-  tt <- melt(tt, id.vars = c("mc", "year", "scenario", "sex"))
+  tt <- melt(tt, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
   tt[, disease := gsub("^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_", "", variable)]
-  tt[d1, on = c("mc", "year", "scenario", "sex", "disease"), cases := i.value]
+  tt[d1, on = c("mc", "year", "scenario", "sex", "dimd", "disease"), cases := i.value]
+
+  # Helper function to convert user strata to internal format
+  make_strata_configs <- function(strata_list) {
+    lapply(strata_list, function(s) {
+      outstrata <- c("mc", s, "scenario")
+      suffix <- paste(s, collapse = "-")
+      list(strata = outstrata, suffix = suffix)
+    })
+  }
 
   # Process each strata
-  strata_configs <- list(
-    list(strata = c("mc", "year", "scenario"), suffix = "year"),
-    list(strata = c("mc", "year", "sex", "scenario"), suffix = "year-sex")
-  )
+  strata_configs <- make_strata_configs(strata)
 
   for (cfg in strata_configs) {
     outstrata <- cfg$strata
@@ -685,9 +877,56 @@ Simulation$set("private", "export_disease_characteristics_tables", function(prbl
 # export_xps_tables ----
 # Generate exposure summary tables
 # Memory-optimized: adds cleanup between sections
-Simulation$set("private", "export_xps_tables", function(prbl, output_dir, tables_dir) {
+Simulation$set("private", "export_xps_tables", function(
+    prbl,
+    output_dir,
+    tables_dir,
+    strata_ons = NULL,
+    strata_esp = NULL
+) {
   if (self$design$sim_prm$logs) {
     message("Generating exposure tables...")
+  }
+
+  # Helper function to build filter expression from strata
+  # Variables in strata -> filter on != "All"
+  # Variables not in strata -> filter on == "All"
+  make_xps_strata_configs <- function(strata_list, available_vars, standardised = FALSE) {
+    # Filter variables that can have "All" values in xps data
+    filterable_vars <- intersect(c("sex", "agegrp20", "qimd"), available_vars)
+
+    lapply(strata_list, function(s) {
+      outstrata <- c("mc", s, "scenario")
+      suffix <- paste(setdiff(s, "year"), collapse = "-")
+      if (suffix == "") suffix <- "year" else suffix <- paste0("year-", suffix)
+      # Map agegrp20 to agegroup in suffix for backwards compatibility
+      suffix <- gsub("agegrp20", "agegroup", suffix)
+      # Map qimd to qimd in suffix (no change needed)
+
+      # Build filter expression: vars in strata -> != "All", vars not in strata -> == "All"
+      filter_parts <- character(0)
+      for (v in filterable_vars) {
+        if (v %in% s) {
+          filter_parts <- c(filter_parts, paste0(v, " != 'All'"))
+        } else {
+          filter_parts <- c(filter_parts, paste0(v, " == 'All'"))
+        }
+      }
+      filter_str <- paste(filter_parts, collapse = " & ")
+      filter_expr <- if (length(filter_parts) > 0) parse(text = filter_str)[[1]] else quote(TRUE)
+
+      if (standardised) {
+        # Determine what was standardised by
+        possible_vars <- c("age", "sex", "qimd")
+        # Convert agegrp20 to age for standardisation naming
+        s_for_std <- gsub("agegrp20", "age", s)
+        standardised_vars <- setdiff(possible_vars, s_for_std)
+        std_suffix <- paste(standardised_vars, collapse = "-")
+        list(strata = outstrata, suffix = suffix, filter_expr = filter_expr, std = std_suffix)
+      } else {
+        list(strata = outstrata, suffix = suffix, filter_expr = filter_expr)
+      }
+    })
   }
 
   # ---- Non-standardised (xps20) ----
@@ -695,28 +934,9 @@ Simulation$set("private", "export_xps_tables", function(prbl, output_dir, tables
   if (dir.exists(xps_path)) {
     xps_tab <- CKutils::read_parquet_dt(xps_path)
 
-    strata_configs <- list(
-      list(
-        filter_expr = quote(sex != "All" & agegrp20 != "All"),
-        strata = c("mc", "year", "agegrp20", "sex", "scenario"),
-        suffix = "year-agegroup-sex"
-      ),
-      list(
-        filter_expr = quote(sex == "All" & agegrp20 == "All"),
-        strata = c("mc", "year", "scenario"),
-        suffix = "year"
-      ),
-      list(
-        filter_expr = quote(sex == "All" & agegrp20 != "All"),
-        strata = c("mc", "year", "agegrp20", "scenario"),
-        suffix = "year-agegroup"
-      ),
-      list(
-        filter_expr = quote(sex != "All"),
-        strata = c("mc", "year", "sex", "scenario"),
-        suffix = "year-sex"
-      )
-    )
+    # Build strata configs based on available columns
+    available_vars <- names(xps_tab)
+    strata_configs <- make_xps_strata_configs(strata_ons, available_vars, standardised = FALSE)
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
@@ -742,20 +962,9 @@ Simulation$set("private", "export_xps_tables", function(prbl, output_dir, tables
   if (dir.exists(xps_path)) {
     xps_tab <- CKutils::read_parquet_dt(xps_path)
 
-    strata_configs <- list(
-      list(
-        filter_expr = quote(sex != "All"),
-        strata = c("mc", "year", "sex", "scenario"),
-        suffix = "year-sex",
-        std = "age"
-      ),
-      list(
-        filter_expr = quote(sex == "All"),
-        strata = c("mc", "year", "scenario"),
-        suffix = "year",
-        std = "age-sex"
-      )
-    )
+    # Build strata configs based on available columns
+    available_vars <- names(xps_tab)
+    strata_configs <- make_xps_strata_configs(strata_esp, available_vars, standardised = TRUE)
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
