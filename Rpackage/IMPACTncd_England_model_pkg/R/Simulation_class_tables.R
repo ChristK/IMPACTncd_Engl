@@ -86,11 +86,29 @@ Simulation$set("public", "export_tables", function(
     prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),
     comparator_scenario = "sc0",
     two_agegrps = FALSE,
-    strata = NULL
+    strata = NULL,
+    multicore = TRUE
 ) {
   # Convert full year to short year format used in simulation data (e.g., 2019 -> 19)
   if (baseline_year_for_change_outputs > 100) {
     baseline_year_for_change_outputs <- baseline_year_for_change_outputs %% 100L
+  }
+
+  # Thread control for parallel execution
+  if (multicore) {
+    arrow::set_cpu_count(1L)
+    data.table::setDTthreads(threads = 1L, restore_after_fork = NULL)
+    fst::threads_fst(nr_of_threads = 1L, reset_after_fork = NULL)
+  } else {
+    arrow::set_cpu_count(self$design$sim_prm$clusternumber_export)
+    data.table::setDTthreads(
+      threads = self$design$sim_prm$clusternumber_export,
+      restore_after_fork = NULL
+    )
+    fst::threads_fst(
+      nr_of_threads = self$design$sim_prm$clusternumber_export,
+      reset_after_fork = NULL
+    )
   }
 
   # Build strata configuration (merge user-provided with defaults)
@@ -100,45 +118,165 @@ Simulation$set("public", "export_tables", function(
   tables_dir <- private$output_dir(tables_subdir)
   private$create_new_folder(tables_dir)
 
-  private$export_main_tables(
-    prbl = prbl,
-    baseline_year = baseline_year_for_change_outputs,
-    output_dir = private$output_dir(),
-    tables_dir = tables_dir,
-    comparator_scenario = comparator_scenario,
-    two_agegrps = two_agegrps,
-    strata_ons = strata_cfg$ons,
-    strata_esp = strata_cfg$esp
+  # Build task list for parallel execution
+  tasks <- list(
+    list(
+      id = 1L,
+      type = "main",
+      prbl = prbl,
+      baseline_year = baseline_year_for_change_outputs,
+      output_dir = private$output_dir(),
+      tables_dir = tables_dir,
+      comparator_scenario = comparator_scenario,
+      two_agegrps = two_agegrps,
+      strata_ons = strata_cfg$ons,
+      strata_esp = strata_cfg$esp
+    ),
+    list(
+      id = 2L,
+      type = "all_cause_mrtl",
+      prbl = prbl,
+      summaries_dir = private$output_dir("summaries"),
+      tables_dir = tables_dir,
+      strata_ons = strata_cfg$mrtl_ons,
+      strata_esp = strata_cfg$mrtl_esp
+    ),
+    list(
+      id = 3L,
+      type = "disease_char",
+      prbl = prbl,
+      summaries_dir = private$output_dir("summaries"),
+      tables_dir = tables_dir,
+      strata = strata_cfg$disease_char
+    ),
+    list(
+      id = 4L,
+      type = "xps",
+      prbl = prbl,
+      output_dir = private$output_dir(),
+      tables_dir = tables_dir,
+      strata_ons = strata_cfg$xps_ons,
+      strata_esp = strata_cfg$xps_esp
+    )
   )
-  gc(verbose = FALSE)  # Cleanup after main tables
 
-  private$export_all_cause_mrtl_tables(
-    prbl = prbl,
-    summaries_dir = private$output_dir("summaries"),
-    tables_dir = tables_dir,
-    strata_ons = strata_cfg$mrtl_ons,
-    strata_esp = strata_cfg$mrtl_esp
-  )
-  gc(verbose = FALSE)  # Cleanup after mortality tables
+  if (multicore) {
+    if (self$design$sim_prm$logs) {
+      private$time_mark("Start exporting tables (parallel)")
+    }
 
-  private$export_disease_characteristics_tables(
-    prbl = prbl,
-    summaries_dir = private$output_dir("summaries"),
-    tables_dir = tables_dir,
-    strata = strata_cfg$disease_char
-  )
-  gc(verbose = FALSE)  # Cleanup after disease tables
+    n_cores <- min(length(tasks), self$design$sim_prm$clusternumber_export)
 
-  private$export_xps_tables(
-    prbl = prbl,
-    output_dir = private$output_dir(),
-    tables_dir = tables_dir,
-    strata_ons = strata_cfg$xps_ons,
-    strata_esp = strata_cfg$xps_esp
-  )
-  gc(verbose = FALSE)  # Final cleanup
+    if (.Platform$OS.type == "windows") {
+      cl <- parallelly::makeClusterPSOCK(
+        n_cores,
+        dryrun = FALSE,
+        quiet = !self$design$sim_prm$logs,
+        rscript_startup = quote(local({
+          library(CKutils)
+          library(IMPACTncdEngland)
+          library(R6)
+          library(data.table)
+          library(scales)
+        })),
+        rscript_args = c("--no-init-file", "--no-site-file", "--no-environ"),
+        setup_strategy = "parallel"
+      )
+      on.exit(parallel::stopCluster(cl), add = TRUE)
+
+      parallel::parLapplyLB(
+        cl = cl,
+        X = tasks,
+        fun = function(task) {
+          private$export_tables_hlpr(task, implicit_parallelism = FALSE)
+          NULL
+        }
+      )
+    } else {
+      # Linux/macOS: forking
+      doParallel::registerDoParallel(n_cores)
+      foreach::foreach(
+        task = tasks,
+        .inorder = FALSE,
+        .packages = c("R6", "CKutils", "IMPACTncdEngland", "data.table", "scales"),
+        .verbose = self$design$sim_prm$logs
+      ) %dopar% {
+        private$export_tables_hlpr(task, implicit_parallelism = FALSE)
+        NULL
+      }
+    }
+
+    if (self$design$sim_prm$logs) {
+      private$time_mark("End exporting tables (parallel)")
+    }
+  } else {
+    # Sequential execution
+    lapply(tasks, function(task) {
+      private$export_tables_hlpr(task, implicit_parallelism = TRUE)
+    })
+  }
 
   invisible(self)
+})
+
+
+# export_tables_hlpr ----
+# Helper function for parallel table export. Dispatches to the appropriate
+# export function based on task type.
+Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallelism) {
+  # Thread control
+  if (implicit_parallelism) {
+    arrow::set_cpu_count(self$design$sim_prm$clusternumber_export)
+    data.table::setDTthreads(
+      threads = self$design$sim_prm$clusternumber_export,
+      restore_after_fork = NULL
+    )
+    fst::threads_fst(
+      nr_of_threads = self$design$sim_prm$clusternumber_export,
+      reset_after_fork = NULL
+    )
+  } else {
+    arrow::set_cpu_count(1L)
+    data.table::setDTthreads(threads = 1L, restore_after_fork = NULL)
+    fst::threads_fst(nr_of_threads = 1L, reset_after_fork = NULL)
+  }
+
+  # Dispatch to appropriate export function
+  switch(task$type,
+    "main" = private$export_main_tables(
+      prbl = task$prbl,
+      baseline_year = task$baseline_year,
+      output_dir = task$output_dir,
+      tables_dir = task$tables_dir,
+      comparator_scenario = task$comparator_scenario,
+      two_agegrps = task$two_agegrps,
+      strata_ons = task$strata_ons,
+      strata_esp = task$strata_esp
+    ),
+    "all_cause_mrtl" = private$export_all_cause_mrtl_tables(
+      prbl = task$prbl,
+      summaries_dir = task$summaries_dir,
+      tables_dir = task$tables_dir,
+      strata_ons = task$strata_ons,
+      strata_esp = task$strata_esp
+    ),
+    "disease_char" = private$export_disease_characteristics_tables(
+      prbl = task$prbl,
+      summaries_dir = task$summaries_dir,
+      tables_dir = task$tables_dir,
+      strata = task$strata
+    ),
+    "xps" = private$export_xps_tables(
+      prbl = task$prbl,
+      output_dir = task$output_dir,
+      tables_dir = task$tables_dir,
+      strata_ons = task$strata_ons,
+      strata_esp = task$strata_esp
+    )
+  )
+
+  gc(verbose = FALSE)
+  invisible(NULL)
 })
 
 
