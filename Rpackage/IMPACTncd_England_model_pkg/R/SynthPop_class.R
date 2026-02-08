@@ -160,7 +160,9 @@ SynthPop <-
           )
           # logic for the synthpop load
           files_exist <- vapply(
-            private$filename, file.exists, FUN.VALUE = logical(1)
+            private$filename,
+            file.exists,
+            FUN.VALUE = logical(1)
           )
           if (all(!files_exist)) {
             # No files exist. Create the synthpop and store the file on disk (no
@@ -174,9 +176,13 @@ SynthPop <-
             # a generate_synthpop() is still running. So the function waits
             # until the file is created before it proceeds to load it. Note that
             # if this is not the case then the loop is infinite!!!
-            while (!all(vapply(
-              private$filename, file.exists, FUN.VALUE = logical(1)
-            ))) {
+            while (
+              !all(vapply(
+                private$filename,
+                file.exists,
+                FUN.VALUE = logical(1)
+              ))
+            ) {
               # Sys.sleep(5)
               # if (design_$sim_prm$logs) {
               #   message(
@@ -387,7 +393,7 @@ SynthPop <-
         } else if (scenario_nam != "sc0") {
           # & !"wt" %in% names(self$pop)
           # For policy scenarios - read from partitioned parquet format
-            fnam <- file.path(
+          fnam <- file.path(
             private$design$sim_prm$output_dir,
             "lifecourse",
             paste0("mc=", self$mc_aggr),
@@ -926,37 +932,39 @@ SynthPop <-
           .noexport = NULL # c("time_mark")
         ) %dopar%
           {
-          # Staggered worker startup to reduce memory pressure during parallel runs.
-          # Only apply to the first batch of workers (iterations 1 to clusternumber).
-          # After the first batch, workers finish at different times and naturally
-          # pick up new iterations in a staggered manner.
-          n_cores <- private$design$sim_prm$clusternumber
-          if (n_cores > 1L && mc_iter <= n_cores) {
-            stagger_delay_sec <- 2L  # seconds between worker startups
-            worker_position <- mc_iter - 1L
-            if (worker_position > 0L) {
-              Sys.sleep(worker_position * stagger_delay_sec)
+            # Staggered worker startup to reduce memory pressure during parallel runs.
+            # Only apply to the first batch of workers (iterations 1 to clusternumber).
+            # After the first batch, workers finish at different times and naturally
+            # pick up new iterations in a staggered manner.
+            n_cores <- private$design$sim_prm$clusternumber
+            if (n_cores > 1L && mc_iter <= n_cores) {
+              stagger_delay_sec <- 2L # seconds between worker startups
+              worker_position <- mc_iter - 1L
+              if (worker_position > 0L) {
+                Sys.sleep(worker_position * stagger_delay_sec)
+              }
             }
-          }
 
-          arrow::set_cpu_count(1L)
-          data.table::setDTthreads(
-            threads = 1L,
-            restore_after_fork = NULL
-          )
-          fst::threads_fst(
-            nr_of_threads = 1L,
-            reset_after_fork = NULL
-          )
-          filename <- private$gen_synthpop_filename(
-                      mc_iter,
-                      private$checksum,
-                      private$design
-                      )
+            arrow::set_cpu_count(1L)
+            data.table::setDTthreads(
+              threads = 1L,
+              restore_after_fork = NULL
+            )
+            fst::threads_fst(
+              nr_of_threads = 1L,
+              reset_after_fork = NULL
+            )
+            filename <- private$gen_synthpop_filename(
+              mc_iter,
+              private$checksum,
+              private$design
+            )
 
             # logic for the synthpop load
             files_exist <- vapply(
-              filename, file.exists, FUN.VALUE = logical(1)
+              filename,
+              file.exists,
+              FUN.VALUE = logical(1)
             )
             if (all(!files_exist)) {
               # No files exist. Create the synthpop and store
@@ -971,9 +979,13 @@ SynthPop <-
               # function waits until the file is created before it proceeds to
               # load it. Note that if this is not the case then the loop is
               # infinite!!!
-              while (!all(vapply(
-                filename, file.exists, FUN.VALUE = logical(1)
-              ))) {
+              while (
+                !all(vapply(
+                  filename,
+                  file.exists,
+                  FUN.VALUE = logical(1)
+                ))
+              ) {
                 Sys.sleep(5)
               }
 
@@ -1272,7 +1284,9 @@ SynthPop <-
             (!file.exists(filename_$synthpop))
         ) {
           suppressWarnings(vapply(
-            filename_, file.remove, FUN.VALUE = logical(1)
+            filename_,
+            file.remove,
+            FUN.VALUE = logical(1)
           ))
         }
       },
@@ -1544,12 +1558,19 @@ SynthPop <-
 
         # Generate income ----
         design_$exposures$income$generate(dtb, design_)
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_income := NULL]
+        }
 
         # Generate active days ----
         if (design_$sim_prm$logs) {
           message("Generate active days")
         }
         design_$exposures$active_days$generate(dtb, design_)
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_pa := NULL]
+        }
+
         # dtb[, active_days := factor(active_days, levels = 0:7)]
 
         # convert active days to MET mins/Week I have number of days each
@@ -1581,10 +1602,15 @@ SynthPop <-
 
         # Generate fruit consumption (ZISICHEL) ----
         design_$exposures$fruit$generate(dtb, design_)
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, c("rankstat_pa_met", "rankstat_pa_dur") := NULL]
+        }
 
         # Generate veg consumption (DEL) ----
         design_$exposures$veg$generate(dtb, design_)
-
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_veg := NULL]
+        }
         # Smoking simulation ----
         if (design_$sim_prm$logs) {
           message("Smoking simulation")
@@ -1928,7 +1954,9 @@ SynthPop <-
         # calculate how many each smoker pollutes by year, SHA (not qimd) to
         # be used in scenarios. Ideally correct for mortality
         design_$exposures$ets$generate(dtb, design_)
-
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_ets := NULL]
+        }
         # NOTE for line above invert = true in sim_design yaml so 1 - mu to be
         # equivalent to qbinom(rank_ets, 1, mu). Otherwise rank_ets < mu is
         # equivalent to qbinom(rank_ets, 1, mu, lower.tail = FALSE)). The two
@@ -1939,13 +1967,20 @@ SynthPop <-
 
         # Generate alcohol (ZINBI) ----
         design_$exposures$alcohol$generate(dtb, design_)
-
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_alcohol := NULL]
+        }
         # Generate BMI (BCPEo) ----
         design_$exposures$bmi$generate(dtb, design_)
+                if (!design_$sim_prm$keep_simulants_rn) {
+                  dtb[, rank_bmi := NULL]
+                }
 
         # Generate SBP (BCPEo) ----
         design_$exposures$sbp$generate(dtb, design_)
-
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_sbp := NULL]
+        }
         # Generate BP medication (BI) -----
         # Temporarily round sbp for join, then restore
         dtb[, `:=`(
@@ -1959,10 +1994,15 @@ SynthPop <-
 
         # Generate tchol (BCT) ----
         design_$exposures$tchol$generate(dtb, design_)
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_tchol := NULL]
+        }
 
         # Generate HDL (to tchol ratio) (GB1) ----
         design_$exposures$hdl_to_tchol$generate(dtb, design_)
-
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_hdl := NULL]
+        }
         # NOTE this very highly correlated with hdl level (~0.76) and
         #  highly to tchol (~-0.47). The latter is captured by the correlated RNs
 
