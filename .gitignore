@@ -63,6 +63,7 @@ Rplots.pdf
 .DS_Store
 IMPACTncd_Engl.code-workspace
 IMPACTncd_Engl.Rproj
+Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds
 documents/technical appendix.docx
 auxil/unused_function.txt
 auxil/lifecourse_recalibration.R
