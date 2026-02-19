@@ -341,9 +341,14 @@ Design <-
       #' @return The invisible self for chaining.
       # load_exposures ----
       load_exposures = function() {
-        if (!dir.exists("./inputs/exposure_distributions")) {
+        # Check if exposure data files exist (not just the directory, which
+        # may contain only scripts). The first exposure definition's data
+        # directory serves as a proxy for all data availability.
+        first_exp <- self$sim_prm$exposure_definitions[[1]]
+        first_path <- file.path("./inputs/exposure_distributions", first_exp$file_name)
+        if (!dir.exists(first_path) && !file.exists(first_path)) {
           warning(
-            "Input data not found (./inputs/exposure_distributions/).\n",
+            "Exposure data not found (", first_path, ").\n",
             "Skipping exposure loading. Download inputs first via zenodo_download_all().",
             call. = FALSE
           )
