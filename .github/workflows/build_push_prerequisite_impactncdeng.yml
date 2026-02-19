@@ -169,7 +169,7 @@ jobs:
           context: docker_setup # Build context directory containing Dockerfile and dependencies
           push: true # Push the built image to Docker Hub
           no-cache: true # Force rebuild without using cache to ensure latest dependencies
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/prerequisite.impactncdENGL:${{ github.ref_name }} # Tag with branch name
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/prerequisite.impactncdengl:${{ github.ref_name }} # Tag with branch name
           file: docker_setup/Dockerfile.prerequisite.IMPACTncdENGL # Specific Dockerfile for prerequisites
 
 # =============================================================================
