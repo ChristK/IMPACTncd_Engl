@@ -181,18 +181,25 @@ SYNTHPOP_DIR="$(realpath "$SYNTHPOP_DIR_TEMP")"
 echo "Mounting output_dir: $OUTPUT_DIR"
 echo "Mounting synthpop_dir: $SYNTHPOP_DIR"
 
-# Pull the Docker image
-echo "Pulling Docker image: $IMAGE_NAME"
-if ! docker pull "$IMAGE_NAME"; then
-  echo "Error: Failed to pull Docker image: $IMAGE_NAME"
-  echo "Please check:"
-  echo "  1. The image exists and is accessible"
-  echo "  2. You have the correct permissions"
-  echo "  3. Your internet connection is working"
-  if [[ "$DOCKER_TAG" != "local" ]]; then
-    echo "  4. The tag '$DOCKER_TAG' exists in the chriskypri/impactncdengl repository"
+# Pull the Docker image (skip for local builds)
+if [[ "$DOCKER_TAG" == "local" ]]; then
+  echo "Using local Docker image: $IMAGE_NAME"
+  if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+    echo "Error: Local image '$IMAGE_NAME' not found."
+    echo "Build it first with: docker build -t $IMAGE_NAME -f docker_setup/Dockerfile.IMPACTncdENGL docker_setup"
+    exit 1
   fi
-  exit 1
+else
+  echo "Pulling Docker image: $IMAGE_NAME"
+  if ! docker pull "$IMAGE_NAME"; then
+    echo "Error: Failed to pull Docker image: $IMAGE_NAME"
+    echo "Please check:"
+    echo "  1. The image exists and is accessible"
+    echo "  2. You have the correct permissions"
+    echo "  3. Your internet connection is working"
+    echo "  4. The tag '$DOCKER_TAG' exists in the chriskypri/impactncdengl repository"
+    exit 1
+  fi
 fi
 
 # -----------------------------------------------------------------------------
@@ -287,7 +294,7 @@ EOF
       -e GROUP_ID="${GROUP_ID}" \
       -e USER_NAME="${USER_NAME}" \
       -e GROUP_NAME="${GROUP_NAME}" \
-      --mount type=volume,source="$VOLUME_OUTPUT_NAME",target=/output \
+      --mount type=volume,source="$VOLUME_OUTPUT_NAME",target=/outputs \
       --mount type=volume,source="$VOLUME_SYNTHPOP_NAME",target=/synthpop \
       --mount type=bind,source="$SCENARIOS_DIR",target=/IMPACTncd_England/scenarios \
       --workdir /IMPACTncd_England \
@@ -299,7 +306,7 @@ EOF
       -e GROUP_ID="${GROUP_ID}" \
       -e USER_NAME="${USER_NAME}" \
       -e GROUP_NAME="${GROUP_NAME}" \
-      --mount type=volume,source="$VOLUME_OUTPUT_NAME",target=/output \
+      --mount type=volume,source="$VOLUME_OUTPUT_NAME",target=/outputs \
       --mount type=volume,source="$VOLUME_SYNTHPOP_NAME",target=/synthpop \
       --workdir /IMPACTncd_England \
       "$IMAGE_NAME" \
@@ -334,7 +341,7 @@ else
       -e GROUP_ID="${GROUP_ID}" \
       -e USER_NAME="${USER_NAME}" \
       -e GROUP_NAME="${GROUP_NAME}" \
-      --mount type=bind,source="$OUTPUT_DIR",target=/output \
+      --mount type=bind,source="$OUTPUT_DIR",target=/outputs \
       --mount type=bind,source="$SYNTHPOP_DIR",target=/synthpop \
       --mount type=bind,source="$SCENARIOS_DIR",target=/IMPACTncd_England/scenarios \
       --workdir /IMPACTncd_England \
@@ -346,7 +353,7 @@ else
       -e GROUP_ID="${GROUP_ID}" \
       -e USER_NAME="${USER_NAME}" \
       -e GROUP_NAME="${GROUP_NAME}" \
-      --mount type=bind,source="$OUTPUT_DIR",target=/output \
+      --mount type=bind,source="$OUTPUT_DIR",target=/outputs \
       --mount type=bind,source="$SYNTHPOP_DIR",target=/synthpop \
       --workdir /IMPACTncd_England \
       "$IMAGE_NAME" \

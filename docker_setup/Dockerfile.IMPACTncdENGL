@@ -59,6 +59,15 @@ RUN PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}') && \
 
 WORKDIR /IMPACTncd_England/
 
+# Create the package snapshot so global.R's installLocalPackageIfChanged()
+# knows the package is already installed and skips reinstallation.
+# The snapshot file is in .gitignore so it's absent after git clone.
+RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")'
+
+# Make project files writable by any user so the entrypoint's dynamically
+# created user can modify them (e.g., update snapshot, clean compiled objects).
+RUN chmod -R a+rw /IMPACTncd_England/Rpackage/ /outputs /synthpop
+
 # Input data and simulation outputs are included in the build context by the
 # docker_build_push.sh script, which copies git-tracked files plus all data
 # files listed in simulation/inputs_manifest_at_last_upload.csv (and

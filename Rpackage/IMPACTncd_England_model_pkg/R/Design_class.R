@@ -254,6 +254,7 @@ Design <-
             )
           }
         ))
+        if (is.null(valid_files)) valid_files <- character(0)
         valid_files <- normalizePath(
           valid_files, mustWork = FALSE
         )
