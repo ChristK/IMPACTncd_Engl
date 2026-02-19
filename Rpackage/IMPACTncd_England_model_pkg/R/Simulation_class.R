@@ -230,18 +230,22 @@ Simulation <-
         # private$create_empty_calibration_prms_file(replace = FALSE)
         message("Generating microsimulation structure.")
         # Generate the graph with the causality structure
-        ds <- unlist(strsplit(names(self$design$RR), "~"))
-        ds[grep("^smok_", ds)] <- "smoking"
-        ds <- gsub("_prvl$", "", ds)
+        if (length(self$design$RR) > 0) {
+          ds <- unlist(strsplit(names(self$design$RR), "~"))
+          ds[grep("^smok_", ds)] <- "smoking"
+          ds <- gsub("_prvl$", "", ds)
 
-        ds1 <- ds[as.logical(seq_along(ds) %% 2)]
-        ds2 <- ds[!as.logical(seq_along(ds) %% 2)]
-        ds <- unique(data.table(ds1, ds2))
+          ds1 <- ds[as.logical(seq_along(ds) %% 2)]
+          ds2 <- ds[!as.logical(seq_along(ds) %% 2)]
+          ds <- unique(data.table(ds1, ds2))
 
-        private$causality_structure <- make_graph(
-          unlist(transpose(ds)),
-          directed = TRUE
-        )
+          private$causality_structure <- make_graph(
+            unlist(transpose(ds)),
+            directed = TRUE
+          )
+        } else {
+          private$causality_structure <- make_empty_graph(directed = TRUE)
+        }
 
         # European standardised population 2013 (esp) weights
         tt <- data.table(
