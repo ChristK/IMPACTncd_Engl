@@ -341,6 +341,14 @@ Design <-
       #' @return The invisible self for chaining.
       # load_exposures ----
       load_exposures = function() {
+        if (!dir.exists("./inputs/exposure_distributions")) {
+          warning(
+            "Input data not found (./inputs/exposure_distributions/).\n",
+            "Skipping exposure loading. Download inputs first via zenodo_download_all().",
+            call. = FALSE
+          )
+          return(invisible(self))
+        }
         message("Creating exposure generators from configuration.")
         self$exposures <- lapply(
           self$sim_prm$exposure_definitions,
