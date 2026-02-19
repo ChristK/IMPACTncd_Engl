@@ -2,6 +2,7 @@
 .*
 # But keep .gitignore tracked
 !.gitignore
+!.github/
 
 # History files
 .Rhistory
