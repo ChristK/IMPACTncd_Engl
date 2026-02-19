@@ -109,6 +109,9 @@ options(rgl.useNULL = TRUE) # suppress error by demography in rstudio server
 options(datatable.verbose = FALSE)
 options(datatable.showProgress = FALSE)
 
+# Increase download timeout for large packages (e.g. duckdb) on CI
+options(timeout = max(300, getOption("timeout")))
+
 # Install missing packages listed in r-packages.txt
 # Assumes the working directory is the project root
 pkg_list_file <- "./docker_setup/r-packages.txt"
