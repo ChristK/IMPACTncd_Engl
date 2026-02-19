@@ -73,16 +73,118 @@ install.packages("keyring")
 
 **For testing**, create a separate sandbox account and token at
 [sandbox.zenodo.org](https://sandbox.zenodo.org/account/settings/applications/tokens/new/).
-Sandbox records are not permanent and do not count as real publications.
+Sandbox and production are **completely separate systems** — they do not
+share accounts, tokens, or data. See
+[Sandbox vs Production](#sandbox-vs-production) for details.
 
 ### 3. Secure Token Management
 
 Your Zenodo token grants full access to your Zenodo deposits. **Never commit
 tokens to version control!**
 
-#### Option A: `.Renviron` File (Recommended for Personal Use)
+#### Option A: `pass` — GPG-Encrypted (Recommended for Linux/macOS)
 
-The `.Renviron` file stores environment variables that R loads at startup:
+[`pass`](https://www.passwordstore.org/) is a standard Unix password manager
+that stores each secret as a GPG-encrypted file. It works across R sessions,
+Docker builds, and shell scripts — making it the most unified approach.
+
+**Why `pass` is recommended:**
+
+- Tokens are GPG-encrypted at rest (not plaintext)
+- Works in R (via `.Rprofile`), Docker builds (via build script), and CI
+  (GitHub secrets handle CI separately)
+- `gpg-agent` caches your passphrase so you only unlock once per session
+- No extra R packages required
+
+**First-time setup:**
+
+```bash
+# 1. Install pass (if not already installed)
+# Ubuntu/Debian: sudo apt install pass
+# macOS: brew install pass
+# RHEL/Rocky: sudo dnf install pass
+
+# 2. Initialise the password store (if you haven't already)
+# pass init "your-gpg-key-id"
+
+# 3. Store your Zenodo tokens
+pass insert zenodo/production-token
+# Enter your production token when prompted
+
+pass insert zenodo/sandbox-token
+# Enter your sandbox token when prompted
+
+# 4. Verify
+pass show zenodo/production-token
+```
+
+**Auto-loading in R sessions:**
+
+Add this to your `~/.Rprofile` so `Sys.getenv("ZENODO_TOKEN")` and
+`Sys.getenv("ZENODO_SANDBOX_TOKEN")` work automatically:
+
+```r
+# Load Zenodo tokens from pass (GPG-encrypted) if available
+local({
+  if (nzchar(Sys.which("pass"))) {
+    load_pass <- function(env_var, pass_key) {
+      token <- tryCatch(
+        system2("pass", c("show", pass_key), stdout = TRUE, stderr = FALSE),
+        error = function(e) character(0)
+      )
+      if (length(token) == 1L && nzchar(token)) {
+        args <- list(token)
+        names(args) <- env_var
+        do.call(Sys.setenv, args)
+      }
+    }
+    load_pass("ZENODO_TOKEN", "zenodo/production-token")
+    load_pass("ZENODO_SANDBOX_TOKEN", "zenodo/sandbox-token")
+  }
+})
+```
+
+Then in your R code, just use `Sys.getenv()` — no manual token handling:
+
+```r
+IMPACTncd$zenodo_connect(
+  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+  sandbox = TRUE
+)
+```
+
+**Docker builds:**
+
+The `docker_build_push.sh` script in the `docker_setup/` directory
+automatically reads the token from `pass` based on the `ZENODO_SANDBOX`
+flag in the `.env` config file. Non-secret config (concept DOI, sandbox
+flag) is stored in `docker_setup/.env` (gitignored); secrets are read
+from `pass` at build time.
+
+```bash
+# Build with Zenodo data — token is read from pass automatically
+cd docker_setup
+./docker_build_push.sh Dockerfile.IMPACTncdENGL
+```
+
+**Manage your stored tokens:**
+
+```bash
+# List Zenodo entries
+pass ls zenodo/
+
+# Update a token
+pass edit zenodo/production-token
+
+# Delete a token
+pass rm zenodo/sandbox-token
+```
+
+#### Option B: `.Renviron` File (Simple Alternative)
+
+If you prefer not to use `pass`, the `.Renviron` file stores environment
+variables that R loads at startup. Tokens are stored in **plaintext**
+but the file is protected by filesystem permissions.
 
 ```r
 # Open .Renviron for editing
@@ -105,66 +207,10 @@ Save and restart R. The tokens are now available via
 - It is **not** in your project folder, so it won't be accidentally committed
   to git
 - Set restrictive permissions: `chmod 600 ~/.Renviron` (Linux/macOS)
+- Tokens are stored in **plaintext** — use `pass` (Option A) if you need
+  encryption at rest
 
-#### Option B: File-Based Keyring (Best for Servers)
-
-On servers without a desktop environment (where GNOME Keyring / KWallet
-are not available), use the `keyring` package with a **file-based backend**.
-The keyring file is stored at `~/.config/r-keyring/` and encrypted with a
-master password you choose.
-
-**First-time setup** (run these commands interactively in R console):
-
-```r
-# 1. Install keyring if needed
-install.packages("keyring")
-
-# 2. Create the file backend and keyring
-kb <- keyring::backend_file$new()
-kb$keyring_create("zenodo_keyring")
-# Enter a master password when prompted (characters won't show - that's normal)
-
-# 3. Store your Zenodo sandbox token
-kb$set("zenodo_sandbox", username = "token", keyring = "zenodo_keyring")
-# Enter your Zenodo sandbox token when prompted
-
-# 4. Store your Zenodo production token (when ready)
-kb$set("zenodo", username = "token", keyring = "zenodo_keyring")
-# Enter your Zenodo production token when prompted
-```
-
-**Retrieve your token in scripts:**
-
-```r
-# Helper function for file-based keyring
-get_zenodo_token <- function(sandbox = TRUE,
-                             keyring_name = "zenodo_keyring") {
-  kb <- keyring::backend_file$new()
-  service <- if (sandbox) "zenodo_sandbox" else "zenodo"
-  kb$get(service, username = "token", keyring = keyring_name)
-}
-
-# Use it
-token <- get_zenodo_token(sandbox = TRUE)
-IMPACTncd$zenodo_connect(token = token, sandbox = TRUE)
-```
-
-**Manage your stored keys:**
-
-```r
-kb <- keyring::backend_file$new()
-
-# List stored keys
-kb$list(keyring = "zenodo_keyring")
-
-# List available keyrings
-kb$keyring_list()
-
-# Delete a stored token
-kb$delete("zenodo_sandbox", username = "token", keyring = "zenodo_keyring")
-```
-
-#### Option C: `keyring` with OS Backend (Most Secure on Desktops)
+#### Option C: `keyring` R Package (Best for Windows or GUI Desktops)
 
 On desktops with a graphical environment, `keyring` uses the operating
 system's secure credential store (Windows Credential Manager, macOS Keychain,
@@ -179,22 +225,36 @@ token <- keyring::key_get("zenodo", "token")
 IMPACTncd$zenodo_connect(token = token)
 ```
 
+On servers without a desktop environment, use the **file-based backend**:
+
+```r
+kb <- keyring::backend_file$new()
+kb$keyring_create("zenodo_keyring")
+kb$set("zenodo_sandbox", username = "token", keyring = "zenodo_keyring")
+kb$set("zenodo", username = "token", keyring = "zenodo_keyring")
+
+# Retrieve
+token <- kb$get("zenodo_sandbox", username = "token", keyring = "zenodo_keyring")
+```
+
 #### Security Best Practices
 
 | Do | Don't |
 |-----|--------|
-| Use `.Renviron` or `keyring` | Hardcode tokens in scripts |
-| Add `.Renviron` to `.gitignore` if project-local | Commit tokens to git |
+| Use `pass` or `keyring` for encrypted storage | Store tokens in plaintext `.env` files |
+| Use `.Renviron` with `chmod 600` if not using `pass` | Hardcode tokens in scripts |
 | Use separate tokens for sandbox vs production | Share tokens between users |
 | Regenerate tokens periodically | Use tokens with excessive permissions |
-| Revoke tokens you no longer need | Log or print tokens in output |
+| Use GitHub secrets for CI workflows | Commit tokens to git |
 
 ## Quick Start
 
 ### Downloading Input Data (New Team Member)
 
 If you're setting up the model for the first time, download the input data
-from Zenodo:
+from Zenodo. Use **production** to get the real published data, or
+**sandbox** for testing (see
+[Sandbox vs Production](#sandbox-vs-production)):
 
 ```{r download-quickstart}
 library(IMPACTncdEngland)
@@ -202,11 +262,17 @@ library(IMPACTncdEngland)
 # Create simulation object
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
-# Connect to Zenodo sandbox with the project's concept DOI
+# --- Production (recommended for real use) ---
 IMPACTncd$zenodo_connect(
-  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
-  sandbox = TRUE  # concept_doi defaults to "10.5072/zenodo.442996"
+  token       = Sys.getenv("ZENODO_TOKEN"),
+  concept_doi = "10.5281/zenodo.XXXXXXX"  # replace with real concept DOI
 )
+
+# --- OR Sandbox (for testing the download pipeline) ---
+# IMPACTncd$zenodo_connect(
+#   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+#   sandbox = TRUE  # concept_doi defaults to "10.5072/zenodo.442996"
+# )
 
 # Check what's available
 IMPACTncd$zenodo_check_inputs()
@@ -396,7 +462,7 @@ IMPACTncd$zenodo_download_inputs(
 IMPACTncd$zenodo_download_inputs(overwrite = TRUE)
 ```
 
-### Downloading Simulation Data
+### Downloading PARF and RR Data
 
 If PARFs and compiled RR tables were uploaded to the same Zenodo record
 (via `zenodo_upload_simulation()` or `zenodo_upload_all()`), you can
@@ -496,6 +562,8 @@ inputs/disease_burden/
 ```
 
 Set `group_by_prefix = FALSE` to create one archive per subdirectory instead.
+But note that Zenodo currently has a max limit of 100 files per record, so if
+you have many subdirectories, you may need to group by prefix.
 
 ### Compression Level
 
@@ -607,10 +675,54 @@ simulation/
 Each archive contains the full directory structure, so extraction recreates
 the correct paths.
 
-## Testing with Sandbox
+## Sandbox vs Production
 
-For testing, use the Zenodo sandbox environment. When you call
-`zenodo_connect(sandbox = TRUE)`, the project's sandbox concept DOI
+Zenodo operates two **completely separate systems**. They do not share
+accounts, tokens, data, or DOIs. Understanding this distinction is essential
+before uploading or downloading data.
+
+| | Sandbox | Production |
+|---|---|---|
+| **Purpose** | Development and testing | Permanent archiving and citation |
+| **Web UI** | [sandbox.zenodo.org](https://sandbox.zenodo.org/) | [zenodo.org](https://zenodo.org/) |
+| **Account** | Separate registration required | Separate registration required |
+| **Token env var** | `ZENODO_SANDBOX_TOKEN` | `ZENODO_TOKEN` |
+| **DOI prefix** | `10.5072/zenodo.XXXXXX` | `10.5281/zenodo.XXXXXX` |
+| **Data permanence** | Periodically wiped — records may disappear | Permanent — published records cannot be deleted |
+| **Publishable** | Yes, but DOIs do not resolve publicly | Yes — DOIs are globally resolvable and citable |
+| **R flag** | `sandbox = TRUE` | `sandbox = FALSE` (default) |
+
+### DOI Prefixes
+
+The DOI prefix tells you instantly which system a record belongs to:
+
+- **`10.5072/zenodo.442996`** — This is a **sandbox** DOI. It only works
+  with `sandbox = TRUE` and the sandbox token.
+- **`10.5281/zenodo.XXXXXXX`** — This is a **production** DOI. It only
+  works with `sandbox = FALSE` (the default) and the production token.
+
+A sandbox DOI will **not** resolve on production Zenodo and vice versa.
+Using a sandbox DOI without `sandbox = TRUE` will give a "Record not
+found" error.
+
+### When to Use Each
+
+**Use sandbox** when you are:
+
+- Testing the upload/download pipeline for the first time
+- Experimenting with archive settings (compression, grouping, exclusions)
+- Developing or debugging Zenodo integration code
+- Running CI tests that exercise the Zenodo workflow
+
+**Use production** when you are:
+
+- Sharing input data with collaborators who need to run the model
+- Publishing a version of the data alongside a paper or report
+- Setting up a reproducible workflow that must persist long-term
+
+### Connecting to Sandbox
+
+When `sandbox = TRUE`, the project's sandbox concept DOI
 (`10.5072/zenodo.442996`) is set automatically:
 
 ```{r sandbox}
@@ -628,8 +740,86 @@ IMPACTncd$zenodo_connect(
 )
 ```
 
-Note: The sandbox requires a separate account and token from
-[sandbox.zenodo.org](https://sandbox.zenodo.org/).
+### Connecting to Production
+
+For production, you must provide your concept DOI explicitly (there is no
+default):
+
+```{r production-connect}
+IMPACTncd$zenodo_connect(
+  token       = Sys.getenv("ZENODO_TOKEN"),
+  concept_doi = "10.5281/zenodo.XXXXXXX"  # your production concept DOI
+)
+```
+
+### Transitioning from Sandbox to Production
+
+Once you have validated your upload/download workflow on sandbox, follow
+these steps to move to production:
+
+**1. Create a production Zenodo account and token**
+
+Go to [zenodo.org](https://zenodo.org/account/settings/applications/tokens/new/)
+and create a personal access token with `deposit:write` and
+`deposit:actions` scopes. Store it as `ZENODO_TOKEN` (see
+[Secure Token Management](#secure-token-management) above).
+
+**2. Upload to production (first time — creates a new record)**
+
+```{r transition-upload}
+IMPACTncd$zenodo_connect(
+  token       = Sys.getenv("ZENODO_TOKEN"),
+  concept_doi = NULL  # no existing production record yet
+)
+
+IMPACTncd$zenodo_upload_all(
+  title       = "IMPACTncd England Input Data",
+  description = "Input and simulation data for IMPACTncd England",
+  creators    = list(
+    list(firstname = "Chris", lastname = "Kypridemos",
+         orcid = "0000-0002-0746-9229")
+  ),
+  version = "1.0.0"
+)
+```
+
+**3. Note your new production concept DOI**
+
+After uploading, the record object contains your new concept DOI. Save it
+— you will use it for all future connections and share it with
+collaborators:
+
+```{r transition-doi}
+# Print the concept DOI assigned by Zenodo
+cat("Concept DOI:", IMPACTncd$zenodo_list_files()$concept_doi, "\n")
+# Example output: 10.5281/zenodo.1234567
+```
+
+**4. Verify and publish**
+
+Review the draft on the Zenodo website, then publish. **Publishing is
+irreversible** — the DOI becomes permanent and the files cannot be
+modified (you can only create new versions).
+
+```{r transition-publish}
+IMPACTncd$zenodo_list_files()
+IMPACTncd$zenodo_publish()
+```
+
+**5. Share with collaborators**
+
+Collaborators now download from production using your concept DOI:
+
+```{r transition-download}
+IMPACTncd$zenodo_connect(
+  token       = Sys.getenv("ZENODO_TOKEN"),
+  concept_doi = "10.5281/zenodo.XXXXXXX"  # replace with your real DOI
+)
+IMPACTncd$zenodo_download_all()
+```
+
+The concept DOI always resolves to the latest published version, so
+collaborators automatically get the most recent data when they download.
 
 ## The ZenodoAssetManager Class
 
@@ -778,19 +968,22 @@ IMPACTncd$zenodo_download_inputs(
 
 ## Complete Example Workflow
 
-### Initial Setup (First-Time Upload)
+### Step 1: Test on Sandbox
 
-```{r workflow-new}
+Before committing to permanent production records, validate your workflow
+on sandbox:
+
+```{r workflow-sandbox-test}
 library(IMPACTncdEngland)
 
 # 1. Create simulation object
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
-# 2. Connect to Zenodo sandbox for testing
+# 2. Connect to sandbox (no existing record)
 IMPACTncd$zenodo_connect(
   token       = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
   sandbox     = TRUE,
-  concept_doi = NULL  # no existing record
+  concept_doi = NULL  # creates a new sandbox record
 )
 
 # 3. (Optional) Preview archives first
@@ -814,24 +1007,71 @@ IMPACTncd$zenodo_upload_all(
   version = "1.0.0"
 )
 
-# 5. Verify upload
+# 5. Verify — check file count and sizes look correct
 files <- IMPACTncd$zenodo_list_files()
 cat("Uploaded", nrow(files), "files\n")
 
-# 6. Publish when satisfied (IRREVERSIBLE!)
+# 6. Publish sandbox record (safe — sandbox records are not permanent)
+IMPACTncd$zenodo_publish()
+
+# 7. Test download in a clean directory to confirm the round-trip works
+IMPACTncd$zenodo_download_all(overwrite = TRUE)
+```
+
+### Step 2: Publish to Production
+
+Once you're confident the pipeline works, repeat on production. This
+creates a **permanent, citable record** — the DOI cannot be retracted.
+
+```{r workflow-production}
+# Connect to production (no existing record)
+IMPACTncd$zenodo_connect(
+  token       = Sys.getenv("ZENODO_TOKEN"),
+  concept_doi = NULL  # first upload — creates a new production record
+)
+
+# Upload (same parameters as sandbox)
+IMPACTncd$zenodo_upload_all(
+  title       = "IMPACTncd England Input Data",
+  description = paste(
+    "Input and simulation data for the IMPACTncd England",
+    "microsimulation model, including exposure distributions,",
+    "disease burden estimates, mortality data, PARFs, and",
+    "compiled relative risk tables."
+  ),
+  creators = list(
+    list(firstname = "Chris", lastname = "Kypridemos",
+         orcid = "0000-0002-0746-9229")
+  ),
+  version = "1.0.0"
+)
+
+# Verify upload
+files <- IMPACTncd$zenodo_list_files()
+cat("Uploaded", nrow(files), "files\n")
+
+# IMPORTANT: Save your concept DOI before publishing!
+# You will need it for all future connections.
+# The concept DOI is visible on the Zenodo web UI for the draft record,
+# or in: IMPACTncd$zenodo_get_versions()
+
+# Publish (IRREVERSIBLE — the DOI becomes permanent)
 IMPACTncd$zenodo_publish()
 ```
 
 ### New Team Member (Downloading Data)
 
+Share your **production concept DOI** with collaborators. They download
+with:
+
 ```{r workflow-download}
 library(IMPACTncdEngland)
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
-# Connect with the project's concept DOI
+# Connect to production with the project's concept DOI
 IMPACTncd$zenodo_connect(
-  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
-  sandbox = TRUE  # concept_doi defaults to "10.5072/zenodo.442996"
+  token       = Sys.getenv("ZENODO_TOKEN"),
+  concept_doi = "10.5281/zenodo.XXXXXXX"  # replace with real concept DOI
 )
 
 # Check what's available
@@ -849,11 +1089,14 @@ IMPACTncd$run(mc = 1:10, multicore = TRUE, scenario_nam = "sc0")
 
 ### Publishing Updated Data (New Version)
 
+When input data changes, create a new version of the **existing**
+production record:
+
 ```{r workflow-update}
-# Connect with existing concept DOI
+# Connect with existing production concept DOI
 IMPACTncd$zenodo_connect(
-  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
-  sandbox = TRUE  # concept_doi defaults to "10.5072/zenodo.442996"
+  token       = Sys.getenv("ZENODO_TOKEN"),
+  concept_doi = "10.5281/zenodo.XXXXXXX"  # your production concept DOI
 )
 
 # Upload as new version (creates new version of existing record)

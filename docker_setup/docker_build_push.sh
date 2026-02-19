@@ -3,27 +3,26 @@
 # This script automates building and pushing a Docker image to Docker Hub.
 #
 # Features:
-# - Automatically sources environment variables from a `.env` file if it exists.
-# - Uses DOCKERHUB_USERNAME and DOCKERHUB_TOKEN from the environment or `.env`.
-# - If DOCKERHUB_USERNAME is missing, it prompts for it at runtime.
+# - Sources config from `.env` (DOCKERHUB_USERNAME, etc.)
 # - Constructs the image name as: <image-name>:<image-tag>.
-# - If the image then pushed to dockerhub, it will be tagged as <DOCKERHUB_USERNAME>/<image-name>:<image-tag>.
-# - Image name and tag can be specified via arguments `--image-name` and `--image-tag` with defaults `impactncd-england-r-prerequisite` and `local`.
+# - If pushed to Docker Hub, tagged as <DOCKERHUB_USERNAME>/<image-name>:<image-tag>.
+# - Image name and tag can be specified via arguments `--image-name` and `--image-tag`
 # - Uses token-based login if available; otherwise prompts for manual login.
-# - Logs each step with timestamps and exits on failure.
+# - For Dockerfile.IMPACTncdENGL: builds a clean context from git-tracked files
+#   plus Zenodo-managed data files listed in the inputs manifest.
+#
+# Config:
+#   Non-secret config is read from `.env`:
+#     DOCKERHUB_USERNAME
 #
 # Usage:
-# 1. (Optional) Create a `.env` file in the same directory:
-#       export DOCKERHUB_USERNAME=yourusername
-#       export DOCKERHUB_TOKEN=youraccesstoken
+#   ./docker_build_push.sh <dockerfile> [--push]
+#   ./docker_build_push.sh <dockerfile> [--image-name <name>] [--image-tag <tag>] [--push]
 #
-# 2. Run the script:
-#       ./docker_build_push.sh [--image-name <name>] [--image-tag <tag>] <dockerfile> [--push]
-#
-#    Use the '--push' flag to push the Docker image to Docker Hub. Without the flag, the script will only build the image.
-#    Use '--image-name' and '--image-tag' to specify the Docker image name and tag.
-# Example: ./docker_build_push.sh prerequisite.impactncdeng local Dockerfile.prerequisite.IMPACTncdENGL --push
-# Example: ./docker_build_push.sh impactncdeng local Dockerfile.IMPACTncdENGL --push
+# Examples:
+#   ./docker_build_push.sh Dockerfile.IMPACTncdENGL                 # build only
+#   ./docker_build_push.sh Dockerfile.IMPACTncdENGL --push          # build + push
+#   ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL    # prerequisite image
 
 set -euo pipefail
 
@@ -77,6 +76,16 @@ if ! docker info > /dev/null 2>&1; then
 fi
 # --- End Docker Permission Check ---
 
+# Source .env file for non-secret config (DOIs, usernames, flags).
+# The .env file is gitignored. Permissions should be restricted: chmod 600 .env
+if [[ -f ".env" ]]; then
+  echo "Sourcing config from .env"
+  set -a
+  source .env
+  set +a
+fi
+
+
 # Remove hardcoded default for IMAGE_NAME
 # Respect user-defined name if provided, otherwise derive from Dockerfile
 if [[ -z "${IMAGE_NAME:-}" ]]; then
@@ -103,12 +112,6 @@ log() {
 
 # Skip credential checks if push argument is false
 if [ "$PUSH_IMAGE" = true ]; then
-  # Source .env file if it exists (only when pushing)
-  if [[ -f ".env" ]]; then
-    echo "Sourcing environment variables from .env"
-    source .env
-  fi
-
   if [[ -z "${DOCKERHUB_USERNAME:-}" ]]; then
     read -p "Enter your Docker Hub username: " DOCKERHUB_USERNAME
   fi
@@ -133,11 +136,46 @@ fi
 
 # Build the Docker image
 log "Building Docker image..."
-# Use parent directory as build context for Dockerfile.IMPACTncdENGL to include entire project
-# Use current directory for other dockerfiles
+# For Dockerfile.IMPACTncdENGL, create a clean build context containing:
+#   1. Git-tracked files (via `git archive`) — code, configs, scripts
+#   2. Zenodo-managed data files (via inputs manifest) — .parquet, .fst, .qs, etc.
+# This prevents sensitive files (.env, tokens) and other untracked content from
+# leaking into the image.
+# For other Dockerfiles, use the current directory as build context.
+BUILD_CONTEXT_DIR=""
 if [[ "$(basename "$DOCKERFILE")" == "Dockerfile.IMPACTncdENGL" ]]; then
-  BUILD_CONTEXT=".."
-  log "Using parent directory (..) as build context for Dockerfile.IMPACTncdENGL"
+  BUILD_CONTEXT_DIR=$(mktemp -d)
+  trap 'rm -rf "$BUILD_CONTEXT_DIR"' EXIT
+
+  # Step 1: Extract git-tracked files
+  log "Creating build context from git-tracked files..."
+  git -C ".." archive HEAD | tar -x -C "$BUILD_CONTEXT_DIR"
+
+  # Step 2: Copy Zenodo-managed data files listed in the inputs manifest
+  MANIFEST="../simulation/inputs_manifest_at_last_upload.csv"
+  if [[ -f "$MANIFEST" ]]; then
+    FILELIST=$(mktemp)
+    # Extract relative_path column (1st field) and prefix with inputs/
+    tail -n+2 "$MANIFEST" | cut -d',' -f1 | sed 's|^|inputs/|' > "$FILELIST"
+    # Also include simulation parf/ and rr/ files (uploaded to Zenodo too)
+    if [[ -d "../simulation/parf" ]]; then
+      find "../simulation/parf" -type f | sed 's|^\.\./||' >> "$FILELIST"
+    fi
+    if [[ -d "../simulation/rr" ]]; then
+      find "../simulation/rr" -type f | sed 's|^\.\./||' >> "$FILELIST"
+    fi
+    FILE_COUNT=$(wc -l < "$FILELIST")
+    log "Copying $FILE_COUNT Zenodo-managed data files into build context..."
+    tar -C ".." --ignore-failed-read --no-recursion -cf - -T "$FILELIST" 2>/dev/null | \
+      tar -xf - -C "$BUILD_CONTEXT_DIR" 2>/dev/null
+    rm -f "$FILELIST"
+    log "Data files copied"
+  else
+    log "Warning: inputs manifest not found — data files will not be in build context"
+  fi
+
+  BUILD_CONTEXT="$BUILD_CONTEXT_DIR"
+  log "Build context ready at $BUILD_CONTEXT_DIR"
 else
   BUILD_CONTEXT="."
   log "Using current directory (.) as build context for $(basename "$DOCKERFILE")"

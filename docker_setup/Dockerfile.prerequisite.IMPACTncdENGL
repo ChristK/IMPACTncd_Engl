@@ -40,8 +40,7 @@ RUN sed -i '1s/^\xEF\xBB\xBF//' /tmp/r-packages.txt && \
     && strip /usr/local/lib/R/site-library/*/libs/*.so
 
 # RUN installGithub.r "ChristK/CKutils@master"
-RUN installGithub.r "ChristK/CKutils@2987390f23c55cc172f72e7cd9754d8fdb0ad47a" # the HEAD as of 20/01/2026
-
+RUN installGithub.r "ChristK/CKutils@3207281b9d5e800006933a096ebaf0eec0cdee5b" # the HEAD as of 20/02s/2026
 # The following commented out lines are an example on how to load a specific version of a package
 # RUN wget http://cran.r-project.org/src/contrib/Archive/data.table/data.table_1.16.4.tar.gz
 # RUN R CMD INSTALL data.table_1.16.4.tar.gz && rm data.table_1.16.4.tar.gz

@@ -33,24 +33,11 @@ RUN if [ "$SOURCE_METHOD" = "copy" ]; then \
 # This will be dynamically updated by GitHub Actions to clone the correct branch
 RUN if [ "$SOURCE_METHOD" = "git" ]; then \
         echo "Using git method - cloning from GitHub" && \
-        git clone https://github.com/ChristK/IMPACTncd_England.git /IMPACTncd_England && \
+        git clone https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_England && \
         echo "Repository cloned successfully"; \
     fi
 
 
-# Reconstruct large files from their chunks that are stored on GitHub
-RUN cd /IMPACTncd_England && \
-    if [ -f "./simulation/large_files_indx.csv" ]; then \
-        tail -n +2 "./simulation/large_files_indx.csv" | while IFS=, read -r pths rest; do \
-            file=$(echo "$pths" | tr -d '"'); \
-            if [ ! -f "$file" ]; then \
-                if ls "${file}".chunk* 1> /dev/null 2>&1; then \
-                    cat "${file}".chunk* > "$file" && \
-                    rm "${file}".chunk*; \
-                fi; \
-            fi; \
-        done; \
-    fi
 # Add littler tools to PATH
 ENV PATH="/usr/local/lib/R/site-library/littler/bin:${PATH}" 
 # Add littler examples to PATH
@@ -72,18 +59,26 @@ RUN PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}') && \
 
 WORKDIR /IMPACTncd_England/
 
+# Input data and simulation outputs are included in the build context by the
+# docker_build_push.sh script, which copies git-tracked files plus all data
+# files listed in simulation/inputs_manifest_at_last_upload.csv (and
+# simulation/parf/ and simulation/rr/ outputs). No Zenodo download is needed
+# at build time.
+# If data files are missing at runtime, use:
+#   IMPACTncd$zenodo_connect(...); IMPACTncd$zenodo_download_all()
+
 CMD ["/bin/bash"]
 
 # Build commands:
-# 
-# Using docker_build_push.sh script (recommended):
-# ./docker_build_push.sh Dockerfile.IMPACTncdENGL  # Uses copy method by default
-# ./docker_build_push.sh Dockerfile.IMPACTncdENGL --source-method git  # Uses git method
-# 
-# Manual build commands (run from docker_setup directory):
-# Copy method: docker build --no-cache -f Dockerfile.IMPACTncdENGL -t impactncd_england ..
-# Git method: docker build --no-cache --build-arg SOURCE_METHOD=git -f Dockerfile.IMPACTncdENGL -t impactncd_england ..
 #
-# Run commands:
-# docker run -it --name test impactncd_england /bin/bash
-# docker run -it --name test chriskypri/impactncd_england /bin/bash
+# Using docker_build_push.sh script (recommended):
+# ./docker_build_push.sh Dockerfile.IMPACTncdENGL                     # build only
+# ./docker_build_push.sh Dockerfile.IMPACTncdENGL --push              # build + push
+# ./docker_build_push.sh Dockerfile.IMPACTncdENGL --source-method git # git clone method
+#
+# Manual build (run from docker_setup directory):
+#   docker build --no-cache -f Dockerfile.IMPACTncdENGL -t impactncdengl ..
+#
+# Run:
+#   docker run -it --name test impactncdengl /bin/bash
+#   docker run -it --name test chriskypri/impactncdengl /bin/bash
