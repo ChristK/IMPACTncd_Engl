@@ -12,7 +12,22 @@ IMPACTncd$
 # example of primary prevention scenario function
 IMPACTncd$update_primary_prevention_scn(
   function(synthpop) {
-    synthpop$pop[year >= 25, bmi_curr_xps := bmi_curr_xps * 0.8]
+    synthpop$pop[year >= 25L, bmi_curr_xps := bmi_curr_xps * 0.8]
+  }
+)
+
+IMPACTncd$update_secondary_prevention_scn(
+  function(synthpop) {
+    sc_year <- 23L # The year the change starts
+    change <- 0.2 # 20% reduction in mortality
+
+    synthpop$pop[
+      year >= sc_year,
+      `:=`(
+        prb_af_mrtl1 = prb_af_mrtl1 * (1 - change),
+        prb_af_mrtl2 = prb_af_mrtl2 * (1 - change)
+      )
+    ]
   }
 )
 

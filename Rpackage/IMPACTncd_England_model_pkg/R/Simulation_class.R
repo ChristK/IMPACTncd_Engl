@@ -2323,6 +2323,10 @@ Simulation <-
           update_gitignore = update_gitignore
         )
 
+        # Snapshot the current inputs manifest so that
+        # compare_with_inputs_manifest() can detect changes since this upload
+        private$zenodo_manager$snapshot_manifest_for_upload()
+
         if (publish) {
           if (self$design$sim_prm$logs) {
             message("Publishing record (this is IRREVERSIBLE)...")
