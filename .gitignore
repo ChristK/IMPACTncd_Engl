@@ -63,6 +63,13 @@ auxil/lifecourse_recalibration.R
 inputs/sim_design_elast.yaml
 docker_setup/.env
 lad17_proj_byDIMD
+# Generated manifest and tracking files
+simulation/inputs_manifest.csv
+simulation/inputs_manifest_at_last_upload.csv
+simulation/rr_generation_record.csv
+simulation/parf_generation_record.csv
+simulation/fileversion.csv
+
 # Zenodo archive storage (zip files for upload/download)
 /zenodo_archives/
 
@@ -72,3 +79,4 @@ inputs/mortality/*.csv
 inputs/mortality/*.fst
 inputs/pop_projections/*.fst
 inputs/pop_projections/unprocessed/*.csv
+simulation/rr/*.fst

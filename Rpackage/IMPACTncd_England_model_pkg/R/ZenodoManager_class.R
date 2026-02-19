@@ -17,6 +17,8 @@
 
 #' R6 Class for managing Zenodo data archives
 #'
+#' @name ZenodoAssetManager
+#'
 #' @description
 #' The `ZenodoAssetManager` class provides a complete pipeline for managing
 #' input data assets via Zenodo. It supports uploading, downloading, hashing,
@@ -408,9 +410,9 @@ ZenodoAssetManager <- R6::R6Class(
     #' @param concept_doi Optional concept DOI.
     #' @return A data.table with file information (name, size, checksum).
     list_remote_files = function(concept_doi = NULL) {
-      if (is.null(self$record)) {
-        self$get_record(concept_doi)
-      }
+      # Always re-fetch the record to reflect any files uploaded since
+      # the record object was last retrieved
+      self$get_record(concept_doi)
 
       files <- self$record$listFiles(pretty = TRUE)
       if (is.null(files) || length(files) == 0) {
@@ -1552,6 +1554,96 @@ ZenodoAssetManager <- R6::R6Class(
       cat("  Progress callbacks:\n")
       cat("    Upload: ", if (!is.null(self$upload_progress)) "enabled" else "disabled", "\n")
       cat("    Download: ", if (!is.null(self$download_progress)) "enabled" else "disabled", "\n")
+      invisible(self)
+    },
+
+    # compare_with_inputs_manifest ----
+    #' @description Compare the current `InputsManifest` against the
+    #'   snapshot taken at the last Zenodo upload to detect local changes.
+    #'
+    #' Only Zenodo-managed files are compared (those with
+    #' `zenodo_managed == TRUE`). This allows you to see which input files
+    #' have changed since the last Zenodo upload and decide whether a new
+    #' Zenodo version is needed.
+    #'
+    #' The upload snapshot is saved by `snapshot_manifest_for_upload()` and
+    #' stored at `simulation/inputs_manifest_at_last_upload.csv`.
+    #'
+    #' @param inputs_manifest An `InputsManifest` object with the current
+    #'   manifest loaded and `zenodo_managed` flags set via
+    #'   `InputsManifest$set_zenodo_dirs()`.
+    #' @return A named list with character vectors `added`, `removed`,
+    #'   `modified`, `unchanged` (relative paths). Returns `NULL` if no
+    #'   upload snapshot exists yet (i.e., no prior upload has been done).
+    compare_with_inputs_manifest = function(
+      inputs_manifest
+    ) {
+      snapshot_path <- file.path(
+        dirname(inputs_manifest$get_manifest_path()),
+        "inputs_manifest_at_last_upload.csv"
+      )
+
+      if (!file.exists(snapshot_path)) {
+        if (self$logs) {
+          message(
+            "No upload snapshot found. ",
+            "Run an upload first to enable comparison."
+          )
+        }
+        return(NULL)
+      }
+
+      # Load the snapshot from last upload
+      upload_snapshot <- InputsManifest$new(
+        inputs_dir = inputs_manifest$get_inputs_dir(),
+        manifest_path = snapshot_path
+      )
+      upload_snapshot$load()
+
+      # Compare only Zenodo-managed files
+      local_zen <- inputs_manifest$get_zenodo_format()
+      upload_zen <- upload_snapshot$get_zenodo_format()
+
+      self$compare_manifests(local_zen, upload_zen)
+    },
+
+    # snapshot_manifest_for_upload ----
+    #' @description Save a copy of the current inputs manifest to record
+    #'   the state at the time of upload.
+    #'
+    #' Call this after a successful Zenodo upload. The snapshot is stored at
+    #' `simulation/inputs_manifest_at_last_upload.csv` and is used by
+    #' `compare_with_inputs_manifest()` to detect subsequent local changes.
+    #'
+    #' @param manifest_path Character. Path to the current manifest CSV
+    #'   (default: `"./simulation/inputs_manifest.csv"`).
+    #' @return Invisible self (for method chaining).
+    snapshot_manifest_for_upload = function(
+      manifest_path = "./simulation/inputs_manifest.csv"
+    ) {
+      if (!file.exists(manifest_path)) {
+        warning(
+          "No inputs manifest found at: ",
+          manifest_path
+        )
+        return(invisible(self))
+      }
+
+      snapshot_path <- file.path(
+        dirname(manifest_path),
+        "inputs_manifest_at_last_upload.csv"
+      )
+      file.copy(
+        manifest_path, snapshot_path,
+        overwrite = TRUE
+      )
+
+      if (self$logs) {
+        message(
+          "Inputs manifest snapshot saved for ",
+          "Zenodo upload comparison."
+        )
+      }
       invisible(self)
     }
   ),

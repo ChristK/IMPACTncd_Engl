@@ -2029,127 +2029,124 @@ Disease <-
       ),
 
       # Registry Management Methods ----
-      # (Used by UpdateDiseaseSnapshotIfInvalid for CSV-based file tracking)
-      
-      # Get registry path (computed at runtime)
-      # @return character path to registry file
-      get_registry_path = function() {
-        file.path(getwd(), "simulation", "fileversion.csv")
-      },
-      
-      # Get or create the file version registry
-      # @return data.table with columns: file_path, source_file, checksum
-      get_registry = function() {
-        registry_path <- private$get_registry_path()
-        if (!file.exists(registry_path)) {
-          # Create empty registry
-          registry <- data.table(
-            file_path = character(0),
+      # Uses parf_generation_record.csv for tracking PARF
+      # generation state (replaces fileversion.csv entries).
+
+      # Get or create the PARF generation record
+      # @return data.table: snapshot_key, source_file,
+      #   source_hash
+      get_generation_record = function() {
+        rec_path <- private$get_generation_record_path()
+        if (!file.exists(rec_path)) {
+          rec <- data.table(
+            snapshot_key = character(0),
             source_file = character(0),
-            checksum = character(0)
+            source_hash = character(0)
           )
-          # Ensure directory exists
-          reg_dir <- dirname(registry_path)
-          if (!dir.exists(reg_dir)) dir.create(reg_dir, recursive = TRUE)
-          fwrite(registry, registry_path)
-          return(registry)
-        }
-        
-        # Read with auto-detect for backward compatibility
-        registry <- fread(registry_path)
-        
-        # If old 2-column format, add missing column
-        if (ncol(registry) == 2) {
-          registry[, checksum := ""]
-        }
-        
-        # Ensure column names are correct
-        if (!all(c("file_path", "source_file", "checksum") %in% names(registry))) {
-          # Recreate registry with correct structure
-          registry <- data.table(
-            file_path = character(0),
-            source_file = character(0),
-            checksum = character(0)
+          dir.create(
+            dirname(rec_path),
+            showWarnings = FALSE, recursive = TRUE
           )
-          fwrite(registry, registry_path)
+          fwrite(rec, rec_path)
+          return(rec)
         }
-        
-        registry
+        rec <- fread(rec_path)
+        # Backward compat: migrate from old column names
+        if (
+          "file_path" %in% names(rec) &&
+            !"snapshot_key" %in% names(rec)
+        ) {
+          setnames(rec, "file_path", "snapshot_key")
+        }
+        if (
+          "checksum" %in% names(rec) &&
+            !"source_hash" %in% names(rec)
+        ) {
+          setnames(rec, "checksum", "source_hash")
+        }
+        rec
       },
-      
-      # Get source files for disease snapshot based on bParfSnapshot flag
-      # @param bParfSnapshot Logical. If TRUE, only PARF-related files (incd/ftlt + RR files), 
-      #   otherwise all disease files.
+
+      # Path to the PARF generation record
+      get_generation_record_path = function() {
+        file.path(
+          getwd(), "simulation",
+          "parf_generation_record.csv"
+        )
+      },
+
+      # Get source files for disease snapshot
+      # @param bParfSnapshot Logical. If TRUE, only
+      #   PARF-related files (incd/ftlt + RR files).
       # @return character vector of source file paths
       get_disease_source_files = function(bParfSnapshot) {
         if (bParfSnapshot) {
-          # For PARF snapshots: only incd and ftlt directories
-          sSourceFilesPattern <- paste0("^", self$name, "_incd|^", self$name, "_ftlt")
+          sSourceFilesPattern <- paste0(
+            "^", self$name, "_incd|^",
+            self$name, "_ftlt"
+          )
         } else {
-          # For full disease snapshots: all disease files
           sSourceFilesPattern <- self$name
         }
-        
-        # Get matching directories/files in disease_burden directory
+
         all_files <- list.files(
           private$sDiseaseBurdenDirPath,
           pattern = sSourceFilesPattern,
           full.names = TRUE,
           recursive = TRUE
         )
-        
-        # Filter to only files (not directories), but if they are directories,
-        # get all files within them
-        # Use lapply + do.call(c, ...) to avoid O(n²) vector growth from repeated c()
+
         source_files_list <- lapply(all_files, function(f) {
           if (dir.exists(f)) {
-            list.files(f, full.names = TRUE, recursive = TRUE)
+            list.files(
+              f, full.names = TRUE, recursive = TRUE
+            )
           } else {
             f
           }
         })
         source_files <- do.call(c, source_files_list)
 
-        # For PARF snapshots, also include the RR source files
         if (bParfSnapshot && length(private$rr) > 0) {
           rr_files <- vapply(
             private$rr,
             function(x) x$get_rr_file_path(),
             character(1)
           )
-          # Only include files that exist
           rr_files <- rr_files[file.exists(rr_files)]
           source_files <- c(source_files, rr_files)
         }
 
         source_files
       },
-      
+
       # Compute checksum for a set of source files
       # @param source_files character vector of file paths
-      # @return character checksum (MD5 hash of combined file hashes)
+      # @return character checksum (MD5 of combined hashes)
       compute_source_checksum = function(source_files) {
         if (length(source_files) == 0) return("")
-        
-        # Sort files for consistent ordering
+
         source_files <- sort(source_files)
-        
-        # Compute individual MD5 checksums and combine
-        file_checksums <- vapply(source_files, function(f) {
-          if (file.exists(f)) {
-            digest(file = f, algo = "md5")
-          } else {
-            ""
-          }
-        }, character(1))
-        
-        # Hash the combined checksums to get a single value
-        digest(paste(file_checksums, collapse = ""), algo = "md5")
+
+        file_checksums <- vapply(
+          source_files, function(f) {
+            if (file.exists(f)) {
+              digest(file = f, algo = "md5")
+            } else {
+              ""
+            }
+          }, character(1)
+        )
+
+        digest(
+          paste(file_checksums, collapse = ""),
+          algo = "md5"
+        )
       },
-      
-      # Get registry key for this disease snapshot
-      # @param bParfSnapshot Logical. If TRUE, key for PARF snapshot, otherwise full.
-      # @return character registry key
+
+      # Get record key for this disease snapshot
+      # @param bParfSnapshot Logical.
+      # @return character key
       get_snapshot_registry_key = function(bParfSnapshot) {
         paste0(
           "disease_snapshot:",
@@ -2157,78 +2154,92 @@ Disease <-
           if (bParfSnapshot) ":parf" else ""
         )
       },
-      
-      # Check if current disease snapshot checksum matches registry
-      # @param bParfSnapshot Logical. If TRUE, check PARF snapshot, otherwise full.
-      # @return logical, TRUE if valid (no changes), FALSE if needs update
-      check_disease_registry_valid = function(bParfSnapshot) {
-        registry <- private$get_registry()
-        registry_key <- private$get_snapshot_registry_key(bParfSnapshot)
-        
-        entry <- registry[file_path == registry_key]
-        
+
+      # Check if current disease snapshot is valid
+      # @param bParfSnapshot Logical.
+      # @return logical
+      check_disease_registry_valid = function(
+        bParfSnapshot
+      ) {
+        rec <- private$get_generation_record()
+        rec_key <- private$get_snapshot_registry_key(
+          bParfSnapshot
+        )
+
+        entry <- rec[snapshot_key == rec_key]
+
         if (nrow(entry) == 0) {
           return(FALSE)
         }
-        
-        # For PARF snapshots, use the already-computed private$chksum 
-        # which includes design params + RR file checksums
-        # This ensures consistency with the PARF filename checksum
+
         if (bParfSnapshot) {
-          current_checksum <- private$chksum
+          current_hash <- private$chksum
         } else {
-          # For full disease snapshots, compute from source files
-          source_files <- private$get_disease_source_files(bParfSnapshot)
-          current_checksum <- private$compute_source_checksum(source_files)
+          source_files <- private$get_disease_source_files(
+            bParfSnapshot
+          )
+          current_hash <- private$compute_source_checksum(
+            source_files
+          )
         }
-        
-        identical(entry$checksum[1], current_checksum)
+
+        identical(entry$source_hash[1], current_hash)
       },
-      
-      # Update registry with current disease snapshot checksum
-      # @param bParfSnapshot Logical. If TRUE, update PARF snapshot, otherwise full.
+
+      # Update generation record after PARF creation
+      # @param bParfSnapshot Logical.
       update_disease_registry = function(bParfSnapshot) {
-        registry_path <- private$get_registry_path()
-        registry <- private$get_registry()
-        registry_key <- private$get_snapshot_registry_key(bParfSnapshot)
-        
-        # Remove existing entry for this snapshot
-        registry <- registry[file_path != registry_key]
-        
-        # For PARF snapshots, use the already-computed private$chksum
-        # which includes design params + RR file checksums
-        # This ensures consistency with the PARF filename checksum
-        if (bParfSnapshot) {
-          source_files <- private$get_disease_source_files(bParfSnapshot)
-          current_checksum <- private$chksum
-        } else {
-          # For full disease snapshots, compute from source files
-          source_files <- private$get_disease_source_files(bParfSnapshot)
-          current_checksum <- private$compute_source_checksum(source_files)
-        }
-        
-        # Add new entry
-        new_entry <- data.table(
-          file_path = registry_key,
-          source_file = paste(source_files, collapse = ";"),
-          checksum = current_checksum
+        rec_path <- private$get_generation_record_path()
+        rec <- private$get_generation_record()
+        rec_key <- private$get_snapshot_registry_key(
+          bParfSnapshot
         )
-        registry <- rbindlist(list(registry, new_entry))
-        
-        fwrite(registry, registry_path)
+
+        rec <- rec[snapshot_key != rec_key]
+
+        if (bParfSnapshot) {
+          source_files <- private$get_disease_source_files(
+            bParfSnapshot
+          )
+          current_hash <- private$chksum
+        } else {
+          source_files <- private$get_disease_source_files(
+            bParfSnapshot
+          )
+          current_hash <- private$compute_source_checksum(
+            source_files
+          )
+        }
+
+        new_entry <- data.table(
+          snapshot_key = rec_key,
+          source_file = paste(
+            source_files, collapse = ";"
+          ),
+          source_hash = current_hash
+        )
+        rec <- rbindlist(list(rec, new_entry))
+
+        fwrite(rec, rec_path)
         invisible(NULL)
       },
-      
-      # Remove disease snapshot entry from registry
-      # @param bParfSnapshot Logical. If TRUE, remove PARF snapshot, otherwise full.
-      remove_disease_from_registry = function(bParfSnapshot) {
-        registry_path <- private$get_registry_path()
-        if (!file.exists(registry_path)) return(invisible(NULL))
-        
-        registry <- private$get_registry()
-        registry_key <- private$get_snapshot_registry_key(bParfSnapshot)
-        registry <- registry[file_path != registry_key]
-        fwrite(registry, registry_path)
+
+      # Remove disease from generation record
+      # @param bParfSnapshot Logical.
+      remove_disease_from_registry = function(
+        bParfSnapshot
+      ) {
+        rec_path <- private$get_generation_record_path()
+        if (!file.exists(rec_path)) {
+          return(invisible(NULL))
+        }
+
+        rec <- private$get_generation_record()
+        rec_key <- private$get_snapshot_registry_key(
+          bParfSnapshot
+        )
+        rec <- rec[snapshot_key != rec_key]
+        fwrite(rec, rec_path)
         invisible(NULL)
       },
 
@@ -2889,10 +2900,10 @@ Disease <-
       },
 
       # UpdateDiseaseSnapshotIfInvalid ----
-      # Check if disease source files have changed using CSV registry.
-      # Replaces file-based .qs snapshots with entries in simulation/fileversion.csv.
-      # When source files change (added/deleted/modified), the callback is triggered
-      # and the registry is updated.
+      # Check if disease source files have changed using
+      # parf_generation_record.csv.
+      # When source files change, the callback is triggered
+      # and the record is updated.
       # @param bParfSnapshot Logical. Consider only PARF source files: '<diseaseName>_ftlt*.fst' and '<diseaseName>_incd*.fst'.
       # @param fnOnSnapshotChange Function. Action taken on snapshot invalidation (e.g., delete dependent files).
       # @return Logical. TRUE if a snapshot update occurred, FALSE otherwise.

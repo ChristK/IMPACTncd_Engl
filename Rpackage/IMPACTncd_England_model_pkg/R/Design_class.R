@@ -235,71 +235,41 @@ Design <-
         # NOTE smooth cannot be exported to Design for now, because the first
         # time this parameter changes we need logic to overwrite unsmoothed file
 
-        # Clean up obsolete files using registry and filesystem
-        registry_path <- file.path(getwd(), "simulation", "fileversion.csv")
-
-        # Get current valid file paths from ExposureEffect objects
-        valid_files <- unlist(lapply(self$RR, function(rr_obj) {
-          suffix <- paste0(rr_obj$name, "~", rr_obj$outcome)
-          c(
-            file.path("./simulation/rr", paste0("rr_", suffix, "_l.fst")),
-            file.path("./simulation/rr", paste0("rr_", suffix, "_indx.fst"))
-          )
-        }))
-        valid_files <- normalizePath(valid_files, mustWork = FALSE)
-
-        # Clean up registry if it exists
-        if (file.exists(registry_path)) {
-          registry <- fread(registry_path)
-          
-          # Only consider RR file entries (physical files), not virtual keys like disease_snapshot:*
-          rr_registry_entries <- registry[grepl("^/|^\\./|^[A-Za-z]:", file_path) & !grepl("^disease_snapshot:", file_path)]
-          if (nrow(rr_registry_entries) > 0) {
-            registry_files <- normalizePath(rr_registry_entries$file_path, mustWork = FALSE)
-
-            # Find obsolete entries in registry
-            obsolete_registry_files <- setdiff(registry_files, valid_files)
-
-            if (length(obsolete_registry_files) > 0) {
-              if (self$sim_prm$logs) {
-                message(
-                  "Removing ",
-                  length(obsolete_registry_files),
-                  " obsolete RR file entries from registry."
-                )
-              }
-
-              # Remove obsolete files from disk
-              existing_obsolete <- obsolete_registry_files[file.exists(
-                obsolete_registry_files
-              )]
-              if (length(existing_obsolete) > 0) {
-                file.remove(existing_obsolete)
-              }
-
-              # Update registry - only remove the obsolete RR files, keep all other entries
-              registry <- registry[
-                !normalizePath(file_path, mustWork = FALSE) %in%
-                  obsolete_registry_files
-              ]
-              fwrite(registry, registry_path)
-            }
+        # Clean up orphaned RR .fst files not belonging to
+        # any current ExposureEffect object
+        valid_files <- unlist(lapply(
+          self$RR, function(rr_obj) {
+            suffix <- paste0(
+              rr_obj$name, "~", rr_obj$outcome
+            )
+            c(
+              file.path(
+                "./simulation/rr",
+                paste0("rr_", suffix, "_l.fst")
+              ),
+              file.path(
+                "./simulation/rr",
+                paste0("rr_", suffix, "_indx.fst")
+              )
+            )
           }
-        }
+        ))
+        valid_files <- normalizePath(
+          valid_files, mustWork = FALSE
+        )
 
-        # Also clean up any orphaned physical files not in registry
         rr_dir <- "./simulation/rr"
         if (dir.exists(rr_dir)) {
-          all_physical_files <- list.files(
-            rr_dir,
-            pattern = "\\.fst$",
-            full.names = TRUE
-          )
           all_physical_files <- normalizePath(
-            all_physical_files,
+            list.files(
+              rr_dir, pattern = "\\.fst$",
+              full.names = TRUE
+            ),
             mustWork = FALSE
           )
-          orphaned_files <- setdiff(all_physical_files, valid_files)
+          orphaned_files <- setdiff(
+            all_physical_files, valid_files
+          )
 
           if (length(orphaned_files) > 0) {
             if (self$sim_prm$logs) {
@@ -311,6 +281,43 @@ Design <-
             }
             file.remove(orphaned_files)
           }
+        }
+
+        # Clean up generation record to remove entries
+        # for files that no longer exist
+        rec_path <- file.path(
+          getwd(), "simulation",
+          "rr_generation_record.csv"
+        )
+        if (file.exists(rec_path)) {
+          rec <- fread(rec_path)
+          if (
+            nrow(rec) > 0 &&
+              "file_path" %in% names(rec)
+          ) {
+            rec <- rec[
+              normalizePath(
+                file_path, mustWork = FALSE
+              ) %in% valid_files
+            ]
+            fwrite(rec, rec_path)
+          }
+        }
+
+        # Remove legacy fileversion.csv if it exists
+        # (replaced by inputs_manifest.csv and
+        # *_generation_record.csv)
+        legacy_registry <- file.path(
+          getwd(), "simulation", "fileversion.csv"
+        )
+        if (file.exists(legacy_registry)) {
+          if (self$sim_prm$logs) {
+            message(
+              "Removing legacy fileversion.csv ",
+              "(replaced by inputs manifest system)."
+            )
+          }
+          file.remove(legacy_registry)
         }
 
         invisible(self)

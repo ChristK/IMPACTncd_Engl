@@ -89,9 +89,10 @@ Simulation$set("public", "export_tables", function(
     strata = NULL,
     multicore = TRUE
 ) {
-  # Convert full year to short year format used in simulation data (e.g., 2019 -> 19)
-  if (baseline_year_for_change_outputs > 100) {
-    baseline_year_for_change_outputs <- baseline_year_for_change_outputs %% 100L
+  # Ensure baseline year is in full format (e.g. 2019, not 19)
+  # Data is converted to full year format in export_main_tables()
+  if (baseline_year_for_change_outputs <= 100) {
+    baseline_year_for_change_outputs <- baseline_year_for_change_outputs + 2000L
   }
 
   # Thread control for parallel execution
@@ -421,11 +422,11 @@ Simulation$set("private", "tbl_smmrs_core", function(
 ) {
   # String mappings for file paths and column patterns (from process_out_Bradford.R)
   str0 <- c(
-    "prvl" = "prvl", "prvl_change" = "prvl",
-    "incd" = "incd", "incd_change" = "incd",
-    "ftlt" = "dis_mrtl", "ftlt_change" = "dis_mrtl",
-    "mrtl" = "mrtl", "mrtl_change" = "mrtl",
-    "dis_mrtl" = "dis_mrtl", "dis_mrtl_change" = "dis_mrtl",
+    "prvl" = "prvl", "prvl_change_relative" = "prvl", "prvl_change_absolute" = "prvl",
+    "incd" = "incd", "incd_change_relative" = "incd", "incd_change_absolute" = "incd",
+    "ftlt" = "dis_mrtl", "ftlt_change_relative" = "dis_mrtl", "ftlt_change_absolute" = "dis_mrtl",
+    "mrtl" = "mrtl", "mrtl_change_relative" = "mrtl", "mrtl_change_absolute" = "mrtl",
+    "dis_mrtl" = "dis_mrtl", "dis_mrtl_change_relative" = "dis_mrtl", "dis_mrtl_change_absolute" = "dis_mrtl",
     "qalys" = "qalys", "net_qalys" = "qalys",
     "costs" = "costs", "net_costs" = "costs",
     "cypp" = "prvl", "cpp" = "incd", "dpp" = "mrtl",
@@ -434,12 +435,13 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
   # Column patterns for grep
   str2 <- c(
-    "prvl" = "_prvl$|^popsize$", "prvl_change" = "_prvl$|^popsize$",
-    "incd" = "_incd$|^popsize$", "incd_change" = "_incd$|^popsize$",
-    "ftlt" = "_deaths$|_prvl$", "ftlt_change" = "_deaths$|_prvl$",
-    "mrtl" = "_mrtl$|^popsize$", "mrtl_change" = "_mrtl$|^popsize$",
+    "prvl" = "_prvl$|^popsize$", "prvl_change_relative" = "_prvl$|^popsize$", "prvl_change_absolute" = "_prvl$|^popsize$",
+    "incd" = "_incd$|^popsize$", "incd_change_relative" = "_incd$|^popsize$", "incd_change_absolute" = "_incd$|^popsize$",
+    "ftlt" = "_deaths$|_prvl$", "ftlt_change_relative" = "_deaths$|_prvl$", "ftlt_change_absolute" = "_deaths$|_prvl$",
+    "mrtl" = "_mrtl$|^popsize$", "mrtl_change_relative" = "_mrtl$|^popsize$", "mrtl_change_absolute" = "_mrtl$|^popsize$",
     "dis_mrtl" = "^nonmodelled_deaths$|^chd_deaths$|^stroke_deaths$|^popsize$",
-    "dis_mrtl_change" = "^nonmodelled_deaths$|^chd_deaths$|^stroke_deaths$|^popsize$",
+    "dis_mrtl_change_relative" = "^nonmodelled_deaths$|^chd_deaths$|^stroke_deaths$|^popsize$",
+    "dis_mrtl_change_absolute" = "^nonmodelled_deaths$|^chd_deaths$|^stroke_deaths$|^popsize$",
     "qalys" = "^EQ5D5L$", "net_qalys" = "^EQ5D5L$",
     "costs" = "_cost$|^economic_output$", "net_costs" = "_cost$|^economic_output$",
     "cypp" = "_prvl$", "cpp" = "_incd$", "dpp" = "_mrtl$",
@@ -448,11 +450,11 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
   # Output column name prefixes
   str3 <- c(
-    "prvl" = "prvl_rate_", "prvl_change" = "prct_change_",
-    "incd" = "incd_rate_", "incd_change" = "prct_change_",
-    "ftlt" = "ftlt_rate_", "ftlt_change" = "ftlt_rate_",
-    "mrtl" = "mrtl_rate_", "mrtl_change" = "mrtl_change_",
-    "dis_mrtl" = "disease_mrtl_rate_", "dis_mrtl_change" = "disease_mrtl_change_",
+    "prvl" = "prvl_rate_", "prvl_change_relative" = "prct_change_relative_", "prvl_change_absolute" = "abs_change_",
+    "incd" = "incd_rate_", "incd_change_relative" = "prct_change_relative_", "incd_change_absolute" = "abs_change_",
+    "ftlt" = "ftlt_rate_", "ftlt_change_relative" = "ftlt_rate_", "ftlt_change_absolute" = "ftlt_abs_change_",
+    "mrtl" = "mrtl_rate_", "mrtl_change_relative" = "mrtl_change_relative_", "mrtl_change_absolute" = "mrtl_abs_change_",
+    "dis_mrtl" = "disease_mrtl_rate_", "dis_mrtl_change_relative" = "disease_mrtl_change_relative_", "dis_mrtl_change_absolute" = "disease_mrtl_abs_change_",
     "qalys" = "qalys_", "net_qalys" = "net_qalys_",
     "costs" = "costs_", "net_costs" = "net_costs_",
     "cypp" = "cypp_", "cpp" = "cpp_", "dpp" = "dpp_",
@@ -461,12 +463,13 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
   # Output file descriptions
   str4 <- c(
-    "prvl" = "prevalence by ", "prvl_change" = "prevalence change by ",
-    "incd" = "incidence by ", "incd_change" = "incidence change by ",
-    "ftlt" = "case fatality by ", "ftlt_change" = "case fatality change by ",
-    "mrtl" = "all-cause mortality by ", "mrtl_change" = "all-cause mortality change by ",
+    "prvl" = "prevalence by ", "prvl_change_relative" = "prevalence relative change by ", "prvl_change_absolute" = "prevalence absolute change by ",
+    "incd" = "incidence by ", "incd_change_relative" = "incidence relative change by ", "incd_change_absolute" = "incidence absolute change by ",
+    "ftlt" = "case fatality by ", "ftlt_change_relative" = "case fatality relative change by ", "ftlt_change_absolute" = "case fatality absolute change by ",
+    "mrtl" = "all-cause mortality by ", "mrtl_change_relative" = "all-cause mortality relative change by ", "mrtl_change_absolute" = "all-cause mortality absolute change by ",
     "dis_mrtl" = "disease-specific mortality by ",
-    "dis_mrtl_change" = "disease-specific mortality change by ",
+    "dis_mrtl_change_relative" = "disease-specific mortality relative change by ",
+    "dis_mrtl_change_absolute" = "disease-specific mortality absolute change by ",
     "qalys" = "QALYs by ", "net_qalys" = "net QALYs by ",
     "costs" = "costs by ", "net_costs" = "net costs by ",
     "cypp" = "case-years prevented or postponed by ",
@@ -597,10 +600,16 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
       d <- melt(d, id.vars = x)
 
-      if (grepl("_change$", what)) {
+      if (grepl("_change_relative$", what)) {
         # Relative change from baseline year
         d19 <- d[year == baseline_year][, year := NULL]
         d[d19, on = c(setdiff(x, "year"), "variable"), value := value / i.value]
+      }
+
+      if (grepl("_change_absolute$", what)) {
+        # Absolute change from baseline year
+        d19 <- d[year == baseline_year][, year := NULL]
+        d[d19, on = c(setdiff(x, "year"), "variable"), value := value - i.value]
       }
 
       if (grepl("^cypp$|^cpp$|^dpp$", what)) {
@@ -674,11 +683,11 @@ Simulation$set("private", "export_main_tables", function(
 
   # String mappings for source datasets
   str0 <- c(
-    "prvl" = "prvl", "prvl_change" = "prvl",
-    "incd" = "incd", "incd_change" = "incd",
-    "ftlt" = "dis_mrtl", "ftlt_change" = "dis_mrtl",
-    "mrtl" = "mrtl", "mrtl_change" = "mrtl",
-    "dis_mrtl" = "dis_mrtl", "dis_mrtl_change" = "dis_mrtl",
+    "prvl" = "prvl", "prvl_change_relative" = "prvl", "prvl_change_absolute" = "prvl",
+    "incd" = "incd", "incd_change_relative" = "incd", "incd_change_absolute" = "incd",
+    "ftlt" = "dis_mrtl", "ftlt_change_relative" = "dis_mrtl", "ftlt_change_absolute" = "dis_mrtl",
+    "mrtl" = "mrtl", "mrtl_change_relative" = "mrtl", "mrtl_change_absolute" = "mrtl",
+    "dis_mrtl" = "dis_mrtl", "dis_mrtl_change_relative" = "dis_mrtl", "dis_mrtl_change_absolute" = "dis_mrtl",
     "qalys" = "qalys", "net_qalys" = "qalys",
     "costs" = "costs", "net_costs" = "costs",
     "cypp" = "prvl", "cpp" = "incd", "dpp" = "mrtl",
@@ -688,10 +697,10 @@ Simulation$set("private", "export_main_tables", function(
 
   # Group metrics by source dataset for efficient memory usage
   source_to_metrics <- list(
-    prvl = c("prvl", "prvl_change", "cypp", "pop"),
-    incd = c("incd", "incd_change", "cpp"),
-    dis_mrtl = c("ftlt", "ftlt_change", "dis_mrtl", "dis_mrtl_change"),
-    mrtl = c("mrtl", "mrtl_change", "dpp"),
+    prvl = c("prvl", "prvl_change_relative", "prvl_change_absolute", "cypp", "pop"),
+    incd = c("incd", "incd_change_relative", "incd_change_absolute", "cpp"),
+    dis_mrtl = c("ftlt", "ftlt_change_relative", "ftlt_change_absolute", "dis_mrtl", "dis_mrtl_change_relative", "dis_mrtl_change_absolute"),
+    mrtl = c("mrtl", "mrtl_change_relative", "mrtl_change_absolute", "dpp"),
     qalys = c("qalys", "net_qalys"),
     costs = c("costs", "net_costs")
   )
@@ -963,24 +972,32 @@ Simulation$set("private", "export_disease_characteristics_tables", function(
     tt[, mean_cms_count_cms1st_cont := as.numeric(mean_cms_count_cms1st_cont)]
   }
 
-  # Extract case counts for weighting (include dimd for stratification)
-  d1 <- tt[, .SD, .SDcols = patterns("mc|scenario|year|sex|dimd|^cases_")]
-  d1 <- melt(d1, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
-  d1 <- unique(d1, by = c("mc", "year", "scenario", "sex", "dimd", "variable"))
+  # Derive id variables dynamically from requested strata, keeping only
+  # columns that actually exist in the data (e.g. agegrp is excluded from
+
+  # disease characteristics summaries via strata_noagegrp)
+  all_strata_vars <- unique(unlist(strata))
+  id_vars <- intersect(unique(c("mc", "scenario", all_strata_vars)), names(tt))
+  id_pattern <- paste(id_vars, collapse = "|")
+
+  # Extract case counts for weighting
+  d1 <- tt[, .SD, .SDcols = patterns(paste0(id_pattern, "|^cases_"))]
+  d1 <- melt(d1, id.vars = id_vars)
+  d1 <- unique(d1, by = c(id_vars, "variable"))
   d1[, disease := gsub("^cases_", "", variable)]
   d1[, variable := NULL]
 
-  # Extract characteristics columns (include dimd)
-  char_patterns <- "mc|scenario|year|sex|dimd|^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_"
+  # Extract characteristics columns
+  char_patterns <- paste0(id_pattern, "|^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_")
   tt <- tt[, .SD, .SDcols = patterns(char_patterns)]
 
   if ("mean_cms_count_cmsmm1" %in% names(tt)) {
     tt[, mean_cms_count_cmsmm1 := as.double(mean_cms_count_cmsmm1)]
   }
 
-  tt <- melt(tt, id.vars = c("mc", "year", "scenario", "sex", "dimd"))
+  tt <- melt(tt, id.vars = id_vars)
   tt[, disease := gsub("^mean_duration_|^mean_age_incd_|^mean_age_1st_onset_|^mean_age_prvl_|^mean_cms_score_|^mean_cms_count_", "", variable)]
-  tt[d1, on = c("mc", "year", "scenario", "sex", "dimd", "disease"), cases := i.value]
+  tt[d1, on = c(id_vars, "disease"), cases := i.value]
 
   # Helper function to convert user strata to internal format
   make_strata_configs <- function(strata_list) {
@@ -1042,17 +1059,13 @@ Simulation$set("private", "export_xps_tables", function(
   # Helper function to build filter expression from strata
   # Variables in strata -> filter on != "All"
   # Variables not in strata -> filter on == "All"
-  make_xps_strata_configs <- function(strata_list, available_vars, standardised = FALSE) {
-    # Filter variables that can have "All" values in xps data
-    filterable_vars <- intersect(c("sex", "agegrp20", "qimd"), available_vars)
-
+  make_xps_strata_configs <- function(strata_list, filterable_vars, standardised = FALSE) {
     lapply(strata_list, function(s) {
       outstrata <- c("mc", s, "scenario")
       suffix <- paste(setdiff(s, "year"), collapse = "-")
       if (suffix == "") suffix <- "year" else suffix <- paste0("year-", suffix)
       # Map agegrp20 to agegroup in suffix for backwards compatibility
       suffix <- gsub("agegrp20", "agegroup", suffix)
-      # Map qimd to qimd in suffix (no change needed)
 
       # Build filter expression: vars in strata -> != "All", vars not in strata -> == "All"
       filter_parts <- character(0)
@@ -1067,17 +1080,25 @@ Simulation$set("private", "export_xps_tables", function(
       filter_expr <- if (length(filter_parts) > 0) parse(text = filter_str)[[1]] else quote(TRUE)
 
       if (standardised) {
-        # Determine what was standardised by
-        possible_vars <- c("age", "sex", "qimd")
+        # Determine what was standardised by: all filterable vars not in the strata
         # Convert agegrp20 to age for standardisation naming
         s_for_std <- gsub("agegrp20", "age", s)
-        standardised_vars <- setdiff(possible_vars, s_for_std)
+        all_std_vars <- gsub("agegrp20", "age", filterable_vars)
+        standardised_vars <- setdiff(all_std_vars, s_for_std)
         std_suffix <- paste(standardised_vars, collapse = "-")
         list(strata = outstrata, suffix = suffix, filter_expr = filter_expr, std = std_suffix)
       } else {
         list(strata = outstrata, suffix = suffix, filter_expr = filter_expr)
       }
     })
+  }
+
+  # Helper to detect filterable vars: columns with "All" values from groupingsets
+  detect_filterable_vars <- function(dt) {
+    candidates <- setdiff(names(dt), c("mc", "scenario", "year"))
+    candidates[vapply(candidates, function(v) {
+      is.character(dt[[v]]) && "All" %in% dt[[v]]
+    }, logical(1))]
   }
 
   # ---- Non-standardised (xps20) ----
@@ -1087,9 +1108,9 @@ Simulation$set("private", "export_xps_tables", function(
     # Convert year from short format (19) to full format (2019)
     xps_tab[, year := year + 2000L]
 
-    # Build strata configs based on available columns
-    available_vars <- names(xps_tab)
-    strata_configs <- make_xps_strata_configs(strata_ons, available_vars, standardised = FALSE)
+    # Detect which columns have "All" marginals from groupingsets
+    filt_vars <- detect_filterable_vars(xps_tab)
+    strata_configs <- make_xps_strata_configs(strata_ons, filt_vars, standardised = FALSE)
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
@@ -1117,9 +1138,9 @@ Simulation$set("private", "export_xps_tables", function(
     # Convert year from short format (19) to full format (2019)
     xps_tab[, year := year + 2000L]
 
-    # Build strata configs based on available columns
-    available_vars <- names(xps_tab)
-    strata_configs <- make_xps_strata_configs(strata_esp, available_vars, standardised = TRUE)
+    # Detect which columns have "All" marginals from groupingsets
+    filt_vars <- detect_filterable_vars(xps_tab)
+    strata_configs <- make_xps_strata_configs(strata_esp, filt_vars, standardised = TRUE)
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata

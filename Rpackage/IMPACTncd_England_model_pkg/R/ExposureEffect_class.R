@@ -1559,94 +1559,128 @@ ExposureEffect <-
       chksum = NA,
 
       # Registry Management Methods ----
-      
-      # Get registry path (computed at runtime)
-      # @return character path to registry file
-      get_registry_path = function() {
-        file.path(getwd(), "simulation", "fileversion.csv")
-      },
-      
-      # Get or create the file version registry
-      # @return data.table with columns: file_path, source_file, checksum
-      get_registry = function() {
-        registry_path <- private$get_registry_path()
-        if (!file.exists(registry_path)) {
-          # Create empty registry
-          registry <- data.table(
+      # Uses InputsManifest for source file tracking.
+      # The generation record (simulation/rr_generation_record.csv)
+      # maps compiled .fst files to the source csvy hash at the
+      # time of generation.
+
+      # Get or create the generation record
+      # @return data.table: file_path, source_file, source_hash
+      get_generation_record = function() {
+        rec_path <- private$get_generation_record_path()
+        if (!file.exists(rec_path)) {
+          rec <- data.table(
             file_path = character(0),
             source_file = character(0),
-            checksum = character(0)
+            source_hash = character(0)
           )
-          # Ensure directory exists
-          reg_dir <- dirname(registry_path)
-          if (!dir.exists(reg_dir)) dir.create(reg_dir, recursive = TRUE)
-          fwrite(registry, registry_path)
-          return(registry)
-        }
-        
-        # Read with auto-detect for backward compatibility
-        registry <- fread(registry_path)
-        
-        # If old 2-column format, recreate as 3-column
-        if (ncol(registry) == 2) {
-          file.remove(registry_path)
-          registry <- data.table(
-            file_path = character(0),
-            source_file = character(0),
-            checksum = character(0)
+          dir.create(
+            dirname(rec_path),
+            showWarnings = FALSE, recursive = TRUE
           )
-          fwrite(registry, registry_path)
+          fwrite(rec, rec_path)
+          return(rec)
         }
-        
-        registry
+        rec <- fread(rec_path)
+        # Backward compat: old fileversion.csv had 'checksum'
+        if (
+          "checksum" %in% names(rec) &&
+            !"source_hash" %in% names(rec)
+        ) {
+          setnames(rec, "checksum", "source_hash")
+        }
+        # Backward compat: normalise absolute paths from other
+        # users/machines to relative paths for portable matching
+        if (nrow(rec) > 0 && any(startsWith(rec$file_path, "/"))) {
+          rec[, file_path := sub(
+            "^.*/(?=simulation/)", "", file_path, perl = TRUE
+          )]
+          if ("source_file" %in% names(rec)) {
+            rec[, source_file := sub(
+              "^.*/(?=inputs/)", "", source_file, perl = TRUE
+            )]
+          }
+        }
+        rec
       },
-      
-      # Check if current file's checksum matches registry
-      # @return logical, TRUE if valid, FALSE if needs regeneration
+
+      # Path to the generation record file
+      get_generation_record_path = function() {
+        file.path(
+          getwd(), "simulation",
+          "rr_generation_record.csv"
+        )
+      },
+
+      # Convert absolute path to relative (to getwd()) for portability
+      # across users/machines. Already-relative paths pass through unchanged.
+      to_rel_path = function(path) {
+        wd <- paste0(getwd(), "/")
+        ifelse(startsWith(path, wd), substring(path, nchar(wd) + 1L), path)
+      },
+
+      # Check if compiled .fst is valid by comparing the
+      # current source csvy hash against the generation record
+      # @return logical
       check_registry_valid = function() {
-        registry <- private$get_registry()
-        
-        # Check both main file and index file
-        main_entry <- registry[file_path == private$filenam]
-        indx_entry <- registry[file_path == private$filenam_indx]
-        
+        rec <- private$get_generation_record()
+
+        rel_main <- private$to_rel_path(private$filenam)
+        rel_indx <- private$to_rel_path(private$filenam_indx)
+        main_entry <- rec[file_path == rel_main]
+        indx_entry <- rec[file_path == rel_indx]
+
         if (nrow(main_entry) == 0 || nrow(indx_entry) == 0) {
           return(FALSE)
         }
-        
-        # Both entries should have the same checksum (from source file)
-        identical(main_entry$checksum[1], private$chksum) &&
-          identical(indx_entry$checksum[1], private$chksum)
+
+        # Compare stored source hash against current hash
+        identical(
+          main_entry$source_hash[1], private$chksum
+        ) &&
+          identical(
+            indx_entry$source_hash[1], private$chksum
+          )
       },
-      
-      # Update registry with current file and checksum
+
+      # Update generation record after compiling .fst files
       update_registry = function() {
-        registry_path <- private$get_registry_path()
-        registry <- private$get_registry()
-        
-        # Remove existing entries for these files
-        registry <- registry[!file_path %in% c(private$filenam, private$filenam_indx)]
-        
-        # Add new entries showing dependency on source file
+        rec_path <- private$get_generation_record_path()
+        rec <- private$get_generation_record()
+
+        # Remove old entries for these files (use relative paths)
+        rel_main <- private$to_rel_path(private$filenam)
+        rel_indx <- private$to_rel_path(private$filenam_indx)
+        rec <- rec[!file_path %in% c(rel_main, rel_indx)]
+
         new_entries <- data.table(
-          file_path = c(private$filenam, private$filenam_indx),
-          source_file = rep(private$xps_prm_file, 2),
-          checksum = rep(private$chksum, 2)
+          file_path = c(rel_main, rel_indx),
+          source_file = rep(
+            private$to_rel_path(private$xps_prm_file), 2
+          ),
+          source_hash = rep(private$chksum, 2)
         )
-        registry <- rbindlist(list(registry, new_entries))
-        
-        fwrite(registry, registry_path)
+        rec <- rbindlist(list(rec, new_entries))
+
+        fwrite(rec, rec_path)
         invisible(NULL)
       },
-      
-      # Remove files from registry
+
+      # Remove entries from generation record
       remove_from_registry = function() {
-        registry_path <- private$get_registry_path()
-        if (!file.exists(registry_path)) return(invisible(NULL))
-        
-        registry <- private$get_registry()
-        registry <- registry[!file_path %in% c(private$filenam, private$filenam_indx)]
-        fwrite(registry, registry_path)
+        rec_path <- private$get_generation_record_path()
+        if (!file.exists(rec_path)) {
+          return(invisible(NULL))
+        }
+
+        rec <- private$get_generation_record()
+        rec <- rec[
+          !file_path %in% c(
+            private$to_rel_path(private$filenam),
+            private$to_rel_path(private$filenam_indx)
+          )
+        ]
+        fwrite(rec, rec_path)
         invisible(NULL)
       },
 

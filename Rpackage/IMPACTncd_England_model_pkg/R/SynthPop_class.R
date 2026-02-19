@@ -1182,6 +1182,7 @@ SynthPop <-
       get_unique_characteristics = function(design_) {
         design_$sim_prm[c(
           "n",
+          "num_chunks",
           "sim_horizon_max",
           "init_year_long",
           "maxlag",
@@ -1189,6 +1190,7 @@ SynthPop <-
           "ageL",
           "ageH",
           "jumpiness",
+          "keep_simulants_rn",
           "simsmok_calibration",
           "statin_adherence",
           "bpmed_adherence"
@@ -1222,9 +1224,32 @@ SynthPop <-
 
         lsoas_ <- private$get_unique_LSOAs(design_)
 
+        # Include input data hash so synthpops are
+        # regenerated when upstream data changes
+        inputs_hash <- ""
+        manifest_path <- file.path(
+          ".",
+          "simulation",
+          "inputs_manifest.csv"
+        )
+        if (file.exists(manifest_path)) {
+          manifest <- InputsManifest$new(
+            inputs_dir = "./inputs",
+            manifest_path = manifest_path
+          )
+          manifest$load()
+          inputs_hash <- manifest$get_synthpop_input_hash()
+        }
+
         locality_years_age_id <-
           digest(
-            paste(lsoas_, fcall, sep = ",", collapse = ","),
+            paste(
+              lsoas_,
+              fcall,
+              inputs_hash,
+              sep = ",",
+              collapse = ","
+            ),
             serialize = FALSE
           )
         return(locality_years_age_id)
@@ -1391,7 +1416,7 @@ SynthPop <-
         # NOTE rankstat_* is unaffected by the RW. Stay constant through the lifecourse
         dtb[,
           c(
-            "rank_education",
+            "rankstat_education",
             "rank_income",
             "rank_pa",
             "rank_fruit",
@@ -1429,61 +1454,6 @@ SynthPop <-
         for (nam in rank_cols) {
           set(dtb, NULL, nam, dqrunif(new_n))
         } # NOTE do not replace with generate_rns function.
-
-        # Generate education (exception as it remains stable through lifecourse) ----
-        if (design_$sim_prm$logs) {
-          message("Generate education")
-        }
-        if (max(dtb$age) > 90L) {
-          dtb[, age100 := age]
-          dtb[age > 90L, age := 90L]
-        }
-
-        tbl <- design_$exposures$education$get_table()
-
-        nam <- intersect(names(dtb), names(tbl))
-        # logic necessary for new cohorts entering the simulation that currently age < 30
-        # These will have the same distribution as if 30 years old
-        tt <- tbl[age == min(age)]
-        tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max) # TODO adding design_$sim_prm$sim_horizon_max + design_$sim_prm$maxlag for longer projections
-        tt[, age := age - .id] # as the sim progress these will become 30 yo
-        # increase population by 0.5% every year
-        tt[, .id := NULL]
-        tbl <- rbind(tt, tbl)
-        dtb[
-          tbl,
-          education := (rank_education > ed1) +
-            (rank_education > ed2) +
-            (rank_education > ed3) +
-            (rank_education > ed4) +
-            (rank_education > ed5) +
-            (rank_education > ed6) +
-            1L,
-          on = nam
-        ]
-        dtb[,
-          education := factor(
-            education,
-            levels = 1:7,
-            labels = c(
-              "NVQ4/NVQ5/Degree or equiv",
-              "Higher ed below degree",
-              "NVQ3/GCE A Level equiv",
-              "NVQ2/GCE O Level equiv",
-              "NVQ1/CSE other grade equiv",
-              "Foreign/other",
-              "No qualification"
-            )
-          )
-        ]
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_education := NULL]
-        }
-
-        if ("age100" %in% names(dtb)) {
-          dtb[, age := NULL]
-          setnames(dtb, "age100", "age")
-        }
 
         # Project forward for simulation and back project for lags  ----
         if (design_$sim_prm$logs) {
@@ -1524,11 +1494,6 @@ SynthPop <-
 
         dtb[, `:=`(.id = NULL)]
 
-        if (max(dtb$age) > 90L) {
-          dtb[, age100 := age]
-          dtb[age > 90L, age := 90L]
-        }
-
         # to_agegrp(dtb, 20L, 85L, "age", "agegrp20", to_factor = TRUE)
         # to_agegrp(dtb, 10L, 85L, "age", "agegrp10", to_factor = TRUE)
         # to_agegrp(dtb,  5L, 85L, "age", "agegrp5" , to_factor = TRUE)
@@ -1555,6 +1520,65 @@ SynthPop <-
           .SDcols = patterns("^rank_")
         ]
         # ggplot2::qplot(year, rank_income, data = dtb[pid %in% sample(1e5, 1)], ylim = c(0,1))
+
+        # Generate education (exception as it remains stable through lifecourse) ----
+        if (design_$sim_prm$logs) {
+          message("Generate education")
+        }
+        if (max(dtb$age) > 90L) {
+          dtb[, age100 := age]
+          dtb[age > 90L, age := 90L]
+        }
+
+        tbl <- design_$exposures$education$get_table()
+
+        nam <- intersect(names(dtb), names(tbl))
+        # logic necessary for new cohorts entering the simulation that currently age < 30
+        # These will have the same distribution as if 30 years old
+        tt <- tbl[age == min(age)]
+        tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max) # TODO adding design_$sim_prm$sim_horizon_max + design_$sim_prm$maxlag for longer projections
+        tt[, ':='(age = age - .id, year = year - .id)] # as the sim progress these will become 30 yo
+        tt[, .id := NULL]
+        tbl <- rbind(tt, tbl)
+
+        idx <- dtb[, .I[1], by = pid]$V1 # index of first row for each individual (where education is generated)
+        tt <- dtb[
+          idx,
+          .(pid, year, age, ethnicity, qimd, sex, sha, rankstat_education)
+        ]
+
+        tt[
+          tbl,
+          education := (rankstat_education > ed1) +
+            (rankstat_education > ed2) +
+            (rankstat_education > ed3) +
+            (rankstat_education > ed4) +
+            (rankstat_education > ed5) +
+            (rankstat_education > ed6) +
+            1L,
+          on = nam
+        ]
+        tt[,
+          education := factor(
+            education,
+            levels = 1:7,
+            labels = c(
+              "NVQ4/NVQ5/Degree or equiv",
+              "Higher ed below degree",
+              "NVQ3/GCE A Level equiv",
+              "NVQ2/GCE O Level equiv",
+              "NVQ1/CSE other grade equiv",
+              "Foreign/other",
+              "No qualification"
+            )
+          )
+        ]
+
+        dtb[tt, on = "pid", education := i.education]
+
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rankstat_education := NULL]
+        }
 
         # Generate income ----
         design_$exposures$income$generate(dtb, design_)
@@ -1684,10 +1708,9 @@ SynthPop <-
         if (design_$sim_prm$simsmok_calibration) {
           # calculate dif between ref (multinom) and simsmok
           # I will further calibrate to better match HSE
-          resample <-
-            function(x, ...) {
-              x[sample.int(length(x), ...)]
-            }
+            dtb[, rank_smok_clb := dqrunif(.N)]
+          # Deterministic cell-level random value for calibration adjustments
+          cell_rn <- dtb[, .(rn_clb = rank_smok_clb[1L]), keyby = .(year, age, sex, qimd)]
           obs <-
             dtb[smok_status == 1L, .(nsa = .N), keyby = .(year, age, sex, qimd)] # ? add sha/ethn
           ref <-
@@ -1699,72 +1722,74 @@ SynthPop <-
           absorb_dt(ref, obs)
           setnafill(ref, "c", 0L, cols = "nsa")
           ref[, `:=`(dif = nsr - nsa, nsr = NULL, nsa = NULL)]
-          # Further calibrate to match better with HSE
+          ref[cell_rn, on = .(year, age, sex, qimd), rn_clb := i.rn_clb]
+          # Further calibrate to match better with HSE (deterministic via rank_smok_clb)
           ref[
             sex == "men" &
-              rbinom(.N, 1L, 0.9) == 1L,
+              rn_clb < 0.9,
             dif := dif - 2L
           ]
           ref[
             sex == "men" &
-              rbinom(.N, 1L, 1 * clamp((year - min(year)) / 10, 0, 1)) == 1L,
+              rn_clb < (1 * clamp((year - min(year)) / 10, 0, 1)),
             dif := dif + 2L
           ]
           ref[
             sex == "women" &
-              rbinom(.N, 1L, 0.2) == 1L,
+              rn_clb < 0.2,
             dif := dif - 1L
           ]
           ref[
             age < 49 &
-              rbinom(.N, 1L, 0.5) == 1L,
+              rn_clb < 0.5,
             dif := dif + 1L
           ]
           ref[
             age < 49 &
               sex == "men" &
               qimd == "3" &
-              rbinom(.N, 1L, 0.5) == 1L,
+              rn_clb < 0.5,
             dif := dif - 1L
           ]
           ref[
             age < 49 &
               sex == "women" &
               qimd %in% c("4", "5 least deprived") &
-              rbinom(.N, 1L, 0.4) == 1L,
+              rn_clb < 0.4,
             dif := dif - 1L
           ]
           ref[
             between(age, 50, 69) &
-              rbinom(.N, 1L, 0.2) == 1L,
+              rn_clb < 0.2,
             dif := dif + 1L
           ]
           ref[
             between(age, 50, 69) &
               sex == "women" &
               qimd == "5 least deprived" &
-              rbinom(.N, 1L, 0.4) == 1L,
+              rn_clb < 0.4,
             dif := dif + 1L
           ]
           ref[
             between(age, 70, 89) &
-              rbinom(.N, 1L, 0.4) == 1L,
+              rn_clb < 0.4,
             dif := dif + 1L
           ]
           ref[
             between(age, 70, 89) &
               sex == "men" &
               qimd %in% c("1 most deprived", "2") &
-              rbinom(.N, 1L, 0.4) == 1L,
+              rn_clb < 0.4,
             dif := dif - 1L
           ]
           ref[
             between(age, 70, 89) &
               sex == "women" &
               qimd %in% c("4d", "2") &
-              rbinom(.N, 1L, 0.4) == 1L,
+              rn_clb < 0.4,
             dif := dif + 1L
           ]
+          ref[, rn_clb := NULL]
           absorb_dt(dtb, ref)
 
           # when not enough never smokers convert those ex smokers with the longer quit years
@@ -1795,11 +1820,11 @@ SynthPop <-
 
           # when too many never smokers convert to smok status 2 (occasional)
           tt <-
-            dtb[smok_status %in% 1, .(year, age, sex, qimd, pid, dif)]
+            dtb[smok_status %in% 1, .(year, age, sex, qimd, pid, rank_smok_clb, dif)]
           setnafill(tt, "c", 0, cols = "dif")
           tt[dif > 0, dif := 0L]
           tt[, dif := -dif]
-          setkey(tt, year, age, sex, qimd)
+          setkey(tt, year, age, sex, qimd, rank_smok_clb)
           # Ensure there are enough people to sample from
           ttt <-
             tt[,
@@ -1810,7 +1835,7 @@ SynthPop <-
           pid_to_conv <-
             tt[
               dif > 0,
-              .(pid = resample(pid, max(dif))),
+              .(pid = head(pid, max(dif))),
               keyby = .(year, age, sex, qimd)
             ]
           dtb[
@@ -1839,29 +1864,31 @@ SynthPop <-
           absorb_dt(ref, obs)
           setnafill(ref, "c", 0, cols = "nsa")
           ref[, `:=`(dif = nsr - nsa, nsr = NULL, nsa = NULL)]
-          # Further calibrate to match better with HSE
+          ref[cell_rn, on = .(year, age, sex, qimd), rn_clb := i.rn_clb]
+          # Further calibrate to match better with HSE (deterministic via rank_smok_clb)
           ref[
             sex == "men" &
-              rbinom(.N, 1L, 0.3) == 1L,
+              rn_clb < 0.3,
             dif := dif - 1L
           ]
           ref[
             sex == "women" &
               qimd != "1 most deprived" &
               qimd != "5 least deprived" &
-              rbinom(.N, 1L, 0.8) == 1L,
+              rn_clb < 0.8,
             dif := dif - 1L
           ]
           ref[
             qimd == "1 most deprived" &
-              rbinom(.N, 1L, 0.5) == 1L,
+              rn_clb < 0.5,
             dif := dif + 1L
           ]
           ref[
             qimd == "5 least deprived" &
-              rbinom(.N, 1L, 0.6) == 1L,
+              rn_clb < 0.6,
             dif := dif - 1L
           ] # - reduces
+          ref[, rn_clb := NULL]
           absorb_dt(dtb, ref)
 
           # when not enough active smokers convert those ex smokers with the shortest quit years
@@ -1891,11 +1918,11 @@ SynthPop <-
 
           # when too many never smokers convert to smok status 3
           tt <-
-            dtb[smok_status == 4L, .(year, age, sex, qimd, pid, dif)]
+            dtb[smok_status == 4L, .(year, age, sex, qimd, pid, rank_smok_clb, dif)]
           setnafill(tt, "c", 0, cols = "dif")
           tt[dif > 0, dif := 0L]
           tt[, dif := -dif]
-          setkey(tt, year, age, sex, qimd)
+          setkey(tt, year, age, sex, qimd, rank_smok_clb)
           # Ensure there are enough people to sample from
           ttt <-
             tt[,
@@ -1906,7 +1933,7 @@ SynthPop <-
           pid_to_conv <-
             tt[
               dif > 0,
-              .(pid = resample(pid, max(dif))),
+              .(pid = head(pid, max(dif))),
               keyby = .(year, age, sex, qimd)
             ]
           dtb[
@@ -1916,7 +1943,10 @@ SynthPop <-
           ]
           dtb[, dif := NULL]
 
-          rm(tt, ttt, obs, ref, pid_to_conv)
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, c("rank_smok_clb") := NULL]
+        }
+          rm(tt, ttt, obs, ref, pid_to_conv, cell_rn)
         }
 
         # Assign smok_cig
@@ -1931,7 +1961,7 @@ SynthPop <-
         design_$exposures$smok_cig_ex$generate(dtb, design_, idx)
 
         simsmok_cig(dtb) # carry forward smok_cig if smok_status == 3
-        dtb[smok_cig == 0L & smok_status > 1L, smok_cig := 1L]
+        dtb[smok_cig == 0L & smok_status != 1L, smok_cig := 1L]
 
         if (design_$sim_prm$simsmok_calibration) {
           simsmok_postcalibration(dtb)
@@ -1972,9 +2002,9 @@ SynthPop <-
         }
         # Generate BMI (BCPEo) ----
         design_$exposures$bmi$generate(dtb, design_)
-                if (!design_$sim_prm$keep_simulants_rn) {
-                  dtb[, rank_bmi := NULL]
-                }
+        if (!design_$sim_prm$keep_simulants_rn) {
+          dtb[, rank_bmi := NULL]
+        }
 
         # Generate SBP (BCPEo) ----
         design_$exposures$sbp$generate(dtb, design_)

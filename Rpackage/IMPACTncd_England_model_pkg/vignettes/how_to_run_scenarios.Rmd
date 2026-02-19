@@ -92,6 +92,8 @@ Note: In the arguments for the `run()`, we have selected the number of Monte Car
 
 We have also selected `multicore = FALSE` here so that parallel processing is not used. This slows down the simulation, but it requires substantially less computational resources. In production, you would most likely want to set this to TRUE. The third argument of the `run()` function defines the name of the baseline scenario as "sc0" here. Please do not change the name of the baseline scenario.
 
+**Scenario naming convention:** Scenario names should contain only letters, digits, and underscores (e.g. `"sc1"`, `"bmi_reduction_10pc"`). Avoid hyphens, spaces, or other special characters (e.g. do **not** use `"Non-Modelled"` or `"sc 1"`), as these are used internally in SQL identifiers and file paths where special characters can cause errors.
+
 Finally, the `export_summaries()` generates summary output files from the lifecourse files that are the raw simulation output.
 
 4. After running the code, we will create the folders shown below. The `lifecourse` folder has the same number of files as the number of iterations runs. 

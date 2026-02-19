@@ -1,6 +1,6 @@
 ---
 title: "Understanding IMPACTncd_Engl model outputs"
-author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
+author: "Dr Chris Kypridemos, Dr Anna Head, Adithi R. Upadhya"
 date: "11 March, 2024"
 output: rmarkdown::html_vignette
 vignette: >

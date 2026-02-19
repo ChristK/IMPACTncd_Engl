@@ -1,20 +1,22 @@
 source("./global.R")
+library(data.table)
+library(fst)
 design <- Design$new("testing/sim_design_testing.yaml")
 
 # RR ----
 # Create a named list of Exposure objects for the files in ./inputs/RR
 fl <- list.files(path = "./inputs/RR", pattern = ".csvy$", full.names = TRUE)
-# RR <- lapply(fl, ExposureEffect$new, design)
-# names(RR) <- sapply(RR, function(x) x$get_name())
-# lapply(RR, function(x) {
-#     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
-# })
-RR <- future_lapply(fl, ExposureEffect$new, design,future.seed = 950480304L)
+RR <- lapply(fl, ExposureEffect$new, design)
 names(RR) <- sapply(RR, function(x) x$get_name())
-invisible(future_lapply(RR, function(x) {
+lapply(RR, function(x) {
     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
-},
-future.seed = 627524136L))
+})
+# RR <- future.apply::future_lapply(fl, ExposureEffect$new, design,future.seed = 950480304L)
+# names(RR) <- sapply(RR, function(x) x$get_name())
+# invisible(future_lapply(RR, function(x) {
+#     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
+# },
+# future.seed = 627524136L))
 # NOTE smooth cannot be exported to Design for now, because the first time
 # this parameter changes we need logic to overwrite unsmoothed files
 rm(fl)

@@ -13,7 +13,11 @@ iterations of synthetic population to simulate, or a scalar.}
 
 \item{multicore}{If TRUE run the simulation in parallel.}
 
-\item{scenario_nam}{A string for the scenario name (i.e. sc1)}
+\item{scenario_nam}{A string for the scenario name (e.g. "sc0",
+"sc1"). Use only letters, digits, and underscores (e.g. "sc1",
+"bmi_reduction_10pc"). Avoid hyphens, spaces, or other special
+characters as these can cause issues in internal SQL queries.
+The baseline scenario must always be named "sc0".}
 
 \item{processed}{If \code{TRUE} generates the causality matrix from the
 graph.}
@@ -90,6 +94,8 @@ A string vector.
 
 A list with all the possible paths between exposure and disease.
 
+An InputsManifest object, or NULL if not initialised.
+
 The invisible self for chaining.
 
 The invisible self for chaining.
@@ -164,6 +170,9 @@ causality structure.
 Returns the names of all exposures and diseases.
 
 Returns the causal paths between an exposure and an outcome (disease).
+
+Returns the InputsManifest object for inspecting
+tracked input files and their hashes.
 
 Updates the Design object that is stored in the Simulation
 object.

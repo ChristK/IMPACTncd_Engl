@@ -145,7 +145,7 @@ Simulation <-
   R6::R6Class(
     classname = "Simulation",
     lock_objects = TRUE, # allows primary prevention scenario to be updated
-    lock_class = FALSE,  # allows adding methods via $set() from other files
+    lock_class = FALSE, # allows adding methods via $set() from other files
     # public ------------------------------------------------------------------
     public = list(
       #' @field design A Design object.
@@ -226,7 +226,7 @@ Simulation <-
 
         # Create folders if don't exist
         private$create_output_folder_structure()
-        
+
         # private$create_empty_calibration_prms_file(replace = FALSE)
         message("Generating microsimulation structure.")
         # Generate the graph with the causality structure
@@ -286,6 +286,107 @@ Simulation <-
         private$primary_prevention_scn <- function(synthpop) NULL # default for baseline scenario
         private$secondary_prevention_scn <- function(synthpop) NULL # default for baseline scenario
 
+        # --- INPUTS MANIFEST CHECK ---
+        private$inputs_manifest <- InputsManifest$new(
+          inputs_dir = "./inputs",
+          manifest_path = "./simulation/inputs_manifest.csv"
+        )
+
+        manifest_path <- "./simulation/inputs_manifest.csv"
+        if (file.exists(manifest_path)) {
+          private$inputs_manifest$load()
+          changes <- private$inputs_manifest$detect_changes(
+            self$design
+          )
+
+          if (length(changes$all_changed) > 0L) {
+            message("=== INPUT FILE CHANGES DETECTED ===")
+            message(sprintf(
+              "  %d added, %d removed, %d modified",
+              length(changes$added),
+              length(changes$removed),
+              length(changes$modified)
+            ))
+
+            if (changes$affected_synthpops) {
+              message(
+                "  -> Synthpops will be regenerated",
+                " (upstream data changed)"
+              )
+            }
+            if (length(changes$affected_rr) > 0L) {
+              message(
+                "  -> RR files to regenerate: ",
+                paste(changes$affected_rr, collapse = ", ")
+              )
+              # Delete stale compiled RR .fst files so
+              # ExposureEffect regenerates them
+              for (rr_name in changes$affected_rr) {
+                rr_files <- list.files(
+                  "./simulation/rr",
+                  pattern = paste0(
+                    "^rr_",
+                    rr_name,
+                    "_(l|indx)\\.fst$"
+                  ),
+                  full.names = TRUE
+                )
+                if (length(rr_files) > 0L) {
+                  file.remove(rr_files)
+                }
+              }
+            }
+            if (length(changes$affected_diseases) > 0L) {
+              message(
+                "  -> PARF files to regenerate: ",
+                paste(
+                  changes$affected_diseases,
+                  collapse = ", "
+                )
+              )
+              # Delete stale PARF files so Disease
+              # regenerates them
+              parf_dir <- "./simulation/parf"
+              if (dir.exists(parf_dir)) {
+                for (d in changes$affected_diseases) {
+                  parf_files <- list.files(
+                    parf_dir,
+                    pattern = paste0("^PARF_", d, "_"),
+                    full.names = TRUE
+                  )
+                  if (length(parf_files) > 0L) {
+                    file.remove(parf_files)
+                  }
+                }
+              }
+            }
+
+            # Update manifest to reflect current state
+            private$inputs_manifest$generate(
+              parallel = self$design$sim_prm$clusternumber > 1L,
+              n_workers = self$design$sim_prm$clusternumber
+            )
+            message(
+              "  Manifest updated.",
+              " Stale artifacts will be regenerated."
+            )
+            message("===================================")
+          }
+        } else {
+          message(
+            "No inputs manifest found.",
+            " Generating initial manifest..."
+          )
+          private$inputs_manifest$generate(
+            parallel = self$design$sim_prm$clusternumber > 1L,
+            n_workers = self$design$sim_prm$clusternumber
+          )
+          message(sprintf(
+            "Inputs manifest created: %d files tracked.",
+            nrow(private$inputs_manifest$manifest)
+          ))
+        }
+
         invisible(self)
       },
 
@@ -330,7 +431,11 @@ Simulation <-
       #' @param mc A positive sequential integer vector with the Monte Carlo
       #'   iterations of synthetic population to simulate, or a scalar.
       #' @param multicore If TRUE run the simulation in parallel.
-      #' @param scenario_nam A string for the scenario name (i.e. sc1)
+      #' @param scenario_nam A string for the scenario name (e.g. "sc0",
+      #'   "sc1"). Use only letters, digits, and underscores (e.g. "sc1",
+      #'   "bmi_reduction_10pc"). Avoid hyphens, spaces, or other special
+      #'   characters as these can cause issues in internal SQL queries.
+      #'   The baseline scenario must always be named "sc0".
       #' @return The invisible self for chaining.
       run = function(mc, multicore = TRUE, scenario_nam) {
         if (!is.integer(mc)) {
@@ -338,6 +443,18 @@ Simulation <-
         }
         if (any(mc <= 0)) {
           stop("mc need to be positive integer")
+        }
+
+        # Validate scenario_nam
+        if (!missing(scenario_nam) && nzchar(scenario_nam) &&
+            grepl("[^A-Za-z0-9_]", scenario_nam)) {
+          warning(
+            "scenario_nam '", scenario_nam, "' contains characters other ",
+            "than letters, digits, and underscores. This is not recommended ",
+            "and may cause issues. Please use only [A-Za-z0-9_] characters ",
+            "(e.g. 'sc1', 'bmi_reduction_10pc').",
+            call. = FALSE
+          )
         }
 
         # recombine the chunks of large files
@@ -367,24 +484,19 @@ Simulation <-
         # design.yaml is changed between scenarios i.e.)
         private$create_output_folder_structure()
 
-        # TODO better logic as this is always true for the non baseline scenario
+        # Check for leftover results from a previous simulation
+        lifecourse_dir <- file.path(
+          self$design$sim_prm$output_dir,
+          "lifecourse"
+        )
         if (
-          any(file.exists(
-            # TODO fix when lifecourse is not saved
-            file.path(
-              self$design$sim_prm$output_dir,
-              "lifecourse"
-            ),
-            recursive = TRUE
-          ))
+          dir.exists(lifecourse_dir) &&
+            length(list.files(lifecourse_dir, recursive = TRUE)) > 0L
         ) {
-          # stop("Results from a previous simulation exists in the output
-          #      folder. Please remove them before run a new one.")
-          if (self$design$sim_prm$logs) {
-          message(
-              "Results from a previous simulation exists in the output folder. Please remove them if this was unintentional."
-          )
-          }
+            message(
+              "Results from a previous simulation exist in the output folder. ",
+              "Please remove them if this was unintentional."
+            )
         }
 
         # Generate PARF files if they don't exist. Note that generation is
@@ -506,7 +618,6 @@ Simulation <-
         invisible(self)
       },
 
-
       # get_causal_structure ----
 
       #' @description Returns the causality matrix and optionally plots the
@@ -591,7 +702,12 @@ Simulation <-
 
         if (processed) {
           graph <- as.matrix(as_adjacency_matrix(graph))
-          n <- vapply(self$design$diseases, `[[`, "name", FUN.VALUE = character(1))
+          n <- vapply(
+            self$design$diseases,
+            `[[`,
+            "name",
+            FUN.VALUE = character(1)
+          )
           graph <- graph[rowSums(graph) > 0, colnames(graph) %in% n]
         }
 
@@ -635,6 +751,15 @@ Simulation <-
         return(out)
       },
 
+      # get_inputs_manifest ----
+
+      #' @description Returns the InputsManifest object for inspecting
+      #'   tracked input files and their hashes.
+      #' @return An InputsManifest object, or NULL if not initialised.
+      get_inputs_manifest = function() {
+        private$inputs_manifest
+      },
+
       # update_design ----
 
       #' @description Updates the Design object that is stored in the Simulation
@@ -658,14 +783,14 @@ Simulation <-
       del_outputs = function() {
         if (dir.exists(self$design$sim_prm$output_dir)) {
           # Get all files in output_dir (including nested files)
-            fl <- list.files(
-              self$design$sim_prm$output_dir,
-              full.names = TRUE,
-              recursive = TRUE
-            )
+          fl <- list.files(
+            self$design$sim_prm$output_dir,
+            full.names = TRUE,
+            recursive = TRUE
+          )
 
           # Remove all files
-            file.remove(fl)
+          file.remove(fl)
 
           # Get first-level directories (e.g., summaries/, logs/, tables/)
           first_level_dirs <- list.dirs(
@@ -957,22 +1082,37 @@ Simulation <-
             p <- ggplot() +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_mrtl_rate")), color = type)
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_mrtl_rate")),
+                  color = type
+                )
               ) +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_mrtl_rate_low")), color = type),
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_mrtl_rate_low")),
+                  color = type
+                ),
                 linetype = "dashed"
               ) +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_mrtl_rate_upp")), color = type),
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_mrtl_rate_upp")),
+                  color = type
+                ),
                 linetype = "dashed"
               ) +
               facet_wrap(. ~ factor(agegrp), scales = "free") +
               theme_bw() +
               theme(axis.text.x = element_text(angle = 90, hjust = 0.5)) +
-              ggtitle(paste0(toupper(metric), " mrtl rate"), tools::toTitleCase(sex_val))
+              ggtitle(
+                paste0(toupper(metric), " mrtl rate"),
+                tools::toTitleCase(sex_val)
+              )
             ggsave(
               file.path(
                 self$design$sim_prm$output_dir,
@@ -996,15 +1136,26 @@ Simulation <-
 
         for (metric in c("chd", "stroke", "nonmodelled")) {
           p <- ggplot() +
-            geom_line(data = dt, aes(x = year, y = get(paste0(metric, "_mrtl_rate")), color = type)) +
             geom_line(
               data = dt,
-              aes(x = year, y = get(paste0(metric, "_mrtl_rate_low")), color = type),
+              aes(x = year, y = get(paste0(metric, "_mrtl_rate")), color = type)
+            ) +
+            geom_line(
+              data = dt,
+              aes(
+                x = year,
+                y = get(paste0(metric, "_mrtl_rate_low")),
+                color = type
+              ),
               linetype = "dashed"
             ) +
             geom_line(
               data = dt,
-              aes(x = year, y = get(paste0(metric, "_mrtl_rate_upp")), color = type),
+              aes(
+                x = year,
+                y = get(paste0(metric, "_mrtl_rate_upp")),
+                color = type
+              ),
               linetype = "dashed"
             ) +
             facet_wrap(. ~ factor(sex), scales = "free") +
@@ -1012,7 +1163,11 @@ Simulation <-
             theme(axis.text.x = element_text(angle = 90, hjust = 0.5)) +
             ggtitle(paste0(toupper(metric), " mrtl rate"), "By sex")
           ggsave(
-            file.path(self$design$sim_prm$output_dir, "plots", paste0(toupper(metric), "_s_mrtl.jpg")),
+            file.path(
+              self$design$sim_prm$output_dir,
+              "plots",
+              paste0(toupper(metric), "_s_mrtl.jpg")
+            ),
             p,
             height = HEIGHT,
             width = WIDTH
@@ -1092,22 +1247,37 @@ Simulation <-
             p <- ggplot() +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_incd_rate")), color = type)
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_incd_rate")),
+                  color = type
+                )
               ) +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_incd_rate_low")), color = type),
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_incd_rate_low")),
+                  color = type
+                ),
                 linetype = "dashed"
               ) +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_incd_rate_upp")), color = type),
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_incd_rate_upp")),
+                  color = type
+                ),
                 linetype = "dashed"
               ) +
               facet_wrap(. ~ factor(agegrp), scales = "free") +
               theme_bw() +
               theme(axis.text.x = element_text(angle = 90, hjust = 0.5)) +
-              ggtitle(paste0(toupper(metric), " incd rate"), tools::toTitleCase(sex_val))
+              ggtitle(
+                paste0(toupper(metric), " incd rate"),
+                tools::toTitleCase(sex_val)
+              )
             ggsave(
               file.path(
                 self$design$sim_prm$output_dir,
@@ -1131,15 +1301,26 @@ Simulation <-
 
         for (metric in c("chd", "stroke")) {
           p <- ggplot() +
-            geom_line(data = dt, aes(x = year, y = get(paste0(metric, "_incd_rate")), color = type)) +
             geom_line(
               data = dt,
-              aes(x = year, y = get(paste0(metric, "_incd_rate_low")), color = type),
+              aes(x = year, y = get(paste0(metric, "_incd_rate")), color = type)
+            ) +
+            geom_line(
+              data = dt,
+              aes(
+                x = year,
+                y = get(paste0(metric, "_incd_rate_low")),
+                color = type
+              ),
               linetype = "dashed"
             ) +
             geom_line(
               data = dt,
-              aes(x = year, y = get(paste0(metric, "_incd_rate_upp")), color = type),
+              aes(
+                x = year,
+                y = get(paste0(metric, "_incd_rate_upp")),
+                color = type
+              ),
               linetype = "dashed"
             ) +
             facet_wrap(. ~ factor(sex), scales = "free") +
@@ -1260,22 +1441,37 @@ Simulation <-
             p <- ggplot() +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_prvl_rate")), color = type)
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_prvl_rate")),
+                  color = type
+                )
               ) +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_prvl_rate_low")), color = type),
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_prvl_rate_low")),
+                  color = type
+                ),
                 linetype = "dashed"
               ) +
               geom_line(
                 data = dt[sex == sex_val],
-                aes(x = year, y = get(paste0(metric, "_prvl_rate_upp")), color = type),
+                aes(
+                  x = year,
+                  y = get(paste0(metric, "_prvl_rate_upp")),
+                  color = type
+                ),
                 linetype = "dashed"
               ) +
               facet_wrap(. ~ factor(agegrp), scales = "free") +
               theme_bw() +
               theme(axis.text.x = element_text(angle = 90, hjust = 0.5)) +
-              ggtitle(paste0(toupper(metric), " prvl rate"), tools::toTitleCase(sex_val))
+              ggtitle(
+                paste0(toupper(metric), " prvl rate"),
+                tools::toTitleCase(sex_val)
+              )
             ggsave(
               file.path(
                 self$design$sim_prm$output_dir,
@@ -1299,15 +1495,26 @@ Simulation <-
 
         for (metric in c("chd", "stroke")) {
           p <- ggplot() +
-            geom_line(data = dt, aes(x = year, y = get(paste0(metric, "_prvl_rate")), color = type)) +
             geom_line(
               data = dt,
-              aes(x = year, y = get(paste0(metric, "_prvl_rate_low")), color = type),
+              aes(x = year, y = get(paste0(metric, "_prvl_rate")), color = type)
+            ) +
+            geom_line(
+              data = dt,
+              aes(
+                x = year,
+                y = get(paste0(metric, "_prvl_rate_low")),
+                color = type
+              ),
               linetype = "dashed"
             ) +
             geom_line(
               data = dt,
-              aes(x = year, y = get(paste0(metric, "_prvl_rate_upp")), color = type),
+              aes(
+                x = year,
+                y = get(paste0(metric, "_prvl_rate_upp")),
+                color = type
+              ),
               linetype = "dashed"
             ) +
             facet_wrap(. ~ factor(sex), scales = "free") +
@@ -1449,7 +1656,11 @@ Simulation <-
       #' @return The invisible self for chaining.
       #' @details This method initializes the Zenodo asset manager for uploading/downloading
       #'   input data files. Get your token at: https://zenodo.org/account/settings/applications/tokens/new/
-      zenodo_connect = function(token = NULL, concept_doi = NULL, sandbox = FALSE) {
+      zenodo_connect = function(
+        token = NULL,
+        concept_doi = NULL,
+        sandbox = FALSE
+      ) {
         if (is.null(private$zenodo_manager)) {
           private$zenodo_manager <- ZenodoAssetManager$new(
             hash_file = "./simulation/zenodo_manifest.csv",
@@ -1815,6 +2026,8 @@ Simulation <-
       secondary_prevention_scn = NULL,
       # Zenodo asset manager for input data
       zenodo_manager = NULL,
+      # Inputs manifest for tracking file versions
+      inputs_manifest = NULL,
 
       # Helper function to execute database query and write to disk with retry logic
       # execute_db_diskwrite_with_retry ----
@@ -2137,7 +2350,7 @@ Simulation <-
         # pick up new iterations in a staggered manner.
         n_cores <- self$design$sim_prm$clusternumber
         if (n_cores > 1L && mc_ <= n_cores) {
-          stagger_delay_sec <- 2L  # seconds between worker startups
+          stagger_delay_sec <- 2L # seconds between worker startups
           worker_position <- mc_ - 1L
           if (worker_position > 0L) {
             Sys.sleep(worker_position * stagger_delay_sec)
@@ -2147,7 +2360,7 @@ Simulation <-
         if (self$design$sim_prm$logs) {
           private$time_mark(paste0("Start mc iteration ", mc_))
           log_file <- private$output_dir(paste0("logs/log", mc_, ".txt"))
-          log_con <- file(log_file, open = "at")  # append text
+          log_con <- file(log_file, open = "at") # append text
           sink(log_con, type = "output", split = FALSE)
           sink(log_con, type = "message")
         }
@@ -2343,9 +2556,13 @@ Simulation <-
 
         if (self$design$sim_prm$logs) {
           private$time_mark(paste0("End mc iteration ", mc_))
-          sink(type = "message")  # close message sink first
-          sink(type = "output")   # close output sink
-          if (exists("log_con") && inherits(log_con, "connection") && isOpen(log_con)) {
+          sink(type = "message") # close message sink first
+          sink(type = "output") # close output sink
+          if (
+            exists("log_con") &&
+              inherits(log_con, "connection") &&
+              isOpen(log_con)
+          ) {
             close(log_con)
           }
         }
@@ -2392,188 +2609,248 @@ Simulation <-
 
         logs_enabled <- self$design$sim_prm$logs
 
-        tryCatch({
-          if (logs_enabled) message("  export_xps: Starting age grouping...")
+        tryCatch(
+          {
+            if (logs_enabled) {
+              message("  export_xps: Starting age grouping...")
+            }
 
-          to_agegrp(
-          sp$pop,
-          grp_width = 20L,
-          max_age = self$design$sim_prm$ageH,
-          min_age = self$design$sim_prm$ageL,
-          age_colname = "age",
-          agegrp_colname = "agegrp20",
-          to_factor = TRUE
+            to_agegrp(
+              sp$pop,
+              grp_width = 20L,
+              max_age = self$design$sim_prm$ageH,
+              min_age = self$design$sim_prm$ageL,
+              age_colname = "age",
+              agegrp_colname = "agegrp20",
+              to_factor = TRUE
+            )
+
+            sp$pop[,
+              smok_never_curr_xps := fifelse(
+                smok_status_curr_xps == "1",
+                1L,
+                0L
+              )
+            ]
+            sp$pop[,
+              smok_active_curr_xps := fifelse(
+                smok_status_curr_xps == "4",
+                1L,
+                0L
+              )
+            ]
+
+            xps <- grep("_curr_xps$", names(sp$pop), value = TRUE)
+            xps <- grep("_prvl_curr_xps$", xps, value = TRUE, invert = TRUE)
+            # NOTE: Using setdiff() instead of -which() to avoid R gotcha where
+            # x[-integer(0)] returns empty vector instead of x
+            xps <- setdiff(
+              xps,
+              c("smok_status_curr_xps", "met_curr_xps", "bpmed_curr_xps")
+            )
+
+            # Defensive check: ensure xps is not empty
+            if (length(xps) == 0L) {
+              warning(
+                "export_xps: No exposure columns found matching '_curr_xps$' pattern. ",
+                "Available columns: ",
+                paste(head(names(sp$pop), 20), collapse = ", "),
+                if (length(names(sp$pop)) > 20) "..." else ""
+              )
+              return(NULL)
+            }
+            if (logs_enabled) {
+              message(
+                "  export_xps: Found ",
+                length(xps),
+                " exposure columns: ",
+                paste(head(xps, 5), collapse = ", "),
+                if (length(xps) > 5) "..." else ""
+              )
+            }
+
+            sp$pop[
+              smok_status_curr_xps == "1",
+              `:=`(
+                smok_packyrs_curr_xps = NA,
+                smok_quit_yrs_curr_xps = NA,
+                smok_dur_curr_xps = NA,
+                smok_cig_curr_xps = NA
+              )
+            ]
+            sp$pop[
+              smok_status_curr_xps == "4",
+              `:=`(
+                smok_quit_yrs_curr_xps = NA
+              )
+            ]
+
+            # Build xps stratification variables dynamically from strata_for_output
+            # Mapping: agegrp -> agegrp20 (20-year bands for xps), dimd -> qimd
+            xps_strata_raw <- setdiff(
+              self$design$sim_prm$strata_for_output,
+              c("scenario", "year")
+            )
+            xps20_var_map <- c("agegrp" = "agegrp20", "dimd" = "qimd")
+            xps20_strata <- vapply(
+              xps_strata_raw,
+              function(v) {
+                if (v %in% names(xps20_var_map)) xps20_var_map[[v]] else v
+              },
+              character(1),
+              USE.NAMES = FALSE
+            )
+            # Generate all subset combinations for groupingsets
+            xps20_subsets <- unlist(
+              lapply(seq_along(xps20_strata), function(k) {
+                combn(xps20_strata, k, simplify = FALSE)
+              }),
+              recursive = FALSE
+            )
+            xps20_sets <- c(
+              list("year"),
+              lapply(xps20_subsets, function(s) c("year", s))
+            )
+            xps20_by <- c("year", xps20_strata)
+
+            if (logs_enabled) {
+              message("  export_xps: Computing groupingsets for xps20...")
+            }
+            out_xps20 <- groupingsets(
+              sp$pop[
+                all_cause_mrtl >= 0L &
+                  year >= self$design$sim_prm$init_year &
+                  age >= self$design$sim_prm$ageL,
+              ],
+              j = lapply(.SD, weighted.mean, wt, na.rm = TRUE),
+              by = xps20_by,
+              .SDcols = xps,
+              sets = xps20_sets
+            )[, `:=`(year = year + 2000L, mc = sp$mc, scenario = scenario_nam)]
+            # TODO above mc could also be mc_aggr. Getting the uncertainty right here is tricky
+
+            for (j in seq_len(ncol(out_xps20))) {
+              set(out_xps20, which(is.na(out_xps20[[j]])), j, "All")
+            }
+            setkey(out_xps20, year)
+
+            fileformat <- "parquet"
+            fnam <- private$output_dir(file.path(
+              "xps",
+              "xps20",
+              paste0("mc=", sp$mc_aggr),
+              paste0("scenario=", scenario_nam),
+              paste0(sp$mc, "_xps20.", fileformat)
+            ))
+
+            # Ensure parent directory exists
+            dir.create(dirname(fnam), recursive = TRUE, showWarnings = FALSE)
+
+            if (logs_enabled) {
+              message("  export_xps: Writing xps20 to ", fnam)
+            }
+            # NOTE parquet format about 30 times smaller but about 50% slower in writting to disk
+            write_dataset(dataset = out_xps20, path = fnam, format = fileformat)
+
+            # xps5 (ESP): same strata but without age groups (standardised by age)
+            xps5_strata <- setdiff(xps20_strata, "agegrp20")
+            xps5_subsets <- unlist(
+              lapply(seq_along(xps5_strata), function(k) {
+                combn(xps5_strata, k, simplify = FALSE)
+              }),
+              recursive = FALSE
+            )
+            xps5_sets <- c(
+              list("year"),
+              lapply(xps5_subsets, function(s) c("year", s))
+            )
+            xps5_by <- c("year", xps5_strata)
+
+            if (logs_enabled) {
+              message("  export_xps: Computing groupingsets for xps5...")
+            }
+            out_xps5 <- groupingsets(
+              sp$pop[
+                all_cause_mrtl >= 0L &
+                  year >= self$design$sim_prm$init_year &
+                  age >= self$design$sim_prm$ageL,
+              ],
+              j = lapply(.SD, weighted.mean, wt_esp, na.rm = TRUE),
+              by = xps5_by,
+              .SDcols = xps,
+              sets = xps5_sets
+            )[, `:=`(year = year + 2000L, mc = sp$mc, scenario = scenario_nam)]
+            for (j in seq_len(ncol(out_xps5))) {
+              set(out_xps5, which(is.na(out_xps5[[j]])), j, "All")
+            }
+            setkey(out_xps5, year)
+
+            fnam <- private$output_dir(file.path(
+              "xps",
+              "xps5",
+              paste0("mc=", sp$mc_aggr),
+              paste0("scenario=", scenario_nam),
+              paste0(sp$mc, "_xps_esp.", fileformat)
+            ))
+
+            # Ensure parent directory exists
+            dir.create(dirname(fnam), recursive = TRUE, showWarnings = FALSE)
+
+            if (logs_enabled) {
+              message("  export_xps: Writing xps5 to ", fnam)
+            }
+            # NOTE parquet format about 30 times smaller but about 50% slower in writting to disk
+            write_dataset(dataset = out_xps5, path = fnam, format = fileformat)
+
+            if (logs_enabled) {
+              message("  export_xps: Tidying up temporary columns...")
+            }
+            # Tidy up
+            sp$pop[,
+              c(
+                "agegrp20",
+                "smok_never_curr_xps",
+                "smok_active_curr_xps"
+              ) := NULL
+            ]
+            sp$pop[
+              smok_status_curr_xps == "1",
+              `:=`(
+                smok_packyrs_curr_xps = 0,
+                smok_quit_yrs_curr_xps = 0,
+                smok_dur_curr_xps = 0,
+                smok_cig_curr_xps = 0
+              )
+            ]
+            sp$pop[
+              smok_status_curr_xps == "4",
+              `:=`(
+                smok_quit_yrs_curr_xps = 0
+              )
+            ]
+
+            if (logs_enabled) {
+              message("  export_xps: Completed successfully")
+            }
+            NULL
+          },
+          error = function(e) {
+            # Log the error with context for debugging
+            err_msg <- paste0(
+              "export_xps FAILED for mc=",
+              sp$mc,
+              ", scenario=",
+              scenario_nam,
+              "\n  Error: ",
+              conditionMessage(e),
+              "\n  Call: ",
+              deparse(conditionCall(e))
+            )
+            warning(err_msg, immediate. = TRUE)
+            # Re-throw the error so it propagates
+            stop(e)
+          }
         )
-
-        sp$pop[,
-          smok_never_curr_xps := fifelse(smok_status_curr_xps == "1", 1L, 0L)
-        ]
-        sp$pop[,
-          smok_active_curr_xps := fifelse(smok_status_curr_xps == "4", 1L, 0L)
-        ]
-
-        xps <- grep("_curr_xps$", names(sp$pop), value = TRUE)
-        xps <- grep("_prvl_curr_xps$", xps, value = TRUE, invert = TRUE)
-        # NOTE: Using setdiff() instead of -which() to avoid R gotcha where
-        # x[-integer(0)] returns empty vector instead of x
-        xps <- setdiff(xps, c("smok_status_curr_xps", "met_curr_xps", "bpmed_curr_xps"))
-
-        # Defensive check: ensure xps is not empty
-        if (length(xps) == 0L) {
-          warning("export_xps: No exposure columns found matching '_curr_xps$' pattern. ",
-                  "Available columns: ", paste(head(names(sp$pop), 20), collapse = ", "),
-                  if (length(names(sp$pop)) > 20) "..." else "")
-          return(NULL)
-        }
-        if (logs_enabled) {
-          message("  export_xps: Found ", length(xps), " exposure columns: ",
-                  paste(head(xps, 5), collapse = ", "),
-                  if (length(xps) > 5) "..." else "")
-        }
-
-        sp$pop[
-          smok_status_curr_xps == "1",
-          `:=`(
-            smok_packyrs_curr_xps = NA,
-            smok_quit_yrs_curr_xps = NA,
-            smok_dur_curr_xps = NA,
-            smok_cig_curr_xps = NA
-          )
-        ]
-        sp$pop[
-          smok_status_curr_xps == "4",
-          `:=`(
-            smok_quit_yrs_curr_xps = NA
-          )
-        ]
-
-        if (logs_enabled) message("  export_xps: Computing groupingsets for xps20...")
-        out_xps20 <- groupingsets(
-          sp$pop[
-            all_cause_mrtl >= 0L &
-              year >= self$design$sim_prm$init_year &
-              age >= self$design$sim_prm$ageL,
-          ],
-          j = lapply(.SD, weighted.mean, wt, na.rm = TRUE),
-          by = c("year", "sex", "agegrp20", "qimd"), # "ethnicity", "sha"
-          .SDcols = xps,
-          sets = list(
-            "year",
-            c("year", "agegrp20"),
-            c("year", "sex"),
-            c("year", "qimd"),
-            c("year", "agegrp20", "sex"),
-            c("year", "sex", "agegrp20", "qimd")
-
-            # c("year", "ethnicity"),
-            # c("year", "sha")
-          )
-        )[, `:=`(year = year + 2000L, mc = sp$mc, scenario = scenario_nam)]
-        # TODO above mc could also be mc_aggr. Getting the uncertainty right here is tricky
-
-        for (j in seq_len(ncol(out_xps20))) {
-          set(out_xps20, which(is.na(out_xps20[[j]])), j, "All")
-        }
-        setkey(out_xps20, year)
-
-        fileformat <- "parquet"
-        fnam <- private$output_dir(file.path(
-          "xps",
-          "xps20",
-          paste0("mc=", sp$mc_aggr),
-          paste0("scenario=", scenario_nam),
-          paste0(sp$mc, "_xps20.", fileformat)
-        ))
-
-        # Ensure parent directory exists
-        dir.create(dirname(fnam), recursive = TRUE, showWarnings = FALSE)
-
-        if (logs_enabled) message("  export_xps: Writing xps20 to ", fnam)
-        # NOTE parquet format about 30 times smaller but about 50% slower in writting to disk
-        write_dataset(dataset = out_xps20, path = fnam, format = fileformat)
-
-        # TODO link strata in the outputs to the design.yaml
-        if (logs_enabled) message("  export_xps: Computing groupingsets for xps5...")
-        out_xps5 <- groupingsets(
-          sp$pop[
-            all_cause_mrtl >= 0L &
-              year >= self$design$sim_prm$init_year &
-              age >= self$design$sim_prm$ageL,
-          ],
-          j = lapply(.SD, weighted.mean, wt_esp, na.rm = TRUE),
-          by = c("year", "sex", "qimd"), # "ethnicity", "sha"
-          .SDcols = xps,
-          sets = list(
-            "year",
-            c("year", "sex"),
-            c("year", "qimd"),
-            c("year", "sex", "qimd")
-            # c("year", "ethnicity"),
-            # c("year", "sha")
-          )
-        )[, `:=`(year = year + 2000L, mc = sp$mc, scenario = scenario_nam)]
-        for (j in seq_len(ncol(out_xps5))) {
-          set(out_xps5, which(is.na(out_xps5[[j]])), j, "All")
-        }
-        setkey(out_xps5, year)
-
-        fnam <- private$output_dir(file.path(
-          "xps",
-          "xps5",
-          paste0("mc=", sp$mc_aggr),
-          paste0("scenario=", scenario_nam),
-          paste0(sp$mc, "_xps_esp.", fileformat)
-        ))
-
-        # Ensure parent directory exists
-        dir.create(dirname(fnam), recursive = TRUE, showWarnings = FALSE)
-
-        if (logs_enabled) message("  export_xps: Writing xps5 to ", fnam)
-        # NOTE parquet format about 30 times smaller but about 50% slower in writting to disk
-        write_dataset(dataset = out_xps5, path = fnam, format = fileformat)
-
-
-
-
-        if (logs_enabled) message("  export_xps: Tidying up temporary columns...")
-        # Tidy up
-        sp$pop[,
-          c(
-            "agegrp20",
-            "smok_never_curr_xps",
-            "smok_active_curr_xps"
-          ) := NULL
-        ]
-        sp$pop[
-          smok_status_curr_xps == "1",
-          `:=`(
-            smok_packyrs_curr_xps = 0,
-            smok_quit_yrs_curr_xps = 0,
-            smok_dur_curr_xps = 0,
-            smok_cig_curr_xps = 0
-          )
-        ]
-        sp$pop[
-          smok_status_curr_xps == "4",
-          `:=`(
-            smok_quit_yrs_curr_xps = 0
-          )
-        ]
-
-        if (logs_enabled) message("  export_xps: Completed successfully")
-        NULL
-
-        }, error = function(e) {
-          # Log the error with context for debugging
-          err_msg <- paste0(
-            "export_xps FAILED for mc=", sp$mc, ", scenario=", scenario_nam,
-            "\n  Error: ", conditionMessage(e),
-            "\n  Call: ", deparse(conditionCall(e))
-          )
-          warning(err_msg, immediate. = TRUE)
-          # Re-throw the error so it propagates
-          stop(e)
-        })
       },
 
       # Function for timing log
@@ -2591,7 +2868,6 @@ Simulation <-
         file.path(self$design$sim_prm$output_dir, x)
       },
 
-
       # deep_clone ----
       # Special deep copy for data.table. Use POP$clone(deep = TRUE) to
       # dispatch. Otherwise a reference is created
@@ -2606,9 +2882,6 @@ Simulation <-
           value
         }
       },
-
-
-
 
       # create_new_folder ----
       # @description Create folder if doesn't exist. Stops on failure.
@@ -2632,7 +2905,7 @@ Simulation <-
 
             tryCatch(
               {
-          bSuccess <- dir.create(sDirPathName, recursive = TRUE)
+                bSuccess <- dir.create(sDirPathName, recursive = TRUE)
 
                 # If creation returned FALSE, check if it exists (race condition handling)
                 if (!bSuccess && dir.exists(sDirPathName)) {
@@ -2675,10 +2948,10 @@ Simulation <-
           } else {
             if (bReport) {
               message(paste0("Folder ", sDirPathName, " was created"))
-        }
+            }
           }
         }
-        
+
         # Check if directory is writable
         if (file.access(sDirPathName, mode = 2) != 0) {
           stop(paste0(
@@ -2687,36 +2960,75 @@ Simulation <-
             " exists but is not writable. Check permissions."
           ))
         }
-        
+
         invisible(TRUE)
       },
 
       # create_output_folder_structure ----
       # Create output folder structure
       create_output_folder_structure = function() {
-        if (self$design$sim_prm$logs) message("Creating output subfolders.")
-        if (file.exists(self$design$sim_prm$output_dir) && file.access(self$design$sim_prm$output_dir, mode = 2) == -1L) {
-          stop("You don't have write access to the output folder. Please change the permissions or the path. If you are using Linux you can use i.e. IMPACTncd$allow_universal_output_folder_access() to allow write access to the output folder.")
+        if (self$design$sim_prm$logs) {
+          message("Creating output subfolders.")
         }
-        if (file.exists(self$design$sim_prm$synthpop_dir) && file.access(self$design$sim_prm$synthpop_dir, mode = 2) == -1L) {
-          stop("You don't have write access to the synthpop folder. Please change the permissions or the path.  If you are using Linux you can use i.e. IMPACTncd$allow_universal_synthpop_folder_access() to allow write access to the synthpop folder.")
+        if (
+          file.exists(self$design$sim_prm$output_dir) &&
+            file.access(self$design$sim_prm$output_dir, mode = 2) == -1L
+        ) {
+          stop(
+            "You don't have write access to the output folder. Please change the permissions or the path. If you are using Linux you can use i.e. IMPACTncd$allow_universal_output_folder_access() to allow write access to the output folder."
+          )
         }
-        private$create_new_folder(self$design$sim_prm$output_dir, self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("summaries/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("tables/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("plots/"), self$design$sim_prm$logs)
-        private$create_new_folder(private$output_dir("lifecourse/"), self$design$sim_prm$logs)
+        if (
+          file.exists(self$design$sim_prm$synthpop_dir) &&
+            file.access(self$design$sim_prm$synthpop_dir, mode = 2) == -1L
+        ) {
+          stop(
+            "You don't have write access to the synthpop folder. Please change the permissions or the path.  If you are using Linux you can use i.e. IMPACTncd$allow_universal_synthpop_folder_access() to allow write access to the synthpop folder."
+          )
+        }
+        private$create_new_folder(
+          self$design$sim_prm$output_dir,
+          self$design$sim_prm$logs
+        )
+        private$create_new_folder(
+          private$output_dir("summaries/"),
+          self$design$sim_prm$logs
+        )
+        private$create_new_folder(
+          private$output_dir("tables/"),
+          self$design$sim_prm$logs
+        )
+        private$create_new_folder(
+          private$output_dir("plots/"),
+          self$design$sim_prm$logs
+        )
+        private$create_new_folder(
+          private$output_dir("lifecourse/"),
+          self$design$sim_prm$logs
+        )
         if (self$design$sim_prm$export_PARF) {
-           private$create_new_folder(private$output_dir("parf/"), self$design$sim_prm$logs)
+          private$create_new_folder(
+            private$output_dir("parf/"),
+            self$design$sim_prm$logs
+          )
         }
         if (self$design$sim_prm$export_xps) {
-           private$create_new_folder(private$output_dir("xps/"), self$design$sim_prm$logs)
+          private$create_new_folder(
+            private$output_dir("xps/"),
+            self$design$sim_prm$logs
+          )
         }
         if (self$design$sim_prm$logs) {
-           private$create_new_folder(private$output_dir("logs/"), self$design$sim_prm$logs)
+          private$create_new_folder(
+            private$output_dir("logs/"),
+            self$design$sim_prm$logs
+          )
         }
         # NOTE code below is duplicated in Synthpop class. This is intentional
-        private$create_new_folder(self$design$sim_prm$synthpop_dir, self$design$sim_prm$logs)
+        private$create_new_folder(
+          self$design$sim_prm$synthpop_dir,
+          self$design$sim_prm$logs
+        )
       }
     ) # End of private methods
   ) # End of class

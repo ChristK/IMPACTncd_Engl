@@ -15,21 +15,9 @@
 ## to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ## Boston, MA 02110-1301 USA.
 
-# file.remove(list.files("./output/", full.names = TRUE, recursive = TRUE))
-# file.remove(list.files("./Rpackage/IMPACTncd_Engl_model_pkg/src", full.names = TRUE, recursive = TRUE, pattern = "\\.o$|\\.so$"))
-
-# If segfault from C stack overflow see
-# https://github.com/Rdatatable/data.table/issues/1967
-
-#' @section CRAN Mirror Selection:
-#' This block sets the CRAN repository mirror only if:
-#'   - The code is **not running inside a Docker container**, and
-#'   - The CRAN repository option is either unset or set to the default placeholder ("@CRAN@").
-#'
-#' This prevents unnecessary or problematic CRAN mirror selection inside Docker,
-#' where the environment is usually pre-configured or isolated from user input.
-#'
-#' The check `file.exists("/.dockerenv")` is a common way to detect Docker containers.
+# Set a CRAN mirror if not already configured.
+# On RHEL-based Linux, use Posit Package Manager for binary packages;
+# otherwise fall back to the generic cloud mirror.
 
 # Set development mode flag
 dev_mode <- FALSE # Set to FALSE for production
@@ -54,6 +42,7 @@ if (is.null(repos) || repos["CRAN"] == "@CRAN@") {
     options(repos = c(CRAN = "https://cloud.r-project.org"))
   }
 }
+rm(repos)
 
 # Define and ensure the user library path exists and is writable
 # This is crucial when running in environments (like Docker) where the default
@@ -79,12 +68,11 @@ if (!dir.exists(user_lib)) {
 if (file.access(user_lib, mode = 2) != 0) {
   # mode = 2 checks for write permission
   stop(
-    "User library path is not writable:",
+    "User library path is not writable: ",
     user_lib,
     ". Please check permissions or set the R_LIBS_USER environment variable to a writable path."
   )
 }
-
 
 # Add the user library to the library paths if not already present
 # Prepending ensures it's the default location for installations
@@ -93,8 +81,7 @@ if (!user_lib %in% .libPaths()) {
 }
 
 if (dev_mode) cat("Using library path:", user_lib, "\n")
-
-# --- End: User Library Path Configuration ---
+rm(user_lib)
 
 cat("Initialising IMPACTncd_England model...\n\n")
 
@@ -119,11 +106,6 @@ if (dev_mode) {
 
 # Environment-specific options
 options(rgl.useNULL = TRUE) # suppress error by demography in rstudio server
-# if (dev_mode) {
-#   options(future.fork.enable = TRUE) # enable for development only
-#   options(future.globals.maxSize = +Inf)
-#   options(future.rng.onMisuse = "ignore") # Remove false warning
-# }
 options(datatable.verbose = FALSE)
 options(datatable.showProgress = FALSE)
 
@@ -147,6 +129,7 @@ if (file.exists(pkg_list_file)) {
   rm(pkg_list, pkg_list_file) # Clean up
 } else {
   warning("r-packages.txt not found at: ", pkg_list_file)
+  rm(pkg_list_file)
 }
 
 # Install the local R package if its source code has changed
@@ -170,7 +153,7 @@ suppressPackageStartupMessages(withCallingHandlers(
 
 if (dev_mode) {
   library(IMPACTncdEngland)
-  library(gamlss.dist) # necessary for ditributions in Exposure class
+  library(gamlss.dist) # necessary for distributions in Exposure class
 } else {
   suppressPackageStartupMessages(library(IMPACTncdEngland))
   suppressPackageStartupMessages(library(gamlss.dist))
@@ -186,17 +169,7 @@ fst::threads_fst(
 )
 arrow::set_cpu_count(1L) # limit Arrow's internal threading
 
-####################################################################################
-## Fix: Added this to update .Random.seed / seed only for Windows.
-## Run these two lines of code shown below for the first time and then we clear the work
-## space using `rm(list = ls(all = TRUE))` after which we run these two lines again we get the error mentioned
-## so to reproduce it remove this line of code `runif(1)`
-# source("global.R")
-# IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
-## Error generated otherwise (without the code below): Error in get(".Random.seed", .GlobalEnv) :
-## object '.Random.seed' not found
-####################################################################################
+# Initialise .Random.seed in .GlobalEnv. Without this, a fresh session
+# (or one cleared with rm(list = ls(all = TRUE))) fails with:
+#   Error in get(".Random.seed", .GlobalEnv): object '.Random.seed' not found
 invisible(runif(1))
-
-# roxygen2::roxygenise("./Rpackage/IMPACTncd_Engl_model_pkg/", clean = TRUE)
-  # remotes::install_local("./Rpackage/IMPACTncd_Engl_model_pkg/", build_vignettes = TRUE, force = TRUE, upgrade = "never")

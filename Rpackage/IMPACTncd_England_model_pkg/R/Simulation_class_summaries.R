@@ -647,7 +647,8 @@ Simulation$set("private", "calc_costs", function(
     duckdb_con,
     mcaggr,
     input_table_name,
-    output_view_name
+    output_view_name,
+    strata
 ) {
   # Get scenario names
   scnams <- gsub(
@@ -1012,6 +1013,9 @@ Simulation$set("private", "calc_costs", function(
   # STEP 3: Create final cost output view for each scenario
   # ============================================================================
 
+  # Build dynamic strata columns for SELECT statement
+  strata_cols_sql <- paste(sprintf('"%s"', strata), collapse = ", ")
+
   final_view_sql <- sprintf(
     "
     CREATE OR REPLACE TEMP VIEW %s AS
@@ -1129,7 +1133,7 @@ Simulation$set("private", "calc_costs", function(
       FROM base_data
     )
     SELECT
-      mc, scenario, year, agegrp, sex, dimd, wt, wt_esp,
+      %s, wt, wt_esp,
 
       -- Individual cost components
       healthcare_cost,
@@ -1143,7 +1147,7 @@ Simulation$set("private", "calc_costs", function(
 
     FROM costs_calculated;
     ",
-    paste0(output_view_name, "_", scnams, "_view"),
+    paste0(output_view_name, "_", gsub("[^A-Za-z0-9_]", "_", scnams), "_view"),
     eq5d_expr,
     comorbidity_status_expr,
     employment_rate_expr,
@@ -1154,8 +1158,10 @@ Simulation$set("private", "calc_costs", function(
     mcaggr,
     paste0("'", scnams, "'"),
     healthcare_cost_expr,
-    icd_chapter_expr
+    icd_chapter_expr,
+    strata_cols_sql
   )
+
 
   # Execute view creation for each scenario
   sapply(final_view_sql, function(sql) {
@@ -2273,14 +2279,15 @@ Simulation$set("private", "export_costs_summaries", function(
   # Define the name for the temporary view that calc_costs will create
   costs_view_name <- "lc_with_costs"
 
-  costs_scn_views <- paste0(costs_view_name, "_", scnams, "_view")
+  costs_scn_views <- paste0(costs_view_name, "_", gsub("[^A-Za-z0-9_]", "_", scnams), "_view")
 
   # Call calc_costs to create/replace the temporary view with cost columns.
   private$calc_costs(
     duckdb_con = duckdb_con,
     mcaggr = mcaggr,
     input_table_name = lc_table_name,
-    output_view_name = costs_view_name
+    output_view_name = costs_view_name,
+    strata = strata
   )
 
   # Prepare strata columns for SQL query (quoted)
