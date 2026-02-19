@@ -60,7 +60,7 @@ name: Build Push prerequisite.IMPACTncdENGL
 # on:
 #   push:
 #     paths:
-#       - docker_setup/Dockerfile.prerequisite.IMPACTncdEngl
+#       - docker_setup/Dockerfile.prerequisite.IMPACTncdENGL
 #       - docker_setup/apt-packages.txt
 #       - docker_setup/r-packages.txt
 #       - docker_setup/entrypoint.sh
@@ -99,7 +99,7 @@ jobs:
         uses: tj-actions/changed-files@v41
         with:
           files: |
-            docker_setup/Dockerfile.prerequisite.IMPACTncdEngl
+            docker_setup/Dockerfile.prerequisite.IMPACTncdENGL
             docker_setup/apt-packages.txt
             docker_setup/r-packages.txt
             docker_setup/entrypoint.sh

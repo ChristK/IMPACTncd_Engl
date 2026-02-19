@@ -98,7 +98,7 @@ jobs:
           BRANCH_NAME="${{ github.ref_name }}"
           sed -i "s|^FROM prerequisite.impactncdengl:.*|FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}|" docker_setup/Dockerfile.IMPACTncdENGL
           sed -i "s|^FROM chriskypri/prerequisite.impactncdengl:.*|FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}|" docker_setup/Dockerfile.IMPACTncdENGL
-          sed -i "s|git clone https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_Engl|git clone -b ${BRANCH_NAME} https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_Engl|" docker_setup/Dockerfile.IMPACTncdENGL
+          sed -i "s|git clone https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_England|git clone -b ${BRANCH_NAME} https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_England|" docker_setup/Dockerfile.IMPACTncdENGL
 
       # STEP 4: Docker Environment Setup
       # Configure Docker Buildx for enhanced build capabilities including:
@@ -142,7 +142,7 @@ jobs:
           push: true # Push the built image to Docker Hub registry
           no-cache: true # Force complete rebuild without using cached layers
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/impactncdengl:${{ github.ref_name }}
-          file: docker_setup/Dockerfile.IMPACTncdEngl # Main application Dockerfile
+          file: docker_setup/Dockerfile.IMPACTncdENGL # Main application Dockerfile
           build-args: |
             SOURCE_METHOD=git
 
