@@ -300,6 +300,18 @@ Design <-
                 file_path, mustWork = FALSE
               ) %in% valid_files
             ]
+            # Ensure paths are relative for portability
+            # (handles prefixes from any user/machine)
+            rec[, file_path := sub(
+              "^.*/(?=simulation/)", "", file_path,
+              perl = TRUE
+            )]
+            if ("source_file" %in% names(rec)) {
+              rec[, source_file := sub(
+                "^.*/(?=inputs/)", "", source_file,
+                perl = TRUE
+              )]
+            }
             fwrite(rec, rec_path)
           }
         }

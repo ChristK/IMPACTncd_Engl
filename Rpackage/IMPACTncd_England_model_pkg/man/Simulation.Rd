@@ -11,8 +11,6 @@
 \item{mc}{A positive sequential integer vector with the Monte Carlo
 iterations of synthetic population to simulate, or a scalar.}
 
-\item{multicore}{If TRUE run the simulation in parallel.}
-
 \item{scenario_nam}{A string for the scenario name (e.g. "sc0",
 "sc1"). Use only letters, digits, and underscores (e.g. "sc1",
 "bmi_reduction_10pc"). Avoid hyphens, spaces, or other special
@@ -43,29 +41,89 @@ steps away to include neighbors. Use Inf for all possible orders.}
 
 \item{new_design}{A design object with the simulation parameters.}
 
-\item{token}{Zenodo personal access token. If NULL, reads from ZENODO_TOKEN env var.}
+\item{token}{Character. Zenodo personal access token. If \code{NULL}
+(default), reads from \code{ZENODO_TOKEN} environment variable.}
 
-\item{sandbox}{Use Zenodo sandbox for testing.}
+\item{sandbox}{Logical. If \code{TRUE}, connect to the Zenodo sandbox
+for testing. Default: \code{FALSE}.}
 
-\item{concept_doi}{The concept DOI (shared across all versions of a record).}
+\item{archive_dir}{Character. Directory for storing zip archives
+during upload. Archives are automatically deleted after
+successful upload. If \code{NULL} (default), uses
+\code{tempdir()}.}
 
-\item{overwrite}{If TRUE, overwrite existing local directories.}
+\item{progress}{Logical. If \code{TRUE} (default), enable console
+progress bars for uploads and downloads.}
 
-\item{directories}{Specific subdirectories to upload. If NULL, uploads all.}
+\item{overwrite}{Logical. Overwrite existing directories? Default:
+\code{FALSE}.}
 
-\item{version}{Version string for the new upload (required for new versions).}
+\item{input_directories}{Character vector. Input subdirectories.
+\code{NULL} = all.}
 
-\item{title}{Record title (required for new records).}
+\item{simulation_base}{Character. Path to simulation output
+directory. Default: \code{"./simulation"}.}
 
-\item{description}{Record description (required for new records).}
+\item{simulation_directories}{Character vector. Simulation
+subdirectories. Default: \code{c("parf", "rr")}.}
 
-\item{creators}{List of creators for new records.}
+\item{version}{Character. Version string (e.g. \code{"1.0.0"}).}
 
-\item{publish}{If TRUE, publish the record after upload. Use with caution!}
+\item{title}{Character. Record title (required for new records).}
 
-\item{input_base}{Base directory containing inputs.}
+\item{description}{Character. Record description (required for new
+records).}
 
-\item{save}{If TRUE, save the manifest to disk.}
+\item{creators}{List of lists with creator metadata (required for
+new records).}
+
+\item{keywords}{Character vector. Default:
+\code{c("microsimulation", "health", "IMPACTncd", "England",
+  "NCD")}.}
+
+\item{license}{Character. SPDX license ID. Default:
+\code{"cc-by-sa-4.0"}.}
+
+\item{publisher}{Character. Default: \code{"Zenodo"}.}
+
+\item{input_exclude_file_patterns}{Character vector. File exclusion
+patterns for inputs. Default: \code{c("\\.R$", "\\.Rmd$")}.}
+
+\item{simulation_exclude_file_patterns}{Character vector. File
+exclusion patterns for simulation archives. Default:
+\code{c("\\.R$", "\\.csv$")}.}
+
+\item{publish}{Logical. Publish after upload? Default: \code{FALSE}.}
+
+\item{concept_doi}{Character. Optional concept DOI. If \code{NULL}
+(default), uses the DOI set via \code{zenodo_connect()}.}
+
+\item{directories}{Character vector. Specific subdirectories.
+If \code{NULL} (default), processes all.}
+
+\item{exclude_patterns}{Character vector. Directory exclusion
+patterns. Default: \code{c("^unprocessed$", "_backup$", "_old$",
+  "scripts$", "validation$")}.}
+
+\item{exclude_file_patterns}{Character vector. File exclusion
+patterns. Default: \code{c("\\.R$", "\\.Rmd$")}.}
+
+\item{group_by_prefix}{Logical. Default: \code{TRUE}.}
+
+\item{compression_level}{Integer 0-9. Default: \code{6}.}
+
+\item{multicore}{Logical. Default: \code{TRUE}.}
+
+\item{n_cores}{Integer. Default: \code{clusternumber} from YAML.}
+
+\item{update_gitignore}{Logical. Default: \code{FALSE} (unlike
+\code{zenodo_upload_inputs()}, since this is a preview step).}
+
+\item{input_base}{Character. Path to the input directory. Default:
+\code{"./inputs"}.}
+
+\item{save}{Logical. If \code{TRUE} (default), save the manifest
+to \code{./simulation/zenodo_manifest.csv}.}
 
 \item{carry_over_lifecourse_files_from}{A string with a previous output
 path (absolute) from which the lifecourse files will be copied to the
@@ -122,21 +180,37 @@ The invisible \code{Simulation} object.
 
 The invisible \code{Simulation} object.
 
-The invisible self for chaining.
+The invisible \code{Simulation} object (for method chaining).
 
-The invisible self for chaining.
+The invisible \code{Simulation} object (for method chaining).
 
-A data.table with sync status information.
+A \code{data.table} with columns: \code{archive_name},
+\code{directory}, \code{local_exists}, and \code{size_bytes}.
 
-The invisible self for chaining.
+The invisible \code{Simulation} object (for method chaining).
 
-The invisible self for chaining.
+The invisible \code{Simulation} object (for method chaining).
 
-The invisible self for chaining.
+The invisible \code{Simulation} object (for method chaining).
 
-A data.frame with version information (date, version, DOI).
+The invisible \code{Simulation} object (for method chaining).
 
-A data.table with file hashes.
+The invisible \code{Simulation} object (for method chaining).
+
+The invisible \code{Simulation} object (for method chaining).
+
+The invisible \code{Simulation} object (for method chaining).
+
+A \code{data.table} with file metadata (key, size, checksum,
+etc.).
+
+A \code{data.frame} with version information.
+
+A \code{data.table} with archive metadata: path, size,
+file count, source hash.
+
+A \code{data.table} with columns: \code{relative_path},
+\code{hash}, \code{size_bytes}, \code{mtime}.
 
 The invisible \code{Simulation} object.
 
@@ -203,21 +277,42 @@ Reconstructs large files from chunks.
 
 Deletes large files.
 
-Connect to Zenodo for asset management.
+Connect to Zenodo for uploading and downloading input
+data assets.
 
 Set the Zenodo concept DOI for data assets.
 
-Check sync status of local inputs with Zenodo.
+Check whether local input directories are in sync with
+the Zenodo record.
 
-Download input data from Zenodo.
+Download input data archives from Zenodo and extract
+them into local directories.
 
-Upload input data to Zenodo.
+Download simulation output archives (PARF, RR files)
+from the Zenodo record and extract them into local directories.
 
-Publish the current Zenodo record.
+Download both input data and simulation outputs from
+Zenodo in a single call.
 
-Get all versions of the Zenodo record.
+Create zip archives of input directories and upload
+them to Zenodo.
 
-Create a hash manifest for input files.
+Upload simulation output archives (PARF, RR files) to
+the current Zenodo record.
+
+Upload both input data and simulation outputs to
+Zenodo in a single call.
+
+Publish the current Zenodo record draft.
+
+List all files in the current Zenodo record.
+
+Get the version history of the Zenodo record.
+
+Create zip archives from input directories without
+uploading them.
+
+Create a hash manifest of local input files.
 
 Prints the simulation object metadata.
 
@@ -249,27 +344,182 @@ The function deletes large files that are stored in chunks.
 The path of the files are stored in
 "./simulation/large_files_indx.csv".
 
-This method initializes the Zenodo asset manager for uploading/downloading
-input data files. Get your token at: https://zenodo.org/account/settings/applications/tokens/new/
+This is the first step in any Zenodo workflow. It creates an internal
+\code{\link{ZenodoAssetManager}} object, authenticates with the Zenodo
+API, and (optionally) sets the concept DOI so that subsequent methods
+know which record to work with.
 
-Compares local input directories against the Zenodo record to identify
-missing or potentially modified files. Requires prior call to zenodo_connect()
-and zenodo_set_doi().
+\strong{What is a concept DOI?}
+Every Zenodo record can have multiple versions. Each version receives
+its own DOI (e.g. \code{10.5281/zenodo.12346}), but they all share a
+single \emph{concept DOI} (e.g. \code{10.5281/zenodo.12345}) that
+always resolves to the latest published version. The concept DOI is the
+one you should store in your code and share with collaborators.
 
-Downloads and extracts input data archives from the Zenodo record.
-Only downloads missing directories unless overwrite=TRUE.
-Use zenodo_check_inputs() first to see what would be downloaded.
+\strong{Token management:}
+You need a personal access token from Zenodo. You can either:
+\enumerate{
+\item Pass it directly: \code{token = "your_token_here"}
+\item Set the environment variable \code{ZENODO_TOKEN} (recommended
+for security — add it to \code{.Renviron})
+\item Use a file-based keyring (see the
+\code{vignette("zenodo_data_management")} for setup instructions)
+}
 
-Creates zip archives of input directories and uploads them to Zenodo.
-For new records, provide title, description, and creators.
-For new versions of existing records, just provide version.
-The record remains in DRAFT state unless publish=TRUE.
+\strong{Sandbox vs production:}
+Set \code{sandbox = TRUE} for testing. The sandbox uses a separate
+token from \url{https://sandbox.zenodo.org/account/settings/applications/tokens/new/}.
+Published sandbox records are not permanent and do not count as real
+publications.
 
-CAUTION: Publishing is irreversible. Once published, the DOI is
-permanent and files cannot be modified (only new versions can be created).
+Use this to switch to a different Zenodo record after connecting.
+The concept DOI is the DOI shared across all versions of a record
+(prefix \code{10.5281} for production, \code{10.5072} for sandbox).
 
-Creates a manifest file containing hashes of all input files.
-This is used to detect changes between local and remote files.
+Compares the local \code{input_base} directory against the file list
+on the Zenodo record. Returns a \code{data.table} showing, for each
+remote archive, whether the corresponding local directory exists.
+This is a read-only operation — nothing is downloaded or uploaded.
+
+Requires a prior call to \code{zenodo_connect()} with a concept DOI.
+
+Downloads zip archives from the Zenodo record and extracts them into
+\code{input_base}. By default, directories that already exist locally
+are \strong{skipped} — pass \code{overwrite = TRUE} to replace them.
+
+Use \code{zenodo_check_inputs()} first (a read-only check) to see
+exactly which directories would be downloaded.
+
+Progress bars are shown if \code{progress = TRUE} was set in
+\code{zenodo_connect()} (the default).
+
+This method downloads zip archives of simulation-generated files
+(Population Attributable Risk Fractions and compiled Relative Risk
+tables) from Zenodo and extracts them to \code{simulation_base}.
+
+The method identifies simulation archives by matching archive names
+against the \code{directories} parameter (e.g. archives whose name
+starts with \code{"parf"} or equals \code{"rr"}).
+
+By default, directories that already exist locally are
+\strong{skipped} — pass \code{overwrite = TRUE} to replace them.
+
+\strong{When to use:}
+\itemize{
+\item When you need pre-computed PARFs and RR tables from a
+colleague's upload
+\item When setting up a new machine and want to skip the
+time-consuming PARF/RR generation step
+}
+
+This is a convenience method that combines
+\code{zenodo_download_inputs()} and
+\code{zenodo_download_PARFs_RRs()} into a single operation.
+
+\strong{Typical use case:} A new team member setting up their
+environment for the first time. One call downloads everything
+needed to run the simulation.
+
+This method handles the complete upload pipeline:
+\enumerate{
+\item Creates zip archives from your input directories
+\item Creates a new Zenodo record (first time) or a new version
+(subsequent times)
+\item Uploads all archives to the record
+\item Optionally publishes the record
+}
+
+\strong{First-time upload (new record):}
+When no concept DOI has been set (i.e. you did not pass one to
+\code{zenodo_connect()}), you \emph{must} provide \code{title},
+\code{description}, and \code{creators}. A new Zenodo deposit is
+created in DRAFT state. Review it on the Zenodo website before
+publishing with \code{zenodo_publish()}.
+
+\strong{Subsequent uploads (new version):}
+If a concept DOI is already set (from \code{zenodo_connect()}),
+provide a \code{version} string (e.g. \code{"1.1.0"}) and a new
+version of the existing record is created automatically.
+
+\strong{Archive creation parameters:}
+\itemize{
+\item \code{exclude_patterns}: Regex patterns to skip entire
+\emph{directories}. For example, \code{"^unprocessed$"} skips a
+directory named exactly "unprocessed".
+\item \code{exclude_file_patterns}: Regex patterns to skip
+\emph{individual files}. For example, \code{"\\.R$"} skips all
+R scripts.
+\item \code{group_by_prefix}: When \code{TRUE} (default),
+subdirectories sharing a common prefix are combined into a single
+archive. For example, \code{disease_burden/cancer_2020/} and
+\code{disease_burden/cancer_2021/} become
+\code{disease_burden_cancer.zip}.
+\item \code{multicore}: When \code{TRUE} (default), archives are
+created in parallel using PSOCK clusters (safe on all platforms).
+}
+
+This method archives and uploads simulation-generated files
+(Population Attributable Risk Fractions and compiled Relative Risk
+tables) to the \emph{same} Zenodo record used for input data. Call
+this \strong{after} \code{zenodo_upload_inputs()} so that a record
+already exists.
+
+These files live under \code{./simulation/} rather than
+\code{./inputs/}, and use different default exclusion patterns
+(e.g. CSV manifest files are excluded).
+
+This is a convenience method that combines
+\code{zenodo_upload_inputs()} and \code{zenodo_upload_simulation()}
+into a single operation. It:
+\enumerate{
+\item Creates and uploads input archives (from \code{./inputs/})
+\item Creates and uploads simulation archives (from
+\code{./simulation/parf/} and \code{./simulation/rr/})
+\item Optionally publishes the record
+}
+
+This mirrors the complete workflow demonstrated in the test script.
+
+\strong{CAUTION: Publishing is IRREVERSIBLE.} Once published:
+\itemize{
+\item The DOI becomes permanent and publicly resolvable
+\item Files in this version \strong{cannot} be modified
+\item The record appears in search results and is citable
+}
+
+You can still create \emph{new versions} of a published record by
+calling \code{zenodo_upload_inputs(version = "2.0.0")}. Each version
+gets its own DOI, but they all share the concept DOI.
+
+Always review the draft on the Zenodo website before publishing.
+
+Returns a \code{data.table} with one row per file, including
+filename, size, and checksum. Useful for verifying that uploads
+completed successfully.
+
+Works with both published records and drafts (uses a direct API
+fallback for drafts where zen4R's built-in method may return
+empty results).
+
+Returns a data.frame listing all published versions of the record,
+including each version's DOI, version label, and publication date.
+Useful for auditing which data versions have been published.
+
+Creates archives exactly as \code{zenodo_upload_inputs()} would,
+but stops before uploading. This lets you inspect archive sizes
+and contents before committing to an upload. Archives are saved
+to \code{archive_dir} (set in \code{zenodo_connect()}, or
+\code{tempdir()} by default).
+
+Does not require a Zenodo connection — only needs the simulation
+design to be loaded (for \code{n_cores} default).
+
+Scans \code{input_base} recursively and computes an xxhash64
+checksum for every file. The resulting manifest can be saved to
+disk and later used to detect which files have changed.
+
+This is a local operation — it does not require a Zenodo
+connection.
 }
 \section{Fields}{
 
@@ -386,6 +636,149 @@ For a beneficial public health intervention, you would typically expect:
 }
 }
 
+\examples{
+\dontrun{
+# Connect to sandbox for testing
+IMPACTncd$zenodo_connect(
+  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+  sandbox = TRUE
+)
+
+# Connect to production with a specific concept DOI
+IMPACTncd$zenodo_connect(
+  concept_doi = "10.5281/zenodo.XXXXXXX"
+)
+}
+
+\dontrun{
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_check_inputs()
+}
+
+\dontrun{
+# Download all missing inputs
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_download_inputs()
+
+# Force re-download of specific directories
+IMPACTncd$zenodo_download_inputs(
+  directories = c("mortality", "population"),
+  overwrite = TRUE
+)
+}
+
+\dontrun{
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+
+# Download missing simulation outputs
+IMPACTncd$zenodo_download_PARFs_RRs()
+
+# Force re-download of PARF files only
+IMPACTncd$zenodo_download_PARFs_RRs(
+  directories = "parf",
+  overwrite   = TRUE
+)
+}
+
+\dontrun{
+# New team member setup — download everything
+IMPACTncd$zenodo_connect(
+  concept_doi = "10.5281/zenodo.XXXXXXX"
+)
+IMPACTncd$zenodo_download_all()
+
+# Force re-download everything
+IMPACTncd$zenodo_download_all(overwrite = TRUE)
+}
+
+\dontrun{
+# --- First-time upload (creates new record) ---
+IMPACTncd$zenodo_connect(
+  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+  sandbox = TRUE,
+  concept_doi = NULL  # no existing record
+)
+IMPACTncd$zenodo_upload_inputs(
+  title       = "IMPACTncd England Input Data",
+  description = "Input data for IMPACTncd England microsimulation",
+  creators    = list(
+    list(firstname = "Chris", lastname = "Kypridemos",
+         orcid = "0000-0002-0746-9229")
+  ),
+  version     = "1.0.0"
+)
+# Review the draft on Zenodo, then:
+IMPACTncd$zenodo_publish()
+
+# --- Subsequent upload (new version) ---
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_upload_inputs(version = "1.1.0")
+}
+
+\dontrun{
+# Upload inputs first, then simulation outputs
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_upload_inputs(version = "1.0.0", title = "...",
+  description = "...", creators = list(...))
+IMPACTncd$zenodo_upload_simulation()
+IMPACTncd$zenodo_publish()
+}
+
+\dontrun{
+# Complete first-time upload of everything
+IMPACTncd$zenodo_connect(
+  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+  sandbox = TRUE,
+  concept_doi = NULL
+)
+IMPACTncd$zenodo_upload_all(
+  title       = "IMPACTncd England Input Data",
+  description = "All input and simulation data for IMPACTncd England",
+  creators    = list(
+    list(firstname = "Chris", lastname = "Kypridemos",
+         orcid = "0000-0002-0746-9229")
+  ),
+  version = "1.0.0"
+)
+
+# Verify what was uploaded
+IMPACTncd$zenodo_list_files()
+
+# Publish when satisfied
+IMPACTncd$zenodo_publish()
+}
+
+\dontrun{
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_upload_inputs(...)
+# Review the draft at Zenodo, then:
+IMPACTncd$zenodo_publish()
+}
+
+\dontrun{
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_list_files()
+}
+
+\dontrun{
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_get_versions()
+}
+
+\dontrun{
+# Preview what would be created
+archives <- IMPACTncd$zenodo_create_archives()
+print(archives[, .(archive = basename(archive_path),
+                    size_mb = round(size_bytes / 1024^2, 1),
+                    files = file_count)])
+}
+
+\dontrun{
+manifest <- IMPACTncd$zenodo_create_manifest()
+print(manifest)
+}
+
+}
 \references{
 Janssen MF, Szende A, Ramos-Goñi JM (2014). "Data and Methods." In
 \emph{Self-Reported Population Health: An International Perspective based
@@ -398,4 +791,49 @@ Chronic Conditions in the United States." \emph{Medical Decision Making},
 Sullivan PW, Slejko JF, Sculpher MJ, Ghushchyan V (2011). "Catalogue of
 EQ-5D Scores for the United Kingdom." \emph{Medical Decision Making},
 31(6), 800-804. \doi{10.1177/0272989X11401031}
+}
+\seealso{
+\code{\link{zenodo_upload_inputs}},
+\code{\link{zenodo_download_inputs}},
+\code{\link{zenodo_list_files}}
+
+\code{\link{zenodo_connect}}
+
+\code{\link{zenodo_download_inputs}},
+\code{\link{zenodo_list_files}}
+
+\code{\link{zenodo_check_inputs}},
+\code{\link{zenodo_connect}}
+
+\code{\link{zenodo_download_inputs}},
+\code{\link{zenodo_download_all}},
+\code{\link{zenodo_upload_simulation}}
+
+\code{\link{zenodo_download_inputs}},
+\code{\link{zenodo_download_PARFs_RRs}}
+
+\code{\link{zenodo_connect}},
+\code{\link{zenodo_upload_simulation}},
+\code{\link{zenodo_upload_all}},
+\code{\link{zenodo_publish}},
+\code{\link{zenodo_create_archives}}
+
+\code{\link{zenodo_upload_inputs}},
+\code{\link{zenodo_upload_all}}
+
+\code{\link{zenodo_upload_inputs}},
+\code{\link{zenodo_upload_simulation}},
+\code{\link{zenodo_publish}}
+
+\code{\link{zenodo_upload_inputs}},
+\code{\link{zenodo_connect}}
+
+\code{\link{zenodo_check_inputs}},
+\code{\link{zenodo_connect}}
+
+\code{\link{zenodo_connect}}
+
+\code{\link{zenodo_upload_inputs}}
+
+\code{\link{zenodo_upload_inputs}}
 }

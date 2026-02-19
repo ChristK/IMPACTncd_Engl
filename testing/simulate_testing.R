@@ -7,7 +7,7 @@ IMPACTncd <- Simulation$new("testing/sim_design_testing.yaml")
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(1:5, multicore = TRUE, "sc0")
+  run(1:2, multicore = TRUE, "sc0")
 
 # example of primary prevention scenario function
 IMPACTncd$update_primary_prevention_scn(
@@ -19,7 +19,7 @@ IMPACTncd$update_primary_prevention_scn(
 print("Simulating sc1...")
 
 IMPACTncd$
-  run(1:5, multicore = TRUE, "sc1")
+  run(1:2, multicore = TRUE, "sc1")
 
 IMPACTncd$export_summaries(multicore = TRUE)
 IMPACTncd$export_tables()

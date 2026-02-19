@@ -1,6 +1,6 @@
 locality: England # See cols "LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM" ./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst for area names
-clusternumber: 20 # explicit parallelisation
-clusternumber_export: 20 # NEW: number of clusters for export_summaries
+clusternumber: 10 # explicit parallelisation
+clusternumber_export: 10 # NEW: number of clusters for export_summaries
 logs: yes
 export_xps: yes
 keep_lifecourse: yes

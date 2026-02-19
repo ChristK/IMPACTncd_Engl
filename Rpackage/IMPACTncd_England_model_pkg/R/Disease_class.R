@@ -2064,6 +2064,18 @@ Disease <-
         ) {
           setnames(rec, "checksum", "source_hash")
         }
+        # Migrate absolute paths to relative
+        # (handles prefixes from any user/machine;
+        # source_file is semicolon-separated)
+        if (
+          "source_file" %in% names(rec) &&
+            nrow(rec) > 0
+        ) {
+          rec[, source_file := gsub(
+            "[^;]*/(?=inputs/)", "", source_file,
+            perl = TRUE
+          )]
+        }
         rec
       },
 
@@ -2072,6 +2084,18 @@ Disease <-
         file.path(
           getwd(), "simulation",
           "parf_generation_record.csv"
+        )
+      },
+
+      # Convert absolute path to relative (to getwd())
+      # for portability across users/machines.
+      # Already-relative paths pass through unchanged.
+      to_rel_path = function(path) {
+        wd <- paste0(getwd(), "/")
+        ifelse(
+          startsWith(path, wd),
+          substring(path, nchar(wd) + 1L),
+          path
         )
       },
 
@@ -2214,7 +2238,7 @@ Disease <-
         new_entry <- data.table(
           snapshot_key = rec_key,
           source_file = paste(
-            source_files, collapse = ";"
+            private$to_rel_path(source_files), collapse = ";"
           ),
           source_hash = current_hash
         )

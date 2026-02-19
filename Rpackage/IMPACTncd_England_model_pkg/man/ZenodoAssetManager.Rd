@@ -52,6 +52,9 @@ Capped to the number of archive tasks.}
 to .gitignore (at the git repository root) unless they are already
 covered by an existing pattern. Uses efficient directory/extension
 patterns where possible (e.g., \code{inputs/mortality/*.fst}).
+Also removes any already-tracked files from the git index
+(\code{git rm --cached}) so they are no longer committed in future
+pushes. The files are kept on disk — only the git tracking is removed.
 Requires git to be installed and the project to be in a git repository.}
 
 \item{input_dir}{Directory to scan.}
@@ -88,6 +91,9 @@ Requires git to be installed and the project to be in a git repository.}
 
 \item{license}{License identifier (default: "cc-by-4.0").}
 
+\item{publisher}{Publisher name (required by InvenioRDM for DOI
+registration). Defaults to "Zenodo".}
+
 \item{delete_previous_files}{Delete files from previous version.}
 
 \item{input_base}{Base input directory.}
@@ -118,7 +124,7 @@ The invisible self for chaining.
 
 The Zenodo record object.
 
-A data.table with file information (name, size, checksum).
+A data.table with file information (filename, size, checksum).
 
 A list with archive_path, source_hash, and file_count.
 

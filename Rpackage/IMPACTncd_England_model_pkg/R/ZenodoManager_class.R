@@ -61,7 +61,7 @@
 
   # Helper: create a single zip archive from one directory or grouped directories
   create_zip <- function(input_paths, archive_name, exclude_file_patterns,
-                         compression_level) {
+                         compression_level, input_base) {
     # Collect files
     all_files <- character(0)
     for (p in input_paths) {
@@ -96,15 +96,27 @@
     # Remove existing archive
     if (file.exists(archive_path)) file.remove(archive_path)
 
-    # Create zip (setwd to common parent)
-    parent_dir <- dirname(input_paths[1])
+    # Create zip with paths relative to input_base so extraction works
+    # correctly for both single and grouped archives.
+    # E.g., for grouped archive of ./inputs/disease_burden/cancer_2020/,
+    # the zip will contain disease_burden/cancer_2020/... (relative to
+    # ./inputs/), ensuring extraction to ./inputs/ recreates the correct
+    # directory structure.
     old_wd <- getwd()
     on.exit(setwd(old_wd), add = TRUE)
-    setwd(parent_dir)
+    setwd(input_base)
+
+    # Compute relative paths from input_base
+    input_base_abs <- normalizePath(input_base, mustWork = TRUE)
+    rel_paths <- vapply(input_paths, function(p) {
+      sub(paste0("^", gsub("([\\[\\](){}|^$.*+?\\\\])", "\\\\\\1",
+                            input_base_abs), "/?"), "",
+          normalizePath(p, mustWork = TRUE))
+    }, character(1), USE.NAMES = FALSE)
 
     zip::zip(
       zipfile = archive_path,
-      files = basename(input_paths),
+      files = rel_paths,
       recurse = TRUE,
       compression_level = compression_level
     )
@@ -126,7 +138,7 @@
   archive_result <- tryCatch({
     input_paths <- if (task$type == "single") task$dir_path else task$dir_paths
     create_zip(input_paths, task$archive_name, task$exclude_file_patterns,
-               task$compression_level)
+               task$compression_level, task$input_base)
   }, error = function(e) {
     warning("Failed to archive ", task$dir_name,
             if (!is.na(task$group_prefix)) paste0("/", task$group_prefix) else "",
@@ -243,6 +255,8 @@ ZenodoAssetManager <- R6::R6Class(
       }
 
       logger_level <- if (self$logs) "INFO" else NULL
+
+      private$stored_token <- token
 
       self$zenodo <- zen4R::ZenodoManager$new(
         token = token,
@@ -408,22 +422,29 @@ ZenodoAssetManager <- R6::R6Class(
     # list_remote_files ----
     #' @description List files in the current Zenodo record.
     #' @param concept_doi Optional concept DOI.
-    #' @return A data.table with file information (name, size, checksum).
+    #' @return A data.table with file information (filename, size, checksum).
     list_remote_files = function(concept_doi = NULL) {
       # Always re-fetch the record to reflect any files uploaded since
       # the record object was last retrieved
       self$get_record(concept_doi)
 
-      files <- self$record$listFiles(pretty = TRUE)
-      if (is.null(files) || length(files) == 0) {
-        return(data.table::data.table(
-          filename = character(),
-          size = numeric(),
-          checksum = character()
-        ))
+      # Try zen4R's native method first
+      files <- tryCatch(
+        self$record$listFiles(pretty = TRUE),
+        error = function(e) NULL
+      )
+
+      if (!is.null(files) && length(files) > 0) {
+        return(data.table::as.data.table(files))
       }
 
-      data.table::as.data.table(files)
+      # Fallback: query the draft files API directly.
+      # zen4R's listFiles() can return empty for draft records on
+      # InvenioRDM even when files are present (zen4R bug).
+      if (self$logs) {
+        message("zen4R listFiles returned empty; querying draft files API directly")
+      }
+      private$list_draft_files_api()
     },
 
     # create_archive ----
@@ -664,6 +685,9 @@ ZenodoAssetManager <- R6::R6Class(
     #'   to .gitignore (at the git repository root) unless they are already
     #'   covered by an existing pattern. Uses efficient directory/extension
     #'   patterns where possible (e.g., \code{inputs/mortality/*.fst}).
+    #'   Also removes any already-tracked files from the git index
+    #'   (\code{git rm --cached}) so they are no longer committed in future
+    #'   pushes. The files are kept on disk — only the git tracking is removed.
     #'   Requires git to be installed and the project to be in a git repository.
     #' @return A data.table with archive information.
     #' @examples
@@ -771,6 +795,7 @@ ZenodoAssetManager <- R6::R6Class(
               exclude_file_patterns = exclude_file_patterns,
               compression_level = compression_level,
               archive_dir = self$archive_dir,
+              input_base = input_base,
               logs = self$logs
             )
           } else {
@@ -809,6 +834,7 @@ ZenodoAssetManager <- R6::R6Class(
                   exclude_file_patterns = exclude_file_patterns,
                   compression_level = compression_level,
                   archive_dir = self$archive_dir,
+                  input_base = input_base,
                   logs = self$logs
                 )
               } else {
@@ -821,6 +847,7 @@ ZenodoAssetManager <- R6::R6Class(
                   exclude_file_patterns = exclude_file_patterns,
                   compression_level = compression_level,
                   archive_dir = self$archive_dir,
+                  input_base = input_base,
                   logs = self$logs
                 )
               }
@@ -841,6 +868,7 @@ ZenodoAssetManager <- R6::R6Class(
             exclude_file_patterns = exclude_file_patterns,
             compression_level = compression_level,
             archive_dir = self$archive_dir,
+            input_base = input_base,
             logs = self$logs
           )
         }
@@ -1341,6 +1369,8 @@ ZenodoAssetManager <- R6::R6Class(
     #' @param version Version string.
     #' @param keywords Vector of keywords.
     #' @param license License identifier (default: "cc-by-4.0").
+    #' @param publisher Publisher name (required by InvenioRDM for DOI
+    #'   registration). Defaults to "Zenodo".
     #' @return The created record object.
     create_new_record = function(
       title,
@@ -1348,7 +1378,8 @@ ZenodoAssetManager <- R6::R6Class(
       creators,
       version = "1.0.0",
       keywords = c("microsimulation", "health", "IMPACTncd"),
-      license = "cc-by-4.0"
+      license = "cc-by-4.0",
+      publisher = "Zenodo"
     ) {
       private$check_connection()
 
@@ -1367,6 +1398,7 @@ ZenodoAssetManager <- R6::R6Class(
       self$record$setVersion(version)
       self$record$setLicense(license, sandbox = self$sandbox)
       self$record$setKeywords(keywords)
+      self$record$setPublisher(publisher)
 
       # Add creators
       for (creator in creators) {
@@ -1454,7 +1486,25 @@ ZenodoAssetManager <- R6::R6Class(
         message("  WARNING: This action is irreversible!")
       }
 
-      self$record <- self$zenodo$publishRecord(self$record$id)
+      result <- self$zenodo$publishRecord(self$record$id)
+
+      # zen4R returns a list with $status on failure
+      if (is.list(result) && !is.null(result$status) &&
+          result$status >= 400L) {
+        err_msgs <- vapply(
+          result$errors %||% list(),
+          function(e) paste0(e$field, ": ", paste(e$messages, collapse = "; ")),
+          character(1)
+        )
+        stop(
+          "Publish failed (HTTP ", result$status, "): ",
+          result$message %||% "Unknown error",
+          if (length(err_msgs) > 0L)
+            paste0("\n  ", paste(err_msgs, collapse = "\n  "))
+        )
+      }
+
+      self$record <- result
 
       # Update concept DOI from parent ID
       concept_id <- self$record$parent$id
@@ -1503,12 +1553,13 @@ ZenodoAssetManager <- R6::R6Class(
       directories = NULL,
       action = c("check", "download", "upload"),
       overwrite = FALSE,
-      version = NULL
+      version = NULL,
+      ...
     ) {
       action <- match.arg(action)
 
       if (action == "upload") {
-        return(private$sync_upload(input_base, directories, version))
+        return(private$sync_upload(input_base, directories, version, ...))
       }
 
       # For check and download, we need a record
@@ -1650,6 +1701,10 @@ ZenodoAssetManager <- R6::R6Class(
 
   # Private methods ----
   private = list(
+    # Token stored at connect() time so we don't depend on
+    # zen4R's internal field naming (which changed in 0.10.x).
+    stored_token = NULL,
+
     # check_connection ----
     check_connection = function() {
       if (is.null(self$zenodo)) {
@@ -1693,6 +1748,8 @@ ZenodoAssetManager <- R6::R6Class(
     # Add archived source files to .gitignore unless already covered.
     # Uses `git check-ignore` for accurate pattern matching, then generates
     # efficient dir/ext patterns for any uncovered files.
+    # Also removes already-tracked files from the git index (git rm --cached)
+    # so they are no longer committed — files are kept on disk.
     update_gitignore = function(archive_tasks) {
       # Find git root
       git_root <- tryCatch(
@@ -1740,75 +1797,103 @@ ZenodoAssetManager <- R6::R6Class(
 
       not_ignored <- setdiff(rel_files, already_ignored)
 
+      # --- Part 1: Update .gitignore patterns ---
       if (length(not_ignored) == 0L) {
         if (self$logs) {
           message("All ", length(rel_files),
                   " archived files already covered by .gitignore")
         }
-        return(invisible(NULL))
-      }
+      } else {
+        # Generate efficient patterns grouped by directory + extension
+        dirs <- dirname(not_ignored)
+        exts <- tools::file_ext(not_ignored)
 
-      # Generate efficient patterns grouped by directory + extension
-      dirs <- dirname(not_ignored)
-      exts <- tools::file_ext(not_ignored)
+        # Build dir/*.ext patterns where 2+ files share dir+ext;
+        # individual paths otherwise
+        dt <- data.table::data.table(path = not_ignored, dir = dirs, ext = exts)
+        patterns <- dt[, {
+          if (.N >= 2L && nzchar(ext[1L])) {
+            list(pattern = paste0(dir[1L], "/*.", ext[1L]))
+          } else {
+            list(pattern = path)
+          }
+        }, by = .(dir, ext)]$pattern
+        patterns <- unique(patterns)
 
-      # Build dir/*.ext patterns where 2+ files share dir+ext;
-      # individual paths otherwise
-      dt <- data.table::data.table(path = not_ignored, dir = dirs, ext = exts)
-      patterns <- dt[, {
-        if (.N >= 2L && nzchar(ext[1L])) {
-          list(pattern = paste0(dir[1L], "/*.", ext[1L]))
+        # Read existing .gitignore and filter out patterns already present
+        gitignore_path <- file.path(git_root, ".gitignore")
+        existing <- if (file.exists(gitignore_path)) {
+          trimws(readLines(gitignore_path, warn = FALSE))
         } else {
-          list(pattern = path)
+          character(0)
         }
-      }, by = .(dir, ext)]$pattern
-      patterns <- unique(patterns)
+        new_patterns <- patterns[!patterns %in% existing]
 
-      # Read existing .gitignore and filter out patterns already present
-      gitignore_path <- file.path(git_root, ".gitignore")
-      existing <- if (file.exists(gitignore_path)) {
-        trimws(readLines(gitignore_path, warn = FALSE))
-      } else {
-        character(0)
-      }
-      new_patterns <- patterns[!patterns %in% existing]
+        if (length(new_patterns) == 0L) {
+          if (self$logs) {
+            message("All gitignore patterns already present")
+          }
+        } else {
+          # Append new patterns under a header
+          header <- "# Zenodo-archived input data (auto-generated by ZenodoAssetManager)"
+          has_header <- any(grepl(
+            "^# Zenodo-archived input data", existing, fixed = FALSE
+          ))
 
-      if (length(new_patterns) == 0L) {
-        if (self$logs) {
-          message("All gitignore patterns already present")
+          if (has_header) {
+            # Append after the existing section (find last Zenodo-archived line)
+            lines <- readLines(gitignore_path, warn = FALSE)
+            header_idx <- max(grep("^# Zenodo-archived input data", lines))
+            # Find the end of the section (next blank line or end of file)
+            end_idx <- header_idx
+            while (end_idx < length(lines) && nzchar(trimws(lines[end_idx + 1L]))) {
+              end_idx <- end_idx + 1L
+            }
+            lines <- c(lines[1:end_idx], new_patterns,
+                        if (end_idx < length(lines)) lines[(end_idx + 1L):length(lines)])
+            writeLines(lines, gitignore_path)
+          } else {
+            # Append at end
+            cat(c("", header, new_patterns),
+                file = gitignore_path, sep = "\n", append = TRUE)
+          }
+
+          if (self$logs) {
+            message("Added ", length(new_patterns),
+                    " patterns to .gitignore for archived files")
+          }
         }
-        return(invisible(NULL))
       }
 
-      # Append new patterns under a header
-      header <- "# Zenodo-archived input data (auto-generated by ZenodoAssetManager)"
-      has_header <- any(grepl(
-        "^# Zenodo-archived input data", existing, fixed = FALSE
-      ))
+      # --- Part 2: Remove already-tracked files from git index ---
+      # .gitignore only prevents NEW untracked files from being staged;
+      # files that were previously committed remain tracked until
+      # explicitly removed with git rm --cached.
+      tracked_files <- tryCatch({
+        system2("git", c("-C", git_root, "ls-files", "--cached", "--",
+                         rel_files),
+                stdout = TRUE, stderr = FALSE)
+      }, error = function(e) character(0),
+         warning = function(w) character(0))
 
-      if (has_header) {
-        # Append after the existing section (find last Zenodo-archived line)
-        lines <- readLines(gitignore_path, warn = FALSE)
-        header_idx <- max(grep("^# Zenodo-archived input data", lines))
-        # Find the end of the section (next blank line or end of file)
-        end_idx <- header_idx
-        while (end_idx < length(lines) && nzchar(trimws(lines[end_idx + 1L]))) {
-          end_idx <- end_idx + 1L
-        }
-        lines <- c(lines[1:end_idx], new_patterns,
-                    if (end_idx < length(lines)) lines[(end_idx + 1L):length(lines)])
-        writeLines(lines, gitignore_path)
-      } else {
-        # Append at end
-        cat(c("", header, new_patterns),
-            file = gitignore_path, sep = "\n", append = TRUE)
+      if (length(tracked_files) > 0L) {
+        tryCatch({
+          system2("git", c("-C", git_root, "rm", "--cached", "--quiet",
+                           "--", tracked_files),
+                  stdout = FALSE, stderr = FALSE)
+          if (self$logs) {
+            message("Removed ", length(tracked_files),
+                    " data files from git tracking (files kept on disk)")
+          }
+        }, error = function(e) {
+          if (self$logs) {
+            message("Warning: could not remove files from git tracking: ",
+                    e$message)
+          }
+        })
       }
 
-      if (self$logs) {
-        message("Added ", length(new_patterns),
-                " patterns to .gitignore for archived files")
-      }
-      invisible(new_patterns)
+      invisible(NULL)
     },
 
     # default_progress_callback ----
@@ -1835,8 +1920,22 @@ ZenodoAssetManager <- R6::R6Class(
     },
 
     # get_api_base_url ----
-    # Get the base URL for Zenodo API
+    # Get the base URL for Zenodo API.
+    # Extracts the actual URL from the record's self-link (which
+    # reflects the server zen4R connected to), falling back to
+    # hardcoded defaults.
     get_api_base_url = function() {
+      # Try to derive from the current record's self link
+      # e.g. "https://zenodo-rdm-qa.web.cern.ch/api/records/442997"
+      self_link <- self$record$links$self %||%
+        self$record$links$latest_draft
+      if (!is.null(self_link) && nzchar(self_link)) {
+        m <- regmatches(self_link,
+                        regexpr("^https?://[^/]+/api", self_link))
+        if (length(m) == 1L && nzchar(m)) return(m)
+      }
+
+      # Fallback to hardcoded defaults
       if (self$sandbox) {
         "https://sandbox.zenodo.org/api"
       } else {
@@ -1844,14 +1943,81 @@ ZenodoAssetManager <- R6::R6Class(
       }
     },
 
+    # list_draft_files_api ----
+    # Query the InvenioRDM draft files endpoint directly.
+    # Returns a data.table(filename, size, checksum) matching the
+    # format of list_remote_files, or an empty data.table on failure.
+    list_draft_files_api = function() {
+      if (!requireNamespace("httr2", quietly = TRUE)) {
+        warning("Package 'httr2' required for direct API fallback.")
+        return(data.table::data.table(
+          filename = character(), size = numeric(),
+          checksum = character()
+        ))
+      }
+
+      record_id <- self$record$id
+      if (is.null(record_id)) {
+        return(data.table::data.table(
+          filename = character(), size = numeric(),
+          checksum = character()
+        ))
+      }
+
+      base_url <- private$get_api_base_url()
+      token <- private$get_token()
+      url <- paste0(base_url, "/records/", record_id, "/draft/files")
+
+      resp <- tryCatch({
+        httr2::request(url) |>
+          httr2::req_headers(Authorization = paste("Bearer", token)) |>
+          httr2::req_perform()
+      }, error = function(e) {
+        if (self$logs) message("Direct API query failed: ", e$message)
+        return(NULL)
+      })
+
+      if (is.null(resp) || httr2::resp_status(resp) >= 400L) {
+        return(data.table::data.table(
+          filename = character(), size = numeric(),
+          checksum = character()
+        ))
+      }
+
+      body <- httr2::resp_body_json(resp)
+      entries <- body$entries
+      if (is.null(entries) || length(entries) == 0L) {
+        return(data.table::data.table(
+          filename = character(), size = numeric(),
+          checksum = character()
+        ))
+      }
+
+      # Only include files with status == "completed"
+      dt <- data.table::rbindlist(lapply(entries, function(e) {
+        if (identical(e$status, "completed")) {
+          data.table::data.table(
+            filename = e$key,
+            size = as.numeric(e$size %||% 0),
+            checksum = e$checksum %||% NA_character_
+          )
+        }
+      }), fill = TRUE)
+
+      if (self$logs && nrow(dt) > 0L) {
+        message("Found ", nrow(dt), " files via direct API query")
+      }
+
+      dt
+    },
+
     # get_token ----
-    # Get the stored token from the ZenodoManager
+    # Return the token stored at connect() time.
     get_token = function() {
-      if (is.null(self$zenodo)) {
+      if (is.null(private$stored_token)) {
         stop("Not connected. Call connect() first.")
       }
-      # Access token from zen4R's ZenodoManager
-      self$zenodo$.__enclos_env__$private$token
+      private$stored_token
     },
 
     # upload_with_progress ----
@@ -2071,7 +2237,14 @@ ZenodoAssetManager <- R6::R6Class(
     },
 
     # sync_upload ----
-    sync_upload = function(input_base, directories, version) {
+    sync_upload = function(input_base, directories, version,
+                           exclude_patterns = NULL,
+                           exclude_file_patterns = "\\.R$",
+                           group_by_prefix = FALSE,
+                           compression_level = 6L,
+                           multicore = FALSE,
+                           n_cores = parallel::detectCores(logical = FALSE),
+                           update_gitignore = FALSE) {
       if (self$logs) {
         message("\n=== Uploading to Zenodo ===")
       }
@@ -2079,7 +2252,14 @@ ZenodoAssetManager <- R6::R6Class(
       # Create zip archives
       archives <- self$create_input_archives(
         input_base = input_base,
-        directories = directories
+        directories = directories,
+        exclude_patterns = exclude_patterns,
+        exclude_file_patterns = exclude_file_patterns,
+        group_by_prefix = group_by_prefix,
+        compression_level = compression_level,
+        multicore = multicore,
+        n_cores = n_cores,
+        update_gitignore = update_gitignore
       )
 
       if (nrow(archives) == 0) {
@@ -2105,6 +2285,14 @@ ZenodoAssetManager <- R6::R6Class(
       # Upload each archive
       for (i in seq_len(nrow(archives))) {
         self$upload_archive(archives$archive_path[i])
+      }
+
+      # Clean up temporary archive files after successful upload
+      for (ap in archives$archive_path) {
+        if (file.exists(ap)) file.remove(ap)
+      }
+      if (self$logs) {
+        message("Cleaned up ", nrow(archives), " temporary archive files.")
       }
 
       # Save manifest with source hashes (for change detection)
