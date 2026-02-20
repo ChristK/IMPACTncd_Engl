@@ -1871,60 +1871,21 @@ Simulation <-
           message("Found ", nrow(sim_files), " simulation archives to download.")
         }
 
-        # Download and extract using the ZenodoAssetManager's sync_download
-        # private method is not accessible here, so we download manually
+        # Download and extract each matching archive individually
         download_dir <- file.path(tempdir(), "zenodo_sim_downloads")
         dir.create(download_dir, recursive = TRUE, showWarnings = FALSE)
 
         for (i in seq_len(nrow(sim_files))) {
           fname <- sim_files$filename[i]
-          archive_name <- gsub("\\.zip$", "", fname, ignore.case = TRUE)
 
-          # Download the archive
-          download_url <- NULL
-          tryCatch({
-            download_url <- sim_files$download_link[i]
-            if (is.null(download_url) || !nzchar(download_url %||% "")) {
-              download_url <- NULL
-            }
-          }, error = function(e) NULL)
+          # download_file() uses per-file URL, never bulk downloadFiles()
+          private$zenodo_manager$download_file(
+            filename  = fname,
+            dest_dir  = download_dir,
+            overwrite = TRUE
+          )
 
-          dest_path <- file.path(download_dir, fname)
-
-          if (is.null(download_url)) {
-            # Fall back to zen4R's downloadFiles for the whole record
-            if (self$design$sim_prm$logs) {
-              message("Downloading all record files (no per-file URL)...")
-            }
-            private$zenodo_manager$record$downloadFiles(path = download_dir)
-            break
-          }
-
-          if (self$design$sim_prm$logs) {
-            message("Downloading: ", fname)
-          }
-
-          file_size <- if ("size" %in% names(sim_files)) {
-            as.numeric(sim_files$size[i])
-          } else {
-            NULL
-          }
-
-          # Use httr2 for download with optional progress
-          req <- httr2::request(download_url)
-          if (!is.null(file_size) &&
-              !is.null(private$zenodo_manager$download_progress)) {
-            resp <- httr2::req_perform(req, path = dest_path)
-          } else {
-            resp <- httr2::req_perform(req, path = dest_path)
-          }
-        }
-
-        # Extract each simulation archive
-        for (i in seq_len(nrow(sim_files))) {
-          fname <- sim_files$filename[i]
           archive_path <- file.path(download_dir, fname)
-
           if (!file.exists(archive_path)) {
             warning("Archive not found after download: ", fname)
             next

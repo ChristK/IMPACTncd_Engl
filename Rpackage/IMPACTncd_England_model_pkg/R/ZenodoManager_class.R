@@ -1307,21 +1307,9 @@ ZenodoAssetManager <- R6::R6Class(
       # Create destination directory
       dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
 
-      # Use progress-enabled download if callback is set
-      if (!is.null(self$download_progress)) {
-        download_url <- private$get_file_download_url(filename)
-        private$download_with_progress(download_url, dest_path, filename)
-      } else {
-        if (self$logs) {
-          message("Downloading: ", filename)
-        }
-
-        self$record$downloadFiles(path = dest_dir)
-
-        if (self$logs) {
-          message("  Downloaded to: ", dest_path)
-        }
-      }
+      # Download the single requested file via its direct URL
+      download_url <- private$get_file_download_url(filename)
+      private$download_with_progress(download_url, dest_path, filename)
 
       if (!file.exists(dest_path)) {
         stop("Download failed for: ", filename)
@@ -2184,33 +2172,27 @@ ZenodoAssetManager <- R6::R6Class(
       download_dir <- file.path(self$archive_dir, "downloads")
       dir.create(download_dir, recursive = TRUE, showWarnings = FALSE)
 
-      # Download files - use progress if callback is set
-      if (!is.null(self$download_progress)) {
-        # Download each file individually with progress
-        for (i in seq_len(nrow(remote_files))) {
-          fname <- remote_files$filename[i]
-          archive_name <- gsub("\\.zip$", "", fname, ignore.case = TRUE)
+      # Download each matching file individually via its direct URL
+      for (i in seq_len(nrow(remote_files))) {
+        fname <- remote_files$filename[i]
+        archive_name <- gsub("\\.zip$", "", fname, ignore.case = TRUE)
 
-          # Check if this directory should be processed
-          if (!is.null(directories) && !(archive_name %in% directories)) {
-            if (self$logs) message("Skipping (not in list): ", archive_name)
-            next
-          }
-
-          # Get download URL and file size
-          download_url <- private$get_file_download_url(fname)
-          file_size <- if ("size" %in% names(remote_files)) {
-            as.numeric(remote_files$size[i])
-          } else {
-            NULL
-          }
-
-          dest_path <- file.path(download_dir, fname)
-          private$download_with_progress(download_url, dest_path, fname, file_size)
+        # Check if this directory should be processed
+        if (!is.null(directories) && !(archive_name %in% directories)) {
+          if (self$logs) message("Skipping (not in list): ", archive_name)
+          next
         }
-      } else {
-        # Download all files from record at once (no progress)
-        self$record$downloadFiles(path = download_dir)
+
+        # Get download URL and file size
+        download_url <- private$get_file_download_url(fname)
+        file_size <- if ("size" %in% names(remote_files)) {
+          as.numeric(remote_files$size[i])
+        } else {
+          NULL
+        }
+
+        dest_path <- file.path(download_dir, fname)
+        private$download_with_progress(download_url, dest_path, fname, file_size)
       }
 
       # Extract each archive
