@@ -130,7 +130,8 @@ INPUT_EXCLUDE_PATTERNS <- c(
   "_backup$", # Exclude anything ending in _backup
   "_old$", # Exclude anything ending in _old
   "scripts$", # Exclude anything ending in scripts
-  "validation$" # Exclude anything ending in validation
+  "validation$", # Exclude anything ending in validation
+  "^RR$" # Exclude RR (tracked in git, not Zenodo)
 )
 
 # File patterns to exclude from archives (regex)

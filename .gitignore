@@ -73,6 +73,7 @@ simulation/inputs_manifest.csv
 /simulation/parf/
 /simulation/rr/
 inputs/**/*.csvy
+!inputs/RR/**/*.csvy
 inputs/**/*.qs
 inputs/**/*.csv
 inputs/**/*.fst
