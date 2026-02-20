@@ -458,12 +458,12 @@ Design <-
 
       #' @description
       #' Check whether input data files are present.
-      #' @return Logical; TRUE if `.csvy` files exist in `./inputs/RR/`.
+      #' @return Logical; TRUE if disease burden directories exist in
+      #'   `./inputs/`.
       # has_input_data ----
       has_input_data = function() {
-        length(list.files(
-          "./inputs/RR", pattern = "\\.csvy$"
-        )) > 0
+        dirs <- list.dirs("./inputs", recursive = FALSE, full.names = FALSE)
+        any(grepl("^disease_burden_", dirs))
       },
 
       #' @description
@@ -486,7 +486,7 @@ Design <-
         }
         if (!self$has_input_data()) {
           stop(
-            "Input data files not found in ./inputs/RR/.\n",
+            "Input data not found in ./inputs/.\n",
             "Download inputs first via zenodo_download_all().",
             call. = FALSE
           )
