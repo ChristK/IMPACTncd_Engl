@@ -46,13 +46,16 @@ Design <-
       sim_prm = NA,
 
       #' @field exposures A named list of Exposure objects for generating synthetic population exposures.
-      exposures = NA,
+      exposures = list(),
 
       #' @field RR A named list of ExposureEffect objects for relative risk effects.
-      RR = NA,
+      RR = list(),
 
       #' @field diseases A named list of Disease objects.
-      diseases = NA,
+      diseases = list(),
+
+      #' @field data_loaded Logical indicating whether input data has been loaded.
+      data_loaded = FALSE,
 
       #' @description
       #' Create a new `Design` object.
@@ -200,14 +203,16 @@ Design <-
         # Store the simulation parameters
         self$sim_prm = sim_prm
 
-        # Load exposure effects (RR)
-        self$load_exposure_effects()
-
-        # Create Exposure objects from configuration
-        self$load_exposures()
-
-        # Create Disease objects from configuration
-        self$load_diseases()
+        # Load data if input files are present; otherwise create
+        # a skeleton object that supports zenodo_download_all()
+        if (self$has_input_data()) {
+          self$load_data()
+        } else {
+          message(
+            "Input data not found. Object created in skeleton mode.\n",
+            "Download data with: $zenodo_connect() then $zenodo_download_all()"
+          )
+        }
 
         invisible(self)
       },
@@ -448,6 +453,48 @@ Design <-
         })
         names(self$diseases) <- vapply(self$sim_prm$diseases, `[[`, "name", FUN.VALUE = character(1))
 
+        invisible(self)
+      },
+
+      #' @description
+      #' Check whether input data files are present.
+      #' @return Logical; TRUE if `.csvy` files exist in `./inputs/RR/`.
+      # has_input_data ----
+      has_input_data = function() {
+        length(list.files(
+          "./inputs/RR", pattern = "\\.csvy$"
+        )) > 0
+      },
+
+      #' @description
+      #' Load all input data (exposure effects, exposures, diseases).
+      #'
+      #' Called automatically by the constructor when data is present.
+      #' Also called by `Simulation$zenodo_download_all()` after
+      #' downloading data, to complete initialization without needing
+      #' to create a new object.
+      #'
+      #' @param force Logical; if TRUE, reload even if already loaded.
+      #' @return The invisible self for chaining.
+      # load_data ----
+      load_data = function(force = FALSE) {
+        if (self$data_loaded && !force) {
+          if (self$sim_prm$logs) {
+            message("Data already loaded. Use force = TRUE to reload.")
+          }
+          return(invisible(self))
+        }
+        if (!self$has_input_data()) {
+          stop(
+            "Input data files not found in ./inputs/RR/.\n",
+            "Download inputs first via zenodo_download_all().",
+            call. = FALSE
+          )
+        }
+        self$load_exposure_effects()
+        self$load_exposures()
+        self$load_diseases()
+        self$data_loaded <- TRUE
         invisible(self)
       },
 

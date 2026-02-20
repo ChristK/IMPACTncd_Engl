@@ -230,7 +230,7 @@ stored at \code{simulation/inputs_manifest_at_last_upload.csv}.
 Save a copy of the current inputs manifest to record
 the state at the time of upload.
 
-Call this after a successful Zenodo upload. The snapshot is stored at
+Called automatically by \code{zenodo_upload_inputs()}. The snapshot is stored at
 \code{simulation/inputs_manifest_at_last_upload.csv} and is used by
 \code{compare_with_inputs_manifest()} to detect subsequent local changes.
 }

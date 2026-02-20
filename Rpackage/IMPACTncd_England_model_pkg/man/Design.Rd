@@ -42,6 +42,8 @@ The parameters must include the following keys:
 \item \code{exposures_for_output}: List. Definitions of risk factor exposures included in the model.
 }}
 
+\item{force}{Logical; if TRUE, reload even if already loaded.}
+
 \item{path}{A character string specifying the full file path (including filename and extension)
 where the simulation design should be saved.}
 }
@@ -51,6 +53,10 @@ A new \code{Design} object.
 The invisible self for chaining.
 
 The invisible self for chaining.
+
+The invisible self for chaining.
+
+Logical; TRUE if \code{.csvy} files exist in \verb{./inputs/RR/}.
 
 The invisible self for chaining.
 Save Simulation Design to Disk
@@ -71,6 +77,15 @@ Load exposure effects from RR files
 Create Exposure objects from YAML configuration
 
 Create Disease objects from YAML configuration
+
+Check whether input data files are present.
+
+Load all input data (exposure effects, exposures, diseases).
+
+Called automatically by the constructor when data is present.
+Also called by \code{Simulation$zenodo_download_all()} after
+downloading data, to complete initialization without needing
+to create a new object.
 
 Serializes the current simulation parameters (\code{sim_prm}) and writes them to a YAML file.
 This can be useful for saving configurations that can later be reloaded or shared.
@@ -97,6 +112,8 @@ It performs the following key tasks:
 \item{\code{RR}}{A named list of ExposureEffect objects for relative risk effects.}
 
 \item{\code{diseases}}{A named list of Disease objects.}
+
+\item{\code{data_loaded}}{Logical indicating whether input data has been loaded.}
 }}
 
 \examples{

@@ -65,8 +65,9 @@ WORKDIR /IMPACTncd_England/
 RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")'
 
 # Make project files writable by any user so the entrypoint's dynamically
-# created user can modify them (e.g., update snapshot, clean compiled objects).
-RUN chmod -R a+rw /IMPACTncd_England/Rpackage/ /outputs /synthpop
+# created user can modify them (e.g., update snapshot, write RR/PARF files,
+# download inputs from Zenodo).
+RUN chmod -R a+rw /IMPACTncd_England/ /outputs /synthpop
 
 # Input data and simulation outputs are included in the build context by the
 # docker_build_push.sh script, which copies git-tracked files plus all data

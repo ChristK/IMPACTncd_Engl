@@ -227,26 +227,6 @@ Simulation <-
         # Create folders if don't exist
         private$create_output_folder_structure()
 
-        # private$create_empty_calibration_prms_file(replace = FALSE)
-        message("Generating microsimulation structure.")
-        # Generate the graph with the causality structure
-        if (length(self$design$RR) > 0) {
-          ds <- unlist(strsplit(names(self$design$RR), "~"))
-          ds[grep("^smok_", ds)] <- "smoking"
-          ds <- gsub("_prvl$", "", ds)
-
-          ds1 <- ds[as.logical(seq_along(ds) %% 2)]
-          ds2 <- ds[!as.logical(seq_along(ds) %% 2)]
-          ds <- unique(data.table(ds1, ds2))
-
-          private$causality_structure <- make_graph(
-            unlist(transpose(ds)),
-            directed = TRUE
-          )
-        } else {
-          private$causality_structure <- make_empty_graph(directed = TRUE)
-        }
-
         # European standardised population 2013 (esp) weights
         tt <- data.table(
           agegrp = agegrp_name(0, 99),
@@ -282,113 +262,12 @@ Simulation <-
 
         private$esp_weights <- copy(absorb_dt(esp, tt))
 
-        private$death_codes <- unlist(lapply(self$design$diseases, function(x) {
-          x$meta$mortality$code
-        }))
-        private$death_codes[["alive"]] <- 0L
-
         private$primary_prevention_scn <- function(synthpop) NULL # default for baseline scenario
         private$secondary_prevention_scn <- function(synthpop) NULL # default for baseline scenario
 
-        # --- INPUTS MANIFEST CHECK ---
-        private$inputs_manifest <- InputsManifest$new(
-          inputs_dir = "./inputs",
-          manifest_path = "./simulation/inputs_manifest.csv"
-        )
-
-        manifest_path <- "./simulation/inputs_manifest.csv"
-        if (file.exists(manifest_path)) {
-          private$inputs_manifest$load()
-          changes <- private$inputs_manifest$detect_changes(
-            self$design
-          )
-
-          if (length(changes$all_changed) > 0L) {
-            message("=== INPUT FILE CHANGES DETECTED ===")
-            message(sprintf(
-              "  %d added, %d removed, %d modified",
-              length(changes$added),
-              length(changes$removed),
-              length(changes$modified)
-            ))
-
-            if (changes$affected_synthpops) {
-              message(
-                "  -> Synthpops will be regenerated",
-                " (upstream data changed)"
-              )
-            }
-            if (length(changes$affected_rr) > 0L) {
-              message(
-                "  -> RR files to regenerate: ",
-                paste(changes$affected_rr, collapse = ", ")
-              )
-              # Delete stale compiled RR .fst files so
-              # ExposureEffect regenerates them
-              for (rr_name in changes$affected_rr) {
-                rr_files <- list.files(
-                  "./simulation/rr",
-                  pattern = paste0(
-                    "^rr_",
-                    rr_name,
-                    "_(l|indx)\\.fst$"
-                  ),
-                  full.names = TRUE
-                )
-                if (length(rr_files) > 0L) {
-                  file.remove(rr_files)
-                }
-              }
-            }
-            if (length(changes$affected_diseases) > 0L) {
-              message(
-                "  -> PARF files to regenerate: ",
-                paste(
-                  changes$affected_diseases,
-                  collapse = ", "
-                )
-              )
-              # Delete stale PARF files so Disease
-              # regenerates them
-              parf_dir <- "./simulation/parf"
-              if (dir.exists(parf_dir)) {
-                for (d in changes$affected_diseases) {
-                  parf_files <- list.files(
-                    parf_dir,
-                    pattern = paste0("^PARF_", d, "_"),
-                    full.names = TRUE
-                  )
-                  if (length(parf_files) > 0L) {
-                    file.remove(parf_files)
-                  }
-                }
-              }
-            }
-
-            # Update manifest to reflect current state
-            private$inputs_manifest$generate(
-              parallel = self$design$sim_prm$clusternumber > 1L,
-              n_workers = self$design$sim_prm$clusternumber
-            )
-            message(
-              "  Manifest updated.",
-              " Stale artifacts will be regenerated."
-            )
-            message("===================================")
-          }
-        } else {
-          message(
-            "No inputs manifest found.",
-            " Generating initial manifest..."
-          )
-          private$inputs_manifest$generate(
-            parallel = self$design$sim_prm$clusternumber > 1L,
-            n_workers = self$design$sim_prm$clusternumber
-          )
-          message(sprintf(
-            "Inputs manifest created: %d files tracked.",
-            nrow(private$inputs_manifest$manifest)
-          ))
+        # Complete data-dependent initialization if data is loaded
+        if (self$design$data_loaded) {
+          private$complete_data_init()
         }
 
         invisible(self)
@@ -442,6 +321,15 @@ Simulation <-
       #'   The baseline scenario must always be named "sc0".
       #' @return The invisible self for chaining.
       run = function(mc, multicore = TRUE, scenario_nam) {
+        if (!private$data_initialized) {
+          stop(
+            "Simulation not fully initialized. Input data files are missing.\n",
+            "Download data first:\n",
+            "  self$zenodo_connect(token, concept_doi, sandbox)\n",
+            "  self$zenodo_download_all()",
+            call. = FALSE
+          )
+        }
         if (!is.integer(mc)) {
           stop("mc need to be an integer")
         }
@@ -2119,6 +2007,14 @@ Simulation <-
           overwrite       = overwrite
         )
 
+        # Auto-complete initialization after download
+        if (!self$design$data_loaded) {
+          self$design$load_data()
+        }
+        if (!private$data_initialized) {
+          private$complete_data_init()
+        }
+
         invisible(self)
       },
 
@@ -2920,6 +2816,148 @@ Simulation <-
       zenodo_manager = NULL,
       # Inputs manifest for tracking file versions
       inputs_manifest = NULL,
+      # Whether data-dependent initialization is complete
+      data_initialized = FALSE,
+
+      # complete_data_init ----
+      # Performs data-dependent Phase 2 initialization:
+      # builds the causality graph, extracts death codes, and
+      # runs the inputs manifest check. Called automatically by
+      # the constructor when data is present, or by
+      # zenodo_download_all() after downloading data.
+      complete_data_init = function() {
+        if (private$data_initialized) return(invisible(NULL))
+
+        message("Generating microsimulation structure.")
+        # Generate the graph with the causality structure
+        if (length(self$design$RR) > 0) {
+          ds <- unlist(strsplit(names(self$design$RR), "~"))
+          ds[grep("^smok_", ds)] <- "smoking"
+          ds <- gsub("_prvl$", "", ds)
+
+          ds1 <- ds[as.logical(seq_along(ds) %% 2)]
+          ds2 <- ds[!as.logical(seq_along(ds) %% 2)]
+          ds <- unique(data.table(ds1, ds2))
+
+          private$causality_structure <- make_graph(
+            unlist(transpose(ds)),
+            directed = TRUE
+          )
+        } else {
+          private$causality_structure <- make_empty_graph(directed = TRUE)
+        }
+
+        private$death_codes <- unlist(lapply(
+          self$design$diseases, function(x) {
+            x$meta$mortality$code
+          }
+        ))
+        private$death_codes[["alive"]] <- 0L
+
+        # --- INPUTS MANIFEST CHECK ---
+        private$inputs_manifest <- InputsManifest$new(
+          inputs_dir = "./inputs",
+          manifest_path = "./simulation/inputs_manifest.csv"
+        )
+
+        manifest_path <- "./simulation/inputs_manifest.csv"
+        if (file.exists(manifest_path)) {
+          private$inputs_manifest$load()
+          changes <- private$inputs_manifest$detect_changes(
+            self$design
+          )
+
+          if (length(changes$all_changed) > 0L) {
+            message("=== INPUT FILE CHANGES DETECTED ===")
+            message(sprintf(
+              "  %d added, %d removed, %d modified",
+              length(changes$added),
+              length(changes$removed),
+              length(changes$modified)
+            ))
+
+            if (changes$affected_synthpops) {
+              message(
+                "  -> Synthpops will be regenerated",
+                " (upstream data changed)"
+              )
+            }
+            if (length(changes$affected_rr) > 0L) {
+              message(
+                "  -> RR files to regenerate: ",
+                paste(changes$affected_rr, collapse = ", ")
+              )
+              # Delete stale compiled RR .fst files so
+              # ExposureEffect regenerates them
+              for (rr_name in changes$affected_rr) {
+                rr_files <- list.files(
+                  "./simulation/rr",
+                  pattern = paste0(
+                    "^rr_",
+                    rr_name,
+                    "_(l|indx)\\.fst$"
+                  ),
+                  full.names = TRUE
+                )
+                if (length(rr_files) > 0L) {
+                  file.remove(rr_files)
+                }
+              }
+            }
+            if (length(changes$affected_diseases) > 0L) {
+              message(
+                "  -> PARF files to regenerate: ",
+                paste(
+                  changes$affected_diseases,
+                  collapse = ", "
+                )
+              )
+              # Delete stale PARF files so Disease
+              # regenerates them
+              parf_dir <- "./simulation/parf"
+              if (dir.exists(parf_dir)) {
+                for (d in changes$affected_diseases) {
+                  parf_files <- list.files(
+                    parf_dir,
+                    pattern = paste0("^PARF_", d, "_"),
+                    full.names = TRUE
+                  )
+                  if (length(parf_files) > 0L) {
+                    file.remove(parf_files)
+                  }
+                }
+              }
+            }
+
+            # Update manifest to reflect current state
+            private$inputs_manifest$generate(
+              parallel = self$design$sim_prm$clusternumber > 1L,
+              n_workers = self$design$sim_prm$clusternumber
+            )
+            message(
+              "  Manifest updated.",
+              " Stale artifacts will be regenerated."
+            )
+            message("===================================")
+          }
+        } else {
+          message(
+            "No inputs manifest found.",
+            " Generating initial manifest..."
+          )
+          private$inputs_manifest$generate(
+            parallel = self$design$sim_prm$clusternumber > 1L,
+            n_workers = self$design$sim_prm$clusternumber
+          )
+          message(sprintf(
+            "Inputs manifest created: %d files tracked.",
+            nrow(private$inputs_manifest$manifest)
+          ))
+        }
+
+        private$data_initialized <- TRUE
+        invisible(NULL)
+      },
 
       # ensure_zenodo_manager ----
       # Lazily create a ZenodoAssetManager without connecting to Zenodo.
