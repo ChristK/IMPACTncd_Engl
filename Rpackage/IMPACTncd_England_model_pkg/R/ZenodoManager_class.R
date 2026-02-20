@@ -2096,25 +2096,41 @@ ZenodoAssetManager <- R6::R6Class(
     },
 
     # get_file_download_url ----
-    # Get download URL for a specific file in a record
+    # Get download URL for a specific file in a record.
+    # Tries download_link from listFiles() first, then
+    # constructs the URL from the API base and record ID
+    # (needed for InvenioRDM where download_link may be absent).
     get_file_download_url = function(filename) {
       if (is.null(self$record)) {
         stop("No record loaded.")
       }
 
-      files_info <- self$record$listFiles(pretty = TRUE)
-      if (is.null(files_info) || nrow(files_info) == 0) {
-        stop("No files in record.")
+      # Try zen4R's listFiles for download_link
+      files_info <- tryCatch(
+        self$record$listFiles(pretty = TRUE),
+        error = function(e) NULL
+      )
+
+      if (!is.null(files_info) && nrow(files_info) > 0) {
+        file_row <- files_info[files_info$filename == filename, ]
+        if (nrow(file_row) > 0 &&
+            "download_link" %in% names(file_row) &&
+            !is.null(file_row$download_link[1]) &&
+            nzchar(file_row$download_link[1])) {
+          return(file_row$download_link[1])
+        }
       }
 
-      # Find matching file
-      file_row <- files_info[files_info$filename == filename, ]
-      if (nrow(file_row) == 0) {
-        stop("File not found in record: ", filename)
+      # Fallback: construct URL from API base
+      # InvenioRDM format: /api/records/{id}/files/{filename}/content
+      base_url <- private$get_api_base_url()
+      record_id <- self$record$id
+      if (is.null(record_id)) {
+        stop("Cannot determine download URL for: ", filename)
       }
-
-      # Get download link
-      file_row$download_link[1]
+      paste0(base_url, "/records/", record_id, "/files/",
+             utils::URLencode(filename, reserved = TRUE),
+             "/content")
     },
 
     # sync_check ----
