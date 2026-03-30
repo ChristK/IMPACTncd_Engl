@@ -1,0 +1,59 @@
+---
+xps_name: t2dm_prvl
+outcome: breast_ca
+lag: 9
+distribution: lognormal
+source: GBD 2016
+notes: ''
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    # multiplier for the risk of CHD for diabetic
+    if (!'breast_ca_incd_t2dm_prvl_mltp' %in% names(sp$pop)) sp$pop[, breast_ca_incd_t2dm_prvl_mltp := t2dm_prvl_rr]
+    if (!'breast_ca_mrtl_t2dm_prvl_mltp' %in% names(sp$pop)) sp$pop[, breast_ca_mrtl_t2dm_prvl_mltp := t2dm_prvl_rr]
+    sp$pop[t2dm_prvl == 0L, t2dm_prvl_rr := 1]
+  }
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1,1
+20-24,men,1,1
+25-29,men,1,1
+30-34,men,1,1
+35-39,men,1,1
+40-44,men,1,1
+45-49,men,1,1
+50-54,men,1,1
+55-59,men,1,1
+60-64,men,1,1
+65-69,men,1,1
+70-74,men,1,1
+75-79,men,1,1
+80-84,men,1,1
+85-89,men,1,1
+90-94,men,1,1
+95-99,men,1,1
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1,1
+20-24,women,1,1
+25-29,women,1,1
+30-34,women,1.513,2.206
+35-39,women,1.513,2.206
+40-44,women,1.513,2.206
+45-49,women,1.513,2.206
+50-54,women,1.513,2.206
+55-59,women,1.513,2.206
+60-64,women,1.513,2.206
+65-69,women,1.513,2.206
+70-74,women,1.513,2.206
+75-79,women,1.513,2.206
+80-84,women,1.513,2.206
+85-89,women,1.513,2.206
+90-94,women,1,1
+95-99,women,1,1

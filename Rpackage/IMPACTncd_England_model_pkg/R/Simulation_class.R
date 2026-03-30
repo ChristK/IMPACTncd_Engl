@@ -17,6 +17,21 @@
 
 
 
+# Check whether the current session can open an interactive graphics device.
+# Returns TRUE if a device is already open, or if the platform can open one
+# (RStudio plot pane, Windows device, or X11 with a valid DISPLAY).
+.has_plot_device <- function() {
+  # A file-based device (png, pdf, etc.) already open counts
+  if (dev.cur() > 1L) return(TRUE)
+  # RStudio has its own plot pane
+  if (identical(.Platform$GUI, "RStudio")) return(TRUE)
+  # Windows can always open a device
+  if (.Platform$OS.type == "windows") return(TRUE)
+  # On Unix, X11 needs a DISPLAY
+  if (capabilities("X11") && nzchar(Sys.getenv("DISPLAY"))) return(TRUE)
+  FALSE
+}
+
 # From
 # https://stackoverflow.com/questions/33424233/how-do-i-tell-an-r6-class-what-to-do-with-square-brackets
 # Allows data.table syntax to the R6class object directly. Assumes it has a
@@ -534,6 +549,12 @@ Simulation <-
         mode = "in",
         order = 1
       ) {
+        if (!inherits(private$causality_structure, "igraph")) {
+          stop(
+            "Causality structure not initialised. ",
+            "Please recreate the Simulation object."
+          )
+        }
         if (missing(focus)) {
           graph <- private$causality_structure
         } else {
@@ -577,8 +598,19 @@ Simulation <-
           )[[1]]
         }
         if (print_plot) {
-          print(
-            plot(
+          if (vcount(graph) == 0L) {
+            message("No causal structure to plot (no RR data loaded).")
+          } else if (!.has_plot_device()) {
+            message(
+              "No interactive graphics device available. ",
+              "To save the plot to a file, use:\n",
+              "  png(\"causal_structure.png\", width = 1200, height = 800)\n",
+              "  get_causal_structure(print_plot = TRUE)\n",
+              "  dev.off()"
+            )
+          } else {
+            lo <- layout_components(graph)
+            plot.igraph(
               graph,
               vertex.shape = "none",
               edge.arrow.size = .3,
@@ -587,9 +619,9 @@ Simulation <-
               edge.arrow.width = .5,
               vertex.label.cex = .7,
               edge.color = "gray85",
-              layout = layout_components
+              layout = lo
             )
-          )
+          }
         }
 
         if (processed) {
@@ -1749,15 +1781,20 @@ Simulation <-
           message("Downloading inputs from Zenodo...")
         }
 
+        # Filter out simulation archives (parf/rr) — those are handled
+        # by zenodo_download_PARFs_RRs() which extracts to ./simulation/
+        sim_pattern <- "^(parf|rr)"
+
         # Check current status
         status <- private$zenodo_manager$sync_inputs(
           input_base = input_base,
           directories = directories,
-          action = "check"
+          action = "check",
+          exclude_archive_patterns = sim_pattern
         )
 
         # Warn about existing directories
-        if (any(status$local_exists) && !overwrite) {
+        if (nrow(status) > 0L && any(status$local_exists) && !overwrite) {
           existing_dirs <- status[local_exists == TRUE, directory]
           message(
             "The following directories already exist and will be SKIPPED:\n  ",
@@ -1771,7 +1808,8 @@ Simulation <-
           input_base = input_base,
           directories = directories,
           action = "download",
-          overwrite = overwrite
+          overwrite = overwrite,
+          exclude_archive_patterns = sim_pattern
         )
 
         if (self$design$sim_prm$logs) {
@@ -3432,6 +3470,41 @@ Simulation <-
           ),
           cmsmm2_prvl = carry_forward_incr(
             as.integer(cms_score > 2),
+            pid_mrk,
+            TRUE,
+            1L,
+            byref = TRUE
+          ),
+          cmscs1_prvl = carry_forward_incr(
+            as.integer(cms_score < 0.09),
+            pid_mrk,
+            TRUE,
+            1L,
+            byref = TRUE
+          ),
+          cmscs2_prvl = carry_forward_incr(
+            as.integer(cms_score >= 0.09 & cms_score < 0.69),
+            pid_mrk,
+            TRUE,
+            1L,
+            byref = TRUE
+          ),
+          cmscs3_prvl = carry_forward_incr(
+            as.integer(cms_score >= 0.69 & cms_score < 1.59),
+            pid_mrk,
+            TRUE,
+            1L,
+            byref = TRUE
+          ),
+          cmscs4_prvl = carry_forward_incr(
+            as.integer(cms_score >= 1.59 & cms_score < 2.96),
+            pid_mrk,
+            TRUE,
+            1L,
+            byref = TRUE
+          ),
+          cmscs5_prvl = carry_forward_incr(
+            as.integer(cms_score >= 2.96),
             pid_mrk,
             TRUE,
             1L,

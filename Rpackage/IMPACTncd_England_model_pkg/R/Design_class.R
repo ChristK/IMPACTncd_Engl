@@ -463,7 +463,7 @@ Design <-
       # has_input_data ----
       has_input_data = function() {
         dirs <- list.dirs("./inputs", recursive = FALSE, full.names = FALSE)
-        any(grepl("^disease_burden_", dirs))
+        any(grepl("^disease_burden", dirs))
       },
 
       #' @description

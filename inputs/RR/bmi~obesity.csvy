@@ -1,0 +1,56 @@
+---
+xps_name: bmi
+outcome: obesity
+lag: 0
+distribution: lognormal
+source: ???
+notes: The usual 30 kg/m2 cut-off
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    sp$pop[, bmi_rr := bmi >= bmi_rr] # TRUE = obese, FALSE is not
+  }
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1,1
+20-24,men,30,30
+25-29,men,30,30
+30-34,men,30,30
+35-39,men,30,30
+40-44,men,30,30
+45-49,men,30,30
+50-54,men,30,30
+55-59,men,30,30
+60-64,men,30,30
+65-69,men,30,30
+70-74,men,30,30
+75-79,men,30,30
+80-84,men,30,30
+85-89,men,30,30
+90-94,men,30,30
+95-99,men,30,30
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1,1
+20-24,women,30,30
+25-29,women,30,30
+30-34,women,30,30
+35-39,women,30,30
+40-44,women,30,30
+45-49,women,30,30
+50-54,women,30,30
+55-59,women,30,30
+60-64,women,30,30
+65-69,women,30,30
+70-74,women,30,30
+75-79,women,30,30
+80-84,women,30,30
+85-89,women,30,30
+90-94,women,30,30
+95-99,women,30,30

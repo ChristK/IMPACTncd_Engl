@@ -1,0 +1,59 @@
+---
+xps_name: t2dm_prvl
+outcome: lung_ca 
+lag: 4
+distribution: lognormal
+source: GBD 2019.
+notes: ''
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    # multiplier for the risk of lung_ca for diabetic
+    if (!'lung_ca_incd_t2dm_prvl_mltp' %in% names(sp$pop)) sp$pop[, lung_ca_incd_t2dm_prvl_mltp := t2dm_prvl_rr]
+    if (!'lung_ca_mrtl_t2dm_prvl_mltp' %in% names(sp$pop)) sp$pop[, lung_ca_mrtl_t2dm_prvl_mltp := t2dm_prvl_rr]
+    sp$pop[t2dm_prvl == 0L, t2dm_prvl_rr := 1]
+  }
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1,1
+20-24,men,1,1
+25-29,men,1.515,2.309
+30-34,men,1.515,2.309
+35-39,men,1.515,2.309
+40-44,men,1.515,2.309
+45-49,men,1.515,2.309
+50-54,men,1.515,2.309
+55-59,men,1.515,2.309
+60-64,men,1.515,2.309
+65-69,men,1.515,2.309
+70-74,men,1.515,2.309
+75-79,men,1.515,2.309
+80-84,men,1.515,2.309
+85-89,men,1.515,2.309
+90-94,men,1.515,2.309
+95-99,men,1.515,2.309
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1,1
+20-24,women,1,1
+25-29,women,1.512,2.299
+30-34,women,1.512,2.299
+35-39,women,1.512,2.299
+40-44,women,1.512,2.299
+45-49,women,1.512,2.299
+50-54,women,1.512,2.299
+55-59,women,1.512,2.299
+60-64,women,1.512,2.299
+65-69,women,1.512,2.299
+70-74,women,1.512,2.299
+75-79,women,1.512,2.299
+80-84,women,1.512,2.299
+85-89,women,1.512,2.299
+90-94,women,1.512,2.299
+95-99,women,1.512,2.299

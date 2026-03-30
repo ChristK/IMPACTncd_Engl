@@ -1,0 +1,58 @@
+---
+xps_name: statin_px
+outcome: t2dm
+lag: 4
+distribution: lognormal
+source: The Lancet 2010;375:735–42
+notes: They report OR, I assume RR is approximately equal. Mean observation time was
+  4 years.
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    sp$pop[statin_px == 0L, statin_px_rr := 1]
+    NULL
+    }
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1,1
+20-24,men,1,1
+25-29,men,1,1
+30-34,men,1.09,1.17
+35-39,men,1.09,1.17
+40-44,men,1.09,1.17
+45-49,men,1.09,1.17
+50-54,men,1.09,1.17
+55-59,men,1.09,1.17
+60-64,men,1.09,1.17
+65-69,men,1.09,1.17
+70-74,men,1.09,1.17
+75-79,men,1.09,1.17
+80-84,men,1.09,1.17
+85-89,men,1.09,1.17
+90-94,men,1.09,1.17
+95-99,men,1.09,1.17
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1,1
+20-24,women,1,1
+25-29,women,1,1
+30-34,women,1.09,1.17
+35-39,women,1.09,1.17
+40-44,women,1.09,1.17
+45-49,women,1.09,1.17
+50-54,women,1.09,1.17
+55-59,women,1.09,1.17
+60-64,women,1.09,1.17
+65-69,women,1.09,1.17
+70-74,women,1.09,1.17
+75-79,women,1.09,1.17
+80-84,women,1.09,1.17
+85-89,women,1.09,1.17
+90-94,women,1.09,1.17
+95-99,women,1.09,1.17

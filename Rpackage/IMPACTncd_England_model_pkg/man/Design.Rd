@@ -56,7 +56,8 @@ The invisible self for chaining.
 
 The invisible self for chaining.
 
-Logical; TRUE if \code{.csvy} files exist in \verb{./inputs/RR/}.
+Logical; TRUE if disease burden directories exist in
+\verb{./inputs/}.
 
 The invisible self for chaining.
 Save Simulation Design to Disk

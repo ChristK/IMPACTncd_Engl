@@ -1,0 +1,59 @@
+---
+xps_name: t2dm_prvl
+outcome: dementia
+lag: 9
+distribution: lognormal
+source: GBD 2019.
+notes: ''
+apply_rr_extra_fn: >
+  function(sp) {
+    if (!inherits(sp, 'SynthPop')) stop('Argument sp needs to be a SynthPop object.')
+    # multiplier for the risk of dementia for diabetic
+    if (!'dementia_incd_t2dm_prvl_mltp' %in% names(sp$pop)) sp$pop[, dementia_incd_t2dm_prvl_mltp := t2dm_prvl_rr]
+    if (!'dementia_mrtl_t2dm_prvl_mltp' %in% names(sp$pop)) sp$pop[, dementia_mrtl_t2dm_prvl_mltp := t2dm_prvl_rr]
+    sp$pop[t2dm_prvl == 0L, t2dm_prvl_rr := 1]
+  }
+---
+agegroup,sex,rr,ci_rr
+<1,men,1,1
+01-04,men,1,1
+05-09,men,1,1
+10-14,men,1,1
+15-19,men,1,1
+20-24,men,1,1
+25-29,men,1.516,2.295
+30-34,men,1.516,2.295
+35-39,men,1.516,2.295
+40-44,men,1.516,2.295
+45-49,men,1.516,2.295
+50-54,men,1.516,2.295
+55-59,men,1.516,2.295
+60-64,men,1.516,2.295
+65-69,men,1.516,2.295
+70-74,men,1.516,2.295
+75-79,men,1.516,2.295
+80-84,men,1.516,2.295
+85-89,men,1.516,2.295
+90-94,men,1.516,2.295
+95-99,men,1.516,2.295
+<1,women,1,1
+01-04,women,1,1
+05-09,women,1,1
+10-14,women,1,1
+15-19,women,1,1
+20-24,women,1,1
+25-29,women,1.52,2.301
+30-34,women,1.52,2.301
+35-39,women,1.52,2.301
+40-44,women,1.52,2.301
+45-49,women,1.52,2.301
+50-54,women,1.52,2.301
+55-59,women,1.52,2.301
+60-64,women,1.52,2.301
+65-69,women,1.52,2.301
+70-74,women,1.52,2.301
+75-79,women,1.52,2.301
+80-84,women,1.52,2.301
+85-89,women,1.52,2.301
+90-94,women,1.52,2.301
+95-99,women,1.52,2.301

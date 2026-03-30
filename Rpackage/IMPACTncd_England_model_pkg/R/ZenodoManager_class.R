@@ -1542,6 +1542,7 @@ ZenodoAssetManager <- R6::R6Class(
       action = c("check", "download", "upload"),
       overwrite = FALSE,
       version = NULL,
+      exclude_archive_patterns = NULL,
       ...
     ) {
       action <- match.arg(action)
@@ -1567,12 +1568,27 @@ ZenodoAssetManager <- R6::R6Class(
         return(invisible(NULL))
       }
 
+      # Exclude archives matching patterns (e.g. simulation outputs)
+      if (!is.null(exclude_archive_patterns)) {
+        keep <- !grepl(
+          exclude_archive_patterns, remote_files$filename,
+          ignore.case = TRUE
+        )
+        remote_files <- remote_files[keep, ]
+        if (nrow(remote_files) == 0) {
+          message("No files remaining after exclusion filter.")
+          return(invisible(NULL))
+        }
+      }
+
       if (action == "check") {
         return(private$sync_check(remote_files, input_base, directories))
       }
 
       if (action == "download") {
-        return(private$sync_download(remote_files, input_base, directories, overwrite))
+        return(private$sync_download(
+          remote_files, input_base, directories, overwrite
+        ))
       }
     },
 
@@ -2127,18 +2143,63 @@ ZenodoAssetManager <- R6::R6Class(
         message("\n=== Checking sync status ===")
       }
 
-      # Identify which archives correspond to which directories
+      # Identify which archives correspond to which local directories.
+      # Grouped archives use underscores in filenames
+      # (e.g. exposure_distributions_bmi.zip) but the actual directory
+      # structure uses slashes (exposure_distributions/bmi/).
+      # Furthermore, a grouped archive may cover *multiple* subdirs
+      # (e.g. exposure_distributions_smok_cig.zip contains
+      # smok_cig_curr/ and smok_cig_ex/).  We check local existence by
+      # finding the parent directory and looking for any subdir whose
+      # name starts with the group prefix.
+      top_dirs <- list.dirs(
+        input_base, full.names = FALSE, recursive = FALSE
+      )
+      top_dirs <- top_dirs[top_dirs != ""]
+
       results <- lapply(seq_len(nrow(remote_files)), function(i) {
         fname <- remote_files$filename[i]
         archive_name <- gsub("\\.zip$", "", fname, ignore.case = TRUE)
 
-        # Check if corresponding local directory exists
-        local_dir <- file.path(input_base, archive_name)
-        local_exists <- dir.exists(local_dir)
+        # Find the longest top-level directory that is a prefix of
+        # archive_name (followed by _ or end-of-string).
+        matched <- vapply(top_dirs, function(td) {
+          if (archive_name == td) return(nchar(td))
+          if (startsWith(archive_name, paste0(td, "_"))) {
+            return(nchar(td))
+          }
+          0L
+        }, integer(1))
+        best <- which.max(matched)
+
+        if (length(best) > 0L && matched[best] > 0L) {
+          parent <- top_dirs[best]
+          remainder <- substring(archive_name, nchar(parent) + 2L)
+          if (nzchar(remainder)) {
+            # Grouped archive: check if parent dir contains any
+            # subdirectory starting with the group prefix
+            parent_path <- file.path(input_base, parent)
+            subdirs <- list.dirs(
+              parent_path, full.names = FALSE, recursive = FALSE
+            )
+            local_exists <- any(startsWith(subdirs, remainder))
+            dir_path <- file.path(parent, remainder)
+          } else {
+            dir_path <- parent
+            local_exists <- dir.exists(
+              file.path(input_base, parent)
+            )
+          }
+        } else {
+          dir_path <- archive_name
+          local_exists <- dir.exists(
+            file.path(input_base, archive_name)
+          )
+        }
 
         data.table::data.table(
           archive = fname,
-          directory = archive_name,
+          directory = dir_path,
           local_exists = local_exists,
           remote_checksum = remote_files$checksum[i] %||% NA_character_
         )
@@ -2211,11 +2272,23 @@ ZenodoAssetManager <- R6::R6Class(
           next
         }
 
-        local_dir <- file.path(input_base, archive_name)
+        # Determine the actual top-level directory inside the archive.
+        # Grouped archives (e.g. exposure_distributions_bmi.zip) contain
+        # paths like exposure_distributions/bmi/..., not
+        # exposure_distributions_bmi/...  We need to check the real
+        # extraction path, not the archive name with underscores.
+        zip_contents <- zip::zip_list(archive_path)
+        top_dir <- zip_contents$filename[1]
+        # Strip trailing slash and any deeper path components
+        top_dir <- sub("/.*", "", top_dir)
+        local_dir <- file.path(input_base, top_dir)
 
         if (dir.exists(local_dir) && !overwrite) {
           if (self$logs) {
-            message("Directory exists, skipping (use overwrite=TRUE to replace): ", archive_name)
+            message(
+              "Directory exists, skipping (use overwrite=TRUE to replace): ",
+              top_dir
+            )
           }
           next
         }

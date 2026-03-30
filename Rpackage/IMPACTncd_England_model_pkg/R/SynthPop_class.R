@@ -2286,11 +2286,11 @@ SynthPop <-
           strata <- c("year", "age", "sex")
           tt <- rbind(
             read_fst(
-              "inputs/pop_estimates_lsoa/national_pop_est.fst",
+              "./inputs/pop_estimates_lsoa/national_pop_est.fst",
               as.data.table = TRUE
             ),
             read_fst(
-              "inputs/pop_projections/national_proj.fst",
+              "./inputs/pop_projections/national_proj.fst",
               as.data.table = TRUE
             )
           )[

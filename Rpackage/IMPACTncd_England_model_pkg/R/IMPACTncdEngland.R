@@ -47,7 +47,7 @@
 #' @importFrom doParallel registerDoParallel
 #' @importFrom parallelly makeClusterPSOCK
 #' @importFrom parallel parLapplyLB stopCluster
-#' @importFrom igraph make_graph make_empty_graph is_dag V neighbors all_simple_paths topo_sort
+#' @importFrom igraph make_graph make_empty_graph is_dag V neighbors all_simple_paths topo_sort as_adjacency_matrix diameter layout_components make_ego_graph plot.igraph vcount
 #' @importFrom qs2 qs_read qs_save
 #' @importFrom arrow write_dataset open_dataset
 #' @importFrom DBI dbConnect dbDisconnect dbExecute dbGetQuery

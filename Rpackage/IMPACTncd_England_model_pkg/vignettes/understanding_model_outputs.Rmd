@@ -1,7 +1,7 @@
 ---
 title: "Understanding IMPACTncd_Engl model outputs"
 author: "Dr Chris Kypridemos, Dr Anna Head, Adithi R. Upadhya"
-date: "11 March, 2024"
+date: "24 March, 2026"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Understanding IMPACTncd_Engl model outputs}
@@ -43,6 +43,8 @@ knitr::include_graphics("img/output_folder.jpg")
 -   "**cms**" : information on the Cambridge Multimorbidity Score (CMS) (Cambridge Multimorbidity Score) score and count
 -   "**le**" : life expectancy; "**le60**" : life expectancy at 60
 -   "**hle**" : healthy life expectancy
+-   "**qalys**" : Quality-Adjusted Life Years
+-   "**costs**" : costs from a societal perspective, including healthcare costs, formal social care costs, informal care costs, and economic output (productivity from paid and unpaid work)
 -   The two different types are for different thresholds for the ‘end’ of healthy years:
     -   "**1st_cond**" : any 1 condition
     -   "**cmsmm1.5**" : CMS score of \> 1.5
@@ -103,12 +105,20 @@ knitr::include_graphics("img/output_folder_lf.jpg")
 -   **dimd** : the decile group of the index of multiple deprivation
 -   **ethnicity** : ethnicity
 -   **sha** : Geographic region (from Strategic Health Authority)
--   **pid_mark** : TRUE/FALSE marker for whether this is the first year the simulant enters the model
+-   **pid_mrk** : TRUE/FALSE marker for whether this is the first year the simulant enters the model
 -   **scenario** : scenario identification
 -   **mc** : Monte Carlo iteration
+-   **income** : income group (used for QALY estimation)
+-   **education** : education level (used for QALY estimation)
+-   **LAD17CD** : Local Authority District code (2017 boundaries)
 -   **cms_score**; **cms_count** : CMS score; CMS count
 -   **cms1st_cont_prvl** : Only one CMS condition
 -   **cmsmm0_prvl**; **cmsmm1_prvl**; **cmsmm1.5_prvl**; **cmsmm2_prvl** : CMS \> 0; CMS \> 1; CMS \> 1.5; CMS \> 2
+-   **cmscs1_prvl** : CMS score strata 1 (CMS score \< 0.09)
+-   **cmscs2_prvl** : CMS score strata 2 (0.09 \<= CMS score \< 0.69)
+-   **cmscs3_prvl** : CMS score strata 3 (0.69 \<= CMS score \< 1.59)
+-   **cmscs4_prvl** : CMS score strata 4 (1.59 \<= CMS score \< 2.96)
+-   **cmscs5_prvl** : CMS score strata 5 (CMS score \>= 2.96)
 -   **X_prvl** : number of years with the condition. If this is 1, this is what is used for the incd summary files & age_onset. If this is \> 0 it counts as a prevalent case
 -   **X_dgns** : number of years since diagnosis with the condition. Currently, this is identical to X_prvl. In future versions of the model, we may explicitly model diagnosed and undiagnosed components of disease incidence and prevalence.
 -   **wt_esp** : standardised to the 2013 European Standardised Population
@@ -127,7 +137,7 @@ E.g.: For type 2 diabetes it is 4.
 |COPD           | 7|
 |dementia         | 8|
 |asthma    | 9|
-|ckd stage 3-5 | 10|
+|ckd stage 3-5 | 10 (currently disabled)|
 |lung cancer           | 11|
 |colorectal cancer         | 12|
 |prostate cancer    | 13|
@@ -176,6 +186,8 @@ knitr::include_graphics("img/output_folder_sum.jpg")
 -   **le** : life expectancy. Note that this is not from birth but from the age the synthetic individuals enter the model that is defined in the `inputs/sim_design.yaml` file. The default is, therefore, life expectancy at 30.
 -   **le60** : life expectancy at 60
 -   **mrtl** : mortality
+-   **qalys** : Quality-Adjusted Life Years
+-   **costs** : healthcare costs
 -   **mean_age_incd** : mean age of condition incidence
 -   **mean_age_1st_onset** : mean age of the first incidence of a condition - some conditions can go into recovery/remission and then re-occur (e.g. asthma, anxiety & depression, etc.). This variable takes the mean age at the first onset
 -   **mean_age_prvl** : mean age of everyone with the condition (new and existing cases)
@@ -195,44 +207,106 @@ knitr::include_graphics("img/output_folder_sum.jpg")
 
 ### tables Folder
 
-The files inside the tables folder contain statistical summaries of different parameters based on different groups. The median (\_50.0%) from all iterations is presented alongside two levels of uncertainty: 95% (lower uncertainty interval (LUI): \_2.5%, upper uncertainty interval (UUI): \_97.5%) and 80% (LUI: \_10.0%, UUI: \_90/0%).
-
-The parameters used here are -
-
-**parameter (shortform) {specification of the parameter}**
-
--   all-cause mrtl (all_cause_mrtl_by_disease_rate){disease}
--   disease characteristics (value) {disease; type}
--   exposure (xps) {exposure}
--   fatality (ftlt) {disease}
--   incidence (incd) {disease}
--   mean CMS count (mean-cms_count) {}
--   mean CMS score (mean_cms_score) {}
--   mortality (mrtl) {disease}
--   pop size (pop_size) {}
--   prevalence (prvl) {disease}
-
-Various standardisations used are `not standardised` (scaled up to the ONS population projections); `age standardised`; `age-dimd standardised`; `age-sex standardised`; `age-sex-dimd standardised`. 
-Standardisation is done using the 2013 European Standardised Population (ESP). For standardisation beyond age standardisation, we assume that the population is equally sized between the respective groups and that the age distribution in each follows the 2013 ESP.
-
-The file name is as follows : 
-
-**parameter by multiple-groups (standarisation_if_applied).csv** 
-
-- all-cause mrtl by disease-year (age-sex-dimd standardised).csv 
-- disease characteristics by year (not standardised).csv
+The files inside the tables folder contain statistical summaries of different parameters based on different groups. The median (\_50.0%) from all iterations is presented alongside two levels of uncertainty: 95% (lower uncertainty interval (LUI): \_2.5%, upper uncertainty interval (UUI): \_97.5%) and 80% (LUI: \_10.0%, UUI: \_90.0%).
 
 ```{r, echo = FALSE, out.width = "50%", fig.cap = "tables folder structure"}
 knitr::include_graphics("img/output_folder_tables.jpg")
 ```
 
+The tables are generated by the `export_tables()` method, which produces four groups of tables in parallel:
 
-#### Column names 
+1. **Main tables** — prevalence, incidence, mortality, case fatality, QALYs, costs, and comparison metrics
+2. **All-cause mortality by disease tables** — all-cause mortality rates stratified by disease
+3. **Disease characteristics tables** — mean duration, mean age of incidence/prevalence/first onset, mean CMS score and count
+4. **Exposure tables** — mean risk factor exposure levels
 
-- **scenario** : scenario name 
-- **groups (year; agegrp; sex; disease)**
-- **specification of parameter** : disease; type; exposure 
-- **parameter_percentile** : all-cause mrtl; disease characteristics; exposure; fatality; incidence; mean CMS count; mean CMS score; mortality; pop size; prevalence at the specified level of uncertainty: 2.5 %, 10 %, 50 %, 90 %, 97.5 %
+#### Table types and file naming
+
+The file name follows this pattern:
+
+**parameter by stratification-variables (standardisation).csv**
+
+For example:
+
+- `prevalence by year-agegrp-sex (not standardised).csv`
+- `all-cause mortality by year-sex (age-dimd standardised).csv`
+- `disease characteristics by year (not standardised).csv`
+- `QALYs by year (not standardised).csv`
+- `costs by year-sex (age-dimd standardised).csv`
+
+##### Main tables
+
+The following parameters are generated for both non-standardised (scaled up to ONS population projections) and ESP-standardised outputs:
+
+| Parameter | Shortform | Column prefix | Description |
+|:----------|:----------|:--------------|:------------|
+| Prevalence | prvl | prvl_rate_ | Rate of prevalent cases per population |
+| Prevalence relative change | prvl_change_relative | prct_change_relative_ | Relative change in prevalence from baseline year |
+| Prevalence absolute change | prvl_change_absolute | abs_change_ | Absolute change in prevalence from baseline year |
+| Incidence | incd | incd_rate_ | Rate of incident cases per population |
+| Incidence relative change | incd_change_relative | prct_change_relative_ | Relative change in incidence from baseline year |
+| Incidence absolute change | incd_change_absolute | abs_change_ | Absolute change in incidence from baseline year |
+| Case fatality | ftlt | ftlt_rate_ | Deaths per prevalent cases |
+| All-cause mortality | mrtl | mrtl_rate_ | All-cause mortality rate per population |
+| Disease-specific mortality | dis_mrtl | disease_mrtl_rate_ | Disease-specific mortality rate per population |
+| Pop size | pop | pop_size_ | Total population size (non-standardised only) |
+| QALYs | qalys | qalys_ | Quality-Adjusted Life Years (based on EQ-5D-5L). Includes both annual and cumulative values. Optionally discounted |
+| Net QALYs | net_qalys | net_qalys_ | Difference in QALYs between intervention and baseline scenarios. Includes both annual and cumulative values |
+| Costs | costs | costs_ | Costs from a societal perspective (healthcare, formal social care, informal care, and economic output). Includes both annual and cumulative values. Optionally discounted |
+| Net costs | net_costs | net_costs_ | Difference in costs between intervention and baseline scenarios. Includes both annual and cumulative values |
+| Cases prevented or postponed | cpp | cpp_ | Difference in incident cases between baseline and intervention (annual and cumulative) |
+| Case-years prevented or postponed | cypp | cypp_ | Difference in prevalent cases between baseline and intervention (annual and cumulative) |
+| Deaths prevented or postponed | dpp | dpp_ | Difference in deaths between baseline and intervention (annual and cumulative) |
+
+Note: comparison metrics (net QALYs, net costs, cpp, cypp, dpp) are only generated when intervention scenarios are present alongside the baseline scenario.
+
+##### All-cause mortality by disease tables
+
+Three variants are produced:
+
+- **Disease denominator** (`all-cause mortality given disease-...`): all-cause mortality rate among people with each disease (deaths / cases with disease)
+- **Population denominator** (`all-cause mortality given disease-... popdenom`): all-cause mortality by disease as a proportion of total population (non-standardised only)
+- **ESP-standardised**: age (and optionally sex, dimd) standardised rates with disease denominator
+
+##### Disease characteristics tables
+
+Always non-standardised. Each row contains a disease and a characteristic type:
+
+- **mean_duration** : mean years with the condition
+- **mean_age_incd** : mean age at incident cases
+- **mean_age_1st_onset** : mean age at first onset (relevant for recurring conditions)
+- **mean_age_prvl** : mean age of all prevalent cases
+- **mean_cms_score** : mean CMS score among people with the condition
+- **mean_cms_count** : mean CMS count among people with the condition
+
+Values are weighted by case counts.
+
+##### Exposure tables
+
+Generated from the xps output files for both non-standardised (xps20, 20-year age groups) and ESP-standardised (xps5, 5-year age groups) exposure data. These tables summarise mean risk factor exposure levels across strata (see xps Folder below for the list of exposures).
+
+#### Standardisations
+
+Various standardisations are applied: `not standardised` (scaled up to the ONS population projections); `age standardised`; `age-dimd standardised`; `age-sex standardised`; `age-sex-dimd standardised`.
+Standardisation is done using the 2013 European Standardised Population (ESP). For standardisation beyond age standardisation, we assume that the population is equally sized between the respective groups and that the age distribution in each follows the 2013 ESP.
+
+#### Default stratification
+
+By default, non-standardised (ONS) tables are stratified by: year; year-sex; year-dimd; year-agegrp; year-agegrp-sex; year-agegrp-sex-dimd. ESP-standardised tables are stratified by: year; year-sex; year-dimd; year-sex-dimd.
+
+#### Discounting
+
+QALYs and costs can be discounted at a user-specified annual rate (default: 3.5%, UK NICE standard). The present value formula used is: $PV = FV / (1 + r)^{(year - discount\_from\_year)}$. Discounting parameters are configured in `sim_design.yaml` under the `discounting` section.
+
+#### Column names
+
+- **scenario** : scenario name
+- **year**; **agegrp**; **sex**; **dimd** : stratification variables (present depending on strata level)
+- **disease** : disease name (for disease-stratified tables)
+- **type** : characteristic type (for disease characteristics tables, e.g. mean_duration, mean_age_incd)
+- **scale** : utility scale used (for QALYs tables, currently EQ5D5L)
+- **costs_type** : cost category (for costs tables: healthcare_cost, socialcare_cost, informalcare_cost, economic_output)
+- **parameter_percentile** columns : the parameter value at each uncertainty level (2.5%, 10%, 50%, 90%, 97.5%), with column prefix depending on parameter type (e.g. `prvl_rate_50.0%`, `qalys_50.0%`, `costs_50.0%`)
 
 ### xps Folder 
 
@@ -250,7 +324,7 @@ mean risk factor exposure levels
 
 - **year** : year 
 - **sex** : sex 
-- **qimd** : 
+- **qimd** : quantile of the Index of Multiple Deprivation (mapped from `dimd` in lifecourse)
 - **scenario** : scenario 
 - **mc** : Monte Carlo iteration 
 - **agegrp20** : age group 

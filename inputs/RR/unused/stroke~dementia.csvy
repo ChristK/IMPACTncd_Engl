@@ -1,0 +1,52 @@
+---
+xps_name: stroke
+outcome: dementia
+lag: 4
+distribution: lognormal
+source: The probability is based on Eithne's syst review
+notes: This is a probability rather than a RR. Theprobability to develop dementia
+  1 year post stroke.
+---
+agegroup,sex,rr,ci_rr
+<1,men,0,0
+01-04,men,0,0
+05-09,men,0,0
+10-14,men,0,0
+15-19,men,0,0
+20-24,men,0,0
+25-29,men,0,0
+30-34,men,0.09,0.14
+35-39,men,0.09,0.14
+40-44,men,0.09,0.14
+45-49,men,0.09,0.14
+50-54,men,0.09,0.14
+55-59,men,0.09,0.14
+60-64,men,0.09,0.14
+65-69,men,0.09,0.14
+70-74,men,0.09,0.14
+75-79,men,0.22,0.27
+80-84,men,0.22,0.27
+85-89,men,0.22,0.27
+90-94,men,0.22,0.27
+95-99,men,0.22,0.27
+<1,women,0,0
+01-04,women,0,0
+05-09,women,0,0
+10-14,women,0,0
+15-19,women,0,0
+20-24,women,0,0
+25-29,women,0,0
+30-34,women,0.09,0.14
+35-39,women,0.09,0.14
+40-44,women,0.09,0.14
+45-49,women,0.09,0.14
+50-54,women,0.09,0.14
+55-59,women,0.09,0.14
+60-64,women,0.09,0.14
+65-69,women,0.09,0.14
+70-74,women,0.09,0.14
+75-79,women,0.22,0.27
+80-84,women,0.22,0.27
+85-89,women,0.22,0.27
+90-94,women,0.22,0.27
+95-99,women,0.22,0.27
