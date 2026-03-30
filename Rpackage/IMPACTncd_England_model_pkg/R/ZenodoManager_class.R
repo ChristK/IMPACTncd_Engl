@@ -136,9 +136,16 @@
 
   # Dispatch based on task type
   archive_result <- tryCatch({
-    input_paths <- if (task$type == "single") task$dir_path else task$dir_paths
-    create_zip(input_paths, task$archive_name, task$exclude_file_patterns,
-               task$compression_level, task$input_base)
+    if (task$type == "root") {
+      # Root-level files: archive individual files from input_base
+      input_paths <- file.path(task$input_base, task$root_files)
+      create_zip(input_paths, task$archive_name, task$exclude_file_patterns,
+                 task$compression_level, task$input_base)
+    } else {
+      input_paths <- if (task$type == "single") task$dir_path else task$dir_paths
+      create_zip(input_paths, task$archive_name, task$exclude_file_patterns,
+                 task$compression_level, task$input_base)
+    }
   }, error = function(e) {
     warning("Failed to archive ", task$dir_name,
             if (!is.na(task$group_prefix)) paste0("/", task$group_prefix) else "",
@@ -738,6 +745,19 @@ ZenodoAssetManager <- R6::R6Class(
         directories <- directories[directories != ""]
       }
 
+      # Check for root-level files (files directly in input_base, not in any
+      # subdirectory). These need a special "root" archive.
+      root_files <- list.files(input_base, full.names = FALSE, recursive = FALSE)
+      root_files <- root_files[!root_files %in% directories]
+      # Apply file exclusion patterns
+      if (!is.null(exclude_file_patterns) && length(root_files) > 0L) {
+        efp <- paste(exclude_file_patterns, collapse = "|")
+        root_files <- root_files[!grepl(efp, root_files)]
+      }
+      if (length(root_files) > 0L) {
+        directories <- c(directories, ".root")
+      }
+
       if (length(directories) == 0) {
         stop("No directories found in: ", input_base)
       }
@@ -760,6 +780,27 @@ ZenodoAssetManager <- R6::R6Class(
       archive_tasks <- list()
 
       for (dir_name in directories) {
+        # Handle root-level files (not in any subdirectory)
+        if (dir_name == ".root") {
+          if (self$logs) {
+            message("Archiving root-level files: ",
+                    paste(root_files, collapse = ", "))
+          }
+          archive_tasks[[length(archive_tasks) + 1L]] <- list(
+            type = "root",
+            dir_name = "root",
+            group_prefix = NA_character_,
+            root_files = root_files,
+            archive_name = "root",
+            exclude_file_patterns = exclude_file_patterns,
+            compression_level = compression_level,
+            archive_dir = self$archive_dir,
+            input_base = input_base,
+            logs = self$logs
+          )
+          next
+        }
+
         dir_path <- file.path(input_base, dir_name)
         if (!dir.exists(dir_path)) {
           warning("Directory not found, skipping: ", dir_path)
@@ -851,6 +892,37 @@ ZenodoAssetManager <- R6::R6Class(
                   logs = self$logs
                 )
               }
+            }
+
+            # Archive root-level files within this directory (files not in
+            # any subfolder). These would otherwise be silently skipped.
+            dir_root_files <- list.files(dir_path, full.names = FALSE,
+                                         recursive = FALSE)
+            dir_root_files <- dir_root_files[
+              !dir_root_files %in% list.dirs(dir_path, full.names = FALSE,
+                                              recursive = FALSE)
+            ]
+            if (!is.null(exclude_file_patterns) && length(dir_root_files) > 0L) {
+              efp <- paste(exclude_file_patterns, collapse = "|")
+              dir_root_files <- dir_root_files[!grepl(efp, dir_root_files)]
+            }
+            if (length(dir_root_files) > 0L) {
+              if (self$logs) {
+                message("  Root-level files in ", dir_name, ": ",
+                        paste(dir_root_files, collapse = ", "))
+              }
+              archive_tasks[[length(archive_tasks) + 1L]] <- list(
+                type = "single",
+                dir_name = dir_name,
+                group_prefix = "root_files",
+                dir_path = dir_path,
+                archive_name = paste0(dir_name, "_root_files"),
+                exclude_file_patterns = exclude_file_patterns,
+                compression_level = compression_level,
+                archive_dir = self$archive_dir,
+                input_base = input_base,
+                logs = self$logs
+              )
             }
           }
         } else {
