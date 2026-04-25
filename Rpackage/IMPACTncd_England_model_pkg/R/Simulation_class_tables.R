@@ -1108,6 +1108,14 @@ Simulation$set("private", "export_xps_tables", function(
     # Convert year from short format (19) to full format (2019)
     xps_tab[, year := year + 2000L]
 
+    # Identify exposure columns: _curr_xps columns plus any extra from exposures_for_output
+    xps_cols <- grep("_curr_xps$", names(xps_tab), value = TRUE)
+    extra_in_data <- intersect(self$design$sim_prm$exposures_for_output, names(xps_tab))
+    extra_in_data <- extra_in_data[
+      vapply(extra_in_data, function(col) is.numeric(xps_tab[[col]]), logical(1))
+    ]
+    xps_cols <- unique(c(xps_cols, extra_in_data))
+
     # Detect which columns have "All" marginals from groupingsets
     filt_vars <- detect_filterable_vars(xps_tab)
     strata_configs <- make_xps_strata_configs(strata_ons, filt_vars, standardised = FALSE)
@@ -1116,7 +1124,7 @@ Simulation$set("private", "export_xps_tables", function(
       outstrata <- cfg$strata
       d <- xps_tab[eval(cfg$filter_expr)]
       if (nrow(d) == 0) next
-      d <- d[, lapply(.SD, mean), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)]
+      d <- d[, lapply(.SD, mean), .SDcols = xps_cols, keyby = eval(outstrata)]
       d <- melt(d, id.vars = outstrata)
       setkey(d, "variable")
       d <- d[, safe_fquantile_byid(value, prbl, id = as.character(variable)),
@@ -1138,6 +1146,14 @@ Simulation$set("private", "export_xps_tables", function(
     # Convert year from short format (19) to full format (2019)
     xps_tab[, year := year + 2000L]
 
+    # Identify exposure columns: _curr_xps columns plus any extra from exposures_for_output
+    xps_cols <- grep("_curr_xps$", names(xps_tab), value = TRUE)
+    extra_in_data <- intersect(self$design$sim_prm$exposures_for_output, names(xps_tab))
+    extra_in_data <- extra_in_data[
+      vapply(extra_in_data, function(col) is.numeric(xps_tab[[col]]), logical(1))
+    ]
+    xps_cols <- unique(c(xps_cols, extra_in_data))
+
     # Detect which columns have "All" marginals from groupingsets
     filt_vars <- detect_filterable_vars(xps_tab)
     strata_configs <- make_xps_strata_configs(strata_esp, filt_vars, standardised = TRUE)
@@ -1146,7 +1162,7 @@ Simulation$set("private", "export_xps_tables", function(
       outstrata <- cfg$strata
       d <- xps_tab[eval(cfg$filter_expr)]
       if (nrow(d) == 0) next
-      d <- d[, lapply(.SD, mean), .SDcols = patterns("_curr_xps$"), keyby = eval(outstrata)]
+      d <- d[, lapply(.SD, mean), .SDcols = xps_cols, keyby = eval(outstrata)]
       d <- melt(d, id.vars = outstrata)
       setkey(d, "variable")
       d <- d[, safe_fquantile_byid(value, prbl, id = as.character(variable)),

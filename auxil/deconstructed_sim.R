@@ -741,3 +741,15 @@ lapply(design$exposures, function(exposure) {
 tt <- read_parquet_dt(design$exposures$income$file_path)
 names(tt)
 data.table::key(tt)
+
+
+
+
+
+
+library(data.table)
+library(fst)
+tt <- read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst", as.data.table=T)
+tt[, sort(unique(LAD17NM))]
+# South_Gloucestershire
+# Gloucester

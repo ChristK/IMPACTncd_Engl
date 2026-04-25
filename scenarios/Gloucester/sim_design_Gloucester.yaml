@@ -1,11 +1,11 @@
-locality: England # See cols "LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM" ./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst for area names
+locality: Gloucester # See cols "LSOA11CD", "LAD17NM", "RGN11NM", "ICB22NM" ./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst for area names
 clusternumber: 10 # explicit parallelisation
 clusternumber_export: 10 # NEW: number of clusters for export_summaries
 logs: yes
 export_xps: yes
 keep_lifecourse: yes
 export_PARF: no
-'n': 2000 # number of individuals in simulation
+'n': 100000 # number of individuals in simulation
 num_chunks: 2 # number of synthpops to aggregate together (avoid values above 20) 
 init_year_long: 2013 # 2008 to 2020, but be careful with max lags
 sim_horizon_max: 2043 # population projections do not support longer horizon 
@@ -25,8 +25,8 @@ calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population proj
 simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 iteration_n_max: 1000
-output_dir: ./outputs
-synthpop_dir: ./synthpop
+output_dir: /mnt/storage_fast/Gloucester/output
+synthpop_dir: /mnt/storage_fast/Gloucester/synthpop
 
 # Discounting settings for QALYs and costs
 # Standard UK NICE guidance recommends 3.5% for both
@@ -723,11 +723,19 @@ strata_for_output:
 # - ethnicity
 # - sha
 exposures_for_output:
-- total_energy
-- hfss_energy
-- total_salt_fooddiary
-- hfss_salt
-- hfss_food_weight
+- age
+- sex
+- dimd
+- active_days
+- fruit
+- veg
+- smok_status
+- smok_cig
+- ets
+- alcohol
+- bmi
+- sbp
+- tchol
 
 # Exposure generation definitions for synthetic population
 exposure_definitions:
@@ -942,53 +950,3 @@ exposure_definitions:
     join_fn: absorb_dt
     invert: yes
     lower_tail: no
-
-  - name: total_energy
-    file_name: total_energy
-    var_name: total_energy
-    rank_var: rank_total_energy
-    distribution: continuous
-    qfun: qGA
-    join_fn: lookup_dt
-    min_value: 0
-    max_value: 5000
-
-  - name: hfss_energy
-    file_name: hfss_energy
-    var_name: hfss_energy
-    rank_var: rank_hfss_energy
-    distribution: continuous
-    qfun: qBCTo
-    join_fn: absorb_dt
-    min_value: 0
-    max_value: 3000
-
-  - name: total_salt_fooddiary
-    file_name: total_salt_fooddiary
-    var_name: total_salt_fooddiary
-    rank_var: rank_total_salt_fooddiary
-    distribution: continuous
-    qfun: qBCTo
-    join_fn: lookup_dt
-    min_value: 0
-    max_value: 35
-
-  - name: hfss_salt
-    file_name: hfss_salt
-    var_name: hfss_salt
-    rank_var: rank_hfss_salt
-    distribution: continuous
-    qfun: qBCTo
-    join_fn: absorb_dt
-    min_value: 0
-    max_value: 30
-
-  - name: hfss_food_weight
-    file_name: hfss_food_weight
-    var_name: hfss_food_weight
-    rank_var: rankstat_hfss_food_weight
-    distribution: continuous
-    qfun: qGG
-    join_fn: absorb_dt
-    min_value: 0
-    max_value: 2000 # Note this is too small for the parameters in the distribution

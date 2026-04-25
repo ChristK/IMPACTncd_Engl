@@ -391,19 +391,34 @@ Simulation <-
         # design.yaml is changed between scenarios i.e.)
         private$create_output_folder_structure()
 
-        # Check for leftover results from a previous simulation
+        # Check for leftover results from a previous run of THIS scenario.
+        # Each run writes lifecourse output to
+        #   <output_dir>/lifecourse/mc=<n>/scenario=<nam>/<m>_lifecourse.parquet
+        # so we only look at partitions belonging to scenario_nam — output
+        # from other scenarios is legitimate and must not trigger the warning.
         lifecourse_dir <- file.path(
           self$design$sim_prm$output_dir,
           "lifecourse"
         )
-        if (
-          dir.exists(lifecourse_dir) &&
-            length(list.files(lifecourse_dir, recursive = TRUE)) > 0L
-        ) {
+        scenario_nam_eff <- if (missing(scenario_nam) || !nzchar(scenario_nam)) {
+          "sc0"
+        } else {
+          scenario_nam
+        }
+        if (dir.exists(lifecourse_dir)) {
+          scenario_files <- Sys.glob(file.path(
+            lifecourse_dir,
+            "mc=*",
+            paste0("scenario=", scenario_nam_eff),
+            "*"
+          ))
+          if (length(scenario_files) > 0L) {
             message(
-              "Results from a previous simulation exist in the output folder. ",
-              "Please remove them if this was unintentional."
+              "Output from a previous run of scenario '", scenario_nam_eff,
+              "' already exists. Matching files will be overwritten. ",
+              "Remove them manually if this was unintentional."
             )
+          }
         }
 
         # Generate PARF files if they don't exist. Note that generation is
@@ -3077,16 +3092,16 @@ Simulation <-
                           }
                         },
                         error = function(e) {
-                          warning(sprintf(
-                            "File %s exists but failed verification read: %s",
+                          cat(sprintf(
+                            "File %s exists but failed verification read: %s\n",
                             basename(output_path),
-                            e$message
+                            conditionMessage(e)
                           ))
                         }
                       )
                     } else {
-                      warning(sprintf(
-                        "File %s exists but has 0 bytes",
+                      cat(sprintf(
+                        "File %s exists but has 0 bytes\n",
                         basename(output_path)
                       ))
                     }
@@ -3119,11 +3134,11 @@ Simulation <-
                 }
               },
               error = function(e) {
-                warning(sprintf(
-                  "Safe write attempt %d failed for %s: %s",
+                cat(sprintf(
+                  "Safe write attempt %d failed for %s: %s\n",
                   retry_count,
                   basename(output_path),
-                  e$message
+                  conditionMessage(e)
                 ))
 
                 # Clean up failed file
@@ -3178,11 +3193,11 @@ Simulation <-
                 }
               },
               error = function(e) {
-                warning(sprintf(
-                  "DuckDB COPY attempt %d failed for %s: %s",
+                cat(sprintf(
+                  "DuckDB COPY attempt %d failed for %s: %s\n",
                   retry_count,
                   basename(output_path),
-                  e$message
+                  conditionMessage(e)
                 ))
 
                 if (file.exists(output_path) && file.size(output_path) == 0) {
@@ -3497,14 +3512,14 @@ Simulation <-
             byref = TRUE
           ),
           cmscs4_prvl = carry_forward_incr(
-            as.integer(cms_score >= 1.59 & cms_score < 2.96),
+            as.integer(cms_score >= 1.59 & cms_score < 2.95),
             pid_mrk,
             TRUE,
             1L,
             byref = TRUE
           ),
           cmscs5_prvl = carry_forward_incr(
-            as.integer(cms_score >= 2.96),
+            as.integer(cms_score >= 2.95),
             pid_mrk,
             TRUE,
             1L,
@@ -3625,6 +3640,17 @@ Simulation <-
               xps,
               c("smok_status_curr_xps", "met_curr_xps", "bpmed_curr_xps")
             )
+
+            # Add any extra columns from exposures_for_output that exist in sp$pop
+            extra_xps <- intersect(
+              self$design$sim_prm$exposures_for_output,
+              names(sp$pop)
+            )
+            # Only keep numeric columns (weighted.mean requires numeric input)
+            extra_xps <- extra_xps[
+              vapply(extra_xps, function(col) is.numeric(sp$pop[[col]]), logical(1))
+            ]
+            xps <- unique(c(xps, extra_xps))
 
             # Defensive check: ensure xps is not empty
             if (length(xps) == 0L) {
@@ -3900,10 +3926,10 @@ Simulation <-
                 }
               },
               error = function(e) {
-                warning(sprintf(
-                  "Directory creation attempt %d failed: %s",
+                cat(sprintf(
+                  "Directory creation attempt %d failed: %s\n",
                   retry_count,
-                  e$message
+                  conditionMessage(e)
                 ))
                 bSuccess <- FALSE
               }

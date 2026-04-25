@@ -33,7 +33,7 @@
 #' @importFrom R6 R6Class
 #' @importFrom Rcpp evalCpp
 #' @importFrom fst read_fst metadata_fst write_fst
-#' @importFrom dqrng dqrunif dqsample
+#' @importFrom dqrng dqrunif dqsample dqRNGkind dqset.seed dqrng_get_state dqrng_set_state
 #' @importFrom mc2d qpert
 #' @importFrom cowplot ggsave2
 #' @importFrom gamlss fitDist fitDistPred predictAll

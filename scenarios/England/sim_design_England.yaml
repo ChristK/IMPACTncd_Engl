@@ -765,7 +765,7 @@ exposure_definitions:
     thresholds: [inc1, inc2, inc3, inc4]
     factorise:
       levels: [1, 2, 3, 4, 5]
-      labels: ['1 Highest', '2', '3', '4', '5 Lowest']
+      labels: ['1 Lowest', '2', '3', '4', '5 Highest']
   
   - name: active_days
     file_name: active_days

@@ -134,7 +134,11 @@
          file_count = length(all_files))
   }
 
-  # Dispatch based on task type
+  # Dispatch based on task type. On failure we return a structured sentinel
+  # instead of calling warning() here: this worker runs inside a PSOCK cluster
+  # where deferred warnings are never shipped back to the master. The master
+  # (run_archive_tasks) decodes the sentinel and re-emits warning() in its own
+  # visible scope.
   archive_result <- tryCatch({
     if (task$type == "root") {
       # Root-level files: archive individual files from input_base
@@ -147,13 +151,15 @@
                  task$compression_level, task$input_base)
     }
   }, error = function(e) {
-    warning("Failed to archive ", task$dir_name,
-            if (!is.na(task$group_prefix)) paste0("/", task$group_prefix) else "",
-            ": ", e$message)
-    NULL
+    list(
+      .zenodo_task_failed = TRUE,
+      dir_name = task$dir_name,
+      group_prefix = task$group_prefix,
+      error_message = conditionMessage(e)
+    )
   })
 
-  if (is.null(archive_result)) return(NULL)
+  if (isTRUE(archive_result$.zenodo_task_failed)) return(archive_result)
 
   data.table::data.table(
     directory = task$dir_name,
@@ -1002,8 +1008,28 @@ ZenodoAssetManager <- R6::R6Class(
         results <- lapply(archive_tasks, .zenodo_archive_worker)
       }
 
-      # Filter out NULLs (failed tasks)
-      results <- results[!vapply(results, is.null, logical(1))]
+      # Decode structured failure sentinels from workers and re-emit the
+      # errors as warnings in the master's (visible) scope. PSOCK workers
+      # cannot transport warning() calls back to the master, so failures
+      # are returned as list(.zenodo_task_failed = TRUE, ...) instead.
+      is_failure <- vapply(
+        results,
+        function(r) isTRUE(r$.zenodo_task_failed),
+        logical(1)
+      )
+      for (failure in results[is_failure]) {
+        warning(sprintf(
+          "Failed to archive %s%s: %s",
+          failure$dir_name,
+          if (!is.na(failure$group_prefix)) paste0("/", failure$group_prefix) else "",
+          failure$error_message
+        ))
+      }
+
+      # Filter out failures and NULLs (failed tasks)
+      results <- results[
+        !is_failure & !vapply(results, is.null, logical(1))
+      ]
 
       if (length(results) == 0L) {
         return(data.table::data.table(

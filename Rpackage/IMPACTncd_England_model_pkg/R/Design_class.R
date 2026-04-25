@@ -158,6 +158,30 @@ Design <-
           }, FUN.VALUE = logical(1))
         )
 
+        # strata_for_output columns must be present in the lifecourse parquet,
+        # otherwise DuckDB summary queries fail with an opaque Binder Error.
+        # The lifecourse table also receives: mc/mc_chunk (added in
+        # simulate_synthpop()), scenario (Hive partition key), and any
+        # disease-derived columns matching the patterns below.
+        implicit_cols <- c("mc", "mc_chunk", "scenario")
+        disease_col_pattern <- "^cms_|_prvl$|_dgns$|_mrtl$"
+        missing_strata <- setdiff(
+          sim_prm$strata_for_output,
+          c(sim_prm$cols_for_output, implicit_cols)
+        )
+        missing_strata <- grep(
+          disease_col_pattern,
+          missing_strata,
+          invert = TRUE,
+          value = TRUE
+        )
+        if (length(missing_strata) > 0L) {
+          stop(sprintf(
+            "strata_for_output references column(s) not in cols_for_output: %s. Add them to cols_for_output (and rerun the lifecourse step), or remove them from strata_for_output.",
+            paste(missing_strata, collapse = ", ")
+          ))
+        }
+
         sim_prm$sim_horizon_max <- as.integer(sim_prm$sim_horizon_max -
           sim_prm$init_year_long)
         sim_prm$init_year <- as.integer(sim_prm$init_year_long - 2000L)

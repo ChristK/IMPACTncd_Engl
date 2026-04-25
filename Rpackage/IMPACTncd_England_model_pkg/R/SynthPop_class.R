@@ -1448,7 +1448,12 @@ SynthPop <-
             "rankstat_pa_dur",
             "rankstat_pa_met",
             "rankstat_bpmed_adherence",
-            "rankstat_statin_adherence"
+            "rankstat_statin_adherence",
+            "rank_total_energy",
+            "rank_total_salt_fooddiary",
+            "rank_hfss_energy",
+            "rank_hfss_salt",
+            "rankstat_hfss_food_weight"
           )
 
         for (nam in rank_cols) {
@@ -1530,69 +1535,75 @@ SynthPop <-
           dtb[age > 90L, age := 90L]
         }
 
-        tbl <- design_$exposures$education$get_table()
+        if (!is.null(design_$exposures$education)) {
+          tbl <- design_$exposures$education$get_table()
 
-        nam <- intersect(names(dtb), names(tbl))
-        # logic necessary for new cohorts entering the simulation that currently age < 30
-        # These will have the same distribution as if 30 years old
-        tt <- tbl[age == min(age)]
-        tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max) # TODO adding design_$sim_prm$sim_horizon_max + design_$sim_prm$maxlag for longer projections
-        tt[, ':='(age = age - .id, year = year - .id)] # as the sim progress these will become 30 yo
-        tt[, .id := NULL]
-        tbl <- rbind(tt, tbl)
+          nam <- intersect(names(dtb), names(tbl))
+          # logic necessary for new cohorts entering the simulation that currently age < 30
+          # These will have the same distribution as if 30 years old
+          tt <- tbl[age == min(age)]
+          tt <- clone_dt(tt, design_$sim_prm$sim_horizon_max) # TODO adding design_$sim_prm$sim_horizon_max + design_$sim_prm$maxlag for longer projections
+          tt[, ':='(age = age - .id, year = year - .id)] # as the sim progress these will become 30 yo
+          tt[, .id := NULL]
+          tbl <- rbind(tt, tbl)
 
-        idx <- dtb[, .I[1], by = pid]$V1 # index of first row for each individual (where education is generated)
-        tt <- dtb[
-          idx,
-          .(pid, year, age, ethnicity, qimd, sex, sha, rankstat_education)
-        ]
+          idx <- dtb[, .I[1], by = pid]$V1 # index of first row for each individual (where education is generated)
+          tt <- dtb[
+            idx,
+            .(pid, year, age, ethnicity, qimd, sex, sha, rankstat_education)
+          ]
 
-        tt[
-          tbl,
-          education := (rankstat_education > ed1) +
-            (rankstat_education > ed2) +
-            (rankstat_education > ed3) +
-            (rankstat_education > ed4) +
-            (rankstat_education > ed5) +
-            (rankstat_education > ed6) +
-            1L,
-          on = nam
-        ]
-        tt[,
-          education := factor(
-            education,
-            levels = 1:7,
-            labels = c(
-              "NVQ4/NVQ5/Degree or equiv",
-              "Higher ed below degree",
-              "NVQ3/GCE A Level equiv",
-              "NVQ2/GCE O Level equiv",
-              "NVQ1/CSE other grade equiv",
-              "Foreign/other",
-              "No qualification"
+          tt[
+            tbl,
+            education := (rankstat_education > ed1) +
+              (rankstat_education > ed2) +
+              (rankstat_education > ed3) +
+              (rankstat_education > ed4) +
+              (rankstat_education > ed5) +
+              (rankstat_education > ed6) +
+              1L,
+            on = nam
+          ]
+          tt[,
+            education := factor(
+              education,
+              levels = 1:7,
+              labels = c(
+                "NVQ4/NVQ5/Degree or equiv",
+                "Higher ed below degree",
+                "NVQ3/GCE A Level equiv",
+                "NVQ2/GCE O Level equiv",
+                "NVQ1/CSE other grade equiv",
+                "Foreign/other",
+                "No qualification"
+              )
             )
-          )
-        ]
+          ]
 
-        dtb[tt, on = "pid", education := i.education]
+          dtb[tt, on = "pid", education := i.education]
 
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rankstat_education := NULL]
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rankstat_education := NULL]
+          }
         }
 
         # Generate income ----
-        design_$exposures$income$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_income := NULL]
+        if (!is.null(design_$exposures$income)) {
+          design_$exposures$income$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_income := NULL]
+          }
         }
 
         # Generate active days ----
-        if (design_$sim_prm$logs) {
-          message("Generate active days")
-        }
-        design_$exposures$active_days$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_pa := NULL]
+        if (!is.null(design_$exposures$active_days)) {
+          if (design_$sim_prm$logs) {
+            message("Generate active days")
+          }
+          design_$exposures$active_days$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_pa := NULL]
+          }
         }
 
         # dtb[, active_days := factor(active_days, levels = 0:7)]
@@ -1625,15 +1636,19 @@ SynthPop <-
         }
 
         # Generate fruit consumption (ZISICHEL) ----
-        design_$exposures$fruit$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, c("rankstat_pa_met", "rankstat_pa_dur") := NULL]
+        if (!is.null(design_$exposures$fruit)) {
+          design_$exposures$fruit$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, c("rankstat_pa_met", "rankstat_pa_dur") := NULL]
+          }
         }
 
         # Generate veg consumption (DEL) ----
-        design_$exposures$veg$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_veg := NULL]
+        if (!is.null(design_$exposures$veg)) {
+          design_$exposures$veg$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_veg := NULL]
+          }
         }
         # Smoking simulation ----
         if (design_$sim_prm$logs) {
@@ -1641,54 +1656,66 @@ SynthPop <-
         }
 
         # Assign smok_status when pid_mrk == true (the first year an individual enters the simulation (with lags))
-        design_$exposures$smok_status$generate(dtb, design_)
-        dtb[, smok_status_ref := smok_status]
+        if (!is.null(design_$exposures$smok_status)) {
+          design_$exposures$smok_status$generate(dtb, design_)
+          dtb[, smok_status_ref := smok_status]
 
-        # Initialize smoking duration variables
-        set(dtb, NULL, "smok_quit_yrs", 0L)
-        set(dtb, NULL, "smok_dur", 0L)
+          # Initialize smoking duration variables
+          set(dtb, NULL, "smok_quit_yrs", 0L)
+          set(dtb, NULL, "smok_dur", 0L)
 
-        # Assign smok_quit_yrs and smok_dur for ex-smokers (pid_mrk & smok_status %in% 2:3)
-        # Only generate values for rows that need them for efficiency
-        idx <- dtb[, which((pid_mrk) & smok_status %in% 2:3)]
-        design_$exposures$smok_quit_yrs$generate(dtb, design_, idx)
-        design_$exposures$smok_dur_ex$generate(dtb, design_, idx)
+          # Assign smok_quit_yrs and smok_dur for ex-smokers (pid_mrk & smok_status %in% 2:3)
+          # Only generate values for rows that need them for efficiency
+          idx <- dtb[, which((pid_mrk) & smok_status %in% 2:3)]
+          if (!is.null(design_$exposures$smok_quit_yrs)) {
+            design_$exposures$smok_quit_yrs$generate(dtb, design_, idx)
+          }
+          if (!is.null(design_$exposures$smok_dur_ex)) {
+            design_$exposures$smok_dur_ex$generate(dtb, design_, idx)
+          }
 
-        # Assign smok_dur for current smokers (pid_mrk & smok_status == 4)
-        idx <- dtb[, which((pid_mrk) & smok_status == 4L)]
-        design_$exposures$smok_dur_curr$generate(dtb, design_, idx)
+          # Assign smok_dur for current smokers (pid_mrk & smok_status == 4)
+          idx <- dtb[, which((pid_mrk) & smok_status == 4L)]
+          if (!is.null(design_$exposures$smok_dur_curr)) {
+            design_$exposures$smok_dur_curr$generate(dtb, design_, idx)
+          }
 
-        # Clean up rank variables if not keeping
-        if (!design_$sim_prm$keep_simulants_rn) {
-          for (rn in c(
-            "rankstat_smok_quit_yrs",
-            "rankstat_smok_dur_ex",
-            "rankstat_smok_dur_curr"
-          )) {
-            if (rn %in% names(dtb)) dtb[, (rn) := NULL]
+          # Clean up rank variables if not keeping
+          if (!design_$sim_prm$keep_simulants_rn) {
+            for (rn in c(
+              "rankstat_smok_quit_yrs",
+              "rankstat_smok_dur_ex",
+              "rankstat_smok_dur_curr"
+            )) {
+              if (rn %in% names(dtb)) dtb[, (rn) := NULL]
+            }
+          }
+
+          # Ensure smoking histories start from age 12
+          dtb[age - smok_quit_yrs < 12L, smok_quit_yrs := age - 12L]
+          dtb[age - smok_dur < 12L, smok_dur := age - 12L]
+          dtb[
+            age - smok_dur - smok_quit_yrs < 12L,
+            `:=`(
+              smok_dur = as.integer(
+                smok_dur / ((smok_dur + smok_quit_yrs) / (age - 12L))
+              ),
+              smok_quit_yrs = as.integer(
+                smok_quit_yrs / ((smok_dur + smok_quit_yrs) / (age - 12L))
+              )
+            )
+          ]
+
+          # Assign smok_incid probabilities
+          if (!is.null(design_$exposures$smok_incid)) {
+            design_$exposures$smok_incid$generate(dtb, design_)
+          }
+
+          # Assign smok_cessation probabilities
+          if (!is.null(design_$exposures$smok_cess)) {
+            design_$exposures$smok_cess$generate(dtb, design_)
           }
         }
-
-        # Ensure smoking histories start from age 12
-        dtb[age - smok_quit_yrs < 12L, smok_quit_yrs := age - 12L]
-        dtb[age - smok_dur < 12L, smok_dur := age - 12L]
-        dtb[
-          age - smok_dur - smok_quit_yrs < 12L,
-          `:=`(
-            smok_dur = as.integer(
-              smok_dur / ((smok_dur + smok_quit_yrs) / (age - 12L))
-            ),
-            smok_quit_yrs = as.integer(
-              smok_quit_yrs / ((smok_dur + smok_quit_yrs) / (age - 12L))
-            )
-          )
-        ]
-
-        # Assign smok_incid probabilities
-        design_$exposures$smok_incid$generate(dtb, design_)
-
-        # Assign smok_cessation probabilities
-        design_$exposures$smok_cess$generate(dtb, design_)
 
         # Handle smok_relapse probabilities
         tbl <-
@@ -1708,9 +1735,12 @@ SynthPop <-
         if (design_$sim_prm$simsmok_calibration) {
           # calculate dif between ref (multinom) and simsmok
           # I will further calibrate to better match HSE
-            dtb[, rank_smok_clb := dqrunif(.N)]
+          dtb[, rank_smok_clb := dqrunif(.N)]
           # Deterministic cell-level random value for calibration adjustments
-          cell_rn <- dtb[, .(rn_clb = rank_smok_clb[1L]), keyby = .(year, age, sex, qimd)]
+          cell_rn <- dtb[,
+            .(rn_clb = rank_smok_clb[1L]),
+            keyby = .(year, age, sex, qimd)
+          ]
           obs <-
             dtb[smok_status == 1L, .(nsa = .N), keyby = .(year, age, sex, qimd)] # ? add sha/ethn
           ref <-
@@ -1820,7 +1850,10 @@ SynthPop <-
 
           # when too many never smokers convert to smok status 2 (occasional)
           tt <-
-            dtb[smok_status %in% 1, .(year, age, sex, qimd, pid, rank_smok_clb, dif)]
+            dtb[
+              smok_status %in% 1,
+              .(year, age, sex, qimd, pid, rank_smok_clb, dif)
+            ]
           setnafill(tt, "c", 0, cols = "dif")
           tt[dif > 0, dif := 0L]
           tt[, dif := -dif]
@@ -1918,7 +1951,10 @@ SynthPop <-
 
           # when too many never smokers convert to smok status 3
           tt <-
-            dtb[smok_status == 4L, .(year, age, sex, qimd, pid, rank_smok_clb, dif)]
+            dtb[
+              smok_status == 4L,
+              .(year, age, sex, qimd, pid, rank_smok_clb, dif)
+            ]
           setnafill(tt, "c", 0, cols = "dif")
           tt[dif > 0, dif := 0L]
           tt[, dif := -dif]
@@ -1943,9 +1979,9 @@ SynthPop <-
           ]
           dtb[, dif := NULL]
 
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, c("rank_smok_clb") := NULL]
-        }
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, c("rank_smok_clb") := NULL]
+          }
           rm(tt, ttt, obs, ref, pid_to_conv, cell_rn)
         }
 
@@ -1953,12 +1989,16 @@ SynthPop <-
         set(dtb, NULL, "smok_cig", 0L)
 
         # smok_cig_curr for current smokers (smok_status == 4)
-        idx <- dtb[, which(smok_status == 4L)]
-        design_$exposures$smok_cig_curr$generate(dtb, design_, idx)
+        if (!is.null(design_$exposures$smok_cig_curr)) {
+          idx <- dtb[, which(smok_status == 4L)]
+          design_$exposures$smok_cig_curr$generate(dtb, design_, idx)
+        }
 
         # smok_cig_ex for ex-smokers at initialization (pid_mrk & smok_status == 3)
-        idx <- dtb[, which((pid_mrk) & smok_status == 3L)]
-        design_$exposures$smok_cig_ex$generate(dtb, design_, idx)
+        if (!is.null(design_$exposures$smok_cig_ex)) {
+          idx <- dtb[, which((pid_mrk) & smok_status == 3L)]
+          design_$exposures$smok_cig_ex$generate(dtb, design_, idx)
+        }
 
         simsmok_cig(dtb) # carry forward smok_cig if smok_status == 3
         dtb[smok_cig == 0L & smok_status != 1L, smok_cig := 1L]
@@ -1983,9 +2023,11 @@ SynthPop <-
         # Note at the moment this is independent of smoking prevalence TODO
         # calculate how many each smoker pollutes by year, SHA (not qimd) to
         # be used in scenarios. Ideally correct for mortality
-        design_$exposures$ets$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_ets := NULL]
+        if (!is.null(design_$exposures$ets)) {
+          design_$exposures$ets$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_ets := NULL]
+          }
         }
         # NOTE for line above invert = true in sim_design yaml so 1 - mu to be
         # equivalent to qbinom(rank_ets, 1, mu). Otherwise rank_ets < mu is
@@ -1996,51 +2038,108 @@ SynthPop <-
         # View(dtb[, prop_if(ets == 1)/prop_if(smok_status == "4"), keyby = .(year, sha)])
 
         # Generate alcohol (ZINBI) ----
-        design_$exposures$alcohol$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_alcohol := NULL]
+        if (!is.null(design_$exposures$alcohol)) {
+          design_$exposures$alcohol$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_alcohol := NULL]
+          }
         }
         # Generate BMI (BCPEo) ----
-        design_$exposures$bmi$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_bmi := NULL]
+        if (!is.null(design_$exposures$bmi)) {
+          design_$exposures$bmi$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_bmi := NULL]
+          }
         }
 
         # Generate SBP (BCPEo) ----
-        design_$exposures$sbp$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_sbp := NULL]
+        if (!is.null(design_$exposures$sbp)) {
+          design_$exposures$sbp$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_sbp := NULL]
+          }
         }
         # Generate BP medication (BI) -----
-        # Temporarily round sbp for join, then restore
-        dtb[, `:=`(
-          sbp_acc = sbp,
-          sbp = as.integer(round(clamp(sbp, 110, 200), -1))
-        )]
-        design_$exposures$bp_med$generate(dtb, design_)
-        dtb[, `:=`(sbp = sbp_acc, sbp_acc = NULL)]
+        if (!is.null(design_$exposures$bp_med)) {
+          # Temporarily round sbp for join, then restore
+          dtb[, `:=`(
+            sbp_acc = sbp,
+            sbp = as.integer(round(clamp(sbp, 110, 200), -1))
+          )]
+          design_$exposures$bp_med$generate(dtb, design_)
+          dtb[, `:=`(sbp = sbp_acc, sbp_acc = NULL)]
+        }
 
         # TODO calculate probability of dgn HTN
 
         # Generate tchol (BCT) ----
-        design_$exposures$tchol$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_tchol := NULL]
+        if (!is.null(design_$exposures$tchol)) {
+          design_$exposures$tchol$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_tchol := NULL]
+          }
         }
 
         # Generate HDL (to tchol ratio) (GB1) ----
-        design_$exposures$hdl_to_tchol$generate(dtb, design_)
-        if (!design_$sim_prm$keep_simulants_rn) {
-          dtb[, rank_hdl := NULL]
+        if (!is.null(design_$exposures$hdl_to_tchol)) {
+          design_$exposures$hdl_to_tchol$generate(dtb, design_)
+          if (!design_$sim_prm$keep_simulants_rn) {
+            dtb[, rank_hdl := NULL]
+          }
         }
         # NOTE this very highly correlated with hdl level (~0.76) and
         #  highly to tchol (~-0.47). The latter is captured by the correlated RNs
 
         # Generate statins medication (BI) -----
-        # Temporarily round tchol for join, then restore
-        dtb[, `:=`(tchol_acc = tchol, tchol = round(clamp(tchol, 2, 12), 0))]
-        design_$exposures$statin_px$generate(dtb, design_)
-        dtb[, `:=`(tchol = tchol_acc, tchol_acc = NULL)]
+        if (!is.null(design_$exposures$statin_px)) {
+          # Temporarily round tchol for join, then restore
+          dtb[, `:=`(tchol_acc = tchol, tchol = round(clamp(tchol, 2, 12), 0))]
+          design_$exposures$statin_px$generate(dtb, design_)
+          dtb[, `:=`(tchol = tchol_acc, tchol_acc = NULL)]
+        }
+
+        # Generate total energy from NDNS diet data (GA) ----
+        if (!is.null(design_$exposures$total_energy)) {
+          dtb[, `:=`(bmi_acc = bmi, bmi = as.integer(round(clamp(bmi, 14, 70), 0)))]
+          design_$exposures$total_energy$generate(dtb, design_)
+          dtb[, `:=`(bmi = bmi_acc, bmi_acc = NULL)]
+        }
+
+        # Generate HFSS energy from NDNS diet data (BCTo) ----
+        if (!is.null(design_$exposures$hfss_energy)) {
+          dtb[, `:=`(
+            bmi_acc = bmi,
+            total_energy_acc = total_energy,
+            bmi = as.integer(round(clamp(bmi, 14, 70), 0)),
+            total_energy = as.integer(round(clamp(total_energy, 0, 5000), -2))
+          )]
+          design_$exposures$hfss_energy$generate(dtb, design_)
+          dtb[, `:=`(bmi = bmi_acc, bmi_acc = NULL, total_energy = total_energy_acc, total_energy_acc = NULL)]
+        }
+
+        # Generate total salt from NDNS diet data (BCTo) ----
+        if (!is.null(design_$exposures$total_salt_fooddiary)) {
+          design_$exposures$total_salt_fooddiary$generate(dtb, design_)
+        }
+
+        # Generate hfss salt from NDNS diet data (BCTo) ----
+        if (!is.null(design_$exposures$hfss_salt)) {
+          dtb[, `:=`(total_salt_fooddiary_acc = total_salt_fooddiary,
+                     total_salt_fooddiary = as.integer(round(clamp(total_salt_fooddiary, 0, 35), 0))
+                     )]
+          design_$exposures$hfss_salt$generate(dtb, design_)
+          dtb[, `:=`(total_salt_fooddiary = total_salt_fooddiary_acc, total_salt_fooddiary_acc = NULL)]
+        }
+
+       # Generate food weight from NDNS diet data (BCTo) ----
+        if (!is.null(design_$exposures$hfss_food_weight)) {
+          dtb[, `:=`(hfss_energy_acc = hfss_energy,
+                     hfss_energy = as.integer(round(clamp(hfss_energy, 0, 3000), -1))
+                     )]
+          design_$exposures$hfss_food_weight$generate(dtb, design_)
+          dtb[, `:=`(hfss_energy = hfss_energy_acc, hfss_energy_acc = NULL)]
+        }
+
 
         # Estimate number of comorbidities (ncc) calculation ----
         # to be used in QALY

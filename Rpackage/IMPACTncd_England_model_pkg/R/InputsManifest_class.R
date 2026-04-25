@@ -608,15 +608,18 @@ InputsManifest <- R6::R6Class(
           !grepl("\\.yaml$", relative_path)
       ]
       if (nrow(db_changes) > 0L) {
-        # Extract disease name: disease_burden/{disease_name}_dur/... or
-        # disease_burden/{disease_name}_incd/...
+        # Extract disease name from disease_burden/{disease_name}_{suffix}/...
+        # where suffix is one of dur, ftlt, incd, prvl. The end-of-string
+        # anchor avoids over-stripping diseases whose names contain these
+        # tokens (e.g. breast_ca_prvl -> breast_ca, not breast).
         dirs <- vapply(
           strsplit(db_changes$relative_path, "/"),
           function(x) if (length(x) >= 2L) x[2] else "",
           character(1)
         )
-        # Strip _dur, _incd suffixes to get disease name
-        disease_names <- unique(sub("_(dur|incd).*$", "", dirs))
+        disease_names <- unique(
+          sub("_(dur|ftlt|incd|prvl)$", "", dirs)
+        )
         affected_diseases <- disease_names[nzchar(disease_names)]
       }
 

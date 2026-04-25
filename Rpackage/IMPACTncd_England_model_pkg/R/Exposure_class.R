@@ -371,10 +371,12 @@ Exposure <-
         setcolorder(tbl, kc)
         setkeyv(tbl, kc)
 
-        # Calculate columns to remove (use cached col_names for efficiency)
+        # Calculate columns to remove (columns in tbl that are not already in pop)
+        # Use names(tbl) rather than private$col_names so runtime-added columns
+        # (e.g. maxq/minq from add_qmin_qmax) are also cleaned up
         col_nam <- setdiff(
-          private$col_names,
-          intersect(names(pop), private$col_names)
+          names(tbl),
+          intersect(names(pop), names(tbl))
         )
 
         # Harmonize column types between tbl and pop for join columns
@@ -706,10 +708,12 @@ Exposure <-
         rank_sym <- as.name(self$rank_var)
         param_syms <- lapply(self$qparams, as.name)
 
-        # Build the quantile input: minq + rank * (maxq - minq)
+        # Build the quantile input: clamp(minq + rank * (maxq - minq), eps, 1-eps)
+        # Clamping to (0, 1) exclusive avoids GAMLSS quantile errors at boundary
+        # values, which occur when max_value truncation produces maxq ≈ 0
         q_input <- substitute2(
-          minq + .rank * (maxq - minq),
-          list(.rank = rank_sym)
+          pmin(pmax(minq + .rank * (maxq - minq), .eps), .one_m_eps),
+          list(.rank = rank_sym, .eps = .Machine$double.eps, .one_m_eps = 1 - .Machine$double.eps)
         )
 
         # Build parameter list for the call
