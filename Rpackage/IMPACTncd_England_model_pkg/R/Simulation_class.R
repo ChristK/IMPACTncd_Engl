@@ -2406,7 +2406,9 @@ Simulation <-
       #' @param exclude_patterns Character vector. Directory exclusion
       #'   patterns for inputs. Default:
       #'   \code{c("^unprocessed$", "_backup$", "_old$", "scripts$",
-      #'   "validation$")}.
+      #'   "validation$", "^RR$")}. \code{^RR$} excludes
+      #'   \code{inputs/RR/} because the source CSVY files are tracked in
+      #'   git rather than uploaded to Zenodo.
       #' @param input_exclude_file_patterns Character vector. File exclusion
       #'   patterns for inputs. Default: \code{c("\\.R$", "\\.Rmd$")}.
       #' @param simulation_exclude_file_patterns Character vector. File

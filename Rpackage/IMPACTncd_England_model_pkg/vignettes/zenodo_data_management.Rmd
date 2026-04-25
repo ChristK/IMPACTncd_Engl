@@ -58,10 +58,16 @@ Use the **concept DOI** in your code and share it with collaborators. Cite the
 The following packages are required (they are Suggests in the package):
 
 ```{r install-packages}
-install.packages(c("zen4R", "zip", "digest", "httr2"))
+# zen4R is the only required Zenodo dependency declared in Suggests.
+# httr2 is used internally by the API fallback path (e.g. listing draft
+# files) but is not declared in DESCRIPTION — install it explicitly.
+install.packages(c("zen4R", "httr2"))
 # Optional: for secure token storage
 install.packages("keyring")
 ```
+
+(`zip` and `digest` are already pulled in as package Imports — no need to
+install them separately.)
 
 ### 2. Get a Zenodo Access Token
 
@@ -524,7 +530,8 @@ IMPACTncd$zenodo_upload_inputs(
     "_backup$",       # Ends with "_backup"
     "_old$",          # Ends with "_old"
     "scripts$",       # Ends with "scripts"
-    "validation$"     # Ends with "validation"
+    "validation$",    # Ends with "validation"
+    "^RR$"            # Source RR .csvy files — tracked in git, not Zenodo
   ),
 
   # Skip individual files matching these regex patterns
@@ -540,9 +547,15 @@ IMPACTncd$zenodo_upload_inputs(
 The default exclude patterns are designed for the IMPACTncd project:
 
 - **Directory patterns**: `^unprocessed$`, `_backup$`, `_old$`, `scripts$`,
-  `validation$`
+  `validation$`, `^RR$`
 - **Input file patterns**: `\\.R$`, `\\.Rmd$`
 - **Simulation file patterns**: `\\.R$`, `\\.csv$`
+
+`^RR$` excludes the `inputs/RR/` directory because the source `.csvy`
+relative-risk files are **tracked in git** (see `.gitignore` allow-list
+`!inputs/RR/**/*.csvy`), not uploaded to Zenodo. The compiled RR `.fst`
+files in `simulation/rr/` are still uploaded to Zenodo via
+`zenodo_upload_simulation()`.
 
 ### Group-By-Prefix
 
@@ -656,7 +669,9 @@ inputs/
 │   ├── stroke_prvl/
 │   └── ...
 ├── mortality/                 -> mortality.zip
-├── RR/                        -> RR.zip
+├── RR/                        (NOT archived — tracked in git instead;
+│   ├── bmi~chd.csvy            see "Two RR locations" note below)
+│   └── ...
 ├── pop_estimates_lsoa/        -> pop_estimates_lsoa.zip
 ├── pop_projections/           -> pop_projections.zip
 └── aux_data/                  -> aux_data.zip
@@ -674,6 +689,19 @@ simulation/
 
 Each archive contains the full directory structure, so extraction recreates
 the correct paths.
+
+### Two RR locations
+
+The model uses **two distinct RR directories** with different storage
+strategies:
+
+| Location | Contents | Storage |
+|----------|----------|---------|
+| `inputs/RR/` | Source CSVY files (e.g. `bmi~chd.csvy`) — small, human-readable | **Git** (allow-listed in `.gitignore`) |
+| `simulation/rr/` | Compiled `.fst` files generated from the CSVYs — large, binary | **Zenodo** (via `zenodo_upload_simulation()`) |
+
+This is why `^RR$` is in the default `exclude_patterns` for input uploads:
+the source files belong in version control, not Zenodo.
 
 ## Sandbox vs Production
 
@@ -1138,7 +1166,7 @@ These parameters are available in `zenodo_upload_inputs()`,
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `exclude_patterns` | `c("^unprocessed$", "_backup$", ...)` | Regex patterns for directories to skip |
+| `exclude_patterns` | `c("^unprocessed$", "_backup$", "_old$", "scripts$", "validation$", "^RR$")` | Regex patterns for directories to skip |
 | `exclude_file_patterns` | `c("\\.R$", "\\.Rmd$")` | Regex patterns for files to skip |
 | `group_by_prefix` | `TRUE` | Combine subdirectories by shared prefix |
 | `compression_level` | `6` | Zip compression (0=store, 9=max) |
