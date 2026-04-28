@@ -3334,20 +3334,6 @@ Simulation <-
         setnafill(sp$pop, "const", 1, cols = "mrtl_clbr")
         rm(e)
 
-        # From Karl, somehow scenario_fn() makes init_prvl different. The
-        # following code solves the problem.
-        # TODO: investigate the root cause
-
-        lapply(self$design$diseases, function(x) {
-          if (self$design$sim_prm$logs) {
-            print(x$name)
-          }
-          x$gen_parf(sp, self$design, self$design$diseases)$set_init_prvl(
-            sp = sp,
-            design_ = self$design
-          )
-        })
-
         # make pop weight available to scenarios
         # message("Updating weights")
         if (scenario_nam != "sc0") {
@@ -3373,6 +3359,21 @@ Simulation <-
         set.seed(rs)
         dqrng_set_state(dqrs)
 
+        # gen_parf + set_init_prvl run AFTER the primary-prevention scenario
+        # so that initial disease prevalence reflects the scenario world.
+        # set_init_prvl internally buffers year == init_year columns with
+        # year == init_year - 1 values for the duration of its prevalence
+        # calculation; see ?set_init_prvl for the contract.
+        lapply(self$design$diseases, function(x) {
+          if (self$design$sim_prm$logs) {
+            print(x$name)
+          }
+          x$gen_parf(sp, self$design, self$design$diseases)$set_init_prvl(
+            sp = sp,
+            design_ = self$design
+          )
+        })
+
         lapply(self$design$diseases, function(x) {
           x$set_rr(sp, self$design)$set_incd_prb(sp, self$design)$set_dgns_prb(
             sp,
@@ -3381,7 +3382,7 @@ Simulation <-
         })
         # message("incd finished")
 
-        # Isolate tha rng state for the user defines scenarios
+        # Isolate the rng state for the user defines scenarios
         rs <- .Random.seed
         dqrs <- dqrng_get_state()
         sdn <- digest2int(paste0("secondary", scenario_nam), sp$mc_aggr) # sp$mc_aggr ensures same seed for sp batches that stem from the same sp.
@@ -3392,7 +3393,7 @@ Simulation <-
         dqset.seed(sdn) # Note that above does nor guarantee that different scenario_name/sp$mc combination
         # always generate different seed. But the probability of collision is
         # very low. export_summaries() checks if collision happened and warns user.
-        private$secondary_prevention_scn(sp) # apply secondary pevention scenario
+        private$secondary_prevention_scn(sp) # apply secondary prevention scenario
         # message("2nd scenario finished")
         # message("scenario finished")
         set.seed(rs)

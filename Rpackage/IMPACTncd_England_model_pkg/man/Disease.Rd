@@ -110,7 +110,43 @@ exist already.
 Read Population Attributable Risk Fraction (PARF) file from disk. If missing, generates PARF and
 writes it to disk.
 
-Set disease prevalence and diagnosis in a new column in sp$pop.
+Set initial disease prevalence and diagnosis at year ==
+\code{init_year} for each simulant.
+
+For incidence types greater than 0, this method evaluates initial
+prevalence using the simulant state from year ==
+\code{design_$sim_prm$init_year - 1}, \emph{not} year == \code{init_year}.
+Specifically, while the prevalence calculation runs, the row at
+year == \code{init_year} is temporarily populated with the per-pid
+values from year == \code{init_year - 1} for the following columns
+(where present in \code{sp$pop}):
+\itemize{
+\item all \verb{*_curr_xps} exposure columns
+\item strata: \code{sex}, \code{dimd}, \code{qimd}, \code{ethnicity}, \code{sha}
+\item socioeconomic: \code{income}, \code{education}
+}
+
+\code{age} is deliberately excluded because it is structurally tied
+to \code{year} (a row at year == init_year - 1 is by construction
+\code{age - 1} of the year == init_year row). Buffering it would
+shift the prevalence lookup to a 1-year-younger stratum,
+altering the model baseline rather than merely insulating
+scenario effects.
+
+Original year == \code{init_year} values are restored before this
+method returns (including under error, via \code{on.exit}) so
+downstream calculation chains (\code{set_rr}, \code{set_incd_prb},
+\code{simcpp}, ...) see the actual scenario state.
+
+\strong{Implication for scenario authors}: a primary-prevention scenario
+that modifies any of the buffered columns \emph{only at year == init_year}
+will not affect init_prvl at all. To influence initial prevalence
+under a scenario, the scenario must alter the relevant columns at
+year == \code{init_year - 1} (or earlier).
+
+The buffer is skipped for incidence type 0 (composite diseases
+whose initial prevalence is just zero) and degrades gracefully if
+\code{sp$pop} does not contain a row at year == \code{init_year - 1}.
 
 Calculate and set relative risks (RR) from exposures for disease incidence.
 

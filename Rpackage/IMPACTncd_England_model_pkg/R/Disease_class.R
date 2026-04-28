@@ -658,7 +658,56 @@ Disease <-
       },
 
       # set_init_prvl ----
-      #' @description Set disease prevalence and diagnosis in a new column in sp$pop.
+      #' @description Set initial disease prevalence and diagnosis at year ==
+      #'   `init_year` for each simulant.
+      #'
+      #'   For incidence types greater than 0, this method evaluates initial
+      #'   prevalence using the simulant state from year ==
+      #'   `design_$sim_prm$init_year - 1`, *not* year == `init_year`.
+      #'   Specifically, while the prevalence calculation runs, the row at
+      #'   year == `init_year` is temporarily populated with the per-pid
+      #'   values from year == `init_year - 1` for the following columns
+      #'   (where present in `sp$pop`):
+      #'
+      #'   - all `*_curr_xps` exposure columns
+      #'   - strata: `sex`, `dimd`, `qimd`, `ethnicity`, `sha`
+      #'   - socioeconomic: `income`, `education`
+      #'
+      #'   `age` is deliberately excluded because it is structurally tied
+      #'   to `year` (a row at year == init_year - 1 is by construction
+      #'   `age - 1` of the year == init_year row). Buffering it would
+      #'   shift the prevalence lookup to a 1-year-younger stratum,
+      #'   altering the model baseline rather than merely insulating
+      #'   scenario effects.
+      #'
+      #'   Original year == `init_year` values are restored before this
+      #'   method returns (including under error, via `on.exit`) so
+      #'   downstream calculation chains (`set_rr`, `set_incd_prb`,
+      #'   `simcpp`, ...) see the actual scenario state.
+      #'
+      #'   **Implication for scenario authors**: a primary-prevention scenario
+      #'   that modifies any of the buffered columns *only at year == init_year*
+      #'   will not affect init_prvl at all. To influence initial prevalence
+      #'   under a scenario, the scenario must alter the relevant columns at
+      #'   year == `init_year - 1` (or earlier).
+      #'
+      #'   The buffer is skipped for incidence type 0 (composite diseases
+      #'   whose initial prevalence is just zero) and degrades gracefully if
+      #'   `sp$pop` does not contain a row at year == `init_year - 1`.
+      #'
+      #'   **New-entrant edge case**: simulants who enter the simulation at
+      #'   year == `init_year` (`pid_mrk == TRUE` at that row, with no row at
+      #'   year == `init_year - 1`) have no prior state to draw from, so the
+      #'   buffer's per-pid join finds no match for them and their year ==
+      #'   `init_year` row keeps whatever the scenario set. For type > 1
+      #'   diseases this is rarely visible because the prevalence table at
+      #'   `ageL` is near zero for major NCDs; for type 1 (exposure-
+      #'   thresholded) diseases such as `obesity`, scenarios that push
+      #'   exposures across the threshold *will* shift init_prvl for these
+      #'   new entrants. This is the only case where year == `init_year`
+      #'   scenario edits leak into init_prvl, and it is intrinsic to the
+      #'   model: a brand-new simulant has no "year before" to defer to.
+      #'
       #' @param sp A SynthPop object containing the synthetic population.
       #' @param design_ A Design object with the simulation parameters.
       #' @return The invisible self for chaining.
@@ -675,6 +724,66 @@ Disease <-
               " already exists in sp$pop.
               Please delete it and run set_init_prvl() afterwards."
             )
+          }
+
+          # ===== year == init_year - 1 buffer =====
+          # See @description for the contract. Original values are saved
+          # before any mutation, on.exit is registered before the swap so a
+          # mid-swap error still triggers full restoration, and the swap
+          # itself is a (pid, year) join-update per buffered column.
+          if (self$meta$incidence$type > 0L) {
+            .init_year <- design_$sim_prm$init_year
+            .prev_year <- .init_year - 1L
+            # Buffered columns: exposures and modifiable strata. `age` is
+            # excluded — it is structurally year-1 at year == prev_year, so
+            # buffering would shift prevalence lookup to a younger stratum
+            # and alter the baseline. `year` and `pid` are row identifiers
+            # and never buffered.
+            .buffer_cols <- unique(c(
+              grep("_curr_xps$", names(sp$pop), value = TRUE),
+              intersect(
+                c(
+                  "sex", "dimd", "qimd", "ethnicity", "sha",
+                  "income", "education"
+                ),
+                names(sp$pop)
+              )
+            ))
+            if (
+              length(.buffer_cols) > 0L &&
+                any(sp$pop$year == .prev_year)
+            ) {
+              .saved_state <- copy(sp$pop[
+                year == .init_year,
+                c("pid", "year", .buffer_cols),
+                with = FALSE
+              ])
+              on.exit(
+                {
+                  for (.col in .buffer_cols) {
+                    sp$pop[
+                      .saved_state,
+                      on = .(pid, year),
+                      (.col) := get(paste0("i.", .col))
+                    ]
+                  }
+                },
+                add = TRUE
+              )
+              .prev_state <- sp$pop[
+                year == .prev_year,
+                c("pid", .buffer_cols),
+                with = FALSE
+              ]
+              .prev_state[, year := .init_year]
+              for (.col in .buffer_cols) {
+                sp$pop[
+                  .prev_state,
+                  on = .(pid, year),
+                  (.col) := get(paste0("i.", .col))
+                ]
+              }
+            }
           }
 
           if (self$meta$incidence$type == 0L) {
