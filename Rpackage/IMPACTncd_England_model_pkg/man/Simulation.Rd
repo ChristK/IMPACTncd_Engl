@@ -3,555 +3,24 @@
 \name{Simulation}
 \alias{Simulation}
 \title{R6 Class representing a simulation environment}
-\arguments{
-\item{design}{Either a path to a yaml file or a Design object.}
-
-\item{method}{a function with synthpop as an argument that models the secondary prevention policy.}
-
-\item{mc}{A positive sequential integer vector with the Monte Carlo
-iterations of synthetic population to simulate, or a scalar.}
-
-\item{scenario_nam}{A string for the scenario name (e.g. "sc0",
-"sc1"). Use only letters, digits, and underscores (e.g. "sc1",
-"bmi_reduction_10pc"). Avoid hyphens, spaces, or other special
-characters as these can cause issues in internal SQL queries.
-The baseline scenario must always be named "sc0".}
-
-\item{processed}{If \code{TRUE} generates the causality matrix from the
-graph.}
-
-\item{print_plot}{If \code{TRUE} prints the causal structure graph.}
-
-\item{focus}{If missing the whole causal structure is returned.
-Otherwise, if a named node only the subgraph of the 1st order
-neighbours that point to the given vertrice is returned.}
-
-\item{mode}{Character. When focus is specified, determines direction:
-"in" for neighbors pointing to the node, "out" for neighbors
-stemming from the node, "all" for both directions.}
-
-\item{order}{Integer. When focus is specified, determines how many
-steps away to include neighbors. Use Inf for all possible orders.}
-
-\item{from}{the beginning of the path (an exposure) as a string. Use \code{get_node_names} for available nodes.}
-
-\item{to}{the end of the path (a disease) as a string. Use \code{get_node_names} for available nodes.}
-
-\item{shortest_paths}{Boolean. If true, only returns the paths with the smallest number of nodes. Else, all possible paths (excluding multiple and loop edges) are returned.}
-
-\item{new_design}{A design object with the simulation parameters.}
-
-\item{token}{Character. Zenodo personal access token. If \code{NULL}
-(default), reads from \code{ZENODO_TOKEN} environment variable.}
-
-\item{sandbox}{Logical. If \code{TRUE}, connect to the Zenodo sandbox
-for testing. Default: \code{FALSE}.}
-
-\item{archive_dir}{Character. Directory for storing zip archives
-during upload. Archives are automatically deleted after
-successful upload. If \code{NULL} (default), uses
-\code{tempdir()}.}
-
-\item{progress}{Logical. If \code{TRUE} (default), enable console
-progress bars for uploads and downloads.}
-
-\item{overwrite}{Logical. Overwrite existing directories? Default:
-\code{FALSE}.}
-
-\item{input_directories}{Character vector. Input subdirectories.
-\code{NULL} = all.}
-
-\item{simulation_base}{Character. Path to simulation output
-directory. Default: \code{"./simulation"}.}
-
-\item{simulation_directories}{Character vector. Simulation
-subdirectories. Default: \code{c("parf", "rr")}.}
-
-\item{version}{Character. Version string (e.g. \code{"1.0.0"}).}
-
-\item{title}{Character. Record title (required for new records).}
-
-\item{description}{Character. Record description (required for new
-records).}
-
-\item{creators}{List of lists with creator metadata (required for
-new records).}
-
-\item{keywords}{Character vector. Default:
-\code{c("microsimulation", "health", "IMPACTncd", "England",
-  "NCD")}.}
-
-\item{license}{Character. SPDX license ID. Default:
-\code{"cc-by-sa-4.0"}.}
-
-\item{publisher}{Character. Default: \code{"Zenodo"}.}
-
-\item{input_exclude_file_patterns}{Character vector. File exclusion
-patterns for inputs. Default: \code{c("\\.R$", "\\.Rmd$")}.}
-
-\item{simulation_exclude_file_patterns}{Character vector. File
-exclusion patterns for simulation archives. Default:
-\code{c("\\.R$", "\\.csv$")}.}
-
-\item{publish}{Logical. Publish after upload? Default: \code{FALSE}.}
-
-\item{concept_doi}{Character. Optional concept DOI. If \code{NULL}
-(default), uses the DOI set via \code{zenodo_connect()}.}
-
-\item{directories}{Character vector. Specific subdirectories.
-If \code{NULL} (default), processes all.}
-
-\item{exclude_patterns}{Character vector. Directory exclusion
-patterns. Default: \code{c("^unprocessed$", "_backup$", "_old$",
-  "scripts$", "validation$")}.}
-
-\item{exclude_file_patterns}{Character vector. File exclusion
-patterns. Default: \code{c("\\.R$", "\\.Rmd$")}.}
-
-\item{group_by_prefix}{Logical. Default: \code{TRUE}.}
-
-\item{compression_level}{Integer 0-9. Default: \code{6}.}
-
-\item{multicore}{Logical. Default: \code{TRUE}.}
-
-\item{n_cores}{Integer. Default: \code{clusternumber} from YAML.}
-
-\item{update_gitignore}{Logical. Default: \code{FALSE} (unlike
-\code{zenodo_upload_inputs()}, since this is a preview step).}
-
-\item{input_base}{Character. Path to the input directory. Default:
-\code{"./inputs"}.}
-
-\item{save}{Logical. If \code{TRUE} (default), save the manifest
-to \code{./simulation/zenodo_manifest.csv}.}
-
-\item{carry_over_lifecourse_files_from}{A string with a previous output
-path (absolute) from which the lifecourse files will be copied to the
-new output folder defined in new_path argument. Overwritting is not
-allowed. If missing, no copy occurs.}
-
-\item{new_path}{A string with the new synthpop path (absolute).}
-}
-\value{
-A new \code{Simulation} object.
-
-The invisible self for chaining.
-
-The primary prevention policy scenario.
-
-The invisible self for chaining.
-
-The secondary prevention policy scenario.
-
-The invisible self for chaining.
-
-The processed causality matrix if \code{processed = TRUE} or the
-graph otherwise.
-
-A string vector.
-
-A list with all the possible paths between exposure and disease.
-
-An InputsManifest object, or NULL if not initialised.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-A data.table with the European Standardised Population 2013.
-
-A named vector with disease weights.
-
-The invisible self for chaining.
-
-The invisible \code{Simulation} object.
-
-The invisible \code{Simulation} object.
-
-The invisible \code{Simulation} object.
-
-The invisible \code{Simulation} object (for method chaining).
-
-The invisible \code{Simulation} object (for method chaining).
-
-A \code{data.table} with columns: \code{archive_name},
-\code{directory}, \code{local_exists}, and \code{size_bytes}.
-
-The invisible \code{Simulation} object (for method chaining).
-
-The invisible \code{Simulation} object (for method chaining).
-
-The invisible \code{Simulation} object (for method chaining).
-
-The invisible \code{Simulation} object (for method chaining).
-
-The invisible \code{Simulation} object (for method chaining).
-
-The invisible \code{Simulation} object (for method chaining).
-
-The invisible \code{Simulation} object (for method chaining).
-
-A \code{data.table} with file metadata (key, size, checksum,
-etc.).
-
-A \code{data.frame} with version information.
-
-A \code{data.table} with archive metadata: path, size,
-file count, source hash.
-
-A \code{data.table} with columns: \code{relative_path},
-\code{hash}, \code{size_bytes}, \code{mtime}.
-
-The invisible \code{Simulation} object.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-}
 \description{
 A simulation environment for running microsimulation models
 of chronic disease epidemiology and health economics in England.
-
-Create a new simulation object.
-
-Updates the primary prevention policy scenario
-
-Get the primary prevention policy scenario
-
-Updates the secondary prevention policy scenario
-
-Get the secondary prevention policy scenario
-
-Runs a simulation
-
-Returns the causality matrix and optionally plots the
-causality structure.
-
-Returns the names of all exposures and diseases.
-
-Returns the causal paths between an exposure and an outcome (disease).
-
-Returns the InputsManifest object for inspecting
-tracked input files and their hashes.
-
-Updates the Design object that is stored in the Simulation
-object.
-
-Delete all output files and folders below the first level.
-
-Delete all output summary files and subdirectories while preserving first-level directory structure.
-
-Delete log files.
-
-Delete all files in the ./simulation/parf folder.
-
-Delete all files in the ./simulation/rr folder.
-
-Delete all files in the synthpop folder.
-
-Get the European Standardised Population 2013 by sex and
-dimd.
-
-Get the disease multimorbidity weights (i.e. Cambridge
-Morbidity Score weights).
-
-Internal validation of the disease burden.
-
-Splits files larger than 50Mb into chunks of 49Mb.
-
-Reconstructs large files from chunks.
-
-Deletes large files.
-
-Connect to Zenodo for uploading and downloading input
-data assets.
-
-Set the Zenodo concept DOI for data assets.
-
-Check whether local input directories are in sync with
-the Zenodo record.
-
-Download input data archives from Zenodo and extract
-them into local directories.
-
-Download simulation output archives (PARF, RR files)
-from the Zenodo record and extract them into local directories.
-
-Download both input data and simulation outputs from
-Zenodo in a single call.
-
-Create zip archives of input directories and upload
-them to Zenodo.
-
-Upload simulation output archives (PARF, RR files) to
-the current Zenodo record.
-
-Upload both input data and simulation outputs to
-Zenodo in a single call.
-
-Publish the current Zenodo record draft.
-
-List all files in the current Zenodo record.
-
-Get the version history of the Zenodo record.
-
-Create zip archives from input directories without
-uploading them.
-
-Create a hash manifest of local input files.
-
-Prints the simulation object metadata.
-
-Make output folder available to all users (Linux specific).
-
-Make synthpop folder available to all users (Linux specific).
-
-Updates the output path.
-
-Updates the synthpop path.
 }
 \details{
 The Simulation class orchestrates the microsimulation, managing
 the synthetic population, disease modules, exposure distributions, and
 policy scenarios. It provides methods for running simulations, calibrating
 disease parameters, and exporting summary statistics including QALYs and costs.
-
-The function splits files larger than 50Mb into chunks of 49Mb
-so they can be tracked by GitHub. The large files are deleted and an
-index is created at "./simulation/large_files_indx.csv" so they can be
-reconstructed. The function also adds the large files to \code{.gitignore}.
-It works on Linux and Windows. Untested on Mac.
-
-The function reconstructs large files from chunks. The path of
-the files are stored in "./simulation/large_files_indx.csv". It works
-on Linux and Windows. Untested on Mac.
-
-The function deletes large files that are stored in chunks.
-The path of the files are stored in
-"./simulation/large_files_indx.csv".
-
-This is the first step in any Zenodo workflow. It creates an internal
-\code{\link{ZenodoAssetManager}} object, authenticates with the Zenodo
-API, and (optionally) sets the concept DOI so that subsequent methods
-know which record to work with.
-
-\strong{What is a concept DOI?}
-Every Zenodo record can have multiple versions. Each version receives
-its own DOI (e.g. \code{10.5281/zenodo.12346}), but they all share a
-single \emph{concept DOI} (e.g. \code{10.5281/zenodo.12345}) that
-always resolves to the latest published version. The concept DOI is the
-one you should store in your code and share with collaborators.
-
-\strong{Token management:}
-You need a personal access token from Zenodo. You can either:
-\enumerate{
-\item Pass it directly: \code{token = "your_token_here"}
-\item Set the environment variable \code{ZENODO_TOKEN} (recommended
-for security — add it to \code{.Renviron})
-\item Use a file-based keyring (see the
-\code{vignette("zenodo_data_management")} for setup instructions)
 }
+\section{Implementation note}{
 
-\strong{Sandbox vs production:}
-Set \code{sandbox = TRUE} for testing. The sandbox uses a separate
-token from \url{https://sandbox.zenodo.org/account/settings/applications/tokens/new/}.
-Published sandbox records are not permanent and do not count as real
-publications.
-
-Use this to switch to a different Zenodo record after connecting.
-The concept DOI is the DOI shared across all versions of a record
-(prefix \code{10.5281} for production, \code{10.5072} for sandbox).
-
-Compares the local \code{input_base} directory against the file list
-on the Zenodo record. Returns a \code{data.table} showing, for each
-remote archive, whether the corresponding local directory exists.
-This is a read-only operation — nothing is downloaded or uploaded.
-
-Requires a prior call to \code{zenodo_connect()} with a concept DOI.
-
-Downloads zip archives from the Zenodo record and extracts them into
-\code{input_base}. By default, directories that already exist locally
-are \strong{skipped} — pass \code{overwrite = TRUE} to replace them.
-
-Use \code{zenodo_check_inputs()} first (a read-only check) to see
-exactly which directories would be downloaded.
-
-Progress bars are shown if \code{progress = TRUE} was set in
-\code{zenodo_connect()} (the default).
-
-This method downloads zip archives of simulation-generated files
-(Population Attributable Risk Fractions and compiled Relative Risk
-tables) from Zenodo and extracts them to \code{simulation_base}.
-
-The method identifies simulation archives by matching archive names
-against the \code{directories} parameter (e.g. archives whose name
-starts with \code{"parf"} or equals \code{"rr"}).
-
-By default, directories that already exist locally are
-\strong{skipped} — pass \code{overwrite = TRUE} to replace them.
-
-\strong{When to use:}
-\itemize{
-\item When you need pre-computed PARFs and RR tables from a
-colleague's upload
-\item When setting up a new machine and want to skip the
-time-consuming PARF/RR generation step
-}
-
-This is a convenience method that combines
-\code{zenodo_download_inputs()} and
-\code{zenodo_download_PARFs_RRs()} into a single operation.
-
-\strong{Typical use case:} A new team member setting up their
-environment for the first time. One call downloads everything
-needed to run the simulation.
-
-This method handles the complete upload pipeline:
-\enumerate{
-\item Creates zip archives from your input directories
-\item Creates a new Zenodo record (first time) or a new version
-(subsequent times)
-\item Uploads all archives to the record
-\item Optionally publishes the record
-}
-
-\strong{First-time upload (new record):}
-When no concept DOI has been set (i.e. you did not pass one to
-\code{zenodo_connect()}), you \emph{must} provide \code{title},
-\code{description}, and \code{creators}. A new Zenodo deposit is
-created in DRAFT state. Review it on the Zenodo website before
-publishing with \code{zenodo_publish()}.
-
-\strong{Subsequent uploads (new version):}
-If a concept DOI is already set (from \code{zenodo_connect()}),
-provide a \code{version} string (e.g. \code{"1.1.0"}) and a new
-version of the existing record is created automatically.
-
-\strong{Archive creation parameters:}
-\itemize{
-\item \code{exclude_patterns}: Regex patterns to skip entire
-\emph{directories}. For example, \code{"^unprocessed$"} skips a
-directory named exactly "unprocessed".
-\item \code{exclude_file_patterns}: Regex patterns to skip
-\emph{individual files}. For example, \code{"\\.R$"} skips all
-R scripts.
-\item \code{group_by_prefix}: When \code{TRUE} (default),
-subdirectories sharing a common prefix are combined into a single
-archive. For example, \code{disease_burden/cancer_2020/} and
-\code{disease_burden/cancer_2021/} become
-\code{disease_burden_cancer.zip}.
-\item \code{multicore}: When \code{TRUE} (default), archives are
-created in parallel using PSOCK clusters (safe on all platforms).
-}
-
-This method archives and uploads simulation-generated files
-(Population Attributable Risk Fractions and compiled Relative Risk
-tables) to the \emph{same} Zenodo record used for input data. Call
-this \strong{after} \code{zenodo_upload_inputs()} so that a record
-already exists.
-
-These files live under \code{./simulation/} rather than
-\code{./inputs/}, and use different default exclusion patterns
-(e.g. CSV manifest files are excluded).
-
-This is a convenience method that combines
-\code{zenodo_upload_inputs()} and \code{zenodo_upload_simulation()}
-into a single operation. It:
-\enumerate{
-\item Creates and uploads input archives (from \code{./inputs/})
-\item Creates and uploads simulation archives (from
-\code{./simulation/parf/} and \code{./simulation/rr/})
-\item Optionally publishes the record
-}
-
-This mirrors the complete workflow demonstrated in the test script.
-
-\strong{CAUTION: Publishing is IRREVERSIBLE.} Once published:
-\itemize{
-\item The DOI becomes permanent and publicly resolvable
-\item Files in this version \strong{cannot} be modified
-\item The record appears in search results and is citable
-}
-
-You can still create \emph{new versions} of a published record by
-calling \code{zenodo_upload_inputs(version = "2.0.0")}. Each version
-gets its own DOI, but they all share the concept DOI.
-
-Always review the draft on the Zenodo website before publishing.
-
-Returns a \code{data.table} with one row per file, including
-filename, size, and checksum. Useful for verifying that uploads
-completed successfully.
-
-Works with both published records and drafts (uses a direct API
-fallback for drafts where zen4R's built-in method may return
-empty results).
-
-Returns a data.frame listing all published versions of the record,
-including each version's DOI, version label, and publication date.
-Useful for auditing which data versions have been published.
-
-Creates archives exactly as \code{zenodo_upload_inputs()} would,
-but stops before uploading. This lets you inspect archive sizes
-and contents before committing to an upload. Archives are saved
-to \code{archive_dir} (set in \code{zenodo_connect()}, or
-\code{tempdir()} by default).
-
-Does not require a Zenodo connection — only needs the simulation
-design to be loaded (for \code{n_cores} default).
-
-Scans \code{input_base} recursively and computes an xxhash64
-checksum for every file. The resulting manifest can be saved to
-disk and later used to detect which files have changed.
-
-This is a local operation — it does not require a Zenodo
-connection.
-}
-\section{Fields}{
-
-\describe{
-\item{\code{design}}{A Design object.}
-
-\item{\code{diseases}}{A list of Disease objects.}
-
-\item{\code{RR}}{A list of RR for the simulated exposures.}
-
-\item{\code{exposures}}{A named list of Exposure objects for generating synthetic population exposures.}
-
-\item{\code{scenarios}}{A list of scenario objects.}
-}}
-
-\section{Methods defined in satellite files}{
-
-The following public methods are implemented in separate files for maintainability
-and added to this class via \code{$set()}:
-
-\describe{
-\item{\code{calibrate_incd_ftlt(mc, replace = FALSE)}}{
-Calibrates incidence and case fatality rates. See Simulation_class_calibration.R.
-}
-\item{\code{export_summaries(multicore, type, single_year_of_age)}}{
-Exports simulation summaries including prevalence, incidence, mortality,
-life expectancy, QALYs, and costs. See Simulation_class_summaries.R.
-}
-\item{\code{export_tables(baseline_year_for_change_outputs, prbl, comparator_scenario, two_agegrps)}}{
-Exports summary tables for policy analysis. See Simulation_class_tables.R.
-}
-}
+For maintainability the public methods \code{calibrate_incd_ftlt()},
+\code{export_summaries()}, and \code{export_tables()} (and their private helpers)
+are defined in satellite files (\code{Simulation_class_calibration.R},
+\code{Simulation_class_summaries.R}, \code{Simulation_class_tables.R}) and added
+to the class via \code{Simulation$set()}. They appear below in the "Methods"
+section like any directly-defined method.
 }
 
 \section{QALY Calculation}{
@@ -637,7 +106,11 @@ For a beneficial public health intervention, you would typically expect:
 }
 
 \examples{
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_connect()`
+## ------------------------------------------------
+
 # Connect to sandbox for testing
 IMPACTncd$zenodo_connect(
   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
@@ -648,14 +121,20 @@ IMPACTncd$zenodo_connect(
 IMPACTncd$zenodo_connect(
   concept_doi = "10.5281/zenodo.XXXXXXX"
 )
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_check_inputs()`
+## ------------------------------------------------
+
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 IMPACTncd$zenodo_check_inputs()
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_download_inputs()`
+## ------------------------------------------------
+
 # Download all missing inputs
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 IMPACTncd$zenodo_download_inputs()
@@ -665,9 +144,12 @@ IMPACTncd$zenodo_download_inputs(
   directories = c("mortality", "population"),
   overwrite = TRUE
 )
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_download_PARFs_RRs()`
+## ------------------------------------------------
+
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 
 # Download missing simulation outputs
@@ -678,9 +160,12 @@ IMPACTncd$zenodo_download_PARFs_RRs(
   directories = "parf",
   overwrite   = TRUE
 )
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_download_all()`
+## ------------------------------------------------
+
 # New team member setup — download everything
 IMPACTncd$zenodo_connect(
   concept_doi = "10.5281/zenodo.XXXXXXX"
@@ -689,9 +174,12 @@ IMPACTncd$zenodo_download_all()
 
 # Force re-download everything
 IMPACTncd$zenodo_download_all(overwrite = TRUE)
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_upload_inputs()`
+## ------------------------------------------------
+
 # --- First-time upload (creates new record) ---
 IMPACTncd$zenodo_connect(
   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
@@ -713,18 +201,24 @@ IMPACTncd$zenodo_publish()
 # --- Subsequent upload (new version) ---
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 IMPACTncd$zenodo_upload_inputs(version = "1.1.0")
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_upload_simulation()`
+## ------------------------------------------------
+
 # Upload inputs first, then simulation outputs
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 IMPACTncd$zenodo_upload_inputs(version = "1.0.0", title = "...",
   description = "...", creators = list(...))
 IMPACTncd$zenodo_upload_simulation()
 IMPACTncd$zenodo_publish()
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_upload_all()`
+## ------------------------------------------------
+
 # Complete first-time upload of everything
 IMPACTncd$zenodo_connect(
   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
@@ -746,37 +240,51 @@ IMPACTncd$zenodo_list_files()
 
 # Publish when satisfied
 IMPACTncd$zenodo_publish()
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_publish()`
+## ------------------------------------------------
+
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 IMPACTncd$zenodo_upload_inputs(...)
 # Review the draft at Zenodo, then:
 IMPACTncd$zenodo_publish()
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_list_files()`
+## ------------------------------------------------
+
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 IMPACTncd$zenodo_list_files()
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_get_versions()`
+## ------------------------------------------------
+
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 IMPACTncd$zenodo_get_versions()
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_create_archives()`
+## ------------------------------------------------
+
 # Preview what would be created
 archives <- IMPACTncd$zenodo_create_archives()
 print(archives[, .(archive = basename(archive_path),
                     size_mb = round(size_bytes / 1024^2, 1),
                     files = file_count)])
-}
 
-\dontrun{
+
+## ------------------------------------------------
+## Method `Simulation$zenodo_create_manifest()`
+## ------------------------------------------------
+
 manifest <- IMPACTncd$zenodo_create_manifest()
 print(manifest)
-}
 
 }
 \references{
@@ -828,12 +336,1638 @@ EQ-5D Scores for the United Kingdom." \emph{Medical Decision Making},
 \code{\link{zenodo_upload_inputs}},
 \code{\link{zenodo_connect}}
 
-\code{\link{zenodo_check_inputs}},
-\code{\link{zenodo_connect}}
-
-\code{\link{zenodo_connect}}
-
 \code{\link{zenodo_upload_inputs}}
+}
+\section{Public fields}{
+  \if{html}{\out{<div class="r6-fields">}}
+  \describe{
+    \item{\code{design}}{A Design object.}
 
-\code{\link{zenodo_upload_inputs}}
+    \item{\code{diseases}}{A list of Disease objects.}
+
+    \item{\code{RR}}{A list of RR for the simulated exposures.}
+
+    \item{\code{exposures}}{A named list of Exposure objects for generating synthetic population exposures.}
+
+    \item{\code{scenarios}}{A list of scenario objects.}
+  }
+  \if{html}{\out{</div>}}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-Simulation-calibrate_incd_ftlt}{\code{Simulation$calibrate_incd_ftlt()}}
+    \item \href{#method-Simulation-export_summaries}{\code{Simulation$export_summaries()}}
+    \item \href{#method-Simulation-export_tables}{\code{Simulation$export_tables()}}
+    \item \href{#method-Simulation-initialize}{\code{Simulation$new()}}
+    \item \href{#method-Simulation-update_primary_prevention_scn}{\code{Simulation$update_primary_prevention_scn()}}
+    \item \href{#method-Simulation-get_primary_prevention_scn}{\code{Simulation$get_primary_prevention_scn()}}
+    \item \href{#method-Simulation-update_secondary_prevention_scn}{\code{Simulation$update_secondary_prevention_scn()}}
+    \item \href{#method-Simulation-get_secondary_prevention_scn}{\code{Simulation$get_secondary_prevention_scn()}}
+    \item \href{#method-Simulation-run}{\code{Simulation$run()}}
+    \item \href{#method-Simulation-get_causal_structure}{\code{Simulation$get_causal_structure()}}
+    \item \href{#method-Simulation-get_node_names}{\code{Simulation$get_node_names()}}
+    \item \href{#method-Simulation-get_causal_path}{\code{Simulation$get_causal_path()}}
+    \item \href{#method-Simulation-get_inputs_manifest}{\code{Simulation$get_inputs_manifest()}}
+    \item \href{#method-Simulation-update_design}{\code{Simulation$update_design()}}
+    \item \href{#method-Simulation-del_outputs}{\code{Simulation$del_outputs()}}
+    \item \href{#method-Simulation-del_summaries}{\code{Simulation$del_summaries()}}
+    \item \href{#method-Simulation-del_logs}{\code{Simulation$del_logs()}}
+    \item \href{#method-Simulation-del_parfs}{\code{Simulation$del_parfs()}}
+    \item \href{#method-Simulation-del_RR_cache}{\code{Simulation$del_RR_cache()}}
+    \item \href{#method-Simulation-del_synthpops}{\code{Simulation$del_synthpops()}}
+    \item \href{#method-Simulation-get_esp}{\code{Simulation$get_esp()}}
+    \item \href{#method-Simulation-get_mm_weights}{\code{Simulation$get_mm_weights()}}
+    \item \href{#method-Simulation-validate}{\code{Simulation$validate()}}
+    \item \href{#method-Simulation-split_large_files}{\code{Simulation$split_large_files()}}
+    \item \href{#method-Simulation-reconstruct_large_files}{\code{Simulation$reconstruct_large_files()}}
+    \item \href{#method-Simulation-del_large_files}{\code{Simulation$del_large_files()}}
+    \item \href{#method-Simulation-zenodo_connect}{\code{Simulation$zenodo_connect()}}
+    \item \href{#method-Simulation-zenodo_set_doi}{\code{Simulation$zenodo_set_doi()}}
+    \item \href{#method-Simulation-zenodo_check_inputs}{\code{Simulation$zenodo_check_inputs()}}
+    \item \href{#method-Simulation-zenodo_download_inputs}{\code{Simulation$zenodo_download_inputs()}}
+    \item \href{#method-Simulation-zenodo_download_PARFs_RRs}{\code{Simulation$zenodo_download_PARFs_RRs()}}
+    \item \href{#method-Simulation-zenodo_download_all}{\code{Simulation$zenodo_download_all()}}
+    \item \href{#method-Simulation-zenodo_upload_inputs}{\code{Simulation$zenodo_upload_inputs()}}
+    \item \href{#method-Simulation-zenodo_upload_simulation}{\code{Simulation$zenodo_upload_simulation()}}
+    \item \href{#method-Simulation-zenodo_upload_all}{\code{Simulation$zenodo_upload_all()}}
+    \item \href{#method-Simulation-zenodo_publish}{\code{Simulation$zenodo_publish()}}
+    \item \href{#method-Simulation-zenodo_list_files}{\code{Simulation$zenodo_list_files()}}
+    \item \href{#method-Simulation-zenodo_get_versions}{\code{Simulation$zenodo_get_versions()}}
+    \item \href{#method-Simulation-zenodo_create_archives}{\code{Simulation$zenodo_create_archives()}}
+    \item \href{#method-Simulation-zenodo_create_manifest}{\code{Simulation$zenodo_create_manifest()}}
+    \item \href{#method-Simulation-print}{\code{Simulation$print()}}
+    \item \href{#method-Simulation-allow_universal_output_folder_access}{\code{Simulation$allow_universal_output_folder_access()}}
+    \item \href{#method-Simulation-allow_universal_synthpop_folder_access}{\code{Simulation$allow_universal_synthpop_folder_access()}}
+    \item \href{#method-Simulation-update_output_path}{\code{Simulation$update_output_path()}}
+    \item \href{#method-Simulation-update_synthpop_path}{\code{Simulation$update_synthpop_path()}}
+    \item \href{#method-Simulation-clone}{\code{Simulation$clone()}}
+  }
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-calibrate_incd_ftlt"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-calibrate_incd_ftlt}{}}}
+\subsection{\code{Simulation$calibrate_incd_ftlt()}}{
+  Calibrate incidence and case fatality rates.
+
+Reconstructs large input files, runs a Monte Carlo set, then iteratively
+adjusts disease-specific calibration factors (\verb{*_incd_clbr_fctr},
+\verb{*_ftlt_clbr_fctr}) so simulated incidence and mortality match observed
+targets. Writes results to \code{./simulation/calibration_prms.csv}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$calibrate_incd_ftlt(mc, replace = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{mc}}{Integer vector of Monte Carlo iterations to run for calibration.}
+      \item{\code{replace}}{Logical. If \code{TRUE}, overwrite the existing
+\code{calibration_prms.csv}; otherwise extend it.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The \code{Simulation} object, invisibly.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-export_summaries"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-export_summaries}{}}}
+\subsection{\code{Simulation$export_summaries()}}{
+  Export simulation summaries from lifecourse files.
+
+Reads the lifecourse parquet dataset and writes per-summary \code{.fst} files
+under \verb{output_dir/summaries/} for each requested type. Aggregations
+include life expectancy, healthy life expectancy, disease characteristics,
+prevalence, incidence, mortality, CMS counts, QALYs, and costs.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$export_summaries(
+  multicore = TRUE,
+  type = c("le", "hle", "dis_char", "prvl", "incd", "dis_mrtl", "mrtl",
+    "all_cause_mrtl_by_dis", "cms", "qalys", "costs"),
+  single_year_of_age = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{multicore}}{Logical. If \code{TRUE}, runs export tasks in parallel and
+forces single-threaded BLAS/data.table/fst within each worker to avoid
+nested parallelism. If \code{FALSE}, runs sequentially using
+\code{clusternumber_export} threads.}
+      \item{\code{type}}{Character vector of summary types to export. Defaults to all
+supported types (\code{le}, \code{hle}, \code{dis_char}, \code{prvl}, \code{incd}, \code{dis_mrtl},
+\code{mrtl}, \code{all_cause_mrtl_by_dis}, \code{cms}, \code{qalys}, \code{costs}).}
+      \item{\code{single_year_of_age}}{Logical. If \code{TRUE}, exports prevalence /
+incidence summaries by single year of age instead of age groups.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The \code{Simulation} object, invisibly.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-export_tables"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-export_tables}{}}}
+\subsection{\code{Simulation$export_tables()}}{
+  Export summary tables for policy analysis.
+
+Builds main, all-cause mortality, disease-characteristics, and exposure
+tables from the per-summary \code{.fst} files produced by
+\verb{$export_summaries()}. Outputs are written to \verb{output_dir/tables/}
+(or \verb{output_dir/tables2agegrps/} when \code{two_agegrps = TRUE}).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$export_tables(
+  baseline_year_for_change_outputs = 2019L,
+  prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),
+  comparator_scenario = "sc0",
+  two_agegrps = FALSE,
+  strata = NULL,
+  multicore = TRUE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{baseline_year_for_change_outputs}}{Integer. Reference year used for
+computing change-from-baseline columns. Two-digit values (e.g. \code{19})
+are auto-promoted to four-digit (\code{2019}).}
+      \item{\code{prbl}}{Numeric vector of probability levels for output quantiles
+(median plus uncertainty bounds). Default
+\code{c(0.5, 0.025, 0.975, 0.1, 0.9)}.}
+      \item{\code{comparator_scenario}}{Character. Name of the scenario used as the
+comparator when computing differences between scenarios.}
+      \item{\code{two_agegrps}}{Logical. If \code{TRUE}, uses a coarser two-age-group
+stratification; otherwise uses the standard age groups.}
+      \item{\code{strata}}{Optional named list overriding the default stratification
+configuration. See examples in the file header for shape; passed
+through \code{private$build_strata_config()}.}
+      \item{\code{multicore}}{Logical. If \code{TRUE}, runs table-building tasks in
+parallel with single-threaded workers; otherwise runs sequentially.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The \code{Simulation} object, invisibly.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-initialize}{}}}
+\subsection{\code{Simulation$new()}}{
+  Create a new simulation object.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$new(design)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{design}}{Either a path to a yaml file or a Design object.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A new \code{Simulation} object.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-update_primary_prevention_scn"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-update_primary_prevention_scn}{}}}
+\subsection{\code{Simulation$update_primary_prevention_scn()}}{
+  Updates the primary prevention policy scenario
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$update_primary_prevention_scn(method)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{method}}{a function with synthpop as an argument that models the primary prevention policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_primary_prevention_scn"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_primary_prevention_scn}{}}}
+\subsection{\code{Simulation$get_primary_prevention_scn()}}{
+  Get the primary prevention policy scenario
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_primary_prevention_scn()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The primary prevention policy scenario.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-update_secondary_prevention_scn"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-update_secondary_prevention_scn}{}}}
+\subsection{\code{Simulation$update_secondary_prevention_scn()}}{
+  Updates the secondary prevention policy scenario
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$update_secondary_prevention_scn(method)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{method}}{a function with synthpop as an argument that models the secondary prevention policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_secondary_prevention_scn"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_secondary_prevention_scn}{}}}
+\subsection{\code{Simulation$get_secondary_prevention_scn()}}{
+  Get the secondary prevention policy scenario
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_secondary_prevention_scn()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The secondary prevention policy scenario.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-run"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-run}{}}}
+\subsection{\code{Simulation$run()}}{
+  Runs a simulation
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$run(mc, multicore = TRUE, scenario_nam)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{mc}}{A positive sequential integer vector with the Monte Carlo
+iterations of synthetic population to simulate, or a scalar.}
+      \item{\code{multicore}}{If TRUE run the simulation in parallel.}
+      \item{\code{scenario_nam}}{A string for the scenario name (e.g. "sc0",
+"sc1"). Use only letters, digits, and underscores (e.g. "sc1",
+"bmi_reduction_10pc"). Avoid hyphens, spaces, or other special
+characters as these can cause issues in internal SQL queries.
+The baseline scenario must always be named "sc0".}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_causal_structure"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_causal_structure}{}}}
+\subsection{\code{Simulation$get_causal_structure()}}{
+  Returns the causality matrix and optionally plots the
+causality structure.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_causal_structure(
+  processed = TRUE,
+  print_plot = FALSE,
+  focus = FALSE,
+  mode = "in",
+  order = 1
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{processed}}{If \code{TRUE} generates the causality matrix from the
+graph.}
+      \item{\code{print_plot}}{If \code{TRUE} prints the causal structure graph.}
+      \item{\code{focus}}{If missing the whole causal structure is returned.
+Otherwise, if a named node only the subgraph of the 1st order
+neighbours that point to the given vertrice is returned.}
+      \item{\code{mode}}{Character. When focus is specified, determines direction:
+"in" for neighbors pointing to the node, "out" for neighbors
+stemming from the node, "all" for both directions.}
+      \item{\code{order}}{Integer. When focus is specified, determines how many
+steps away to include neighbors. Use Inf for all possible orders.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The processed causality matrix if \code{processed = TRUE} or the
+graph otherwise.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_node_names"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_node_names}{}}}
+\subsection{\code{Simulation$get_node_names()}}{
+  Returns the names of all exposures and diseases.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_node_names()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A string vector.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_causal_path"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_causal_path}{}}}
+\subsection{\code{Simulation$get_causal_path()}}{
+  Returns the causal paths between an exposure and an outcome (disease).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_causal_path(from, to, shortest_paths = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{from}}{the beginning of the path (an exposure) as a string. Use \code{get_node_names} for available nodes.}
+      \item{\code{to}}{the end of the path (a disease) as a string. Use \code{get_node_names} for available nodes.}
+      \item{\code{shortest_paths}}{Boolean. If true, only returns the paths with the smallest number of nodes. Else, all possible paths (excluding multiple and loop edges) are returned.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A list with all the possible paths between exposure and disease.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_inputs_manifest"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_inputs_manifest}{}}}
+\subsection{\code{Simulation$get_inputs_manifest()}}{
+  Returns the InputsManifest object for inspecting
+tracked input files and their hashes.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_inputs_manifest()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    An InputsManifest object, or NULL if not initialised.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-update_design"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-update_design}{}}}
+\subsection{\code{Simulation$update_design()}}{
+  Updates the Design object that is stored in the Simulation
+object.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$update_design(new_design)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{new_design}}{A design object with the simulation parameters.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_outputs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_outputs}{}}}
+\subsection{\code{Simulation$del_outputs()}}{
+  Delete all output files and folders below the first level.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$del_outputs()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_summaries"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_summaries}{}}}
+\subsection{\code{Simulation$del_summaries()}}{
+  Delete all output summary files and subdirectories while preserving first-level directory structure.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$del_summaries()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_logs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_logs}{}}}
+\subsection{\code{Simulation$del_logs()}}{
+  Delete log files.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$del_logs()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_parfs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_parfs}{}}}
+\subsection{\code{Simulation$del_parfs()}}{
+  Delete all files in the ./simulation/parf folder.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$del_parfs()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_RR_cache"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_RR_cache}{}}}
+\subsection{\code{Simulation$del_RR_cache()}}{
+  Delete all files in the ./simulation/rr folder.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$del_RR_cache()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_synthpops"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_synthpops}{}}}
+\subsection{\code{Simulation$del_synthpops()}}{
+  Delete all files in the synthpop folder.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$del_synthpops()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_esp"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_esp}{}}}
+\subsection{\code{Simulation$get_esp()}}{
+  Get the European Standardised Population 2013 by sex and
+dimd.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_esp()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A data.table with the European Standardised Population 2013.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_mm_weights"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_mm_weights}{}}}
+\subsection{\code{Simulation$get_mm_weights()}}{
+  Get the disease multimorbidity weights (i.e. Cambridge
+Morbidity Score weights).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_mm_weights()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A named vector with disease weights.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-validate"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-validate}{}}}
+\subsection{\code{Simulation$validate()}}{
+  Internal validation of the disease burden.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$validate()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-split_large_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-split_large_files}{}}}
+\subsection{\code{Simulation$split_large_files()}}{
+  Splits files larger than 50Mb into chunks of 49Mb.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$split_large_files()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    The function splits files larger than 50Mb into chunks of 49Mb
+so they can be tracked by GitHub. The large files are deleted and an
+index is created at "./simulation/large_files_indx.csv" so they can be
+reconstructed. The function also adds the large files to \code{.gitignore}.
+It works on Linux and Windows. Untested on Mac.
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-reconstruct_large_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-reconstruct_large_files}{}}}
+\subsection{\code{Simulation$reconstruct_large_files()}}{
+  Reconstructs large files from chunks.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$reconstruct_large_files()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    The function reconstructs large files from chunks. The path of
+the files are stored in "./simulation/large_files_indx.csv". It works
+on Linux and Windows. Untested on Mac.
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-del_large_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-del_large_files}{}}}
+\subsection{\code{Simulation$del_large_files()}}{
+  Deletes large files.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$del_large_files()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    The function deletes large files that are stored in chunks.
+The path of the files are stored in
+"./simulation/large_files_indx.csv".
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_connect"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_connect}{}}}
+\subsection{\code{Simulation$zenodo_connect()}}{
+  Connect to Zenodo for uploading and downloading input
+data assets.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_connect(
+  token = NULL,
+  concept_doi = if (sandbox) "10.5072/zenodo.442996" else NULL,
+  sandbox = FALSE,
+  archive_dir = NULL,
+  progress = TRUE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{token}}{Character. Zenodo personal access token. If \code{NULL}
+(default), reads from \code{ZENODO_TOKEN} environment variable.}
+      \item{\code{concept_doi}}{Character. The concept DOI for your data record.
+Default when \code{sandbox = TRUE}: \code{"10.5072/zenodo.442996"}
+(the IMPACTncd England sandbox record). Set to \code{NULL} to skip.}
+      \item{\code{sandbox}}{Logical. If \code{TRUE}, connect to the Zenodo sandbox
+for testing. Default: \code{FALSE}.}
+      \item{\code{archive_dir}}{Character. Directory for storing zip archives
+during upload. Archives are automatically deleted after
+successful upload. If \code{NULL} (default), uses
+\code{tempdir()}.}
+      \item{\code{progress}}{Logical. If \code{TRUE} (default), enable console
+progress bars for uploads and downloads.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    This is the first step in any Zenodo workflow. It creates an internal
+\code{\link{ZenodoAssetManager}} object, authenticates with the Zenodo
+API, and (optionally) sets the concept DOI so that subsequent methods
+know which record to work with.
+
+\strong{What is a concept DOI?}
+Every Zenodo record can have multiple versions. Each version receives
+its own DOI (e.g. \code{10.5281/zenodo.12346}), but they all share a
+single \emph{concept DOI} (e.g. \code{10.5281/zenodo.12345}) that
+always resolves to the latest published version. The concept DOI is the
+one you should store in your code and share with collaborators.
+
+\strong{Token management:}
+You need a personal access token from Zenodo. You can either:
+\enumerate{
+\item Pass it directly: \code{token = "your_token_here"}
+\item Set the environment variable \code{ZENODO_TOKEN} (recommended
+for security — add it to \code{.Renviron})
+\item Use a file-based keyring (see the
+\code{vignette("zenodo_data_management")} for setup instructions)
+}
+
+\strong{Sandbox vs production:}
+Set \code{sandbox = TRUE} for testing. The sandbox uses a separate
+token from \url{https://sandbox.zenodo.org/account/settings/applications/tokens/new/}.
+Published sandbox records are not permanent and do not count as real
+publications.
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{# Connect to sandbox for testing
+IMPACTncd$zenodo_connect(
+  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+  sandbox = TRUE
+)
+
+# Connect to production with a specific concept DOI
+IMPACTncd$zenodo_connect(
+  concept_doi = "10.5281/zenodo.XXXXXXX"
+)
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_set_doi"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_set_doi}{}}}
+\subsection{\code{Simulation$zenodo_set_doi()}}{
+  Set the Zenodo concept DOI for data assets.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_set_doi(concept_doi)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{concept_doi}}{Character. The concept DOI string, e.g.
+\code{"10.5281/zenodo.12345"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    Use this to switch to a different Zenodo record after connecting.
+The concept DOI is the DOI shared across all versions of a record
+(prefix \code{10.5281} for production, \code{10.5072} for sandbox).
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_check_inputs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_check_inputs}{}}}
+\subsection{\code{Simulation$zenodo_check_inputs()}}{
+  Check whether local input directories are in sync with
+the Zenodo record.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_check_inputs(input_base = "./inputs", directories = NULL)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{input_base}}{Character. Path to the base directory containing
+input subdirectories. Default: \code{"./inputs"}.}
+      \item{\code{directories}}{Character vector. Specific subdirectories to check.
+If \code{NULL} (default), checks all remote archives.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    Compares the local \code{input_base} directory against the file list
+on the Zenodo record. Returns a \code{data.table} showing, for each
+remote archive, whether the corresponding local directory exists.
+This is a read-only operation — nothing is downloaded or uploaded.
+
+Requires a prior call to \code{zenodo_connect()} with a concept DOI.
+  }
+  \subsection{Returns}{
+    A \code{data.table} with columns: \code{archive_name},
+\code{directory}, \code{local_exists}, and \code{size_bytes}.
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_check_inputs()
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_download_inputs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_download_inputs}{}}}
+\subsection{\code{Simulation$zenodo_download_inputs()}}{
+  Download input data archives from Zenodo and extract
+them into local directories.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_download_inputs(
+  input_base = "./inputs",
+  directories = NULL,
+  overwrite = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{input_base}}{Character. Destination directory for extracted
+archives. Default: \code{"./inputs"}.}
+      \item{\code{directories}}{Character vector. Specific subdirectories to
+download. If \code{NULL} (default), downloads all remote archives.}
+      \item{\code{overwrite}}{Logical. If \code{TRUE}, overwrite existing local
+directories. Default: \code{FALSE}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    Downloads zip archives from the Zenodo record and extracts them into
+\code{input_base}. By default, directories that already exist locally
+are \strong{skipped} — pass \code{overwrite = TRUE} to replace them.
+
+Use \code{zenodo_check_inputs()} first (a read-only check) to see
+exactly which directories would be downloaded.
+
+Progress bars are shown if \code{progress = TRUE} was set in
+\code{zenodo_connect()} (the default).
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{# Download all missing inputs
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_download_inputs()
+
+# Force re-download of specific directories
+IMPACTncd$zenodo_download_inputs(
+  directories = c("mortality", "population"),
+  overwrite = TRUE
+)
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_download_PARFs_RRs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_download_PARFs_RRs}{}}}
+\subsection{\code{Simulation$zenodo_download_PARFs_RRs()}}{
+  Download simulation output archives (PARF, RR files)
+from the Zenodo record and extract them into local directories.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_download_PARFs_RRs(
+  simulation_base = "./simulation",
+  directories = c("parf", "rr"),
+  overwrite = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{simulation_base}}{Character. Destination directory for
+extracted simulation archives. Default: \code{"./simulation"}.}
+      \item{\code{directories}}{Character vector. Subdirectory prefixes to
+download. Archives whose name starts with any of these prefixes
+are included. Default: \code{c("parf", "rr")}.}
+      \item{\code{overwrite}}{Logical. If \code{TRUE}, overwrite existing local
+directories. Default: \code{FALSE}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    This method downloads zip archives of simulation-generated files
+(Population Attributable Risk Fractions and compiled Relative Risk
+tables) from Zenodo and extracts them to \code{simulation_base}.
+
+The method identifies simulation archives by matching archive names
+against the \code{directories} parameter (e.g. archives whose name
+starts with \code{"parf"} or equals \code{"rr"}).
+
+By default, directories that already exist locally are
+\strong{skipped} — pass \code{overwrite = TRUE} to replace them.
+
+\strong{When to use:}
+\itemize{
+\item When you need pre-computed PARFs and RR tables from a
+colleague's upload
+\item When setting up a new machine and want to skip the
+time-consuming PARF/RR generation step
+}
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{IMPACTncd$zenodo_connect(sandbox = TRUE)
+
+# Download missing simulation outputs
+IMPACTncd$zenodo_download_PARFs_RRs()
+
+# Force re-download of PARF files only
+IMPACTncd$zenodo_download_PARFs_RRs(
+  directories = "parf",
+  overwrite   = TRUE
+)
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_download_all"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_download_all}{}}}
+\subsection{\code{Simulation$zenodo_download_all()}}{
+  Download both input data and simulation outputs from
+Zenodo in a single call.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_download_all(
+  input_base = "./inputs",
+  input_directories = NULL,
+  simulation_base = "./simulation",
+  simulation_directories = c("parf", "rr"),
+  overwrite = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{input_base}}{Character. Destination for input data. Default:
+\code{"./inputs"}.}
+      \item{\code{input_directories}}{Character vector. Input subdirectories to
+download. \code{NULL} = all.}
+      \item{\code{simulation_base}}{Character. Destination for simulation data.
+Default: \code{"./simulation"}.}
+      \item{\code{simulation_directories}}{Character vector. Simulation archive
+prefixes to download. Default: \code{c("parf", "rr")}.}
+      \item{\code{overwrite}}{Logical. Overwrite existing directories? Default:
+\code{FALSE}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    This is a convenience method that combines
+\code{zenodo_download_inputs()} and
+\code{zenodo_download_PARFs_RRs()} into a single operation.
+
+\strong{Typical use case:} A new team member setting up their
+environment for the first time. One call downloads everything
+needed to run the simulation.
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{# New team member setup — download everything
+IMPACTncd$zenodo_connect(
+  concept_doi = "10.5281/zenodo.XXXXXXX"
+)
+IMPACTncd$zenodo_download_all()
+
+# Force re-download everything
+IMPACTncd$zenodo_download_all(overwrite = TRUE)
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_upload_inputs"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_upload_inputs}{}}}
+\subsection{\code{Simulation$zenodo_upload_inputs()}}{
+  Create zip archives of input directories and upload
+them to Zenodo.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_upload_inputs(
+  input_base = "./inputs",
+  directories = NULL,
+  version = NULL,
+  title = NULL,
+  description = NULL,
+  creators = NULL,
+  keywords = c("microsimulation", "health", "IMPACTncd", "England", "NCD"),
+  license = "cc-by-sa-4.0",
+  publisher = "Zenodo",
+  exclude_patterns = c("^unprocessed$", "_backup$", "_old$", "scripts$", "validation$",
+    "^RR$"),
+  exclude_file_patterns = c("\\\\.R$", "\\\\.Rmd$"),
+  group_by_prefix = TRUE,
+  compression_level = 6L,
+  multicore = TRUE,
+  n_cores = self$design$sim_prm$clusternumber,
+  update_gitignore = TRUE,
+  publish = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{input_base}}{Character. Path to the base directory containing
+input subdirectories. Default: \code{"./inputs"}.}
+      \item{\code{directories}}{Character vector. Specific subdirectories to
+upload. If \code{NULL} (default), uploads all subdirectories in
+\code{input_base}.}
+      \item{\code{version}}{Character. Version string for the upload (e.g.
+\code{"1.0.0"}). Required for creating new versions of existing
+records. For first-time uploads, defaults to \code{"1.0.0"} if
+not specified.}
+      \item{\code{title}}{Character. Record title (required for new records).}
+      \item{\code{description}}{Character. Record description (required for new
+records).}
+      \item{\code{creators}}{List of lists. Each inner list must have
+\code{firstname} and \code{lastname}, and optionally \code{orcid}.
+Required for new records.}
+      \item{\code{keywords}}{Character vector. Metadata keywords for
+discoverability. Default: \code{c("microsimulation", "health",
+"IMPACTncd", "England", "NCD")}.}
+      \item{\code{license}}{Character. SPDX license identifier. Default:
+\code{"cc-by-sa-4.0"} (Creative Commons Attribution-ShareAlike).}
+      \item{\code{publisher}}{Character. Publisher name (required by Zenodo for
+DOI registration). Default: \code{"Zenodo"}.}
+      \item{\code{exclude_patterns}}{Character vector of regex patterns for
+directories to skip. Default: \code{c("^unprocessed$", "_backup$",
+"_old$", "scripts$", "validation$")}.}
+      \item{\code{exclude_file_patterns}}{Character vector of regex patterns for
+files to skip. Default: \code{c("\\.R$", "\\.Rmd$")}.}
+      \item{\code{group_by_prefix}}{Logical. Group subdirectories by shared
+prefix into combined archives. Default: \code{TRUE}.}
+      \item{\code{compression_level}}{Integer 0-9. Zip compression level (0 =
+store only, 9 = maximum compression). Default: \code{6}.}
+      \item{\code{multicore}}{Logical. Create archives in parallel using PSOCK
+clusters. Default: \code{TRUE}.}
+      \item{\code{n_cores}}{Integer. Number of CPU cores for parallel archive
+creation. Default: \code{clusternumber} from the simulation design
+YAML.}
+      \item{\code{update_gitignore}}{Logical. Automatically add archived data files
+to \code{.gitignore} and remove any already-tracked data files from
+the git index (\code{git rm --cached}). Files are kept on disk —
+only git tracking is removed. Default: \code{TRUE}.}
+      \item{\code{publish}}{Logical. If \code{TRUE}, publish the record
+immediately after upload. \strong{WARNING: publishing is
+IRREVERSIBLE} — the DOI becomes permanent and files cannot be
+modified. Default: \code{FALSE}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    This method handles the complete upload pipeline:
+\enumerate{
+\item Creates zip archives from your input directories
+\item Creates a new Zenodo record (first time) or a new version
+(subsequent times)
+\item Uploads all archives to the record
+\item Optionally publishes the record
+}
+
+\strong{First-time upload (new record):}
+When no concept DOI has been set (i.e. you did not pass one to
+\code{zenodo_connect()}), you \emph{must} provide \code{title},
+\code{description}, and \code{creators}. A new Zenodo deposit is
+created in DRAFT state. Review it on the Zenodo website before
+publishing with \code{zenodo_publish()}.
+
+\strong{Subsequent uploads (new version):}
+If a concept DOI is already set (from \code{zenodo_connect()}),
+provide a \code{version} string (e.g. \code{"1.1.0"}) and a new
+version of the existing record is created automatically.
+
+\strong{Archive creation parameters:}
+\itemize{
+\item \code{exclude_patterns}: Regex patterns to skip entire
+\emph{directories}. For example, \code{"^unprocessed$"} skips a
+directory named exactly "unprocessed".
+\item \code{exclude_file_patterns}: Regex patterns to skip
+\emph{individual files}. For example, \code{"\\.R$"} skips all
+R scripts.
+\item \code{group_by_prefix}: When \code{TRUE} (default),
+subdirectories sharing a common prefix are combined into a single
+archive. For example, \code{disease_burden/cancer_2020/} and
+\code{disease_burden/cancer_2021/} become
+\code{disease_burden_cancer.zip}.
+\item \code{multicore}: When \code{TRUE} (default), archives are
+created in parallel using PSOCK clusters (safe on all platforms).
+}
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{# --- First-time upload (creates new record) ---
+IMPACTncd$zenodo_connect(
+  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+  sandbox = TRUE,
+  concept_doi = NULL  # no existing record
+)
+IMPACTncd$zenodo_upload_inputs(
+  title       = "IMPACTncd England Input Data",
+  description = "Input data for IMPACTncd England microsimulation",
+  creators    = list(
+    list(firstname = "Chris", lastname = "Kypridemos",
+         orcid = "0000-0002-0746-9229")
+  ),
+  version     = "1.0.0"
+)
+# Review the draft on Zenodo, then:
+IMPACTncd$zenodo_publish()
+
+# --- Subsequent upload (new version) ---
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_upload_inputs(version = "1.1.0")
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_upload_simulation"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_upload_simulation}{}}}
+\subsection{\code{Simulation$zenodo_upload_simulation()}}{
+  Upload simulation output archives (PARF, RR files) to
+the current Zenodo record.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_upload_simulation(
+  simulation_base = "./simulation",
+  directories = c("parf", "rr"),
+  exclude_file_patterns = c("\\\\.R$", "\\\\.csv$"),
+  group_by_prefix = TRUE,
+  compression_level = 6L,
+  multicore = TRUE,
+  n_cores = self$design$sim_prm$clusternumber,
+  update_gitignore = TRUE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{simulation_base}}{Character. Path to the simulation output
+directory. Default: \code{"./simulation"}.}
+      \item{\code{directories}}{Character vector. Subdirectories to archive and
+upload. Default: \code{c("parf", "rr")}.}
+      \item{\code{exclude_file_patterns}}{Character vector of regex patterns for
+files to skip. Default: \code{c("\\.R$", "\\.csv$")}.}
+      \item{\code{group_by_prefix}}{Logical. Group subdirectories by prefix.
+Default: \code{TRUE}.}
+      \item{\code{compression_level}}{Integer 0-9. Zip compression level.
+Default: \code{6}.}
+      \item{\code{multicore}}{Logical. Create archives in parallel. Default:
+\code{TRUE}.}
+      \item{\code{n_cores}}{Integer. Number of CPU cores. Default:
+\code{clusternumber} from the simulation design YAML.}
+      \item{\code{update_gitignore}}{Logical. Auto-update \code{.gitignore} and
+remove tracked data files from git index. Default: \code{TRUE}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    This method archives and uploads simulation-generated files
+(Population Attributable Risk Fractions and compiled Relative Risk
+tables) to the \emph{same} Zenodo record used for input data. Call
+this \strong{after} \code{zenodo_upload_inputs()} so that a record
+already exists.
+
+These files live under \code{./simulation/} rather than
+\code{./inputs/}, and use different default exclusion patterns
+(e.g. CSV manifest files are excluded).
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{# Upload inputs first, then simulation outputs
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_upload_inputs(version = "1.0.0", title = "...",
+  description = "...", creators = list(...))
+IMPACTncd$zenodo_upload_simulation()
+IMPACTncd$zenodo_publish()
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_upload_all"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_upload_all}{}}}
+\subsection{\code{Simulation$zenodo_upload_all()}}{
+  Upload both input data and simulation outputs to
+Zenodo in a single call.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_upload_all(
+  input_base = "./inputs",
+  input_directories = NULL,
+  simulation_base = "./simulation",
+  simulation_directories = c("parf", "rr"),
+  version = NULL,
+  title = NULL,
+  description = NULL,
+  creators = NULL,
+  keywords = c("microsimulation", "health", "IMPACTncd", "England", "NCD"),
+  license = "cc-by-sa-4.0",
+  publisher = "Zenodo",
+  exclude_patterns = c("^unprocessed$", "_backup$", "_old$", "scripts$", "validation$",
+    "^RR$"),
+  input_exclude_file_patterns = c("\\\\.R$", "\\\\.Rmd$"),
+  simulation_exclude_file_patterns = c("\\\\.R$", "\\\\.csv$"),
+  group_by_prefix = TRUE,
+  compression_level = 6L,
+  multicore = TRUE,
+  n_cores = self$design$sim_prm$clusternumber,
+  update_gitignore = TRUE,
+  publish = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{input_base}}{Character. Path to input directory. Default:
+\code{"./inputs"}.}
+      \item{\code{input_directories}}{Character vector. Input subdirectories.
+\code{NULL} = all.}
+      \item{\code{simulation_base}}{Character. Path to simulation output
+directory. Default: \code{"./simulation"}.}
+      \item{\code{simulation_directories}}{Character vector. Simulation
+subdirectories. Default: \code{c("parf", "rr")}.}
+      \item{\code{version}}{Character. Version string (e.g. \code{"1.0.0"}).}
+      \item{\code{title}}{Character. Record title (required for new records).}
+      \item{\code{description}}{Character. Record description (required for new
+records).}
+      \item{\code{creators}}{List of lists with creator metadata (required for
+new records).}
+      \item{\code{keywords}}{Character vector. Default:
+\code{c("microsimulation", "health", "IMPACTncd", "England",
+"NCD")}.}
+      \item{\code{license}}{Character. SPDX license ID. Default:
+\code{"cc-by-sa-4.0"}.}
+      \item{\code{publisher}}{Character. Default: \code{"Zenodo"}.}
+      \item{\code{exclude_patterns}}{Character vector. Directory exclusion
+patterns for inputs. Default:
+\code{c("^unprocessed$", "_backup$", "_old$", "scripts$",
+"validation$", "^RR$")}. \code{^RR$} excludes
+\code{inputs/RR/} because the source CSVY files are tracked in
+git rather than uploaded to Zenodo.}
+      \item{\code{input_exclude_file_patterns}}{Character vector. File exclusion
+patterns for inputs. Default: \code{c("\\.R$", "\\.Rmd$")}.}
+      \item{\code{simulation_exclude_file_patterns}}{Character vector. File
+exclusion patterns for simulation archives. Default:
+\code{c("\\.R$", "\\.csv$")}.}
+      \item{\code{group_by_prefix}}{Logical. Default: \code{TRUE}.}
+      \item{\code{compression_level}}{Integer 0-9. Default: \code{6}.}
+      \item{\code{multicore}}{Logical. Default: \code{TRUE}.}
+      \item{\code{n_cores}}{Integer. Default: \code{clusternumber} from YAML.}
+      \item{\code{update_gitignore}}{Logical. Auto-update \code{.gitignore} and
+remove tracked data files from git index. Default: \code{TRUE}.}
+      \item{\code{publish}}{Logical. Publish after upload? Default: \code{FALSE}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    This is a convenience method that combines
+\code{zenodo_upload_inputs()} and \code{zenodo_upload_simulation()}
+into a single operation. It:
+\enumerate{
+\item Creates and uploads input archives (from \code{./inputs/})
+\item Creates and uploads simulation archives (from
+\code{./simulation/parf/} and \code{./simulation/rr/})
+\item Optionally publishes the record
+}
+
+This mirrors the complete workflow demonstrated in the test script.
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{# Complete first-time upload of everything
+IMPACTncd$zenodo_connect(
+  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+  sandbox = TRUE,
+  concept_doi = NULL
+)
+IMPACTncd$zenodo_upload_all(
+  title       = "IMPACTncd England Input Data",
+  description = "All input and simulation data for IMPACTncd England",
+  creators    = list(
+    list(firstname = "Chris", lastname = "Kypridemos",
+         orcid = "0000-0002-0746-9229")
+  ),
+  version = "1.0.0"
+)
+
+# Verify what was uploaded
+IMPACTncd$zenodo_list_files()
+
+# Publish when satisfied
+IMPACTncd$zenodo_publish()
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_publish"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_publish}{}}}
+\subsection{\code{Simulation$zenodo_publish()}}{
+  Publish the current Zenodo record draft.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_publish()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    \strong{CAUTION: Publishing is IRREVERSIBLE.} Once published:
+\itemize{
+\item The DOI becomes permanent and publicly resolvable
+\item Files in this version \strong{cannot} be modified
+\item The record appears in search results and is citable
+}
+
+You can still create \emph{new versions} of a published record by
+calling \code{zenodo_upload_inputs(version = "2.0.0")}. Each version
+gets its own DOI, but they all share the concept DOI.
+
+Always review the draft on the Zenodo website before publishing.
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_upload_inputs(...)
+# Review the draft at Zenodo, then:
+IMPACTncd$zenodo_publish()
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_list_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_list_files}{}}}
+\subsection{\code{Simulation$zenodo_list_files()}}{
+  List all files in the current Zenodo record.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_list_files(concept_doi = NULL)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{concept_doi}}{Character. Optional concept DOI. If \code{NULL}
+(default), uses the DOI set via \code{zenodo_connect()}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    Returns a \code{data.table} with one row per file, including
+filename, size, and checksum. Useful for verifying that uploads
+completed successfully.
+
+Works with both published records and drafts (uses a direct API
+fallback for drafts where zen4R's built-in method may return
+empty results).
+  }
+  \subsection{Returns}{
+    A \code{data.table} with file metadata (key, size, checksum,
+etc.).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_list_files()
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_get_versions"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_get_versions}{}}}
+\subsection{\code{Simulation$zenodo_get_versions()}}{
+  Get the version history of the Zenodo record.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_get_versions()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    Returns a data.frame listing all published versions of the record,
+including each version's DOI, version label, and publication date.
+Useful for auditing which data versions have been published.
+  }
+  \subsection{Returns}{
+    A \code{data.frame} with version information.
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_get_versions()
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_create_archives"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_create_archives}{}}}
+\subsection{\code{Simulation$zenodo_create_archives()}}{
+  Create zip archives from input directories without
+uploading them.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_create_archives(
+  input_base = "./inputs",
+  directories = NULL,
+  exclude_patterns = c("^unprocessed$", "_backup$", "_old$", "scripts$", "validation$",
+    "^RR$"),
+  exclude_file_patterns = c("\\\\.R$", "\\\\.Rmd$"),
+  group_by_prefix = TRUE,
+  compression_level = 6L,
+  multicore = TRUE,
+  n_cores = self$design$sim_prm$clusternumber,
+  update_gitignore = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{input_base}}{Character. Path to the base directory containing
+input subdirectories. Default: \code{"./inputs"}.}
+      \item{\code{directories}}{Character vector. Specific subdirectories.
+If \code{NULL} (default), processes all.}
+      \item{\code{exclude_patterns}}{Character vector. Directory exclusion
+patterns. Default: \code{c("^unprocessed$", "_backup$", "_old$",
+"scripts$", "validation$")}.}
+      \item{\code{exclude_file_patterns}}{Character vector. File exclusion
+patterns. Default: \code{c("\\.R$", "\\.Rmd$")}.}
+      \item{\code{group_by_prefix}}{Logical. Default: \code{TRUE}.}
+      \item{\code{compression_level}}{Integer 0-9. Default: \code{6}.}
+      \item{\code{multicore}}{Logical. Default: \code{TRUE}.}
+      \item{\code{n_cores}}{Integer. Default: \code{clusternumber} from YAML.}
+      \item{\code{update_gitignore}}{Logical. Default: \code{FALSE} (unlike
+\code{zenodo_upload_inputs()}, since this is a preview step).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    Creates archives exactly as \code{zenodo_upload_inputs()} would,
+but stops before uploading. This lets you inspect archive sizes
+and contents before committing to an upload. Archives are saved
+to \code{archive_dir} (set in \code{zenodo_connect()}, or
+\code{tempdir()} by default).
+
+Does not require a Zenodo connection — only needs the simulation
+design to be loaded (for \code{n_cores} default).
+  }
+  \subsection{Returns}{
+    A \code{data.table} with archive metadata: path, size,
+file count, source hash.
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{# Preview what would be created
+archives <- IMPACTncd$zenodo_create_archives()
+print(archives[, .(archive = basename(archive_path),
+                    size_mb = round(size_bytes / 1024^2, 1),
+                    files = file_count)])
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_create_manifest"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_create_manifest}{}}}
+\subsection{\code{Simulation$zenodo_create_manifest()}}{
+  Create a hash manifest of local input files.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_create_manifest(input_base = "./inputs", save = TRUE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{input_base}}{Character. Path to the input directory. Default:
+\code{"./inputs"}.}
+      \item{\code{save}}{Logical. If \code{TRUE} (default), save the manifest
+to \code{./simulation/zenodo_manifest.csv}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    Scans \code{input_base} recursively and computes an xxhash64
+checksum for every file. The resulting manifest can be saved to
+disk and later used to detect which files have changed.
+
+This is a local operation — it does not require a Zenodo
+connection.
+  }
+  \subsection{Returns}{
+    A \code{data.table} with columns: \code{relative_path},
+\code{hash}, \code{size_bytes}, \code{mtime}.
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{manifest <- IMPACTncd$zenodo_create_manifest()
+print(manifest)
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-print"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-print}{}}}
+\subsection{\code{Simulation$print()}}{
+  Prints the simulation object metadata.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$print()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-allow_universal_output_folder_access"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-allow_universal_output_folder_access}{}}}
+\subsection{\code{Simulation$allow_universal_output_folder_access()}}{
+  Make output folder available to all users (Linux specific).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$allow_universal_output_folder_access()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-allow_universal_synthpop_folder_access"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-allow_universal_synthpop_folder_access}{}}}
+\subsection{\code{Simulation$allow_universal_synthpop_folder_access()}}{
+  Make synthpop folder available to all users (Linux specific).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$allow_universal_synthpop_folder_access()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-update_output_path"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-update_output_path}{}}}
+\subsection{\code{Simulation$update_output_path()}}{
+  Updates the output path.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$update_output_path(new_path, carry_over_lifecourse_files_from)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{new_path}}{A string with the new output path (absolute).}
+      \item{\code{carry_over_lifecourse_files_from}}{A string with a previous output
+path (absolute) from which the lifecourse files will be copied to the
+new output folder defined in new_path argument. Overwritting is not
+allowed. If missing, no copy occurs.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-update_synthpop_path"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-update_synthpop_path}{}}}
+\subsection{\code{Simulation$update_synthpop_path()}}{
+  Updates the synthpop path.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$update_synthpop_path(new_path)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{new_path}}{A string with the new synthpop path (absolute).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-clone}{}}}
+\subsection{\code{Simulation$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 }

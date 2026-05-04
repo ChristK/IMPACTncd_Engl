@@ -6,9 +6,6 @@
 \alias{IMPACTncdEngland}
 \alias{.datatable.aware}
 \title{IMPACTncdEngland: A package with functions for the IMPACTncdEngland model.}
-\format{
-An object of class \code{logical} of length 1.
-}
 \usage{
 .datatable.aware
 }
@@ -18,4 +15,3 @@ Description of your package.
 \author{
 Chris Kypridemos
 }
-\keyword{datasets}

@@ -177,7 +177,6 @@ Exposure <-
       #' @return A new Exposure object
       #'
       #' @examples
-      #' \dontrun{
       #' # Ordinal
       #' income_exp <- Exposure$new("income", "income",
       #'                            var_name = "income", rank_var = "rank_income",
@@ -189,7 +188,6 @@ Exposure <-
       #'                         distribution = "continuous",
       #'                         qfun = "my_qBCPEo",
       #'                         qparams = c("mu", "sigma", "nu", "tau"))
-      #' }
       # initialize ----
       initialize = function(
         name,
@@ -284,7 +282,6 @@ Exposure <-
       #' @return Self (invisibly) for method chaining
       #'
       #' @examples
-      #' \dontrun{
       #' # Ordinal exposure
       #' Exposure$new("income", "income",
       #'              var_name = "income", rank_var = "rank_income",
@@ -299,7 +296,6 @@ Exposure <-
       #'              qfun = "my_qBCPEo",
       #'              qparams = c("mu", "sigma", "nu", "tau"))$
       #'   generate(pop, design)
-      #' }
       # generate ----
       generate = function(pop, design, idx) {
         # Log message
@@ -446,11 +442,9 @@ Exposure <-
       #' @return Self (invisibly) for method chaining
       #'
       #' @examples
-      #' \dontrun{
       #' Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
       #'     p[, income := factor(income, levels = 1:5)]
       #'   })
-      #' }
       # transform ----
       transform = function(pop, transform_fn) {
         transform_fn(pop)

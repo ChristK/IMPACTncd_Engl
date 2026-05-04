@@ -3,114 +3,164 @@
 \name{Disease}
 \alias{Disease}
 \title{R6 Class representing a disease}
-\arguments{
-\item{name}{A string with disease name.}
-
-\item{friendly_name}{A string with disease friendly name.}
-
-\item{RR}{A list of exposure objects.}
-
-\item{meta}{A list with the disease type and other information for
-incidence, diagnosis, and mortality.}
-
-\item{notes}{A string with any notes.}
-
-\item{bUpdateExistingDiseaseSnapshot}{Logical. Update existing disease PARF and snapshot files as necessary (default: TRUE).}
-
-\item{diseases_}{A list of Disease objects.}
-
-\item{popsize}{Integer. The population size for each stratum (default: 100).}
-
-\item{check}{Logical. If TRUE, check for NAs in parf_dt (default: design_$sim_prm$logs).}
-
-\item{keep_intermediate_file}{Logical. Whether to keep the intermediate synthpop file (default: TRUE).}
-
-\item{checkNAs}{Logical. If \code{TRUE}, prints the table of NAs before they get
-overwritten with 1. Note that for some exposures, NAs are expected
-for certain levels of exposure (e.g., for active days).}
-
-\item{forPARF}{Logical. Set TRUE when applied on the specialized forPARF
-SynthPop (default: FALSE).}
-
-\item{invert}{If TRUE, deletes all other disease-relevant PARF directories
-except the one associated with current settings.}
-
-\item{year_}{Integer vector. Years to return. If missing, returns all years.}
-
-\item{what}{Columns to return (p0, m0, or parf)}
-
-\item{sp}{A synthetic population.}
-
-\item{design_}{A design object with the simulation parameters.}
-
-\item{scenario_name}{A string with the scenario name. Currently is only
-used when kismet == FALSE to generate new seeds for each scenario.}
-
-\item{scenario_suffix}{the suffix to identify columns from different
-scenarios.}
-}
-\value{
-A new \code{Disease} object.
-
-The PARF data.table if it was created, otherwise \code{NULL}.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-The invisible self for chaining.
-
-A data.table with disease incident probabilities unless
-incidence type: Universal when it returns data.table(NULL).
-
-A data.table with duration distribution parameters. unless
-incidence type: Universal when it returns data.table(NULL).
-
-A data.table with disease prevalent probabilities unless
-incidence type: Universal when it returns data.table(NULL).
-
-A data.table with disease case fatality probabilities, or data.table(NULL)
-for non-fatal diseases.
-
-Integer. A seed for the RNG produced by hashing the disease name.
-
-A list of exposure objects.
-
-The invisible self for chaining.
-
-A data.table with PARF.
-
-A data.table with PARF.
-
-The invisible self for chaining.
-
-A list.
-
-The invisible self for chaining.
-}
 \description{
 The \code{Disease} class manages disease-specific parameters, incidence, prevalence,
 mortality, diagnosis, and risk factor associations for the IMPACTncd simulation.
+}
+\details{
+Each Disease object contains:
+\itemize{
+\item Disease metadata (name, type, friendly name)
+\item Epidemiological data (incidence, prevalence, case fatality)
+\item Risk factor associations and relative risks
+\item Population attributable risk fractions (PARF)
+\item Methods for calculating disease probabilities and progression
+}
+}
+\section{Public fields}{
+  \if{html}{\out{<div class="r6-fields">}}
+  \describe{
+    \item{\code{name}}{The name of the disease.}
 
-Create a new disease object.
+    \item{\code{friendly_name}}{A friendly name for the disease.}
 
-Generates Population Attributable Risk Fraction (PARF) and stores it to disk if one does not
+    \item{\code{meta}}{Disease metadata including type.}
+
+    \item{\code{notes}}{Any notes regarding the disease.}
+  }
+  \if{html}{\out{</div>}}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-Disease-initialize}{\code{Disease$new()}}
+    \item \href{#method-Disease-gen_parf_files}{\code{Disease$gen_parf_files()}}
+    \item \href{#method-Disease-gen_parf}{\code{Disease$gen_parf()}}
+    \item \href{#method-Disease-set_init_prvl}{\code{Disease$set_init_prvl()}}
+    \item \href{#method-Disease-set_rr}{\code{Disease$set_rr()}}
+    \item \href{#method-Disease-set_incd_prb}{\code{Disease$set_incd_prb()}}
+    \item \href{#method-Disease-set_dgns_prb}{\code{Disease$set_dgns_prb()}}
+    \item \href{#method-Disease-set_mrtl_prb}{\code{Disease$set_mrtl_prb()}}
+    \item \href{#method-Disease-calibrate_incd_prb}{\code{Disease$calibrate_incd_prb()}}
+    \item \href{#method-Disease-del_parf_file}{\code{Disease$del_parf_file()}}
+    \item \href{#method-Disease-get_incd}{\code{Disease$get_incd()}}
+    \item \href{#method-Disease-get_dur}{\code{Disease$get_dur()}}
+    \item \href{#method-Disease-get_prvl}{\code{Disease$get_prvl()}}
+    \item \href{#method-Disease-get_ftlt}{\code{Disease$get_ftlt()}}
+    \item \href{#method-Disease-get_seed}{\code{Disease$get_seed()}}
+    \item \href{#method-Disease-get_rr}{\code{Disease$get_rr()}}
+    \item \href{#method-Disease-del_stochastic_effect}{\code{Disease$del_stochastic_effect()}}
+    \item \href{#method-Disease-get_parf}{\code{Disease$get_parf()}}
+    \item \href{#method-Disease-get_parf_filename}{\code{Disease$get_parf_filename()}}
+    \item \href{#method-Disease-harmonise_epi_tables}{\code{Disease$harmonise_epi_tables()}}
+    \item \href{#method-Disease-to_cpp}{\code{Disease$to_cpp()}}
+    \item \href{#method-Disease-print}{\code{Disease$print()}}
+    \item \href{#method-Disease-clone}{\code{Disease$clone()}}
+  }
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-initialize}{}}}
+\subsection{\code{Disease$new()}}{
+  Create a new disease object.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$new(name, friendly_name, meta, notes = NA_character_, design_, RR)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{name}}{A string with disease name.}
+      \item{\code{friendly_name}}{A string with disease friendly name.}
+      \item{\code{meta}}{A list with the disease type and other information for
+incidence, diagnosis, and mortality.}
+      \item{\code{notes}}{A string with any notes.}
+      \item{\code{design_}}{A design object with the simulation parameters.}
+      \item{\code{RR}}{A list of exposure objects.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A new \code{Disease} object.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-gen_parf_files"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-gen_parf_files}{}}}
+\subsection{\code{Disease$gen_parf_files()}}{
+  Generates Population Attributable Risk Fraction (PARF) and stores it to disk if one does not
 exist already.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$gen_parf_files(
+  design_ = design,
+  diseases_ = diseases,
+  popsize = 100,
+  check = design_$sim_prm$logs,
+  keep_intermediate_file = TRUE,
+  bUpdateExistingDiseaseSnapshot = TRUE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{design_}}{A Design object with the simulation parameters.}
+      \item{\code{diseases_}}{A list of Disease objects.}
+      \item{\code{popsize}}{Integer. The population size for each stratum (default: 100).}
+      \item{\code{check}}{Logical. If TRUE, check for NAs in parf_dt (default: design_$sim_prm$logs).}
+      \item{\code{keep_intermediate_file}}{Logical. Whether to keep the intermediate synthpop file (default: TRUE).}
+      \item{\code{bUpdateExistingDiseaseSnapshot}}{Logical. Update existing disease PARF and snapshot files as necessary (default: TRUE).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The PARF data.table if it was created, otherwise \code{NULL}.
+  }
+}
 
-Read Population Attributable Risk Fraction (PARF) file from disk. If missing, generates PARF and
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-gen_parf"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-gen_parf}{}}}
+\subsection{\code{Disease$gen_parf()}}{
+  Read Population Attributable Risk Fraction (PARF) file from disk. If missing, generates PARF and
 writes it to disk.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$gen_parf(
+  sp = sp,
+  design_ = design,
+  diseases_ = diseases,
+  popsize = 100,
+  check = design_$sim_prm$logs,
+  keep_intermediate_file = TRUE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A SynthPop object containing the synthetic population.}
+      \item{\code{design_}}{A Design object with the simulation parameters.}
+      \item{\code{diseases_}}{A list of Disease objects.}
+      \item{\code{popsize}}{Integer. The population size for each stratum (default: 100).}
+      \item{\code{check}}{Logical. If TRUE, check for NAs in parf_dt (default: design_$sim_prm$logs).}
+      \item{\code{keep_intermediate_file}}{Logical. Whether to keep the intermediate synthpop file (default: TRUE).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
 
-Set initial disease prevalence and diagnosis at year ==
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-set_init_prvl"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_init_prvl}{}}}
+\subsection{\code{Disease$set_init_prvl()}}{
+  Set initial disease prevalence and diagnosis at year ==
 \code{init_year} for each simulant.
 
 For incidence types greater than 0, this method evaluates initial
@@ -148,65 +198,436 @@ The buffer is skipped for incidence type 0 (composite diseases
 whose initial prevalence is just zero) and degrades gracefully if
 \code{sp$pop} does not contain a row at year == \code{init_year - 1}.
 
-Calculate and set relative risks (RR) from exposures for disease incidence.
+\strong{New-entrant edge case}: simulants who enter the simulation at
+year == \code{init_year} (\code{pid_mrk == TRUE} at that row, with no row at
+year == \code{init_year - 1}) have no prior state to draw from, so the
+buffer's per-pid join finds no match for them and their year ==
+\code{init_year} row keeps whatever the scenario set. For type > 1
+diseases this is rarely visible because the prevalence table at
+\code{ageL} is near zero for major NCDs; for type 1 (exposure-
+thresholded) diseases such as \code{obesity}, scenarios that push
+exposures across the threshold \emph{will} shift init_prvl for these
+new entrants. This is the only case where year == \code{init_year}
+scenario edits leak into init_prvl, and it is intrinsic to the
+model: a brand-new simulant has no "year before" to defer to.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$set_init_prvl(sp, design_ = design)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A SynthPop object containing the synthetic population.}
+      \item{\code{design_}}{A Design object with the simulation parameters.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
 
-Calculate and set disease incidence probability in a new column in sp$pop.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-set_rr"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_rr}{}}}
+\subsection{\code{Disease$set_rr()}}{
+  Calculate and set relative risks (RR) from exposures for disease incidence.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$set_rr(
+  sp,
+  design_ = design,
+  checkNAs = design_$sim_prm$logs,
+  forPARF = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A SynthPop object containing the synthetic population.}
+      \item{\code{design_}}{A Design object with the simulation parameters.}
+      \item{\code{checkNAs}}{Logical. If \code{TRUE}, prints the table of NAs before they get
+overwritten with 1. Note that for some exposures, NAs are expected
+for certain levels of exposure (e.g., for active days).}
+      \item{\code{forPARF}}{Logical. Set TRUE when applied on the specialized forPARF
+SynthPop (default: FALSE).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
 
-Calculate and set disease diagnosis probability in a new column in sp$pop.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-set_incd_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_incd_prb}{}}}
+\subsection{\code{Disease$set_incd_prb()}}{
+  Calculate and set disease incidence probability in a new column in sp$pop.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$set_incd_prb(sp, design_ = design)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A SynthPop object containing the synthetic population.}
+      \item{\code{design_}}{A Design object with the simulation parameters.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
 
-Calculate and set disease case fatality probability when relevant, in a new column in
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-set_dgns_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_dgns_prb}{}}}
+\subsection{\code{Disease$set_dgns_prb()}}{
+  Calculate and set disease diagnosis probability in a new column in sp$pop.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$set_dgns_prb(sp, design_ = design)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A SynthPop object containing the synthetic population.}
+      \item{\code{design_}}{A Design object with the simulation parameters.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-set_mrtl_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-set_mrtl_prb}{}}}
+\subsection{\code{Disease$set_mrtl_prb()}}{
+  Calculate and set disease case fatality probability when relevant, in a new column in
 sp$pop.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$set_mrtl_prb(sp, design_ = design)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A SynthPop object containing the synthetic population.}
+      \item{\code{design_}}{A Design object with the simulation parameters.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
 
-Calibrates baseline incidence probability (p0) to account for additional trends in incidence over time.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-calibrate_incd_prb"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-calibrate_incd_prb}{}}}
+\subsection{\code{Disease$calibrate_incd_prb()}}{
+  Calibrates baseline incidence probability (p0) to account for additional trends in incidence over time.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$calibrate_incd_prb(sp, design_ = design)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A SynthPop object containing the synthetic population.}
+      \item{\code{design_}}{A Design object with the simulation parameters.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
 
-Deletes the PARF file (partitioned parquet directory) from disk.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-del_parf_file"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-del_parf_file}{}}}
+\subsection{\code{Disease$del_parf_file()}}{
+  Deletes the PARF file (partitioned parquet directory) from disk.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$del_parf_file(invert = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{invert}}{If TRUE, deletes all other disease-relevant PARF directories
+except the one associated with current settings.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
 
-Get disease incident probability.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-get_incd"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_incd}{}}}
+\subsection{\code{Disease$get_incd()}}{
+  Get disease incident probability.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$get_incd(year_)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{year_}}{A vector of years to return. All if missing.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A data.table with disease incident probabilities unless
+incidence type: Universal when it returns data.table(NULL).
+  }
+}
 
-Get disease duration distribution parameters.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-get_dur"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_dur}{}}}
+\subsection{\code{Disease$get_dur()}}{
+  Get disease duration distribution parameters.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$get_dur()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A data.table with duration distribution parameters. unless
+incidence type: Universal when it returns data.table(NULL).
+  }
+}
 
-Get disease prevalent probability.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-get_prvl"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_prvl}{}}}
+\subsection{\code{Disease$get_prvl()}}{
+  Get disease prevalent probability.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$get_prvl(year_)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{year_}}{A vector of years to return. All if missing.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A data.table with disease prevalent probabilities unless
+incidence type: Universal when it returns data.table(NULL).
+  }
+}
 
-Get disease case fatality probability data from file.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-get_ftlt"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_ftlt}{}}}
+\subsection{\code{Disease$get_ftlt()}}{
+  Get disease case fatality probability data from file.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$get_ftlt(year_)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{year_}}{Integer vector. Years to return. If missing, returns all years.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A data.table with disease case fatality probabilities, or data.table(NULL)
+for non-fatal diseases.
+  }
+}
 
-Get random number generator seed for this disease.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-get_seed"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_seed}{}}}
+\subsection{\code{Disease$get_seed()}}{
+  Get random number generator seed for this disease.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$get_seed()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer. A seed for the RNG produced by hashing the disease name.
+  }
+}
 
-Get the list of rr for all relevant exposures.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-get_rr"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_rr}{}}}
+\subsection{\code{Disease$get_rr()}}{
+  Get the list of rr for all relevant exposures.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$get_rr()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A list of exposure objects.
+  }
+}
 
-Deletes the stochastic effect files and indices from disk
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-del_stochastic_effect"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-del_stochastic_effect}{}}}
+\subsection{\code{Disease$del_stochastic_effect()}}{
+  Deletes the stochastic effect files and indices from disk
 for all relevant RR.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$del_stochastic_effect()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
 
-Get the PARF by age/sex/dimd/ethnicity/sha.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-get_parf"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_parf}{}}}
+\subsection{\code{Disease$get_parf()}}{
+  Get the PARF by age/sex/dimd/ethnicity/sha.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$get_parf(what)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{what}}{Columns to return (p0, m0, or parf)}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A data.table with PARF.
+  }
+}
 
-Get the PARF filename.
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-get_parf_filename"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-get_parf_filename}{}}}
+\subsection{\code{Disease$get_parf_filename()}}{
+  Get the PARF filename.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$get_parf_filename()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A data.table with PARF.
+  }
+}
 
-Harmonises classes and levels between the synthetic
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-harmonise_epi_tables"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-harmonise_epi_tables}{}}}
+\subsection{\code{Disease$harmonise_epi_tables()}}{
+  Harmonises classes and levels between the synthetic
 population and the incidence/prevalence/fatality tables. It saves the
 harmonised table to disk, overwriting the existing one.
-
-Returns a list to pass to the C++ side for Chris' parser.
-
-Print the simulation parameters.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$harmonise_epi_tables(sp)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A synthetic population.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
 }
-\details{
-Each Disease object contains:
-\itemize{
-\item Disease metadata (name, type, friendly name)
-\item Epidemiological data (incidence, prevalence, case fatality)
-\item Risk factor associations and relative risks
-\item Population attributable risk fractions (PARF)
-\item Methods for calculating disease probabilities and progression
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-to_cpp"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-to_cpp}{}}}
+\subsection{\code{Disease$to_cpp()}}{
+  Returns a list to pass to the C++ side for Chris' parser.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$to_cpp(sp, design_ = design, scenario_name, scenario_suffix = "")}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sp}}{A synthetic population.}
+      \item{\code{design_}}{A design object with the simulation parameters.}
+      \item{\code{scenario_name}}{A string with the scenario name. Currently is only
+used when kismet == FALSE to generate new seeds for each scenario.}
+      \item{\code{scenario_suffix}}{the suffix to identify columns from different
+scenarios.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A list.
+  }
 }
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-print"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-print}{}}}
+\subsection{\code{Disease$print()}}{
+  Print the simulation parameters.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$print()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
 }
-\section{Fields}{
 
-\describe{
-\item{\code{name}}{The name of the disease.}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Disease-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-Disease-clone}{}}}
+\subsection{\code{Disease$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Disease$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
 
-\item{\code{friendly_name}}{A friendly name for the disease.}
-
-\item{\code{meta}}{Disease metadata including type.}
-
-\item{\code{notes}}{Any notes regarding the disease.}
-}}
-
+}

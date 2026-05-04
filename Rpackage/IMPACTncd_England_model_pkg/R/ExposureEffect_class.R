@@ -51,44 +51,6 @@
 #' bmi_chd <- ExposureEffect$new("./inputs/RR/bmi_chd.csvy", design)
 #' ```
 #'
-#' @section Public Fields:
-#' \describe{
-#'   \item{\code{name}}{Character. The name of the exposure (e.g., "bmi", "smoking").}
-#'   \item{\code{outcome}}{Character. The name of the disease outcome the exposure influences.}
-#'   \item{\code{lag}}{Integer. The time lag (in years) between exposure and disease onset.}
-#'   \item{\code{distribution}}{Character. Distribution for Monte Carlo uncertainty ("lognormal" or "normal").}
-#'   \item{\code{source}}{Character. Citation information for the effect size.}
-#'   \item{\code{notes}}{Character. Additional notes regarding the exposure-outcome relationship.}
-#' }
-#'
-#' @section Public Methods:
-#' \describe{
-#'   \item{\code{initialize(file_path, design)}}{Initializes the exposure object from a CSVY file.}
-#'   \item{\code{gen_stochastic_effect(design, overwrite, smooth, ...)}}{Generates stochastic relative risks.}
-#'   \item{\code{del_stochastic_effect(invert)}}{Deletes stochastic effect files from disk.}
-#'   \item{\code{get_rr(mc, design, drop, plot_rr)}}{Retrieves relative risks for a Monte Carlo iteration.}
-#'   \item{\code{clear_cache()}}{Clears the internal cache for relative risks.}
-#'   \item{\code{xps_to_rr(sp, design, checkNAs, forPARF)}}{Applies relative risks to synthetic population.}
-#'   \item{\code{validate_rr()}}{Validates and plots input vs stochastic relative risks.}
-#'   \item{\code{get_input_rr()}}{Returns original input relative risks.}
-#'   \item{\code{get_metadata()}}{Returns metadata from the CSVY file.}
-#'   \item{\code{get_seed()}}{Returns the random seed used for this exposure.}
-#'   \item{\code{write_xps_tmplte_file(file_path)}}{Writes a template exposure file.}
-#'   \item{\code{convert_from_old_format(old_file, metadata, file_path, estimates, second_estimate_is_p)}}{Converts old CSV format to new CSVY format.}
-#'   \item{\code{get_lag(mc)}}{Returns exposure lag for given Monte Carlo iteration.}
-#'   \item{\code{get_ideal_xps_lvl(mc)}}{Returns ideal exposure level for given iteration.}
-#'   \item{\code{get_name()}}{Returns the exposure-outcome combination name.}
-#'   \item{\code{print()}}{Prints exposure information.}
-#' }
-#'
-#' @section Private Methods:
-#' \describe{
-#'   \item{\code{write_xps_prm_file(dt, metadata, file_path)}}{Writes exposure parameter files.}
-#'   \item{\code{stochRRtabl(m, ci, distribution)}}{Generates stochastic relative risks from distributions.}
-#'   \item{\code{generate_rr_l(dt, tt, mc_max, smooth, do_checks, ...)}}{Generates age-specific relative risks with interpolation.}
-#'   \item{\code{ci_from_p_forratio(mean_rr, p)}}{Calculates confidence intervals from p-values.}
-#' }
-#'
 #' @section File Format:
 #' The class expects CSVY files (CSV with YAML header) containing:
 #' \describe{
@@ -206,13 +168,11 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Initialize BMI-CHD exposure relationship
       #' bmi_chd <- ExposureEffect$new("./inputs/RR/bmi_chd.csvy", design)
       #'
       #' # Initialize with smoking exposure
       #' smoking_stroke <- ExposureEffect$new("./inputs/RR/smoking_stroke.csvy", design)
-      #' }
       initialize = function(
         sRelativeRiskByPopulationSubsetForExposureFilePath,
         design
@@ -584,7 +544,6 @@ ExposureEffect <-
       #' exposure-outcome combination and data checksum for versioning.
       #'
       #' @examples
-      #' \dontrun{
       #' # Generate stochastic effects with default settings
       #' bmi_chd$gen_stochastic_effect(design)
       #'
@@ -593,7 +552,6 @@ ExposureEffect <-
       #'
       #' # Generate without smoothing, overwriting existing
       #' smoking_copd$gen_stochastic_effect(design, overwrite = TRUE, smooth = FALSE)
-      #' }
       gen_stochastic_effect = function(
         design_ = design,
         overwrite = FALSE,
@@ -676,13 +634,11 @@ ExposureEffect <-
       #' as a cleanup function to remove outdated versions while preserving current data.
       #'
       #' @examples
-      #' \dontrun{
       #' # Delete current stochastic effects
       #' bmi_chd$del_stochastic_effect()
       #'
       #' # Clean up old versions, keep current
       #' smoking_copd$del_stochastic_effect(invert = TRUE)
-      #' }
       del_stochastic_effect = function(invert = FALSE) {
         stopifnot(is.logical(invert))
 
@@ -730,7 +686,6 @@ ExposureEffect <-
       #' with points showing original data and scattered points showing stochastic variation.
       #'
       #' @examples
-      #' \dontrun{
       #' # Get relative risks for Monte Carlo iteration 1
       #' rr_data <- bmi_chd$get_rr(mc = 1, design)
       #'
@@ -742,7 +697,6 @@ ExposureEffect <-
       #'
       #' # Access from cache (subsequent calls with same mc)
       #' cached_rr <- bmi_chd$get_rr(mc = 1, design)  # Fast access
-      #' }
       get_rr = function(mc, design_ = design, drop = FALSE, plot_rr = FALSE) {
         if (!inherits(design_, "Design"))
           stop("Argument design_ needs to be a Design object.")
@@ -816,13 +770,11 @@ ExposureEffect <-
       #' or when ensuring fresh data access is critical.
       #'
       #' @examples
-      #' \dontrun{
       #' # Clear cache to free memory
       #' bmi_chd$clear_cache()
       #'
       #' # Chain with other operations
       #' exposure$clear_cache()$get_rr(mc = 1, design)
-      #' }
       clear_cache = function() {
         private$cache <- NA
         private$cache_mc <- NA
@@ -866,7 +818,6 @@ ExposureEffect <-
       #' variables by temporarily renaming them.
       #'
       #' @examples
-      #' \dontrun{
       #' # Apply BMI relative risks to population
       #' bmi_chd$xps_to_rr(synthpop, design)
       #'
@@ -878,7 +829,6 @@ ExposureEffect <-
       #'
       #' # Chain with other operations
       #' exposure$gen_stochastic_effect(design)$xps_to_rr(synthpop, design)
-      #' }
 
       xps_to_rr = function(
         sp,
@@ -998,14 +948,12 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Validate after generating stochastic effects
       #' bmi_chd$gen_stochastic_effect(design)
       #' bmi_chd$validate_rr()
       #'
       #' # Quick validation workflow
       #' smoking_copd$gen_stochastic_effect(design, overwrite = TRUE)$validate_rr()
-      #' }
       validate_rr = function() {
         layout(matrix(1:2))
         out <-
@@ -1062,13 +1010,11 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Get original input relative risks
       #' original_rr <- bmi_chd$get_input_rr()
       #'
       #' # Compare with stochastic version
       #' stoch_rr <- bmi_chd$get_rr(mc = 1, design)
-      #' }
       get_input_rr = function() {
         out <- copy(private$input_rr)
         out[, agegroup := NULL]
@@ -1086,10 +1032,8 @@ ExposureEffect <-
       #' @return A character string with the absolute path to the RR CSVY file.
       #'
       #' @examples
-      #' \dontrun{
       #' # Get RR file path for dependency tracking
       #' rr_file <- bmi_chd$get_rr_file_path()
-      #' }
       get_rr_file_path = function() {
         private$xps_prm_file
       },
@@ -1111,7 +1055,6 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Get metadata for inspection
       #' meta <- bmi_chd$get_metadata()
       #' print(meta$source)
@@ -1119,7 +1062,6 @@ ExposureEffect <-
       #' # Check distribution type
       #' if (smoking_copd$get_metadata()$distribution == "lognormal") {
       #'   message("Using lognormal distribution")
-      #' }
       #' }
       get_metadata = function() {
         private$metadata
@@ -1144,7 +1086,6 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Get the seed for reproducibility checks
       #' seed_val <- bmi_chd$get_seed()
       #'
@@ -1152,7 +1093,6 @@ ExposureEffect <-
       #' bmi_seed <- bmi_chd$get_seed()
       #' smoking_seed <- smoking_copd$get_seed()
       #' identical(bmi_seed, smoking_seed)  # Should be FALSE
-      #' }
       get_seed = function() {
         private$seed
       },
@@ -1182,7 +1122,6 @@ ExposureEffect <-
       #' can be customized by replacing placeholder values with actual data.
       #'
       #' @examples
-      #' \dontrun{
       #' # Create template file in default location
       #' exposure$write_xps_tmplte_file()
       #'
@@ -1191,7 +1130,6 @@ ExposureEffect <-
       #'
       #' # Method chaining
       #' exposure$write_xps_tmplte_file()$print()
-      #' }
       write_xps_tmplte_file = function(
         file_path = "./inputs/RR/template.csvy"
       ) {
@@ -1250,7 +1188,6 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Convert existing CSV file
       #' metadata <- list(
       #'   xps_name = "bmi", outcome = "chd", distribution = "lognormal",
@@ -1269,7 +1206,6 @@ ExposureEffect <-
       #'   estimates = c(1.2, 0.05),
       #'   second_estimate_is_p = TRUE
       #' )
-      #' }
       convert_from_old_format = function(
         old_file,
         metadata,
@@ -1390,7 +1326,6 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Get median lag
       #' median_lag <- bmi_chd$get_lag()
       #'
@@ -1400,7 +1335,6 @@ ExposureEffect <-
       #' # Use in conditional logic
       #' if (smoking_copd$get_lag() > 10) {
       #'   message("Long lag exposure")
-      #' }
       #' }
       get_lag = function(mc_) {
         if (missing(mc_) || mc_ == 0) {
@@ -1441,7 +1375,6 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Get mean ideal exposure level
       #' ideal_bmi <- bmi_chd$get_ideal_xps_lvl()
       #'
@@ -1451,7 +1384,6 @@ ExposureEffect <-
       #' # Use in PARF calculations
       #' if (current_exposure > smoking_copd$get_ideal_xps_lvl()) {
       #'   # Calculate attributable risk
-      #' }
       #' }
       get_ideal_xps_lvl = function(mc_) {
         if (missing(mc_) || mc_ == 0) {
@@ -1483,7 +1415,6 @@ ExposureEffect <-
       #' (e.g., "bmi_chd", "smoking_copd", "salt_stroke")
       #'
       #' @examples
-      #' \dontrun{
       #' # Get internal name for file identification
       #' internal_name <- bmi_chd$get_name()
       #'
@@ -1493,7 +1424,6 @@ ExposureEffect <-
       #' # Compare internal names
       #' if (exp1$get_name() == exp2$get_name()) {
       #'   warning("Duplicate exposure-outcome pairs detected")
-      #' }
       #' }
       get_name = function() {
         private$suffix
@@ -1519,13 +1449,11 @@ ExposureEffect <-
       #' }
       #'
       #' @examples
-      #' \dontrun{
       #' # Print exposure information
       #' bmi_chd$print()
       #'
       #' # Print in workflow
       #' smoking_copd$gen_stochastic_effect(design)$print()
-      #' }
       print = function() {
         print(paste0("Exposure name:      ", self$name))
         print(paste0("Outcome influenced: ", self$outcome))

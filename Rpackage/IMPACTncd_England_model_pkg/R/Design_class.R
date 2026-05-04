@@ -101,9 +101,7 @@ Design <-
       #' @return A new `Design` object.
       #'
       #' @examples
-      #' \dontrun{
       #' design <- Design$new("./validation/design_for_trends_validation.yaml")
-      #' }
       # initialize ----
       initialize = function(sim_prm) {
         data_type <- typeof(sim_prm)
