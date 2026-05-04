@@ -307,7 +307,6 @@ ZenodoAssetManager <- R6::R6Class(
     #'   Set to NULL to disable, or TRUE for a default console progress bar.
     #' @return The invisible self for chaining.
     #' @examples
-    #' \dontrun{
     #' # Use default console progress bars
 
     #' manager$set_progress_callback(upload = TRUE, download = TRUE)
@@ -322,7 +321,6 @@ ZenodoAssetManager <- R6::R6Class(
     #'
     #' # Disable progress callbacks
     #' manager$set_progress_callback(upload = NULL, download = NULL)
-    #' }
     set_progress_callback = function(upload = NULL, download = NULL) {
       # Handle upload callback
       if (isTRUE(upload)) {
@@ -704,7 +702,6 @@ ZenodoAssetManager <- R6::R6Class(
     #'   Requires git to be installed and the project to be in a git repository.
     #' @return A data.table with archive information.
     #' @examples
-    #' \dontrun{
     #' # Archive specific directories
     #' manager$create_input_archives(directories = c("mortality", "pop"))
     #'
@@ -723,7 +720,6 @@ ZenodoAssetManager <- R6::R6Class(
     #'
     #' # Auto-update .gitignore with archived files
     #' manager$create_input_archives(update_gitignore = TRUE)
-    #' }
     create_input_archives = function(
       input_base = "./inputs",
       directories = NULL,
@@ -1209,11 +1205,9 @@ ZenodoAssetManager <- R6::R6Class(
     #' @param exclude_file_patterns Regex patterns to exclude files (should match what was used during upload).
     #' @return A data.table showing which archives have changed.
     #' @examples
-    #' \dontrun{
     #' changes <- manager$check_source_changes("./inputs")
     #' # Only re-archive and upload changed directories
     #' changed_dirs <- changes[changed == TRUE, directory]
-    #' }
     check_source_changes = function(
       input_base = "./inputs",
       exclude_file_patterns = "\\.R$"
@@ -1633,6 +1627,13 @@ ZenodoAssetManager <- R6::R6Class(
     #' @param action Action to perform: "check", "download", "upload".
     #' @param overwrite Overwrite local files when downloading.
     #' @param version Version for new uploads.
+    #' @param exclude_archive_patterns Optional regex (or vector of regexes)
+    #'   matched against remote filenames; matches are excluded from the
+    #'   sync. Useful for skipping simulation-output archives stored in the
+    #'   same record. Default `NULL` (no exclusion).
+    #' @param ... Additional arguments forwarded to the underlying
+    #'   `sync_upload()`, `sync_download()`, or `sync_check()` private
+    #'   helpers (e.g. parallel hashing options).
     #' @return Sync status information.
     sync_inputs = function(
       input_base = "./inputs",

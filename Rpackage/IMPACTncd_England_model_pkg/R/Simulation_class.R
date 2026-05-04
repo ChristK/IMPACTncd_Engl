@@ -49,22 +49,13 @@
 #'   policy scenarios. It provides methods for running simulations, calibrating
 #'   disease parameters, and exporting summary statistics including QALYs and costs.
 #'
-#' @section Methods defined in satellite files:
-#' The following public methods are implemented in separate files for maintainability
-#' and added to this class via \code{$set()}:
-#'
-#' \describe{
-#'   \item{\code{calibrate_incd_ftlt(mc, replace = FALSE)}}{
-#'     Calibrates incidence and case fatality rates. See Simulation_class_calibration.R.
-#'   }
-#'   \item{\code{export_summaries(multicore, type, single_year_of_age)}}{
-#'     Exports simulation summaries including prevalence, incidence, mortality,
-#'     life expectancy, QALYs, and costs. See Simulation_class_summaries.R.
-#'   }
-#'   \item{\code{export_tables(baseline_year_for_change_outputs, prbl, comparator_scenario, two_agegrps)}}{
-#'     Exports summary tables for policy analysis. See Simulation_class_tables.R.
-#'   }
-#' }
+#' @section Implementation note:
+#' For maintainability the public methods `calibrate_incd_ftlt()`,
+#' `export_summaries()`, and `export_tables()` (and their private helpers)
+#' are defined in satellite files (`Simulation_class_calibration.R`,
+#' `Simulation_class_summaries.R`, `Simulation_class_tables.R`) and added
+#' to the class via `Simulation$set()`. They appear below in the "Methods"
+#' section like any directly-defined method.
 #'
 #' @section QALY Calculation:
 #' QALYs are calculated using EQ-5D-5L utility values based on:
@@ -1636,7 +1627,6 @@ Simulation <-
       #' @return The invisible \code{Simulation} object (for method chaining).
       #'
       #' @examples
-      #' \dontrun{
       #' # Connect to sandbox for testing
       #' IMPACTncd$zenodo_connect(
       #'   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
@@ -1647,7 +1637,6 @@ Simulation <-
       #' IMPACTncd$zenodo_connect(
       #'   concept_doi = "10.5281/zenodo.XXXXXXX"
       #' )
-      #' }
       #'
       #' @seealso \code{\link{zenodo_upload_inputs}},
       #'   \code{\link{zenodo_download_inputs}},
@@ -1724,10 +1713,8 @@ Simulation <-
       #'   \code{directory}, \code{local_exists}, and \code{size_bytes}.
       #'
       #' @examples
-      #' \dontrun{
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
       #' IMPACTncd$zenodo_check_inputs()
-      #' }
       #'
       #' @seealso \code{\link{zenodo_download_inputs}},
       #'   \code{\link{zenodo_list_files}}
@@ -1769,7 +1756,6 @@ Simulation <-
       #' @return The invisible \code{Simulation} object (for method chaining).
       #'
       #' @examples
-      #' \dontrun{
       #' # Download all missing inputs
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
       #' IMPACTncd$zenodo_download_inputs()
@@ -1779,7 +1765,6 @@ Simulation <-
       #'   directories = c("mortality", "population"),
       #'   overwrite = TRUE
       #' )
-      #' }
       #'
       #' @seealso \code{\link{zenodo_check_inputs}},
       #'   \code{\link{zenodo_connect}}
@@ -1868,7 +1853,6 @@ Simulation <-
       #' @return The invisible \code{Simulation} object (for method chaining).
       #'
       #' @examples
-      #' \dontrun{
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
       #'
       #' # Download missing simulation outputs
@@ -1879,7 +1863,6 @@ Simulation <-
       #'   directories = "parf",
       #'   overwrite   = TRUE
       #' )
-      #' }
       #'
       #' @seealso \code{\link{zenodo_download_inputs}},
       #'   \code{\link{zenodo_download_all}},
@@ -1989,7 +1972,6 @@ Simulation <-
       #' @return The invisible \code{Simulation} object (for method chaining).
       #'
       #' @examples
-      #' \dontrun{
       #' # New team member setup — download everything
       #' IMPACTncd$zenodo_connect(
       #'   concept_doi = "10.5281/zenodo.XXXXXXX"
@@ -1998,7 +1980,6 @@ Simulation <-
       #'
       #' # Force re-download everything
       #' IMPACTncd$zenodo_download_all(overwrite = TRUE)
-      #' }
       #'
       #' @seealso \code{\link{zenodo_download_inputs}},
       #'   \code{\link{zenodo_download_PARFs_RRs}}
@@ -2122,7 +2103,6 @@ Simulation <-
       #' @return The invisible \code{Simulation} object (for method chaining).
       #'
       #' @examples
-      #' \dontrun{
       #' # --- First-time upload (creates new record) ---
       #' IMPACTncd$zenodo_connect(
       #'   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
@@ -2144,7 +2124,6 @@ Simulation <-
       #' # --- Subsequent upload (new version) ---
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
       #' IMPACTncd$zenodo_upload_inputs(version = "1.1.0")
-      #' }
       #'
       #' @seealso \code{\link{zenodo_connect}},
       #'   \code{\link{zenodo_upload_simulation}},
@@ -2294,14 +2273,12 @@ Simulation <-
       #' @return The invisible \code{Simulation} object (for method chaining).
       #'
       #' @examples
-      #' \dontrun{
       #' # Upload inputs first, then simulation outputs
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
       #' IMPACTncd$zenodo_upload_inputs(version = "1.0.0", title = "...",
       #'   description = "...", creators = list(...))
       #' IMPACTncd$zenodo_upload_simulation()
       #' IMPACTncd$zenodo_publish()
-      #' }
       #'
       #' @seealso \code{\link{zenodo_upload_inputs}},
       #'   \code{\link{zenodo_upload_all}}
@@ -2424,7 +2401,6 @@ Simulation <-
       #' @return The invisible \code{Simulation} object (for method chaining).
       #'
       #' @examples
-      #' \dontrun{
       #' # Complete first-time upload of everything
       #' IMPACTncd$zenodo_connect(
       #'   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
@@ -2446,7 +2422,6 @@ Simulation <-
       #'
       #' # Publish when satisfied
       #' IMPACTncd$zenodo_publish()
-      #' }
       #'
       #' @seealso \code{\link{zenodo_upload_inputs}},
       #'   \code{\link{zenodo_upload_simulation}},
@@ -2536,12 +2511,10 @@ Simulation <-
       #' @return The invisible \code{Simulation} object (for method chaining).
       #'
       #' @examples
-      #' \dontrun{
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
       #' IMPACTncd$zenodo_upload_inputs(...)
       #' # Review the draft at Zenodo, then:
       #' IMPACTncd$zenodo_publish()
-      #' }
       #'
       #' @seealso \code{\link{zenodo_upload_inputs}},
       #'   \code{\link{zenodo_connect}}
@@ -2583,10 +2556,8 @@ Simulation <-
       #'   etc.).
       #'
       #' @examples
-      #' \dontrun{
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
       #' IMPACTncd$zenodo_list_files()
-      #' }
       #'
       #' @seealso \code{\link{zenodo_check_inputs}},
       #'   \code{\link{zenodo_connect}}
@@ -2608,10 +2579,8 @@ Simulation <-
       #' @return A \code{data.frame} with version information.
       #'
       #' @examples
-      #' \dontrun{
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
       #' IMPACTncd$zenodo_get_versions()
-      #' }
       #'
       #' @seealso \code{\link{zenodo_connect}}
       zenodo_get_versions = function() {
@@ -2654,13 +2623,11 @@ Simulation <-
       #'   file count, source hash.
       #'
       #' @examples
-      #' \dontrun{
       #' # Preview what would be created
       #' archives <- IMPACTncd$zenodo_create_archives()
       #' print(archives[, .(archive = basename(archive_path),
       #'                     size_mb = round(size_bytes / 1024^2, 1),
       #'                     files = file_count)])
-      #' }
       #'
       #' @seealso \code{\link{zenodo_upload_inputs}}
       zenodo_create_archives = function(
@@ -2708,10 +2675,8 @@ Simulation <-
       #'   \code{hash}, \code{size_bytes}, \code{mtime}.
       #'
       #' @examples
-      #' \dontrun{
       #' manifest <- IMPACTncd$zenodo_create_manifest()
       #' print(manifest)
-      #' }
       #'
       #' @seealso \code{\link{zenodo_upload_inputs}}
       zenodo_create_manifest = function(input_base = "./inputs", save = TRUE) {

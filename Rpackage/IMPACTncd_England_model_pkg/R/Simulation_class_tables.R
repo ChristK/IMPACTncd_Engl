@@ -81,6 +81,30 @@ safe_fquantile_byid <- function(x, q, id, rounding = FALSE) {
 #   esp = list("year", c("year", "sex"), c("year", "dimd"),
 #              c("year", "sex", "dimd"))
 # ))
+#' @description
+#' Export summary tables for policy analysis.
+#'
+#' Builds main, all-cause mortality, disease-characteristics, and exposure
+#' tables from the per-summary `.fst` files produced by
+#' `$export_summaries()`. Outputs are written to `output_dir/tables/`
+#' (or `output_dir/tables2agegrps/` when `two_agegrps = TRUE`).
+#'
+#' @param baseline_year_for_change_outputs Integer. Reference year used for
+#'   computing change-from-baseline columns. Two-digit values (e.g. `19`)
+#'   are auto-promoted to four-digit (`2019`).
+#' @param prbl Numeric vector of probability levels for output quantiles
+#'   (median plus uncertainty bounds). Default
+#'   `c(0.5, 0.025, 0.975, 0.1, 0.9)`.
+#' @param comparator_scenario Character. Name of the scenario used as the
+#'   comparator when computing differences between scenarios.
+#' @param two_agegrps Logical. If `TRUE`, uses a coarser two-age-group
+#'   stratification; otherwise uses the standard age groups.
+#' @param strata Optional named list overriding the default stratification
+#'   configuration. See examples in the file header for shape; passed
+#'   through `private$build_strata_config()`.
+#' @param multicore Logical. If `TRUE`, runs table-building tasks in
+#'   parallel with single-threaded workers; otherwise runs sequentially.
+#' @return The `Simulation` object, invisibly.
 Simulation$set("public", "export_tables", function(
     baseline_year_for_change_outputs = 2019L,
     prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),

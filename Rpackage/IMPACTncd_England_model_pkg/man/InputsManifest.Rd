@@ -3,215 +3,11 @@
 \name{InputsManifest}
 \alias{InputsManifest}
 \title{R6 Class for unified input file tracking and staleness detection}
-\arguments{
-\item{inputs_dir}{Character. Path to inputs directory (default:
-\code{"./inputs"}). Will be normalised internally.}
-
-\item{manifest_path}{Character. Path to the manifest CSV file
-(default: \code{"./simulation/inputs_manifest.csv"}).}
-
-\item{parallel}{Logical. If \code{TRUE}, use a PSOCK cluster for hashing
-(recommended for large input sets).}
-
-\item{n_workers}{Integer. Number of PSOCK workers (default: \code{4L}).}
-
-\item{zenodo_dirs}{Character vector of directory names (relative to
-\code{inputs_dir}) that are managed by Zenodo. Files in these directories
-will have \code{zenodo_managed = TRUE}. Pass \code{NULL} to leave all as \code{FALSE}.}
-
-\item{file_patterns}{Character vector of regex patterns for file
-extensions (same format as \code{generate()}).}
-
-\item{category}{Character. Category name matching a top-level
-subdirectory (e.g., \code{"RR"}, \code{"exposure_distributions"},
-\code{"mortality"}).}
-
-\item{dir_path}{Character. Directory path relative to inputs_dir.}
-
-\item{file_path}{Character. Relative path from inputs_dir.}
-
-\item{design}{A \code{Design} object containing the \code{RR} list whose names
-define the causal structure (e.g., \code{"bmi~chd"}, \code{"chd~hf"}). Pass
-\code{NULL} to skip causal-structure-based invalidation (only category
-mapping will be used).}
-
-\item{dirs}{Character vector of directory names relative to
-\code{inputs_dir} (e.g., \code{c("RR", "exposure_distributions", "disease_burden")}).}
-
-\item{path}{Character. Path to the artifact file to verify.}
-
-\item{algo}{Character. Hash algorithm (default: \code{"xxhash64"}). Must
-match the algorithm used when the artifact was created.}
-}
-\value{
-A new \code{InputsManifest} object (invisibly).
-
-Invisible self (for method chaining).
-
-Invisible self.
-
-Invisible self.
-
-A named list with four character vectors:
-\describe{
-\item{added}{Files present on disk but not in the manifest.}
-\item{removed}{Files in the manifest but no longer on disk.}
-\item{modified}{Files whose hash has changed since the manifest.}
-\item{unchanged}{Files whose hash matches the manifest.}
-}
-
-Character hash string, or \code{NA_character_} if the category
-contains no files.
-
-Character hash, or NA_character_ if no files found.
-
-Character hash, or NA_character_ if not found.
-
-Character hash string, or \code{""} if none of the categories
-exist in the manifest.
-
-A named list:
-\describe{
-\item{added}{Character vector of newly added files.}
-\item{removed}{Character vector of deleted files.}
-\item{modified}{Character vector of modified files.}
-\item{all_changed}{Union of added, removed, and modified.}
-\item{affected_synthpops}{Logical: do synthpops need regeneration?}
-\item{affected_rr}{Character vector of affected \code{exposure~outcome}
-RR relationships.}
-\item{affected_diseases}{Character vector of disease names whose
-PARFs need regeneration (includes transitively affected).}
-\item{changes_dt}{A \code{data.table} with columns \code{relative_path},
-\code{status}, and \code{category} for detailed inspection.}
-}
-
-Invisible self (for method chaining).
-
-A \code{data.table} with columns \code{relative_path} and \code{hash}, or
-\code{NULL} if no manifest is loaded.
-
-A named list:
-\describe{
-\item{expected_hash}{The hash extracted from the filename.}
-\item{actual_hash}{The hash computed from the file contents.}
-\item{valid}{Logical: do the hashes match? \code{NA} if the filename
-pattern was not recognised.}
-}
-
-Character path.
-
-Character path.
-}
 \description{
 The \code{InputsManifest} class provides a unified system for tracking all input
 data files used by the IMPACTncd simulation. It detects file changes and
 determines which downstream artifacts (synthpops, compiled RR \code{.fst} files,
 PARF files) need regeneration based on the model's causal structure.
-
-Create a new InputsManifest object.
-
-Initialises the manifest paths but does \strong{not} scan files or load an
-existing manifest. Call \code{generate()} to scan or \code{load()} to read a
-previously saved manifest.
-
-Scan the inputs directory and compute hashes for all data
-files, then save the manifest to disk.
-
-This is the primary method for creating or refreshing the manifest.
-It lists all files matching \code{file_patterns} under the inputs directory,
-hashes each file with \code{xxhash64}, categorises them by top-level
-subdirectory, and writes the result to \code{manifest_path}.
-
-When \code{parallel = TRUE} and more than 100 files are found, hashing is
-distributed across PSOCK workers using \code{.manifest_hash_worker()}.
-
-Load an existing manifest from disk.
-
-Write current manifest to disk.
-
-Compare the current filesystem state against the stored
-manifest to detect added, removed, and modified files.
-
-Uses an \strong{mtime pre-filter} for performance: files whose modification
-time has not changed since the manifest was generated are assumed
-unchanged and not re-hashed. Only files with a different mtime are
-re-hashed to confirm whether their content actually changed.
-
-Requires a manifest to be loaded (via \code{load()} or \code{generate()}).
-
-Get aggregate hash for all files in a top-level category
-(subdirectory of \verb{inputs/}).
-
-The aggregate hash is computed by sorting the individual file hashes
-and digesting them together, so it changes when any file in the
-category is added, removed, or modified.
-
-Get aggregate hash for a directory path.
-
-Get hash for a single file.
-
-Compute a single aggregate hash representing all input
-files that synthetic populations depend on.
-
-This hash is included in the synthpop checksum (see
-\code{SynthPop$gen_checksum()}), so that when any upstream data file
-changes, the synthpop filename changes and regeneration is triggered
-automatically.
-
-The categories included are: \code{pop_estimates_lsoa},
-\code{exposure_distributions}, \code{mortality}, and \code{pop_projections}.
-
-Detect file changes and determine which downstream
-simulation artifacts are affected, using the model's causal
-structure.
-
-This is the primary method called by \code{Simulation$new()} to decide
-what needs regeneration. It:
-\enumerate{
-\item Calls \code{compare()} to find added/removed/modified files
-\item Maps changed files to categories (RR, exposure_distributions,
-disease_burden, etc.)
-\item For RR changes, parses \code{exposure~outcome} from filenames
-\item Uses BFS through the causal graph (from \code{design$RR} names)
-to find transitively affected diseases
-\item \verb{disease_burden/*.yaml} files are tracked but do \strong{not}
-trigger invalidation
-}
-
-Mark directories as Zenodo-managed.
-
-Sets \code{zenodo_managed = TRUE} for all manifest entries whose
-\code{relative_path} starts with one of the given directory names. Files
-not in these directories are set to \code{FALSE}. This controls which files
-are included in the Zenodo upload comparison (see \code{get_zenodo_format()}
-and \code{ZenodoAssetManager$compare_with_inputs_manifest()}).
-
-Return the Zenodo-managed subset of the manifest.
-
-Filters to files with \code{zenodo_managed == TRUE} and returns only the
-columns needed for comparison with the Zenodo upload snapshot. Used
-by \code{ZenodoAssetManager$compare_with_inputs_manifest()}.
-
-Verify integrity of a large output artifact by comparing
-the hash embedded in its filename against the actual file hash.
-
-This is an \strong{opt-in diagnostic} — it is never called during normal
-simulation startup because synthpop and PARF files can be several
-gigabytes. Use it before a Zenodo upload, after a storage migration,
-or when debugging suspected data corruption.
-
-Supported filename patterns:
-\itemize{
-\item \verb{synthpop_<hash>_<mc>.fst}
-\item \verb{PARF_<disease>_<hash>.qs}
-\item \verb{PARF_<disease>_<hash>/} (parquet directory)
-}
-
-Get the path to the manifest CSV file.
-
-Get the path to the inputs directory.
-
-Print a summary of the manifest.
 }
 \details{
 This class replaces the previous fragmented tracking mechanisms
@@ -282,19 +78,12 @@ with the upload snapshot.
 \subsection{Parallel hashing}{
 
 When \code{parallel = TRUE} is passed to \code{generate()}, the class uses
-\code{\link[parallelly:makeClusterPSOCK]{parallelly::makeClusterPSOCK()}} + \code{\link[parallel:clusterApply]{parallel::parLapplyLB()}} with the
+\code{\link[parallelly:makeClusterPSOCK]{parallelly::makeClusterPSOCK()}} + \code{\link[parallel:parLapplyLB]{parallel::parLapplyLB()}} with the
 standalone \code{.manifest_hash_worker()} function. This follows the project
 convention of never forking (which causes segfaults with \code{zip::zip()}
 and cannot serialize R6 HTTP connections).
 }
 }
-\section{Fields}{
-
-\describe{
-\item{\code{manifest}}{data.table with columns: relative_path, hash,
-size_bytes, mtime, category, zenodo_managed}
-}}
-
 \section{Typical workflow}{
 
 The manifest is managed automatically by \link[=Simulation]{Simulation$new()}:
@@ -353,3 +142,485 @@ parallel hashing
 }
 }
 \concept{data-management}
+\section{Public fields}{
+  \if{html}{\out{<div class="r6-fields">}}
+  \describe{
+    \item{\code{manifest}}{data.table with columns: relative_path, hash,
+size_bytes, mtime, category, zenodo_managed}
+  }
+  \if{html}{\out{</div>}}
+}
+\section{Methods}{
+\subsection{Public methods}{
+  \itemize{
+    \item \href{#method-InputsManifest-initialize}{\code{InputsManifest$new()}}
+    \item \href{#method-InputsManifest-generate}{\code{InputsManifest$generate()}}
+    \item \href{#method-InputsManifest-load}{\code{InputsManifest$load()}}
+    \item \href{#method-InputsManifest-save}{\code{InputsManifest$save()}}
+    \item \href{#method-InputsManifest-compare}{\code{InputsManifest$compare()}}
+    \item \href{#method-InputsManifest-get_category_hash}{\code{InputsManifest$get_category_hash()}}
+    \item \href{#method-InputsManifest-get_directory_hash}{\code{InputsManifest$get_directory_hash()}}
+    \item \href{#method-InputsManifest-get_file_hash}{\code{InputsManifest$get_file_hash()}}
+    \item \href{#method-InputsManifest-get_synthpop_input_hash}{\code{InputsManifest$get_synthpop_input_hash()}}
+    \item \href{#method-InputsManifest-detect_changes}{\code{InputsManifest$detect_changes()}}
+    \item \href{#method-InputsManifest-set_zenodo_dirs}{\code{InputsManifest$set_zenodo_dirs()}}
+    \item \href{#method-InputsManifest-get_zenodo_format}{\code{InputsManifest$get_zenodo_format()}}
+    \item \href{#method-InputsManifest-verify_artifact}{\code{InputsManifest$verify_artifact()}}
+    \item \href{#method-InputsManifest-get_manifest_path}{\code{InputsManifest$get_manifest_path()}}
+    \item \href{#method-InputsManifest-get_inputs_dir}{\code{InputsManifest$get_inputs_dir()}}
+    \item \href{#method-InputsManifest-print}{\code{InputsManifest$print()}}
+    \item \href{#method-InputsManifest-clone}{\code{InputsManifest$clone()}}
+  }
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-initialize}{}}}
+\subsection{\code{InputsManifest$new()}}{
+  Create a new InputsManifest object.
+
+Initialises the manifest paths but does \strong{not} scan files or load an
+existing manifest. Call \code{generate()} to scan or \code{load()} to read a
+previously saved manifest.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$new(
+  inputs_dir = "./inputs",
+  manifest_path = "./simulation/inputs_manifest.csv"
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{inputs_dir}}{Character. Path to inputs directory (default:
+\code{"./inputs"}). Will be normalised internally.}
+      \item{\code{manifest_path}}{Character. Path to the manifest CSV file
+(default: \code{"./simulation/inputs_manifest.csv"}).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A new \code{InputsManifest} object (invisibly).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-generate"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-generate}{}}}
+\subsection{\code{InputsManifest$generate()}}{
+  Scan the inputs directory and compute hashes for all data
+files, then save the manifest to disk.
+
+This is the primary method for creating or refreshing the manifest.
+It lists all files matching \code{file_patterns} under the inputs directory,
+hashes each file with \code{xxhash64}, categorises them by top-level
+subdirectory, and writes the result to \code{manifest_path}.
+
+When \code{parallel = TRUE} and more than 100 files are found, hashing is
+distributed across PSOCK workers using \code{.manifest_hash_worker()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$generate(
+  file_patterns = c("\\\\.parquet$", "\\\\.fst$", "\\\\.csv$", "\\\\.csvy$", "\\\\.qs$",
+    "\\\\.yaml$"),
+  parallel = FALSE,
+  n_workers = 4L,
+  zenodo_dirs = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{file_patterns}}{Character vector of regex patterns for file
+extensions to include (default: parquet, fst, csv, csvy, qs, yaml).}
+      \item{\code{parallel}}{Logical. If \code{TRUE}, use a PSOCK cluster for hashing
+(recommended for large input sets).}
+      \item{\code{n_workers}}{Integer. Number of PSOCK workers (default: \code{4L}).}
+      \item{\code{zenodo_dirs}}{Character vector of directory names (relative to
+\code{inputs_dir}) that are managed by Zenodo. Files in these directories
+will have \code{zenodo_managed = TRUE}. Pass \code{NULL} to leave all as \code{FALSE}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisible self (for method chaining).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-load"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-load}{}}}
+\subsection{\code{InputsManifest$load()}}{
+  Load an existing manifest from disk.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$load()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisible self.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-save"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-save}{}}}
+\subsection{\code{InputsManifest$save()}}{
+  Write current manifest to disk.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$save()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisible self.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-compare"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-compare}{}}}
+\subsection{\code{InputsManifest$compare()}}{
+  Compare the current filesystem state against the stored
+manifest to detect added, removed, and modified files.
+
+Uses an \strong{mtime pre-filter} for performance: files whose modification
+time has not changed since the manifest was generated are assumed
+unchanged and not re-hashed. Only files with a different mtime are
+re-hashed to confirm whether their content actually changed.
+
+Requires a manifest to be loaded (via \code{load()} or \code{generate()}).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$compare(
+  file_patterns = c("\\\\.parquet$", "\\\\.fst$", "\\\\.csv$", "\\\\.csvy$", "\\\\.qs$",
+    "\\\\.yaml$")
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{file_patterns}}{Character vector of regex patterns for file
+extensions (same format as \code{generate()}).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A named list with four character vectors:
+\describe{
+\item{added}{Files present on disk but not in the manifest.}
+\item{removed}{Files in the manifest but no longer on disk.}
+\item{modified}{Files whose hash has changed since the manifest.}
+\item{unchanged}{Files whose hash matches the manifest.}
+}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-get_category_hash"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-get_category_hash}{}}}
+\subsection{\code{InputsManifest$get_category_hash()}}{
+  Get aggregate hash for all files in a top-level category
+(subdirectory of \verb{inputs/}).
+
+The aggregate hash is computed by sorting the individual file hashes
+and digesting them together, so it changes when any file in the
+category is added, removed, or modified.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$get_category_hash(category)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{category}}{Character. Category name matching a top-level
+subdirectory (e.g., \code{"RR"}, \code{"exposure_distributions"},
+\code{"mortality"}).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character hash string, or \code{NA_character_} if the category
+contains no files.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-get_directory_hash"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-get_directory_hash}{}}}
+\subsection{\code{InputsManifest$get_directory_hash()}}{
+  Get aggregate hash for a directory path.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$get_directory_hash(dir_path)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{dir_path}}{Character. Directory path relative to inputs_dir.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character hash, or NA_character_ if no files found.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-get_file_hash"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-get_file_hash}{}}}
+\subsection{\code{InputsManifest$get_file_hash()}}{
+  Get hash for a single file.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$get_file_hash(file_path)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{file_path}}{Character. Relative path from inputs_dir.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character hash, or NA_character_ if not found.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-get_synthpop_input_hash"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-get_synthpop_input_hash}{}}}
+\subsection{\code{InputsManifest$get_synthpop_input_hash()}}{
+  Compute a single aggregate hash representing all input
+files that synthetic populations depend on.
+
+This hash is included in the synthpop checksum (see
+\code{SynthPop$gen_checksum()}), so that when any upstream data file
+changes, the synthpop filename changes and regeneration is triggered
+automatically.
+
+The categories included are: \code{pop_estimates_lsoa},
+\code{exposure_distributions}, \code{mortality}, and \code{pop_projections}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$get_synthpop_input_hash()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character hash string, or \code{""} if none of the categories
+exist in the manifest.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-detect_changes"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-detect_changes}{}}}
+\subsection{\code{InputsManifest$detect_changes()}}{
+  Detect file changes and determine which downstream
+simulation artifacts are affected, using the model's causal
+structure.
+
+This is the primary method called by \code{Simulation$new()} to decide
+what needs regeneration. It:
+\enumerate{
+\item Calls \code{compare()} to find added/removed/modified files
+\item Maps changed files to categories (RR, exposure_distributions,
+disease_burden, etc.)
+\item For RR changes, parses \code{exposure~outcome} from filenames
+\item Uses BFS through the causal graph (from \code{design$RR} names)
+to find transitively affected diseases
+\item \verb{disease_burden/*.yaml} files are tracked but do \strong{not}
+trigger invalidation
+}
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$detect_changes(design = NULL)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{design}}{A \code{Design} object containing the \code{RR} list whose names
+define the causal structure (e.g., \code{"bmi~chd"}, \code{"chd~hf"}). Pass
+\code{NULL} to skip causal-structure-based invalidation (only category
+mapping will be used).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A named list:
+\describe{
+\item{added}{Character vector of newly added files.}
+\item{removed}{Character vector of deleted files.}
+\item{modified}{Character vector of modified files.}
+\item{all_changed}{Union of added, removed, and modified.}
+\item{affected_synthpops}{Logical: do synthpops need regeneration?}
+\item{affected_rr}{Character vector of affected \code{exposure~outcome}
+RR relationships.}
+\item{affected_diseases}{Character vector of disease names whose
+PARFs need regeneration (includes transitively affected).}
+\item{changes_dt}{A \code{data.table} with columns \code{relative_path},
+\code{status}, and \code{category} for detailed inspection.}
+}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-set_zenodo_dirs"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-set_zenodo_dirs}{}}}
+\subsection{\code{InputsManifest$set_zenodo_dirs()}}{
+  Mark directories as Zenodo-managed.
+
+Sets \code{zenodo_managed = TRUE} for all manifest entries whose
+\code{relative_path} starts with one of the given directory names. Files
+not in these directories are set to \code{FALSE}. This controls which files
+are included in the Zenodo upload comparison (see \code{get_zenodo_format()}
+and \code{ZenodoAssetManager$compare_with_inputs_manifest()}).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$set_zenodo_dirs(dirs)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{dirs}}{Character vector of directory names relative to
+\code{inputs_dir} (e.g., \code{c("RR", "exposure_distributions", "disease_burden")}).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisible self (for method chaining).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-get_zenodo_format"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-get_zenodo_format}{}}}
+\subsection{\code{InputsManifest$get_zenodo_format()}}{
+  Return the Zenodo-managed subset of the manifest.
+
+Filters to files with \code{zenodo_managed == TRUE} and returns only the
+columns needed for comparison with the Zenodo upload snapshot. Used
+by \code{ZenodoAssetManager$compare_with_inputs_manifest()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$get_zenodo_format()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A \code{data.table} with columns \code{relative_path} and \code{hash}, or
+\code{NULL} if no manifest is loaded.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-verify_artifact"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-verify_artifact}{}}}
+\subsection{\code{InputsManifest$verify_artifact()}}{
+  Verify integrity of a large output artifact by comparing
+the hash embedded in its filename against the actual file hash.
+
+This is an \strong{opt-in diagnostic} — it is never called during normal
+simulation startup because synthpop and PARF files can be several
+gigabytes. Use it before a Zenodo upload, after a storage migration,
+or when debugging suspected data corruption.
+
+Supported filename patterns:
+\itemize{
+\item \verb{synthpop_<hash>_<mc>.fst}
+\item \verb{PARF_<disease>_<hash>.qs}
+\item \verb{PARF_<disease>_<hash>/} (parquet directory)
+}
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$verify_artifact(path, algo = "xxhash64")}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{path}}{Character. Path to the artifact file to verify.}
+      \item{\code{algo}}{Character. Hash algorithm (default: \code{"xxhash64"}). Must
+match the algorithm used when the artifact was created.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A named list:
+\describe{
+\item{expected_hash}{The hash extracted from the filename.}
+\item{actual_hash}{The hash computed from the file contents.}
+\item{valid}{Logical: do the hashes match? \code{NA} if the filename
+pattern was not recognised.}
+}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-get_manifest_path"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-get_manifest_path}{}}}
+\subsection{\code{InputsManifest$get_manifest_path()}}{
+  Get the path to the manifest CSV file.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$get_manifest_path()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character path.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-get_inputs_dir"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-get_inputs_dir}{}}}
+\subsection{\code{InputsManifest$get_inputs_dir()}}{
+  Get the path to the inputs directory.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$get_inputs_dir()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character path.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-print"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-print}{}}}
+\subsection{\code{InputsManifest$print()}}{
+  Print a summary of the manifest.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$print()}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InputsManifest-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-InputsManifest-clone}{}}}
+\subsection{\code{InputsManifest$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InputsManifest$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+}

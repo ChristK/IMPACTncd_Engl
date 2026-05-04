@@ -46,39 +46,7 @@
 #'   \item Tools for risk storage, deletion, and validation of synthpop files.
 #' }
 #'
-#' @section Public Fields:
-#' \describe{
-#'   \item{\code{mc}}{Monte Carlo iteration number.}
-#'   \item{\code{mc_aggr}}{Monte Carlo aggregation group.}
-#'   \item{\code{metadata}}{YAML metadata associated with the synthpop.}
-#'   \item{\code{pop}}{A \code{data.table} containing the synthetic population life-course data.}
-#' }
-#'
-#' @section Public Methods:
-#' \describe{
-#'   \item{\code{initialize(mc_, design_)}}{Initializes or loads the synthpop.}
-#'   \item{\code{update_design(design_)}}{Updates the internal design object.}
-#'   \item{\code{update_pop_weights(scenario_nam)}}{Adjusts weights for baseline or scenario populations.}
-#'   \item{\code{delete_synthpop(mc_)}}{Deletes synthpop files from disk.}
-#'   \item{\code{delete_incomplete_synthpop()}}{Removes orphaned or incomplete synthpop files.}
-#'   \item{\code{check_integridy()}}{Checks and optionally removes malformed synthpop files.}
-#'   \item{\code{count_synthpop()}}{Reports file counts and size.}
-#'   \item{\code{get_checksum()}}{Returns the checksum of the current synthpop.}
-#'   \item{\code{get_filename()}}{Prints synthpop filenames.}
-#'   \item{\code{get_design()}}{Returns the internal design object.}
-#'   \item{\code{get_dir()}}{Prints the synthpop storage directory.}
-#'   \item{\code{gen_synthpop_demog()}}{Generates baseline sociodemographic structure.}
-#'   \item{\code{write_synthpop(mc_)}}{Generates and writes synthpop files in parallel.}
-#'   \item{\code{get_risks(disease_nam)}}{Returns disease-specific risk tables.}
-#'   \item{\code{store_risks(disease_nam)}}{Stores and removes risk-related columns from `pop`.}
-#'   \item{\code{print()}}{Prints summary of synthpop metadata.}
-#' }
-#'
-#' @section Private Methods:
-#' Many helper methods support internal logic for data integrity, file generation, risk storage,
-#' LSOA and LAD resolution, checksum creation, and exposure generation.
-#'
-#' @seealso \code{\link[R6]{R6Class}}, \code{\link[yaml]{read_yaml}}, \code{\link[fst]{read_fst}}, \code{\link[data.table]{data.table}}#'
+#' @seealso \code{\link[R6]{R6Class}}, \code{\link[yaml]{read_yaml}}, \code{\link[fst]{read_fst}}, \code{\link[data.table]{data.table}}
 #'
 #' @export
 SynthPop <-

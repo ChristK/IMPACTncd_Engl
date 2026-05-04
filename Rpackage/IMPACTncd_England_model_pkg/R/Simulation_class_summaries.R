@@ -21,9 +21,24 @@
 # -----------------------------------------------------------------------------
 
 
-# export_summaries ----
-# Exports simulation summaries from lifecourse files.
-# See main class documentation in Simulation_class.R for details.
+#' @description
+#' Export simulation summaries from lifecourse files.
+#'
+#' Reads the lifecourse parquet dataset and writes per-summary `.fst` files
+#' under `output_dir/summaries/` for each requested type. Aggregations
+#' include life expectancy, healthy life expectancy, disease characteristics,
+#' prevalence, incidence, mortality, CMS counts, QALYs, and costs.
+#'
+#' @param multicore Logical. If `TRUE`, runs export tasks in parallel and
+#'   forces single-threaded BLAS/data.table/fst within each worker to avoid
+#'   nested parallelism. If `FALSE`, runs sequentially using
+#'   `clusternumber_export` threads.
+#' @param type Character vector of summary types to export. Defaults to all
+#'   supported types (`le`, `hle`, `dis_char`, `prvl`, `incd`, `dis_mrtl`,
+#'   `mrtl`, `all_cause_mrtl_by_dis`, `cms`, `qalys`, `costs`).
+#' @param single_year_of_age Logical. If `TRUE`, exports prevalence /
+#'   incidence summaries by single year of age instead of age groups.
+#' @return The `Simulation` object, invisibly.
 Simulation$set("public", "export_summaries", function(
     multicore = TRUE,
     type = c(

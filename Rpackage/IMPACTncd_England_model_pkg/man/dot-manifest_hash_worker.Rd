@@ -34,6 +34,6 @@ returns a plain list. See also \code{.zenodo_archive_worker()} in
 }
 \seealso{
 \code{InputsManifest} which calls this function via
-\code{\link[parallel:clusterApply]{parallel::parLapplyLB()}}.
+\code{\link[parallel:parLapplyLB]{parallel::parLapplyLB()}}.
 }
 \keyword{internal}

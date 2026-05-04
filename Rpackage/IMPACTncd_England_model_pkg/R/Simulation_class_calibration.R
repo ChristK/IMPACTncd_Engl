@@ -21,9 +21,18 @@
 # -----------------------------------------------------------------------------
 
 
-# calibrate_incd_ftlt ----
-# Calibrates incidence and case fatality rates.
-# See main class documentation in Simulation_class.R for details.
+#' @description
+#' Calibrate incidence and case fatality rates.
+#'
+#' Reconstructs large input files, runs a Monte Carlo set, then iteratively
+#' adjusts disease-specific calibration factors (`*_incd_clbr_fctr`,
+#' `*_ftlt_clbr_fctr`) so simulated incidence and mortality match observed
+#' targets. Writes results to `./simulation/calibration_prms.csv`.
+#'
+#' @param mc Integer vector of Monte Carlo iterations to run for calibration.
+#' @param replace Logical. If `TRUE`, overwrite the existing
+#'   `calibration_prms.csv`; otherwise extend it.
+#' @return The `Simulation` object, invisibly.
 Simulation$set("public", "calibrate_incd_ftlt", function(mc, replace = FALSE) {
   # recombine the chunks of large files
   self$reconstruct_large_files()
