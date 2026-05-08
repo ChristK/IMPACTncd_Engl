@@ -223,8 +223,11 @@ function Get-YamlPathValue {
         $value = ($line.Line -split ":\s*", 2)[1].Split("#")[0].Trim()
         $constructedPath = $null
 
-        # Check if the path from YAML is absolute (Windows or Unix-like)
-        if ([System.IO.Path]::IsPathRooted($value) -or $value.StartsWith('/')) {
+        # Check if the path from YAML is absolute (Windows or Unix-like).
+        # On Linux PowerShell, [Path]::IsPathRooted("C:/foo") returns false, so we
+        # also test the Windows-drive pattern explicitly to handle YAMLs with
+        # Windows absolute paths read by PowerShell running inside WSL.
+        if ([System.IO.Path]::IsPathRooted($value) -or $value.StartsWith('/') -or $value -match '^[A-Za-z]:[/\\]') {
             $constructedPath = $value
             Write-Host "Path '$value' for key '$Key' is absolute."
         } else {
@@ -398,23 +401,83 @@ if ($UseVolumes) {
     docker volume rm $VolumeSynthpop | Out-Null
 
 } else {
-    # Helper function to convert Windows path to Docker Desktop/WSL format
+    # Helper function to translate a path into the form the local docker daemon
+    # expects for bind-mount sources. The docker daemon on Windows is almost
+    # always Linux-side these days (Docker Desktop's WSL2 backend, or docker
+    # installed directly inside a WSL distro), so bind mounts must use a POSIX
+    # path that's valid in that distro's filesystem — and the mount root for
+    # Windows drives is configurable via /etc/wsl.conf [automount] root
+    # (commonly /mnt, but /mnt/host/ on some setups).
+    #
+    # Strategy: ask `wslpath` (canonical, honours per-distro config) whether
+    # we're running inside WSL or on native Windows with WSL installed. Fall
+    # back to /etc/wsl.conf parsing or the legacy /c/foo Docker-Desktop short
+    # form only if wslpath is unreachable.
     function Convert-PathToDockerFormat {
         param([string]$Path)
-        # Input example: P:/My_Models/IMPACTncd_England
-        # Match drive letter (e.g., P) and the rest of the path
-        if ($Path -match '^([A-Za-z]):/(.*)') {
-            $driveLetter = $matches[1].ToLower()
-            $restOfPath = $matches[2]
-            # Construct the Docker path: /<drive_letter>/<rest_of_path>
-            $dockerPath = "/$driveLetter/$restOfPath"
-            # Remove trailing slash if present
-            $dockerPath = $dockerPath -replace '/$', ''
-            return $dockerPath
-        } else {
-            Write-Warning "Path '$Path' did not match expected Windows format (e.g., C:/path/to/dir)"
-            return $Path # Return original path if format is unexpected
+
+        # Normalize backslashes for parsing (preserve drive-letter casing)
+        $normalized = $Path -replace '\\', '/'
+
+        # Already a POSIX absolute path (e.g. /home/user, /mnt/c/foo) — pass through.
+        if ($normalized.StartsWith('/')) {
+            return ($normalized -replace '/$', '')
         }
+
+        # Detect Windows-drive-rooted path (e.g. C:/foo, P:\bar)
+        if ($normalized -match '^([A-Za-z]):/(.*)$') {
+            $driveLetter = $matches[1].ToLower()
+            $restOfPath  = $matches[2] -replace '/$', ''
+            $winStyle    = "${driveLetter}:\" + ($restOfPath -replace '/', '\')
+
+            $inWsl = $false
+            if ($IsLinux) {
+                if ($env:WSL_DISTRO_NAME -or (Test-Path '/proc/sys/fs/binfmt_misc/WSLInterop')) {
+                    $inWsl = $true
+                }
+            }
+
+            # Attempt wslpath resolution. Inside WSL this is the binary itself;
+            # on native Windows we delegate to `wsl.exe wslpath -u` which runs
+            # in the user's default WSL distro. That's the same distro Docker
+            # Desktop's WSL2 backend integrates with, so the mount root it
+            # reports matches what the daemon will see.
+            $wslResolved = $null
+            try {
+                if ($inWsl) {
+                    $out = (& wslpath -u $winStyle 2>$null)
+                    if ($LASTEXITCODE -eq 0 -and $out) { $wslResolved = ($out -join "`n").Trim() }
+                } elseif (Get-Command 'wsl.exe' -ErrorAction SilentlyContinue) {
+                    $out = (& wsl.exe wslpath -u $winStyle 2>$null)
+                    if ($LASTEXITCODE -eq 0 -and $out) {
+                        # wsl.exe can emit UTF-16 BOMs / CRs on older Windows
+                        $wslResolved = (($out -join "`n") -replace "`r", '').Trim()
+                    }
+                }
+            } catch { }
+
+            if ($wslResolved) { return ($wslResolved -replace '/$', '') }
+
+            # Fallback for WSL when wslpath is unavailable: parse [automount] root.
+            if ($inWsl) {
+                $mountRoot = '/mnt'
+                if (Test-Path '/etc/wsl.conf') {
+                    $conf = Get-Content '/etc/wsl.conf' -Raw -ErrorAction SilentlyContinue
+                    if ($conf -match '(?ms)^\s*\[automount\][^\[]*?^\s*root\s*=\s*(\S+)') {
+                        $mountRoot = $matches[1].TrimEnd('/')
+                    }
+                }
+                return ("$mountRoot/$driveLetter/$restOfPath" -replace '/$', '')
+            }
+
+            # Last resort on native Windows with no WSL: legacy Docker Desktop
+            # short form. Works on Hyper-V-backend / pre-WSL2 setups.
+            Write-Warning "wsl.exe not found; falling back to Docker Desktop legacy '/${driveLetter}/...' bind-mount form. If your daemon is WSL-backed this may not resolve correctly."
+            return ("/$driveLetter/$restOfPath" -replace '/$', '')
+        }
+
+        Write-Warning "Path '$Path' did not match an expected Windows or POSIX absolute path."
+        return $Path
     }
 
     Write-Host "`nUsing direct bind mounts for project, outputs, and synthpop..."
