@@ -1,5 +1,8 @@
-## Test script for discounting logic in QALYs and costs tables
-## This script verifies that the discounting calculations work as expected
+## Test script for the discounting logic used in the cost-effectiveness
+## (ICER/NMB) tables. Discounting is applied ONLY in export_cea_tables(); the
+## main QALY/cost/net tables are reported undiscounted. These are unit tests of
+## the discount formula PV = FV / (1 + r)^max(0, year - discount_from_year),
+## which is exactly the formula used by export_cea_tables()'s internal disc().
 ##
 ## Run with: Rscript testing/test_discounting.R
 ## Or source in R: source("testing/test_discounting.R")
@@ -233,51 +236,39 @@ run_test("Net value calculation at 2023 is correct",
          abs(net_result[year == 2023, net_value] - expected_net_2023) < 0.01)
 
 # -----------------------------------------------------------------------------
-# Test 7: Simulation of full workflow (mimicking tbl_smmrs_core)
+# Test 7: Simulation of the CEA discounting workflow (mimicking export_cea_tables)
 # -----------------------------------------------------------------------------
-cat("\n--- Test 7: Full Workflow Simulation ---\n")
+cat("\n--- Test 7: CEA Discounting Workflow Simulation ---\n")
 
-# Create mock QALY data similar to what would come from summaries
+# Create mock QALY data similar to what would come from the qalys summary
 mock_qalys <- data.table(
   mc = rep(1:3, each = 5),           # 3 Monte Carlo iterations
   scenario = rep("sc0", 15),
   year = rep(2019:2023, 3),
-  EQ5D5L = rnorm(15, mean = 50000, sd = 1000),
-  HUI3 = rnorm(15, mean = 45000, sd = 1000)
+  EQ5D5L = rnorm(15, mean = 50000, sd = 1000)
 )
 
-# Parameters
+# Parameters (these come from export_tables() arguments, not the YAML)
 qaly_discount_rate <- 3.5
 discount_from_year <- 2019
 
-# Mimic the processing in tbl_smmrs_core
+# Mimic the discounting done inside export_cea_tables(): aggregate Q per
+# (mc, scenario, year), then discount with the same disc() formula.
 x <- c("mc", "scenario", "year")
+d <- mock_qalys[, .(Q = sum(EQ5D5L)), keyby = eval(x)]
+disc <- function(v, year, rate) v / (1 + rate / 100)^pmax(0, year - discount_from_year)
+d[, Q := disc(Q, year, qaly_discount_rate)]
+setkeyv(d, c(setdiff(x, "year"), "year"))
+d[, Q_cuml := cumsum(Q), by = setdiff(x, "year")]
 
-# Step 1: Aggregate
-d <- mock_qalys[, .("EQ5D5L" = sum(EQ5D5L), "HUI3" = sum(HUI3)), keyby = eval(x)]
+cat("\nMock QALY data after CEA discounting workflow:\n")
+print(d[mc == 1])
 
-# Step 2: Melt
-d <- melt(d, id.vars = x, variable.name = "scale", value.name = "QALYs")
+run_test("CEA workflow: cumulative increases over time",
+         all(diff(d[mc == 1, Q_cuml]) >= 0))
 
-# Step 3: Set key
-setkeyv(d, c(x[x != "year"], "scale", "year"))
-
-# Step 4: Apply discounting
-if (qaly_discount_rate > 0 && !is.null(discount_from_year)) {
-  d[, QALYs := QALYs / (1 + qaly_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
-}
-
-# Step 5: Calculate cumulative
-d[, cumulative := cumsum(QALYs), keyby = c(setdiff(x, "year"), "scale")]
-
-cat("\nMock QALY data after full workflow processing:\n")
-print(d[scale == "EQ5D5L" & mc == 1])
-
-run_test("Full workflow: cumulative increases over time",
-         all(diff(d[scale == "EQ5D5L" & mc == 1, cumulative]) >= 0))
-
-run_test("Full workflow: discounting reduces later year values",
-         d[scale == "EQ5D5L" & mc == 1 & year == 2023, QALYs] <
+run_test("CEA workflow: discounting reduces later year values",
+         d[mc == 1 & year == 2023, Q] <
          mock_qalys[mc == 1 & year == 2023, sum(EQ5D5L)])
 
 # -----------------------------------------------------------------------------

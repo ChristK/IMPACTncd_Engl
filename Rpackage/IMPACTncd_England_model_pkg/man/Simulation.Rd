@@ -479,10 +479,21 @@ incidence summaries by single year of age instead of age groups.}
 \subsection{\code{Simulation$export_tables()}}{
   Export summary tables for policy analysis.
 
-Builds main, all-cause mortality, disease-characteristics, and exposure
-tables from the per-summary \code{.fst} files produced by
-\verb{$export_summaries()}. Outputs are written to \verb{output_dir/tables/}
+Builds main, all-cause mortality, disease-characteristics, exposure, and
+(optionally) cost-effectiveness tables from the per-summary files produced
+by \verb{$export_summaries()}. Outputs are written to \verb{output_dir/tables/}
 (or \verb{output_dir/tables2agegrps/} when \code{two_agegrps = TRUE}).
+
+When \code{cea = TRUE}, cost-effectiveness tables are written as
+\verb{cost-effectiveness by <strata> (<perspective>-<scale>) (not standardised).csv},
+containing the cumulative discounted incremental QALYs (\code{dQALYs_cuml}) and
+costs (\code{dCosts_cuml}), the incremental cost-effectiveness ratio (\code{ICER}), and
+the net monetary benefit (\verb{NMB_at_wtp_<threshold>}) at each willingness-to-pay
+threshold, for each QALY scale (EQ5D5L) and from two perspectives:
+\emph{societal} (uses \code{total_cost}) and \emph{healthcare} (uses
+\code{healthcare_cost}). User-defined \verb{*_costs} columns are always added to the
+societal perspective and, if named in \code{custom_costs_in_healthcare}, to the
+healthcare perspective as well.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Simulation$export_tables(
@@ -491,7 +502,13 @@ tables from the per-summary \code{.fst} files produced by
   comparator_scenario = "sc0",
   two_agegrps = FALSE,
   strata = NULL,
-  multicore = TRUE
+  multicore = TRUE,
+  cea = TRUE,
+  wtp = c(20000, 30000),
+  qaly_discount_rate = 3.5,
+  cost_discount_rate = 3.5,
+  discount_from_year = NULL,
+  custom_costs_in_healthcare = NULL
 )}
     \if{html}{\out{</div>}}
   }
@@ -499,7 +516,8 @@ tables from the per-summary \code{.fst} files produced by
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{baseline_year_for_change_outputs}}{Integer. Reference year used for
-computing change-from-baseline columns. Two-digit values (e.g. \code{19})
+computing change-from-baseline columns and the start year for the
+cumulative cost-effectiveness calculations. Two-digit values (e.g. \code{19})
 are auto-promoted to four-digit (\code{2019}).}
       \item{\code{prbl}}{Numeric vector of probability levels for output quantiles
 (median plus uncertainty bounds). Default
@@ -513,6 +531,25 @@ configuration. See examples in the file header for shape; passed
 through \code{private$build_strata_config()}.}
       \item{\code{multicore}}{Logical. If \code{TRUE}, runs table-building tasks in
 parallel with single-threaded workers; otherwise runs sequentially.}
+      \item{\code{cea}}{Logical. If \code{TRUE} (default), also build the cost-effectiveness
+(ICER / NMB) tables from the \code{qalys} and \code{costs} summaries.}
+      \item{\code{wtp}}{Numeric vector of willingness-to-pay thresholds (currency per
+QALY) at which the net monetary benefit is computed. Default
+\code{c(20000, 30000)} (the NICE thresholds, GBP/QALY).}
+      \item{\code{qaly_discount_rate, cost_discount_rate}}{Numeric. Annual discount rates
+(percent) applied to QALYs and costs. Default \code{3.5} each (UK NICE
+guidance). These arguments are the single source of truth for discounting;
+there is no \code{discounting} block in \code{sim_design.yaml}. Discounting is applied
+\strong{only} to the cost-effectiveness tables - the prevalence, incidence,
+mortality, QALY and cost tables are reported undiscounted.}
+      \item{\code{discount_from_year}}{Integer. First year from which present values are
+discounted. When \code{NULL} (default) it defaults to
+\code{baseline_year_for_change_outputs}.}
+      \item{\code{custom_costs_in_healthcare}}{Character vector of user-defined \verb{*_costs}
+column names to add to the healthcare perspective (in addition to the
+always-present \code{healthcare_cost}). \code{NULL}/\code{FALSE} (default) adds none;
+\code{TRUE} adds all user-defined cost columns. User-defined cost columns are
+always included in the societal perspective regardless of this argument.}
     }
     \if{html}{\out{</div>}}
   }

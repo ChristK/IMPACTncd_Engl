@@ -3412,9 +3412,22 @@ Simulation <-
           private$export_xps(sp, scenario_nam)
         }
 
+        # Columns kept in the lifecourse output are those listed in
+        # `cols_for_output` (YAML) OR whose name matches one of the supported
+        # suffix conventions below. Users can create custom columns inside a
+        # scenario function (`synthpop$pop[, my_col := ...]`) and have them flow
+        # into summaries automatically by naming them with the right suffix:
+        #   *_prvl  -> duration counter: prevalence is SUM(wt) where col > 0
+        #              (export_prvl_summaries) AND incidence is SUM(wt) where
+        #              col = 1 (export_incd_summaries). One column drives both,
+        #              mirroring the disease *_prvl columns.
+        #   *_contd -> continuous:  population-weighted mean (export_contd_summaries)
+        #   *_costs -> economic cost: SUM(col * wt)          (export_costs_summaries)
+        #   *_dgns  -> diagnosis flag; cms_* / *_mrtl -> kept for internal use.
+        # See vignette "custom-scenario-columns" for the full mechanism.
         nam <- c(
           self$design$sim_prm$cols_for_output,
-          grep("^cms_|_prvl$|_dgns$|_mrtl$", names(sp$pop), value = TRUE)
+          grep("^cms_|_prvl$|_contd$|_costs$|_dgns$|_mrtl$", names(sp$pop), value = TRUE)
         )
         nam <- grep("^prb_", nam, value = TRUE, invert = TRUE) # exclude prb_ ... _dgns
         sp$pop[, setdiff(names(sp$pop), nam) := NULL]

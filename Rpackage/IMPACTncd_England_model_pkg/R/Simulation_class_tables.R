@@ -84,13 +84,25 @@ safe_fquantile_byid <- function(x, q, id, rounding = FALSE) {
 #' @description
 #' Export summary tables for policy analysis.
 #'
-#' Builds main, all-cause mortality, disease-characteristics, and exposure
-#' tables from the per-summary `.fst` files produced by
-#' `$export_summaries()`. Outputs are written to `output_dir/tables/`
+#' Builds main, all-cause mortality, disease-characteristics, exposure, and
+#' (optionally) cost-effectiveness tables from the per-summary files produced
+#' by `$export_summaries()`. Outputs are written to `output_dir/tables/`
 #' (or `output_dir/tables2agegrps/` when `two_agegrps = TRUE`).
 #'
+#' When `cea = TRUE`, cost-effectiveness tables are written as
+#' `cost-effectiveness by <strata> (<perspective>-<scale>) (not standardised).csv`,
+#' containing the cumulative discounted incremental QALYs (`dQALYs_cuml`) and
+#' costs (`dCosts_cuml`), the incremental cost-effectiveness ratio (`ICER`), and
+#' the net monetary benefit (`NMB_at_wtp_<threshold>`) at each willingness-to-pay
+#' threshold, for each QALY scale (EQ5D5L) and from two perspectives:
+#' \emph{societal} (uses `total_cost`) and \emph{healthcare} (uses
+#' `healthcare_cost`). User-defined `*_costs` columns are always added to the
+#' societal perspective and, if named in `custom_costs_in_healthcare`, to the
+#' healthcare perspective as well.
+#'
 #' @param baseline_year_for_change_outputs Integer. Reference year used for
-#'   computing change-from-baseline columns. Two-digit values (e.g. `19`)
+#'   computing change-from-baseline columns and the start year for the
+#'   cumulative cost-effectiveness calculations. Two-digit values (e.g. `19`)
 #'   are auto-promoted to four-digit (`2019`).
 #' @param prbl Numeric vector of probability levels for output quantiles
 #'   (median plus uncertainty bounds). Default
@@ -104,6 +116,25 @@ safe_fquantile_byid <- function(x, q, id, rounding = FALSE) {
 #'   through `private$build_strata_config()`.
 #' @param multicore Logical. If `TRUE`, runs table-building tasks in
 #'   parallel with single-threaded workers; otherwise runs sequentially.
+#' @param cea Logical. If `TRUE` (default), also build the cost-effectiveness
+#'   (ICER / NMB) tables from the `qalys` and `costs` summaries.
+#' @param wtp Numeric vector of willingness-to-pay thresholds (currency per
+#'   QALY) at which the net monetary benefit is computed. Default
+#'   `c(20000, 30000)` (the NICE thresholds, GBP/QALY).
+#' @param qaly_discount_rate,cost_discount_rate Numeric. Annual discount rates
+#'   (percent) applied to QALYs and costs. Default `3.5` each (UK NICE
+#'   guidance). These arguments are the single source of truth for discounting;
+#'   there is no `discounting` block in `sim_design.yaml`. Discounting is applied
+#'   **only** to the cost-effectiveness tables - the prevalence, incidence,
+#'   mortality, QALY and cost tables are reported undiscounted.
+#' @param discount_from_year Integer. First year from which present values are
+#'   discounted. When `NULL` (default) it defaults to
+#'   `baseline_year_for_change_outputs`.
+#' @param custom_costs_in_healthcare Character vector of user-defined `*_costs`
+#'   column names to add to the healthcare perspective (in addition to the
+#'   always-present `healthcare_cost`). `NULL`/`FALSE` (default) adds none;
+#'   `TRUE` adds all user-defined cost columns. User-defined cost columns are
+#'   always included in the societal perspective regardless of this argument.
 #' @return The `Simulation` object, invisibly.
 Simulation$set("public", "export_tables", function(
     baseline_year_for_change_outputs = 2019L,
@@ -111,13 +142,26 @@ Simulation$set("public", "export_tables", function(
     comparator_scenario = "sc0",
     two_agegrps = FALSE,
     strata = NULL,
-    multicore = TRUE
+    multicore = TRUE,
+    cea = TRUE,
+    wtp = c(20000, 30000),
+    qaly_discount_rate = 3.5,
+    cost_discount_rate = 3.5,
+    discount_from_year = NULL,
+    custom_costs_in_healthcare = NULL
 ) {
   # Ensure baseline year is in full format (e.g. 2019, not 19)
   # Data is converted to full year format in export_main_tables()
   if (baseline_year_for_change_outputs <= 100) {
     baseline_year_for_change_outputs <- baseline_year_for_change_outputs + 2000L
   }
+
+  # Discounting is applied ONLY in the cost-effectiveness (CEA) tables, and is
+  # controlled solely by the arguments below (there is intentionally no
+  # `discounting` block in sim_design.yaml). When `discount_from_year` is NULL
+  # it defaults to the baseline/reference year inside export_cea_tables(). The
+  # main prevalence / incidence / mortality / QALY / cost tables are reported
+  # undiscounted.
 
   # Thread control for parallel execution
   if (multicore) {
@@ -184,6 +228,25 @@ Simulation$set("public", "export_tables", function(
       strata_esp = strata_cfg$xps_esp
     )
   )
+
+  # Cost-effectiveness (ICER / NMB) tables, built from qalys + costs summaries.
+  if (cea) {
+    tasks[[length(tasks) + 1L]] <- list(
+      id = 5L,
+      type = "cea",
+      prbl = prbl,
+      summaries_dir = private$output_dir("summaries"),
+      tables_dir = tables_dir,
+      comparator_scenario = comparator_scenario,
+      baseline_year = baseline_year_for_change_outputs,
+      wtp = wtp,
+      qaly_discount_rate = qaly_discount_rate,
+      cost_discount_rate = cost_discount_rate,
+      discount_from_year = discount_from_year,
+      custom_costs_in_healthcare = custom_costs_in_healthcare,
+      strata = strata_cfg$ons
+    )
+  }
 
   if (multicore) {
     if (self$design$sim_prm$logs) {
@@ -297,6 +360,19 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
       tables_dir = task$tables_dir,
       strata_ons = task$strata_ons,
       strata_esp = task$strata_esp
+    ),
+    "cea" = private$export_cea_tables(
+      prbl = task$prbl,
+      summaries_dir = task$summaries_dir,
+      tables_dir = task$tables_dir,
+      comparator_scenario = task$comparator_scenario,
+      baseline_year = task$baseline_year,
+      wtp = task$wtp,
+      qaly_discount_rate = task$qaly_discount_rate,
+      cost_discount_rate = task$cost_discount_rate,
+      discount_from_year = task$discount_from_year,
+      custom_costs_in_healthcare = task$custom_costs_in_healthcare,
+      strata = task$strata
     )
   )
 
@@ -439,11 +515,11 @@ Simulation$set("private", "tbl_smmrs_core", function(
     comparator_scenario,   # for comparison metrics
     comparison_starting_year,
     tables_dir,            # output directory
-    two_agegrps = FALSE,
-    qaly_discount_rate = 0,    # annual discount rate for QALYs (%)
-    cost_discount_rate = 0,    # annual discount rate for costs (%)
-    discount_from_year = NULL  # first year from which discounting starts
+    two_agegrps = FALSE
 ) {
+  # NOTE: the main tables (qalys, costs, net_qalys, net_costs, etc.) are
+  # reported UNDISCOUNTED. Discounting is applied only in the cost-effectiveness
+  # tables (export_cea_tables), controlled by export_tables() arguments.
   # String mappings for file paths and column patterns (from process_out_Bradford.R)
   str0 <- c(
     "prvl" = "prvl", "prvl_change_relative" = "prvl", "prvl_change_absolute" = "prvl",
@@ -467,7 +543,8 @@ Simulation$set("private", "tbl_smmrs_core", function(
     "dis_mrtl_change_relative" = "^nonmodelled_deaths$|^chd_deaths$|^stroke_deaths$|^popsize$",
     "dis_mrtl_change_absolute" = "^nonmodelled_deaths$|^chd_deaths$|^stroke_deaths$|^popsize$",
     "qalys" = "^EQ5D5L$", "net_qalys" = "^EQ5D5L$",
-    "costs" = "_cost$|^economic_output$", "net_costs" = "_cost$|^economic_output$",
+    "costs" = "_cost$|_costs$|^economic_output$", "net_costs" = "_cost$|_costs$|^economic_output$",
+    "contd" = "_contd$", "contd_change_relative" = "_contd$", "contd_change_absolute" = "_contd$",
     "cypp" = "_prvl$", "cpp" = "_incd$", "dpp" = "_mrtl$",
     "pop" = "^popsize$"
   )
@@ -481,6 +558,7 @@ Simulation$set("private", "tbl_smmrs_core", function(
     "dis_mrtl" = "disease_mrtl_rate_", "dis_mrtl_change_relative" = "disease_mrtl_change_relative_", "dis_mrtl_change_absolute" = "disease_mrtl_abs_change_",
     "qalys" = "qalys_", "net_qalys" = "net_qalys_",
     "costs" = "costs_", "net_costs" = "net_costs_",
+    "contd" = "contd_mean_", "contd_change_relative" = "contd_change_relative_", "contd_change_absolute" = "contd_abs_change_",
     "cypp" = "cypp_", "cpp" = "cpp_", "dpp" = "dpp_",
     "pop" = "pop_size_"
   )
@@ -496,6 +574,9 @@ Simulation$set("private", "tbl_smmrs_core", function(
     "dis_mrtl_change_absolute" = "disease-specific mortality absolute change by ",
     "qalys" = "QALYs by ", "net_qalys" = "net QALYs by ",
     "costs" = "costs by ", "net_costs" = "net costs by ",
+    "contd" = "continuous outcome by ",
+    "contd_change_relative" = "continuous outcome relative change by ",
+    "contd_change_absolute" = "continuous outcome absolute change by ",
     "cypp" = "case-years prevented or postponed by ",
     "cpp" = "cases prevented or postponed by ",
     "dpp" = "deaths prevented or postponed by ",
@@ -512,10 +593,6 @@ Simulation$set("private", "tbl_smmrs_core", function(
       d <- tt[, .("EQ5D5L" = sum(EQ5D5L)), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "scale", value.name = "QALYs")
       setkeyv(d, c(x[x != "year"], "scale", "year"))
-      # Apply discounting: PV = FV / (1 + r)^(year - discount_from_year)
-      if (qaly_discount_rate > 0 && !is.null(discount_from_year)) {
-        d[, QALYs := QALYs / (1 + qaly_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
-      }
       d[, cumulative := cumsum(QALYs), keyby = c(setdiff(x, "year"), "scale")]
       d <- melt(d, id.vars = c(x, "scale"), variable.name = "type")
       d[, type := fifelse(type == "cumulative", "QALYs_cuml", "QALYs")]
@@ -530,10 +607,6 @@ Simulation$set("private", "tbl_smmrs_core", function(
       # Net QALYs (intervention - baseline, EQ5D5L only - HUI3 not implemented)
       d <- tt[, .("EQ5D5L" = sum(EQ5D5L)), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "scale", value.name = "QALYs")
-      # Apply discounting before calculating net QALYs
-      if (qaly_discount_rate > 0 && !is.null(discount_from_year)) {
-        d[, QALYs := QALYs / (1 + qaly_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
-      }
       d_sc0 <- d[scenario == comparator_scenario & year >= comparison_starting_year][, scenario := NULL]
       d <- d[scenario != comparator_scenario & year >= comparison_starting_year][
         d_sc0, on = c(setdiff(x, "scenario"), "scale"), net_QALYs := QALYs - i.QALYs]
@@ -552,12 +625,8 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
     } else if (grepl("^costs$", what)) {
       # Costs processing
-      d <- tt[, lapply(.SD, sum), .SDcols = patterns("_cost$|^economic_output$"), keyby = eval(x)]
+      d <- tt[, lapply(.SD, sum), .SDcols = patterns("_cost$|_costs$|^economic_output$"), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "costs_type", value.name = "costs")
-      # Apply discounting: PV = FV / (1 + r)^(year - discount_from_year)
-      if (cost_discount_rate > 0 && !is.null(discount_from_year)) {
-        d[, costs := costs / (1 + cost_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
-      }
       d[, cumulative := cumsum(costs), keyby = c(setdiff(x, "year"), "costs_type")]
       d <- melt(d, id.vars = c(x, "costs_type"), variable.name = "type")
       d[type == "cumulative", type := "costs_cuml"]
@@ -570,12 +639,8 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
     } else if (grepl("^net_costs$", what)) {
       # Net costs (intervention - baseline)
-      d <- tt[, lapply(.SD, sum), .SDcols = patterns("_cost$|^economic_output$"), keyby = eval(x)]
+      d <- tt[, lapply(.SD, sum), .SDcols = patterns("_cost$|_costs$|^economic_output$"), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "costs_type", value.name = "value")
-      # Apply discounting before calculating net costs
-      if (cost_discount_rate > 0 && !is.null(discount_from_year)) {
-        d[, value := value / (1 + cost_discount_rate / 100) ^ pmax(0, year - discount_from_year)]
-      }
       d_sc0 <- d[scenario == comparator_scenario & year >= comparison_starting_year][, scenario := NULL]
       d <- d[scenario != comparator_scenario & year >= comparison_starting_year][
         d_sc0, on = c(setdiff(x, "scenario"), "costs_type"), net_costs := value - i.value]
@@ -590,6 +655,34 @@ Simulation$set("private", "tbl_smmrs_core", function(
       x <- c(x, "costs_type")
       setnames(d, c(setdiff(x, "mc"), "type", scales::percent(prbl, prefix = str3[[what]])))
       setkeyv(d, c("type", setdiff(x, "mc")))
+      setcolorder(d, setdiff(x, "mc"))
+
+    } else if (grepl("^contd", what)) {
+      # User-defined continuous outcomes (*_contd columns). The contd summaries
+      # already hold a population-weighted mean per stratum, so collapsing to
+      # coarser strata re-weights by popsize (NOT a sum, and no division by
+      # popsize).
+      contd_cols <- grep("_contd$", names(tt), value = TRUE)
+      d <- tt[, lapply(.SD, function(v) weighted.mean(v, popsize, na.rm = TRUE)),
+              .SDcols = contd_cols, keyby = eval(x)]
+      d <- melt(d, id.vars = x)
+
+      if (grepl("_change_relative$", what)) {
+        # Relative change from baseline year
+        d19 <- d[year == baseline_year][, year := NULL]
+        d[d19, on = c(setdiff(x, "year"), "variable"), value := value / i.value]
+      }
+      if (grepl("_change_absolute$", what)) {
+        # Absolute change from baseline year
+        d19 <- d[year == baseline_year][, year := NULL]
+        d[d19, on = c(setdiff(x, "year"), "variable"), value := value - i.value]
+      }
+
+      setkey(d, "variable")
+      d <- d[, safe_fquantile_byid(value, prbl, id = as.character(variable), rounding = FALSE),
+             keyby = eval(setdiff(x, "mc"))]
+      setnames(d, c(setdiff(x, "mc"), "outcome", scales::percent(prbl, prefix = str3[[what]])))
+      setkeyv(d, setdiff(x, "mc"))
       setcolorder(d, setdiff(x, "mc"))
 
     } else {
@@ -726,7 +819,10 @@ Simulation$set("private", "export_main_tables", function(
     dis_mrtl = c("ftlt", "ftlt_change_relative", "ftlt_change_absolute", "dis_mrtl", "dis_mrtl_change_relative", "dis_mrtl_change_absolute"),
     mrtl = c("mrtl", "mrtl_change_relative", "mrtl_change_absolute", "dpp"),
     qalys = c("qalys", "net_qalys"),
-    costs = c("costs", "net_costs")
+    costs = c("costs", "net_costs"),
+    # User-defined continuous outcomes (*_contd columns). Skipped silently when
+    # the contd summary was not produced (read_summary_dataset returns NULL).
+    contd = c("contd", "contd_change_relative", "contd_change_absolute")
   )
 
   # Process each source dataset group
@@ -810,13 +906,8 @@ Simulation$set("private", "export_main_tables", function(
           rm(t1)
         }
 
-        # Get discount settings from design (with defaults for backwards compatibility)
-        disc <- self$design$sim_prm$discounting
-        qaly_rate <- if (!is.null(disc$qaly_discount_rate)) disc$qaly_discount_rate else 0
-        cost_rate <- if (!is.null(disc$cost_discount_rate)) disc$cost_discount_rate else 0
-        disc_year <- disc$discount_from_year
-
-        # Generate tables
+        # Generate tables. Main tables are reported UNDISCOUNTED; discounting is
+        # applied only in the cost-effectiveness tables (export_cea_tables).
         private$tbl_smmrs_core(
           tt = tt,
           what = what,
@@ -827,10 +918,7 @@ Simulation$set("private", "export_main_tables", function(
           comparator_scenario = comparator_scenario,
           comparison_starting_year = baseline_year,
           tables_dir = tables_dir,
-          two_agegrps = two_agegrps,
-          qaly_discount_rate = qaly_rate,
-          cost_discount_rate = cost_rate,
-          discount_from_year = disc_year
+          two_agegrps = two_agegrps
         )
         rm(tt)
       }
@@ -1200,5 +1288,197 @@ Simulation$set("private", "export_xps_tables", function(
     rm(xps_tab)  # Final cleanup
   }
 
+  invisible(NULL)
+})
+
+
+# export_cea_tables ----
+# Generate cost-effectiveness (ICER / NMB) tables from the qalys and costs
+# summaries. For each stratum, perspective (societal / healthcare) and QALY
+# scale (EQ5D5L; HUI3 if present) it computes, per Monte-Carlo iteration, the
+# cumulative discounted incremental QALYs and costs versus the comparator
+# scenario, then the ICER and the net monetary benefit (NMB) at each
+# willingness-to-pay threshold, and quantiles those across iterations.
+#
+# Cost perspectives:
+#   societal   = total_cost      (+ all user *_costs columns)
+#                total_cost already nets economic_output out of
+#                healthcare + socialcare + informalcare costs.
+#   healthcare = healthcare_cost (+ the user *_costs columns named in
+#                custom_costs_in_healthcare) -- direct treatment costs only.
+#
+# Discounting: PV = FV / (1 + rate/100)^max(0, year - discount_from_year),
+# with separate rates for QALYs and costs. Actual (scaled_up) population only.
+Simulation$set("private", "export_cea_tables", function(
+    prbl,
+    summaries_dir,
+    tables_dir,
+    comparator_scenario = "sc0",
+    baseline_year = 2019L,
+    wtp = c(20000, 30000),
+    qaly_discount_rate = 3.5,
+    cost_discount_rate = 3.5,
+    discount_from_year = NULL,
+    custom_costs_in_healthcare = NULL,
+    strata = NULL
+) {
+  if (self$design$sim_prm$logs) {
+    message("Generating cost-effectiveness (ICER/NMB) tables...")
+  }
+
+  if (is.null(discount_from_year)) discount_from_year <- baseline_year
+
+  qalys <- private$read_summary_dataset("qalys", "scaled_up")
+  costs <- private$read_summary_dataset("costs", "scaled_up")
+  if (is.null(qalys) || is.null(costs)) {
+    if (self$design$sim_prm$logs) {
+      message("  qalys or costs summary missing; skipping CEA tables")
+    }
+    return(invisible(NULL))
+  }
+
+  # Summaries store year in short format (e.g. 19); promote to full (2019) so
+  # baseline-year filtering and discounting use the same scale as the args.
+  qalys[, year := year + 2000L]
+  costs[, year := year + 2000L]
+
+  # Need at least one intervention scenario to compare against the comparator
+  non_comparator <- setdiff(unique(qalys$scenario), comparator_scenario)
+  if (length(non_comparator) == 0L) {
+    if (self$design$sim_prm$logs) {
+      message("  no intervention scenarios (only '", comparator_scenario,
+              "' found); skipping CEA tables")
+    }
+    return(invisible(NULL))
+  }
+
+  # QALY scales actually present in the summary (England: EQ5D5L only, but
+  # HUI3 is honoured if a future summary provides it).
+  scales_avail <- intersect(c("EQ5D5L", "HUI3"), names(qalys))
+  if (length(scales_avail) == 0L) {
+    if (self$design$sim_prm$logs) {
+      message("  no EQ5D5L/HUI3 columns in qalys summary; skipping CEA tables")
+    }
+    return(invisible(NULL))
+  }
+
+  # User-defined cost columns use the plural `_costs$` suffix; the built-in cost
+  # columns use the singular `_cost` suffix, so this grep matches only the
+  # user-defined columns.
+  custom_cost_cols <- grep("_costs$", names(costs), value = TRUE)
+
+  # Resolve which custom cost columns to add to the healthcare perspective.
+  # `custom_costs_in_healthcare` accepts a character vector of (custom) cost
+  # column names to include there, in addition to the always-present
+  # healthcare_cost. For convenience a logical is also honoured:
+  # NULL/FALSE -> none (default), TRUE -> all user-defined custom cost columns.
+  if (is.null(custom_costs_in_healthcare) ||
+      isFALSE(custom_costs_in_healthcare)) {
+    healthcare_custom_cols <- character(0)
+  } else if (isTRUE(custom_costs_in_healthcare)) {
+    healthcare_custom_cols <- custom_cost_cols
+  } else {
+    requested <- as.character(custom_costs_in_healthcare)
+    healthcare_custom_cols <- intersect(requested, custom_cost_cols)
+    unknown <- setdiff(requested, custom_cost_cols)
+    if (length(unknown) > 0L && self$design$sim_prm$logs) {
+      message("  custom_costs_in_healthcare: ignoring name(s) not matching a ",
+              "user-defined cost column: ", paste(unknown, collapse = ", "))
+    }
+  }
+
+  perspective_cols <- list(
+    societal = c("total_cost", custom_cost_cols),
+    healthcare = c("healthcare_cost", healthcare_custom_cols)
+  )
+
+  # WTP -> NMB column-name labels (plain integer form, e.g. 20000)
+  wtp_labels <- paste0(
+    "NMB_at_wtp_",
+    vapply(wtp, function(w) format(w, scientific = FALSE, trim = TRUE,
+                                   big.mark = ""), character(1))
+  )
+
+  disc <- function(v, year, rate) {
+    v / (1 + rate / 100)^pmax(0, year - discount_from_year)
+  }
+
+  for (s in strata) {
+    x <- c("mc", "scenario", s) # s always contains "year"
+
+    for (persp in names(perspective_cols)) {
+      pcols <- intersect(perspective_cols[[persp]], names(costs))
+      if (!any(grepl("^(total_cost|healthcare_cost)$", pcols))) {
+        if (self$design$sim_prm$logs) {
+          message("  ", persp, ": required cost column missing; skipping")
+        }
+        next
+      }
+
+      # Aggregate (discounted) costs for this perspective, once per stratum
+      cc <- copy(costs)
+      cc[, .cost := Reduce(`+`, .SD), .SDcols = pcols]
+      cc <- cc[, .(C = sum(.cost)), keyby = eval(x)]
+      cc[, C := disc(C, year, cost_discount_rate)]
+
+      for (scale in scales_avail) {
+        # Aggregate (discounted) QALYs for this scale
+        qq <- qalys[, .(Q = sum(get(scale))), keyby = eval(x)]
+        qq[, Q := disc(Q, year, qaly_discount_rate)]
+
+        d <- merge(qq, cc, by = x, all = TRUE)
+        d[is.na(Q), Q := 0][is.na(C), C := 0]
+
+        # Incremental vs comparator (intervention - comparator), from baseline
+        cmp <- d[scenario == comparator_scenario & year >= baseline_year][
+          , scenario := NULL]
+        d <- d[scenario != comparator_scenario & year >= baseline_year]
+        if (nrow(d) == 0L || nrow(cmp) == 0L) next
+        d[cmp, on = setdiff(x, "scenario"), `:=`(dQ = Q - i.Q, dC = C - i.C)]
+        d <- d[!is.na(dQ) & !is.na(dC)]
+        if (nrow(d) == 0L) next
+
+        # Cumulative over year within (mc, scenario, other strata)
+        setkeyv(d, c(setdiff(x, "year"), "year"))
+        d[, `:=`(dQALYs_cuml = cumsum(dQ), dCosts_cuml = cumsum(dC)),
+          by = setdiff(x, "year")]
+
+        # ICER and NMB at each WTP
+        d[, ICER := fifelse(dQALYs_cuml == 0, NA_real_,
+                            dCosts_cuml / dQALYs_cuml)]
+        for (i in seq_along(wtp)) {
+          set(d, NULL, wtp_labels[i], wtp[i] * d$dQALYs_cuml - d$dCosts_cuml)
+        }
+
+        metric_cols <- c("dCosts_cuml", "dQALYs_cuml", "ICER", wtp_labels)
+        dm <- melt(d, id.vars = x, measure.vars = metric_cols,
+                   variable.name = "type", value.name = "value")
+        # Drop non-finite draws (e.g. ICER when dQALYs_cuml == 0) so the
+        # quantile is taken over the finite Monte-Carlo iterations only.
+        dm <- dm[is.finite(value)]
+        if (nrow(dm) == 0L) next
+
+        setkey(dm, "type")
+        out <- dm[, safe_fquantile_byid(value, prbl, id = as.character(type),
+                                        rounding = FALSE),
+                  keyby = eval(setdiff(x, "mc"))]
+        setnames(out, c(setdiff(x, "mc"), "type",
+                        scales::percent(prbl, prefix = "value_")))
+        setkeyv(out, c("type", setdiff(x, "mc")))
+        setcolorder(out, setdiff(x, "mc"))
+
+        suffix <- paste(setdiff(x, c("mc", "scenario")), collapse = "-")
+        fwrite(out, file.path(
+          tables_dir,
+          paste0("cost-effectiveness by ", suffix,
+                 " (", persp, "-", scale, ") (not standardised).csv")
+        ))
+        rm(d, dm, out, qq)
+      }
+      rm(cc)
+    }
+  }
+
+  rm(qalys, costs)
   invisible(NULL)
 })

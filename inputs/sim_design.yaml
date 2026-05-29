@@ -28,12 +28,11 @@ iteration_n_max: 1000
 output_dir: /mnt/storage_fast/output/hf_real/test
 synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 
-# Discounting settings for QALYs and costs
-# Standard UK NICE guidance recommends 3.5% for both
-discounting:
-  qaly_discount_rate: 3.5 # annual discount rate for QALYs (%)
-  cost_discount_rate: 3.5 # annual discount rate for costs (%)
-  discount_from_year: 2019 # the first year from which discounting starts (reference year)
+# Discounting (for QALYs/costs) and willingness-to-pay are NOT configured here.
+# They are arguments of $export_tables(): qaly_discount_rate / cost_discount_rate
+# (default 3.5%, NICE), discount_from_year (defaults to the baseline year), and
+# wtp (default c(20000, 30000) GBP/QALY). Discounting is applied only to the
+# cost-effectiveness (ICER/NMB) tables; all other tables are undiscounted.
 
 uncertainty: # Note that uncertainties are independent
   incidence:
@@ -697,6 +696,19 @@ diseases:
   notes: .na
   
 scenarios: ''
+# Columns kept in the lifecourse output (and therefore available to the
+# summaries) are those listed below OR whose name matches a recognised suffix
+# that is kept automatically. To preserve a scenario-created column, either add
+# its name here or name it with one of the recognised suffixes:
+#   *_prvl  -> prevalence in summaries/prvl_scaled_up/ (SUM of wt where col > 0)
+#              AND incidence in summaries/incd_scaled_up/ (SUM of wt where
+#              col = 1). One duration-counter column drives both, exactly as the
+#              disease *_prvl columns do (build one with CKutils::carry_forward_incr).
+#   *_contd -> summaries/contd_scaled_up/ (population-weighted mean; opt-in via
+#              type = c(..., "contd") in $export_summaries()).
+#   *_costs -> summaries/costs_scaled_up/ (SUM of col * wt; feeds net_costs and
+#              the societal cost-effectiveness perspective).
+# See vignette "custom-scenario-columns" for the full mechanism.
 cols_for_output:
 - pid # NEED TO be 1st (perhaps not anymore)
 - pid_mrk
