@@ -166,6 +166,8 @@ Simulation$set("public", "export_summaries", function(
     file_pth <- private$output_dir("summaries/qalys_scaled_up")
   } else if ("costs" %in% type) {
     file_pth <- private$output_dir("summaries/costs_scaled_up")
+  } else if ("contd" %in% type) {
+    file_pth <- private$output_dir("summaries/contd_scaled_up")
   } else {
     stop("Unknown type of summary")
   }
@@ -459,6 +461,9 @@ Simulation$set("private", "export_summaries_hlpr", function(
   }
   if ("costs" %in% type) {
     private$export_costs_summaries(duckdb_con, mcaggr, strata, ext)
+  }
+  if ("contd" %in% type) {
+    private$export_contd_summaries(duckdb_con, mcaggr, strata, ext)
   }
 
   if (self$design$sim_prm$logs) {
@@ -1725,6 +1730,80 @@ Simulation$set("private", "export_incd_summaries", function(
 })
 
 
+# export_contd_summaries ----
+# Aggregates user-created continuous columns named with the `_contd$` suffix
+# using a population-weighted mean over the strata. Mirrors the role of the
+# `_curr_xps` exposure columns but writes to the summaries pipeline alongside
+# prvl / incd / costs. This summary is opt-in: include "contd" in the `type`
+# argument of `$export_summaries()`. Outputs:
+#   summaries/contd_scaled_up/<mcaggr>_contd_scale_up.<ext>
+#   summaries/contd_esp/<mcaggr>_contd_esp.<ext>
+Simulation$set("private", "export_contd_summaries", function(
+    duckdb_con,
+    mcaggr,
+    strata,
+    ext
+) {
+  lc_table_name <- "lc_table"
+  nm_contd <- grep(
+    "_contd$",
+    dbListFields(duckdb_con, lc_table_name),
+    value = TRUE
+  )
+  if (length(nm_contd) == 0L) {
+    if (self$design$sim_prm$logs) {
+      message(
+        "export_contd_summaries: no `_contd` columns found in ",
+        "lifecourse; nothing to export."
+      )
+    }
+    return(NULL)
+  }
+
+  lapply(
+    paste0("contd_", c("scaled_up", "esp")),
+    function(subdir) {
+      private$create_new_folder(
+        private$output_dir(paste0("summaries/", subdir))
+      )
+    }
+  )
+
+  select_cols <- paste(strata, collapse = ", ")
+
+  write_one <- function(wt_col, out_subdir, out_suffix) {
+    # Weighted mean = SUM(col * wt) / SUM(wt); NULL when SUM(wt) = 0.
+    wm_sql <- paste(
+      sprintf(
+        'CASE WHEN SUM(%s) = 0 THEN NULL ELSE SUM("%s" * %s) / SUM(%s) END AS "%s"',
+        wt_col, nm_contd, wt_col, wt_col, nm_contd
+      ),
+      collapse = ", "
+    )
+    sql_query <- sprintf(
+      "SELECT %s, SUM(%s) AS popsize, %s
+              FROM %s
+              WHERE mc = %d
+              GROUP BY %s
+              ORDER BY %s",
+      select_cols, wt_col, wm_sql, lc_table_name, mcaggr,
+      select_cols, select_cols
+    )
+    output_path <- private$output_dir(
+      paste0("summaries/", out_subdir, "/", mcaggr, out_suffix, ".", ext)
+    )
+    private$execute_db_diskwrite_with_retry(
+      duckdb_con, sql_query, output_path
+    )
+  }
+
+  write_one("wt",     "contd_scaled_up", "_contd_scale_up")
+  write_one("wt_esp", "contd_esp",       "_contd_esp")
+
+  NULL
+})
+
+
 # export_mrtl_summaries ----
 Simulation$set("private", "export_mrtl_summaries", function(
     duckdb_con,
@@ -2322,6 +2401,25 @@ Simulation$set("private", "export_costs_summaries", function(
     sep = ", "
   )
 
+  # User-created custom `_costs$` columns live in `lc_table` (preserved via the
+  # suffix-keep rule / cols_for_output) but are not produced by calc_costs, so
+  # they are absent from its view. Aggregate them with SUM(col * wt[_esp])
+  # directly from lc_table per (mc, scenario, strata) and merge into the cost
+  # outputs below. Built-in cost columns use the singular `_cost` suffix, so
+  # this `_costs$` grep matches only user-defined columns.
+  custom_cost_cols <- grep(
+    "_costs$",
+    dbListFields(duckdb_con, lc_table_name),
+    value = TRUE
+  )
+  build_custom_cost_select <- function(wt_col) {
+    paste(
+      sprintf('SUM("%s" * %s) AS "%s"',
+              custom_cost_cols, wt_col, custom_cost_cols),
+      collapse = ", "
+    )
+  }
+
   # Memory-efficient approach: Process scenarios one at a time
   esp_results <- list()
   scaled_up_results <- list()
@@ -2371,6 +2469,41 @@ Simulation$set("private", "export_costs_summaries", function(
       query_scaled_up_scenario,
       paste("Scaled-up costs for scenario", scnam)
     ))
+
+    # Append user-defined `_costs$` columns (aggregated from lc_table)
+    if (length(custom_cost_cols) > 0L) {
+      for (wt_col in c("wt_esp", "wt")) {
+        custom_query <- sprintf(
+          "SELECT %s, %s
+           FROM %s
+           WHERE mc = %d AND scenario = '%s'
+           GROUP BY %s",
+          quoted_strata_cols_sql,
+          build_custom_cost_select(wt_col),
+          lc_table_name,
+          mcaggr,
+          scnam,
+          quoted_strata_cols_sql
+        )
+        custom_dt <- as.data.table(private$query_sql(
+          duckdb_con,
+          custom_query,
+          paste(
+            if (wt_col == "wt") "Scaled-up" else "ESP",
+            "custom costs for scenario", scnam
+          )
+        ))
+        if (wt_col == "wt_esp") {
+          esp_results[[i]] <- merge(
+            esp_results[[i]], custom_dt, by = strata, all = TRUE
+          )
+        } else {
+          scaled_up_results[[i]] <- merge(
+            scaled_up_results[[i]], custom_dt, by = strata, all = TRUE
+          )
+        }
+      }
+    }
   }
 
   # Combine all ESP results and write to disk

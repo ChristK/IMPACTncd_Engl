@@ -1,212 +1,1537 @@
 {
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/IMPACTncd_sim.cpp": 1771525736.985881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/simsmok.cpp": 1771525736.984881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/undef_fortify.h": 1771525736.984881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp": 1771546829.060938,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp": 1771525736.984881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_dev_docker_env.ps1": 1771525736.986881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_user_docker_env.ps1": 1771525736.986881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/update-apt-packages.ps1": 1771525736.986881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/docker_build_push.ps1": 1771525736.985881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/simulation.R": 1763135115.576661,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/global.R": 1771542012.7875392,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/simulate_mrtl_paper.R": 1771525738.528896,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/pop_proj_by_dimd.R": 1763132916.5253956,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/impact_of_disease_on_exposures.R": 1763132917.1904016,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/exp_valplots.R": 1763132917.2814026,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/CPRD_sim_validation_plots.R": 1763132917.5704052,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/structural_plots.R": 1763132917.6604059,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/fix_stepGAICall.A.R": 1763132917.9294086,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/CPRD_sim_validation_plots_CK.R": 1771525736.985881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/aux_functions_extra.R": 1771525738.520896,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/deconstructed_sim.R": 1776801390.727566,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/secure_data/generate_HSE_ts.R": 1763133206.7319903,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/.vscode/debug.R": 1763133764.6978538,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/compare_export_tables.R": 1771525739.5609062,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/process_out.R": 1771525739.5609062,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_deep_testing.R": 1771525739.5609062,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_discounting.R": 1771525740.0759113,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_discounting_integration.R": 1771525740.0759113,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_zenodo_upload.R": 1771551770.925583,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_testing.R": 1771525740.143912,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_reproducibility.R": 1771525740.143912,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_new_user_pipeline.R": 1771552145.0530183,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_testing_init_year.R": 1777371099.7980168,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/verify_init_prvl_buffer.R": 1777377422.7672179,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/.history/IMPACTncd_Engl_model_pkg/R/Design_class_20250416153641.R": 1763132974.2559276,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/.history/IMPACTncd_Engl_model_pkg/R/Design_class_20250331010945.R": 1763132974.3439283,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/.vscode/debug.R": 1763132975.2419367,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Exposure_class.R": 1775845982.1152105,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/IMPACTncdEngland.R": 1776897694.5072484,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/aux_functions.R": 1771525738.8908997,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_calibration.R": 1771525739.5589063,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/ExposureEffect_class.R": 1771525740.0879114,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/InputsManifest_class.R": 1777153720.7509966,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_summaries.R": 1771525740.0889115,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_tables.R": 1776120573.2233992,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/SynthPop_class.R": 1775846213.65544,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Design_class.R": 1776865323.4022737,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Disease_class.R": 1777377329.7833173,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class.R": 1777377343.5944512,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R": 1776892141.0589287,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/RcppExports.R": 1771546829.060938,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/tests/tinytest.R": 1771525736.984881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_Design_class.R": 1771525738.519896,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Bradford/simulate_Bradford.R": 1771525740.0909114,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/England/simulate_England.R": 1771525740.0909114,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ethnicity/simulate_ethnicity.R": 1771525740.0909114,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/simulation_ineq.R": 1771525740.0909114,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/process_out_elasticities.R": 1771525740.140912,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/simulation_elasticities_10pc.R": 1771525740.141912,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/simulation_elasticities_master.R": 1771525740.141912,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/simulation_elasticities_nomort.R": 1771525740.141912,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Bristol/simulate_Bristol.R": 1776685597.5219646,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/North_Somerset/simulate_North_Somerset.R": 1776800772.5895507,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/South_Gloucestershire/simulate_South_Gloucestershire.R": 1776801152.9792502,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Gloucester/simulate_Gloucester.R": 1776801348.7951543,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/mrtl_projections.R": 1763133774.0,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/mrtl_projections_coherent.R": 1763133772.0,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/prepare_calibr_file.R": 1768841964.0,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/preprocess_mrtl.R": 1763133774.0,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_projections/extract_pop_growth_by_qimd.R": 1763134978.0,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/synthpop/validation.R": 1771525776.203266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/CHD_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/aux_fn.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Alcohol Misuse_epi.R": 1771525776.196266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Anxiety_Depression_spell_epi.R": 1771525776.196266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Asthma_spell_epi.R": 1771525776.196266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Atrial_Fibrillation_epi.R": 1771525776.196266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/CHD_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/COPD_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Chronic Kidney Disease_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Connective tissue disorder_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Constipation_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Dementia_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Diabetes excl Type 2_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Epilepsy_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Hearing loss_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Heart failure_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Hypertension_epi.R": 1771525776.1972659,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/IBS_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Nonmodelled_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Obesity_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Other_cancers_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Pain_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Primary Malignancy_Breast_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Primary Malignancy_Colorectal_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Primary Malignancy_Lung_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Primary Malignancy_Prostate_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Psychosis_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Rheumatoid Arthritis_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Stroke_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/TMPanna.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Type 2 Diabetes Mellitus_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/aux_fn.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/correlations.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/recover_dur.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Anxiety_Depression_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Asthma_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/CLD_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Chronic Kidney Disease S3_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Chronic Kidney Disease S4_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Chronic Kidney Disease S5_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/ckd45_epi.R": 1771525776.1982658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/PARF outputs/PARFoutputs.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/exposure_trends/exposure_trends.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/PARF outputs/case_numbers/Parfoutputs_casenum.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/extract_HSE_correlation_structure.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/extract_HSE_correlation_structure_2024.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/extract_hse_sociodemographics_for_validation.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_af_diag_model.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_alcohol_model.R": 1771525776.199266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_alcohol_model_2024.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_bmi_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_bmi_model_2024.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_bpmed_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ckd_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_education_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_education_model_2024.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_education_model_for_imputation.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ethnicity_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ethnicitygrp_model_2024.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ets_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ets_model_2024.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_famcvd_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_fruit_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_fruit_model_2024.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_hdl_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_income_model.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_income_model_2024.R": 1771525776.200266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_pa_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_pa_model_2024.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_sbp_RR_on_htn.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_sbp_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_sbp_model_2024.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_cess_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_cig_curr_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_cig_ex_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_dur_curr_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_dur_ex_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_dur_ex_model_old.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_incid_model T21.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_incid_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_incid_model_old.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_quit_yrs_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_relapse_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_status_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_status_model_2024.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_statins_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_t2dm_dgn_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_t2dm_dur_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_t2dm_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model_2024.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_veg_model.R": 1771525776.2012658,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_veg_model_2024.R": 1771525776.202266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fix_stepGAICall.A.R": 1771525776.202266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/generate_HSE_ts.R": 1771525776.202266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/generate_HSE_ts_15_18.R": 1771525776.202266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/generate_HSE_ts_3_19.R": 1771525776.202266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/get_populations.R": 1771525776.202266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/history_of_cancer_for_plco.R": 1771525776.202266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/maximal_information_coefficient.R": 1771525776.202266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/produce summary files for regression.R": 1771525776.203266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_HFSS_salt_model_England_nonOOH_withtotalsalt.R": 1775037190.6113253,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_HFSS_energy_model_England_nonOOH_withtotalenergy.R": 1775037190.7543268,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_HFSS_food_weight_gram_model_England_nonOOH_withHFSSenergy.R": 1776082974.623414,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_estimates_lsoa/unprocessed/ethnic_group_by_sex_by_age_lsoa/lsoa_ethn_toR.R": 1771525776.203266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_estimates_lsoa/unprocessed/pop_size/engl_pop_toR.R": 1771525776.203266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_estimates_lsoa/unprocessed/pop_size/lsoa_pop_toR.R": 1771525776.203266,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_projections/unprocessed/pop_proj_toR.R": 1763134978.0,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/TODO.Rmd": 1771525739.5599062,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/my-vignette.Rmd": 1763132915.5163863,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/how_to_test_run.Rmd": 1771525738.8908997,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/how_to_run_scenarios.Rmd": 1771525740.0899115,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/inputs_manifest_system.Rmd": 1777153551.3464055,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/understanding_model_outputs.Rmd": 1774363094.047449,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/zenodo_data_management.Rmd": 1777154520.4697855,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/TODO.html": 1763133227.014168,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/README.md": 1771525736.981881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/CLAUDE.md": 1777564640.4035563,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/documents/technical_appendix.md": 1763133225.1151514,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/documents/technical_appendix.html": 1763133225.2651527,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/README.md": 1771525738.8918998,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/r-packages.txt": 1771525740.147912,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/apt-packages.txt": 1771525738.8918998,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_rtools_on_windows.md": 1763133765.061857,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_R_on_windows.md": 1763133765.1498578,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_git.md": 1763133765.2368584,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_RStudio_on_windows.md": 1763133765.3258593,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_R_on_linux.md": 1763133770.9179077,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Dur_distributions.txt": 1774875527.3643532,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/source.html": 1763133774.0,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/structure.pdf": 1763132974.1659267,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rplots.pdf": 1774902512.3598273,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_estimates_lsoa/unprocessed/ethnic_group_by_sex_by_age_lsoa/lc2101ew.pdf": 1774875527.8383577,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder.jpg": 1771525736.984881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_lf.jpg": 1771525736.984881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_logs.jpg": 1771525736.984881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_sum.jpg": 1771525736.985881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_tables.jpg": 1771525736.985881,
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_xps.jpg": 1771525736.985881
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/IMPACTncd_sim.cpp": {
+    "mtime": 1771525736.985881,
+    "ast_hash": "f5fdc7188c9a2de3d30b97b8e7dcd7ad",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/simsmok.cpp": {
+    "mtime": 1771525736.984881,
+    "ast_hash": "73a9383dc9cd8f8a4df265847f994dd2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/undef_fortify.h": {
+    "mtime": 1771525736.984881,
+    "ast_hash": "18cdc1c3c4fc23337273035d8e4450e2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp": {
+    "mtime": 1771546829.060938,
+    "ast_hash": "fd0e604c4500f4571c9d887a37d85f30",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp": {
+    "mtime": 1771525736.984881,
+    "ast_hash": "be6b0e5f7d8b5cf7724824ad60d08d11",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_dev_docker_env.ps1": {
+    "mtime": 1778247780.680826,
+    "ast_hash": "e311904ba9e43cfbc4ce590c854f035c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_user_docker_env.ps1": {
+    "mtime": 1778250875.1395838,
+    "ast_hash": "64f9ff28fb9362f7d0e8c0e96f20dbf8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/update-apt-packages.ps1": {
+    "mtime": 1771525736.986881,
+    "ast_hash": "694e4fd3df05c243994ddf4fcafa7244",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/docker_build_push.ps1": {
+    "mtime": 1771525736.985881,
+    "ast_hash": "bd5bb2a09a11f17bec00b7b333fa0b04",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/simulation.R": {
+    "mtime": 1763135115.576661,
+    "ast_hash": "07b657ca71d69b6a0117a2dd36e545c1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/global.R": {
+    "mtime": 1771542012.7875392,
+    "ast_hash": "1f7cee940d8abfb12522242c87cd4c58",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/simulate_mrtl_paper.R": {
+    "mtime": 1771525738.528896,
+    "ast_hash": "c13cf7eeaf33623b24aa8957197b45cd",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/pop_proj_by_dimd.R": {
+    "mtime": 1763132916.5253956,
+    "ast_hash": "265f85b41988fc8ed0673bb62975959d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/impact_of_disease_on_exposures.R": {
+    "mtime": 1763132917.1904016,
+    "ast_hash": "e73115ff9011e5ec7da504e9b89a4de7",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/exp_valplots.R": {
+    "mtime": 1763132917.2814026,
+    "ast_hash": "1b3ce03116f38f9843636e597c4b2847",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/CPRD_sim_validation_plots.R": {
+    "mtime": 1763132917.5704052,
+    "ast_hash": "8112a5223817b59bd2ce0a5d63082df6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/structural_plots.R": {
+    "mtime": 1763132917.6604059,
+    "ast_hash": "4c5be15969796face49dd837aca85759",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/fix_stepGAICall.A.R": {
+    "mtime": 1763132917.9294086,
+    "ast_hash": "c5062c444d78402c73f98744ea4897a2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/CPRD_sim_validation_plots_CK.R": {
+    "mtime": 1771525736.985881,
+    "ast_hash": "d4c7b9a238c866cdd19e3123721c97e9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/aux_functions_extra.R": {
+    "mtime": 1771525738.520896,
+    "ast_hash": "ba0635037673b6be6ddb3ab7d32971f8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/deconstructed_sim.R": {
+    "mtime": 1776801390.727566,
+    "ast_hash": "11d39f2573179b726b6965105cefeab5",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/secure_data/generate_HSE_ts.R": {
+    "mtime": 1763133206.7319903,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/.vscode/debug.R": {
+    "mtime": 1763133764.6978538,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/compare_export_tables.R": {
+    "mtime": 1771525739.5609062,
+    "ast_hash": "7940cc0c313d5ddcd3a739aaba8c8393",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/process_out.R": {
+    "mtime": 1771525739.5609062,
+    "ast_hash": "70403a37257080df9a162f8b84daa478",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_deep_testing.R": {
+    "mtime": 1771525739.5609062,
+    "ast_hash": "595818e903f6a989a988230fc9e7f90e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_discounting.R": {
+    "mtime": 1780065323.1023717,
+    "ast_hash": "abfc0c2629ec2f2a5eb743ce0975a8c9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_discounting_integration.R": {
+    "mtime": 1780065389.3840117,
+    "ast_hash": "975876857461b9cc9be07e16dbb7fc93",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_zenodo_upload.R": {
+    "mtime": 1771551770.925583,
+    "ast_hash": "fe4dd50169260f9f355c51f980f4d077",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_testing.R": {
+    "mtime": 1771525740.143912,
+    "ast_hash": "225c98ac9bbd660195ff693f7876e8e0",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_reproducibility.R": {
+    "mtime": 1771525740.143912,
+    "ast_hash": "4e37a1f5b1961234b5f075fff7f9c7c2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/test_new_user_pipeline.R": {
+    "mtime": 1771552145.0530183,
+    "ast_hash": "2686aec761ca80d27c01c269e87f48ef",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_testing_init_year.R": {
+    "mtime": 1777371099.7980168,
+    "ast_hash": "5ab7cf07dd8b690afe6c90deec136945",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/verify_init_prvl_buffer.R": {
+    "mtime": 1777377422.7672179,
+    "ast_hash": "29d78c8624b5fc568fb3becb436369e2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/.history/IMPACTncd_Engl_model_pkg/R/Design_class_20250416153641.R": {
+    "mtime": 1763132974.2559276,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/.history/IMPACTncd_Engl_model_pkg/R/Design_class_20250331010945.R": {
+    "mtime": 1763132974.3439283,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/.vscode/debug.R": {
+    "mtime": 1763132975.2419367,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Exposure_class.R": {
+    "mtime": 1777902389.2270365,
+    "ast_hash": "a30432f55dbdcac109f1715e0636bdfe",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/IMPACTncdEngland.R": {
+    "mtime": 1776897694.5072484,
+    "ast_hash": "03ecc977e82f888ee93e39fa96a2cfb6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/aux_functions.R": {
+    "mtime": 1771525738.8908997,
+    "ast_hash": "f4d76f9b92fd83f9a49080cc3d4c98c6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_calibration.R": {
+    "mtime": 1777902292.5668776,
+    "ast_hash": "5a3e63d9bca0adc8bd30a9ceeb2b65dd",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/ExposureEffect_class.R": {
+    "mtime": 1777902389.269037,
+    "ast_hash": "5eca6398e7e931edb00c15650c20685f",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/InputsManifest_class.R": {
+    "mtime": 1777153720.7509966,
+    "ast_hash": "84d836afa8266fc65d80f82243b740d7",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_summaries.R": {
+    "mtime": 1780062968.2755315,
+    "ast_hash": "79507cf1dc0b9f710a39097082b94eab",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_tables.R": {
+    "mtime": 1780065444.0335398,
+    "ast_hash": "fa32330d5a4c8c192b7464ae1147fde5",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/SynthPop_class.R": {
+    "mtime": 1777902292.5678775,
+    "ast_hash": "d32b42b363404efdf8dbd6c1e80dbe7c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Design_class.R": {
+    "mtime": 1777902389.1520357,
+    "ast_hash": "9aaf126a017eb044a25c1f12cfa0610b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Disease_class.R": {
+    "mtime": 1777377329.7833173,
+    "ast_hash": "f6981abfcba5f66272ce6a25ac3ce469",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class.R": {
+    "mtime": 1780062829.2592008,
+    "ast_hash": "a6bef54c91ab7d5c38eba448771e53e9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R": {
+    "mtime": 1777902389.4630394,
+    "ast_hash": "efc36412309c0f99366f56fc9872a0fe",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/RcppExports.R": {
+    "mtime": 1771546829.060938,
+    "ast_hash": "6e8aa8b17fd68491bc4147271d099b81",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/tests/tinytest.R": {
+    "mtime": 1771525736.984881,
+    "ast_hash": "df3cfe62e29b74211a60fcc1c24210ba",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_Design_class.R": {
+    "mtime": 1771525738.519896,
+    "ast_hash": "908572dc5dbfd843b2a4dbda1d43c3f5",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Bradford/simulate_Bradford.R": {
+    "mtime": 1771525740.0909114,
+    "ast_hash": "cca22de8f465b24d71dae8627860127c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/England/simulate_England.R": {
+    "mtime": 1771525740.0909114,
+    "ast_hash": "6019fa5a3fb85bfc3e28633040008bf4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ethnicity/simulate_ethnicity.R": {
+    "mtime": 1771525740.0909114,
+    "ast_hash": "35c263666e970cdb68de10216bc1fc73",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/simulation_ineq.R": {
+    "mtime": 1771525740.0909114,
+    "ast_hash": "441a4f70b3f921f06076c7fdf77e2449",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/process_out_elasticities.R": {
+    "mtime": 1771525740.140912,
+    "ast_hash": "edfda65e2a3ff392ce29a55a2a905572",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/simulation_elasticities_10pc.R": {
+    "mtime": 1771525740.141912,
+    "ast_hash": "33c53ccc6213845f73657b44209836aa",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/simulation_elasticities_master.R": {
+    "mtime": 1771525740.141912,
+    "ast_hash": "eec528f3a1e80a7bc158f155e635cfc5",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/simulation_elasticities_nomort.R": {
+    "mtime": 1771525740.141912,
+    "ast_hash": "6d9ac7dac5ace7930c339074b6823017",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Bristol/simulate_Bristol.R": {
+    "mtime": 1776685597.5219646,
+    "ast_hash": "1db8266a76067be4b89d822e4f233451",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/North_Somerset/simulate_North_Somerset.R": {
+    "mtime": 1776800772.5895507,
+    "ast_hash": "110fb05d3b0f99395d5a9ad6264d30c1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/South_Gloucestershire/simulate_South_Gloucestershire.R": {
+    "mtime": 1776801152.9792502,
+    "ast_hash": "2b740369e4829ac144420052e5902b88",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Gloucester/simulate_Gloucester.R": {
+    "mtime": 1776801348.7951543,
+    "ast_hash": "12a997dd12848813b57d2c59ad9e51e2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/mrtl_projections.R": {
+    "mtime": 1763133774.0,
+    "ast_hash": "ef0089c53e5c7ae71db749857b299ba4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/mrtl_projections_coherent.R": {
+    "mtime": 1763133772.0,
+    "ast_hash": "fe3026e137dd2d3be7f26029841c5953",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/prepare_calibr_file.R": {
+    "mtime": 1768841964.0,
+    "ast_hash": "8c0160b8dda1d78d08750ea51d9bc7fa",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/preprocess_mrtl.R": {
+    "mtime": 1763133774.0,
+    "ast_hash": "015bdd8c87efc1c79a38e371c3d58d55",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_projections/extract_pop_growth_by_qimd.R": {
+    "mtime": 1763134978.0,
+    "ast_hash": "157d7b893e51af7faec5b2af86ed7cdb",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/synthpop/validation.R": {
+    "mtime": 1771525776.203266,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/CHD_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "b5662923606765997a16f4afee3c4ffd",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/aux_fn.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "f6a8dbf71279a2e26436dbd10a264a9a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Alcohol Misuse_epi.R": {
+    "mtime": 1771525776.196266,
+    "ast_hash": "fc1e898d631c365a4cf4afc4d97565a4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Anxiety_Depression_spell_epi.R": {
+    "mtime": 1771525776.196266,
+    "ast_hash": "bc5f00d499a8b3d7406ee5818fe96fc7",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Asthma_spell_epi.R": {
+    "mtime": 1771525776.196266,
+    "ast_hash": "0ddcbbca4170db0d552f9ee231db0fdf",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Atrial_Fibrillation_epi.R": {
+    "mtime": 1771525776.196266,
+    "ast_hash": "af8b2132ac74356b6185a12ca9a019de",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/CHD_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "697bb513650ed3d47960ad8b9cb56275",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/COPD_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "4109ab31a0c132eb59e7a5211bc5f922",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Chronic Kidney Disease_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "1ea8e78b7f9f61fce61da8ad8c7584a7",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Connective tissue disorder_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "819988ffeafeb37ac1525bef4c0c5083",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Constipation_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "0f3a5dfa9af2d6fb17390fdd9914a5fa",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Dementia_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "08909af737b61c17ec5b42f0734c6362",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Diabetes excl Type 2_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "10d92d6993afdf950e9856e41eee7771",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Epilepsy_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "9e448d258961a56d31f2d7876105822c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Hearing loss_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "e0b1de79ebc77c15993136d39d273d34",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Heart failure_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "12116c89e00ba642b24858e409a711e2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Hypertension_epi.R": {
+    "mtime": 1771525776.1972659,
+    "ast_hash": "b4555649912acfe64e19c69384400327",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/IBS_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "193e1c21723d7790452aa942e4560878",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Nonmodelled_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "6f7262c9eeea9ac7fce6d2321e190796",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Obesity_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "16391b549d143e3f5b2354a57dc6a57c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Other_cancers_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "cc4fafdbba1db0f90c91d0697463bda5",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Pain_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "a570ef8098336554a12db62d4f8ed2d4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Primary Malignancy_Breast_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "b24dd42500e40694856329912e24e9f2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Primary Malignancy_Colorectal_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "0ef7c33249a66487ad045430a507b553",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Primary Malignancy_Lung_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "95fcf5a6b391f41f7227cbd37b9b34c6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Primary Malignancy_Prostate_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "09f5baacefab48835bd672aa0a8ffc32",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Psychosis_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "5e51e8eff4ab96ebcbc70196adb24e6f",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Rheumatoid Arthritis_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "5242ca416d3f8beba760bebea68b3bb8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Stroke_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "b509481af65cc75c73dac512e57b0493",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/TMPanna.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "acbb74142b61859f63b7855caf29e544",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Type 2 Diabetes Mellitus_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "4a48d0a5bb06aac25cbb087509aad950",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/aux_fn.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "718fb3198c7e240584652922d280b2a6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/correlations.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "6bfab5743b426d430084bd0e022fe56a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/recover_dur.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "bdeca18adbc5432d9a948577da4fcb41",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Anxiety_Depression_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "142e035d4d29e7815de5e5d2d486839b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Asthma_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "fa920c0d25ebf66580ca5ab53d622dcb",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/CLD_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "6315885d152ef48a924673a2a078bfcc",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Chronic Kidney Disease S3_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "fa155ee941e36b03b0514176bfe5911a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Chronic Kidney Disease S4_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "0484024c98079086e1890451fd89b4f3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/Chronic Kidney Disease S5_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "47303622b1ba79f405e80effc09fffaf",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/OLDredundantscripts/ckd45_epi.R": {
+    "mtime": 1771525776.1982658,
+    "ast_hash": "9e134a909f6558b810f07bc0e315999a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/PARF outputs/PARFoutputs.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "47f56300d8effde02711a4e538743f36",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/exposure_trends/exposure_trends.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "7255e0bffe0f2e1174ec3ab2cd4f982d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/PARF outputs/case_numbers/Parfoutputs_casenum.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "04dd765d5c046f33c47f62cbdcd46eb6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/extract_HSE_correlation_structure.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "cbfb58e3dc90784e613a5d15e196bc85",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/extract_HSE_correlation_structure_2024.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "f890901abc4fe7ab98ac03b2a65533f6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/extract_hse_sociodemographics_for_validation.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "6339875a3cbef1eb851043600a42da88",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_af_diag_model.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "b0e0cb954894ac0e6ad77e27750200dc",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_alcohol_model.R": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "3003e980ac902887d5132c24e8cdd3c3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_alcohol_model_2024.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "bc5635d8b47e4f714c2478931e9f8cda",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_bmi_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "a0d98e0b6e46c84854fea72c44ba0fc1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_bmi_model_2024.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "c5b9b11e9c740ef93143d7a13a5a4421",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_bpmed_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "b40860ed518a82df3040c9790bfe4fb2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ckd_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "b311cc4ccbaa44471da83cb083df2f53",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_education_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "a08e7fd372284e9319dd463f9bb2ac3a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_education_model_2024.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "f2030a93dbf49578f2edb46f98887daf",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_education_model_for_imputation.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "6e63e0ffa92137753d84c94527badb2b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ethnicity_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "2d36c40bc1166d976fa8e7ef4f23d420",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ethnicitygrp_model_2024.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "3714056abe19d17ec776604a6b00afb2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ets_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "f6e496fb2cba2b63fa014f2bde2d018d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_ets_model_2024.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "7a5b22ca2a22a3dde7bb104d1ecf03b5",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_famcvd_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "f2f725ba8a6ef73ed88c3030461016e4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_fruit_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "4df5d87e4fbbf3add47ec0d89b2ec484",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_fruit_model_2024.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "b5eb529011ebc9620cafcdbfd0618a1c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_hdl_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "0a151f5725c8b26b45607f2fb235b3af",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_income_model.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "df13e7b8e1ffdf9c35210f3d934720b9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_income_model_2024.R": {
+    "mtime": 1771525776.200266,
+    "ast_hash": "06a1c11b474425a2a28f0c1b7a88d3c9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_pa_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "f0677b7466114528f4c8cd6e856f3b6d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_pa_model_2024.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "dc4f082f1901f7f37ac6c6e96aaed7a8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_sbp_RR_on_htn.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "ceb906c5811c4f5402c4af35e5d82809",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_sbp_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "2e809499080ed51b6a6c953a15909ac9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_sbp_model_2024.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "99ae308dc366fad39dceb3a586713773",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_cess_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "a86bddc94e1480b1e72a6826e6056858",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_cig_curr_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "44db7c9c3a23c3d4fd638a94b8486ba1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_cig_ex_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "5318327bfd6ff096c990d089b73d466b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_dur_curr_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "0596c8d9b01da5f5b3f2ea25e72b545f",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_dur_ex_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "20ff5c842c7f05a85ef7b46ace30f15b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_dur_ex_model_old.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "655adbe0a7cb8063a8179e6c629711ad",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_incid_model T21.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "5ede8765e18e4f460f73a2fddab98dca",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_incid_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "b487ea613fb35e34c3def27f591037dc",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_incid_model_old.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "8606d7ab376dad802e04c32fe1e4fc17",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_quit_yrs_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "7d38849aad6b903b1827eb32cbf297f3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_relapse_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "949d703fde0be2cfa4d701438e70d5ec",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_status_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "d74e8703a77b43477d2d0d0399859dce",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_smok_status_model_2024.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "3c8dcae8c682e46fb397ef472b9a0411",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_statins_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "d9a0ed9e01271a111f4d1b601d775cfe",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_t2dm_dgn_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "5eba807430829c9f72a589a178d354e3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_t2dm_dur_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "6219bec936ad61e60d47c3aa46069e79",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_t2dm_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "a621a6f5dd417215c1f9ef92e16bb31c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "64ce82978dfc7e220a392d34dc059c62",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model_2024.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "733086a9f5a8ede309f4ec81e25683bf",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_veg_model.R": {
+    "mtime": 1771525776.2012658,
+    "ast_hash": "38afde8504522613c444601a6fc41865",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_veg_model_2024.R": {
+    "mtime": 1771525776.202266,
+    "ast_hash": "c09806c47f9f7eb9850658d9860480e7",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fix_stepGAICall.A.R": {
+    "mtime": 1771525776.202266,
+    "ast_hash": "a9a10ff96a7a5fb4943c65c97f149dcc",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/generate_HSE_ts.R": {
+    "mtime": 1771525776.202266,
+    "ast_hash": "0ba259854bd6546e7b715748c69103cd",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/generate_HSE_ts_15_18.R": {
+    "mtime": 1771525776.202266,
+    "ast_hash": "0d6c3c6226b91b0ce5ded18b3759c590",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/generate_HSE_ts_3_19.R": {
+    "mtime": 1771525776.202266,
+    "ast_hash": "c89be06f65e2c0e50e54d8fe6ae48d1f",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/get_populations.R": {
+    "mtime": 1771525776.202266,
+    "ast_hash": "07c3b59ea59590da1d6a2fe8262223c7",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/history_of_cancer_for_plco.R": {
+    "mtime": 1771525776.202266,
+    "ast_hash": "4a66f46cf431926b6326d16fab637618",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/maximal_information_coefficient.R": {
+    "mtime": 1771525776.202266,
+    "ast_hash": "ce55c784cc1ca375add854b562c774c1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/produce summary files for regression.R": {
+    "mtime": 1771525776.203266,
+    "ast_hash": "eb16074f052a924938fe08c35c85dd42",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_HFSS_salt_model_England_nonOOH_withtotalsalt.R": {
+    "mtime": 1775037190.6113253,
+    "ast_hash": "d16b3d3cb8a0518541d4dc5c4df156ec",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_HFSS_energy_model_England_nonOOH_withtotalenergy.R": {
+    "mtime": 1775037190.7543268,
+    "ast_hash": "66050b5bf6e5bdd1889f6ccb977e190e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/exposure_distributions/0-scripts/preparatory_work/fit_HFSS_food_weight_gram_model_England_nonOOH_withHFSSenergy.R": {
+    "mtime": 1776082974.623414,
+    "ast_hash": "103122eede8049ee3d2c021e339f9795",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_estimates_lsoa/unprocessed/ethnic_group_by_sex_by_age_lsoa/lsoa_ethn_toR.R": {
+    "mtime": 1771525776.203266,
+    "ast_hash": "10e0c1f8dca1544b6dc0576a4002f130",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_estimates_lsoa/unprocessed/pop_size/engl_pop_toR.R": {
+    "mtime": 1771525776.203266,
+    "ast_hash": "46f350aa4af8ea761d1f6296435df9dc",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_estimates_lsoa/unprocessed/pop_size/lsoa_pop_toR.R": {
+    "mtime": 1771525776.203266,
+    "ast_hash": "b9c7992d4ef270676cea9e66abdda535",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_projections/unprocessed/pop_proj_toR.R": {
+    "mtime": 1763134978.0,
+    "ast_hash": "36dd8f9b181d64a5c731d419ec9f9a4e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/TODO.Rmd": {
+    "mtime": 1771525739.5599062,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/my-vignette.Rmd": {
+    "mtime": 1763132915.5163863,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/how_to_test_run.Rmd": {
+    "mtime": 1771525738.8908997,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/how_to_run_scenarios.Rmd": {
+    "mtime": 1771525740.0899115,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/inputs_manifest_system.Rmd": {
+    "mtime": 1777153551.3464055,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/understanding_model_outputs.Rmd": {
+    "mtime": 1774363094.047449,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/zenodo_data_management.Rmd": {
+    "mtime": 1777154520.4697855,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/TODO.html": {
+    "mtime": 1763133227.014168,
+    "ast_hash": "290449c3f2c197d577efccd5e39902e6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/README.md": {
+    "mtime": 1771525736.981881,
+    "ast_hash": "93b192e6097bd8c388689f9268b6664a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/CLAUDE.md": {
+    "mtime": 1777902292.5658777,
+    "ast_hash": "8c587a0f3c01900e803a3992847864ed",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/documents/technical_appendix.md": {
+    "mtime": 1763133225.1151514,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/documents/technical_appendix.html": {
+    "mtime": 1763133225.2651527,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/README.md": {
+    "mtime": 1778250910.9049408,
+    "ast_hash": "5cc6549f29ea5add5193af35472d8680",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/r-packages.txt": {
+    "mtime": 1771525740.147912,
+    "ast_hash": "1e0d422ea193e5d6e8218e08d2308dca",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/apt-packages.txt": {
+    "mtime": 1771525738.8918998,
+    "ast_hash": "382abaf6fd6f7b6df9ebeaa9c8fdac14",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_rtools_on_windows.md": {
+    "mtime": 1763133765.061857,
+    "ast_hash": "33f68eb38213d754cea9458387dd97ff",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_R_on_windows.md": {
+    "mtime": 1763133765.1498578,
+    "ast_hash": "739c1dc6df4479fc53015d5f63118799",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_git.md": {
+    "mtime": 1763133765.2368584,
+    "ast_hash": "cce9cd9f9f90ff2493acbaa0f755f949",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_RStudio_on_windows.md": {
+    "mtime": 1763133765.3258593,
+    "ast_hash": "58bf86cffdfbf65d3623cda0069ff44e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/installing_R_on_linux.md": {
+    "mtime": 1763133770.9179077,
+    "ast_hash": "9709faa7db693b1f5050a6dce4e78752",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/0-scripts/2021_data/Dur_distributions.txt": {
+    "mtime": 1774875527.3643532,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/source.html": {
+    "mtime": 1763133774.0,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/structure.pdf": {
+    "mtime": 1763132974.1659267,
+    "ast_hash": "3ab21baaa976fce1e2c81ad6e2a974e1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rplots.pdf": {
+    "mtime": 1774902512.3598273,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/pop_estimates_lsoa/unprocessed/ethnic_group_by_sex_by_age_lsoa/lc2101ew.pdf": {
+    "mtime": 1774875527.8383577,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder.jpg": {
+    "mtime": 1771525736.984881,
+    "ast_hash": "94d0a6d2403fe7886239c67796c270ff",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_lf.jpg": {
+    "mtime": 1771525736.984881,
+    "ast_hash": "5b9ea761948f3a95cb447778cdd5b0b3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_logs.jpg": {
+    "mtime": 1771525736.984881,
+    "ast_hash": "1d8a21383d4eebad8190366910edb129",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_sum.jpg": {
+    "mtime": 1771525736.985881,
+    "ast_hash": "338c2c4096325229a1b70582e64a4f05",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_tables.jpg": {
+    "mtime": 1771525736.985881,
+    "ast_hash": "2dd812e8747b34965126c44f8dd71ade",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/img/output_folder_xps.jpg": {
+    "mtime": 1771525736.985881,
+    "ast_hash": "7f609a5a8924371ea5fa7281b263c392",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/mem_profile.sh": {
+    "mtime": 1771525739.5609062,
+    "ast_hash": "1b075a333eedbd96e940f17c6a0b2283",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/build_vignettes.sh": {
+    "mtime": 1771525738.8908997,
+    "ast_hash": "5aa6a4962f0c1ad489453c132746c0d5",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/vignettes/watch_vignettes.sh": {
+    "mtime": 1771525738.8908997,
+    "ast_hash": "a7de6ac77d92f6d4b32ccf7864bf9f83",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/validation_internal/internal_validation_plots.R": {
+    "mtime": 1763133231.6022084,
+    "ast_hash": "50d14ec09c9ddc2314558ae0facf8a74",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/install_packages.sh": {
+    "mtime": 1771525736.985881,
+    "ast_hash": "0ee703d628133924278376ab094c88f6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/entrypoint.sh": {
+    "mtime": 1771525736.985881,
+    "ast_hash": "bd4e5271339ecf8cdafe024f370e0732",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_dev_docker_env.sh": {
+    "mtime": 1771525736.986881,
+    "ast_hash": "59c0d19f9b0feff27e63885258d2ed61",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_user_docker_env.sh": {
+    "mtime": 1771538657.4885914,
+    "ast_hash": "89c4f737c940abf0d0cff6d2a7b87170",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/update-apt-packages.sh": {
+    "mtime": 1771525738.8918998,
+    "ast_hash": "01c9b81857bee4bda9921c30a6e2e426",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/docker_build_push.sh": {
+    "mtime": 1771525740.147912,
+    "ast_hash": "b06eaef45706b3579f094eddac78f1a5",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_custom_cols_testing.R": {
+    "mtime": 1780065737.4963744,
+    "ast_hash": "1defdca3016fc0155672dbe9167ab116",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/config/default_sim_design.yaml": {
+    "mtime": 1780065267.3908334,
+    "ast_hash": "3a383e83a12613d04168437ca54211f3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/.github/copilot-instructions.md": {
+    "mtime": 1771525738.8898997,
+    "ast_hash": "7e939d8ca5fb5da8fb3b016d2a22387d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/.github/workflows/build_push_impactncdengl.yml": {
+    "mtime": 1771525740.1589122,
+    "ast_hash": "d0424bb11c72f44f982e612904aa1d9b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/.github/workflows/build_push_prerequisite_impactncdeng.yml": {
+    "mtime": 1771536194.1972017,
+    "ast_hash": "1e29038fa752c36f3583f03dce02710b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/.github/workflows/test_sim.yml": {
+    "mtime": 1771539163.1804264,
+    "ast_hash": "dde60cd676992b608e15f6ba2443b41b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Bradford/sim_design_Bradford.yaml": {
+    "mtime": 1777065330.5139425,
+    "ast_hash": "221596e93131ca9d4ccc763249701449",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/England/sim_design_England.yaml": {
+    "mtime": 1777065346.2500882,
+    "ast_hash": "4a9966d5f989867803fdd0bec56c565e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ethnicity/sim_design_ethnicity.yaml": {
+    "mtime": 1777065338.2220137,
+    "ast_hash": "dd617c479eeea03eeabda200994d1eb1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/sim_design_ineq.yaml": {
+    "mtime": 1777065361.3142276,
+    "ast_hash": "468d79e93aa3b660d20c06bfdbd8b61a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/sim_design_elast.yaml": {
+    "mtime": 1771525740.141912,
+    "ast_hash": "1f6652837ffa1cf49138580ab7fa5c75",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Bristol/sim_design_Bristol.yaml": {
+    "mtime": 1777065320.0698457,
+    "ast_hash": "f7e167f6719fdf59c64a9880b4d6ed53",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/North_Somerset/sim_design_North_Somerset.yaml": {
+    "mtime": 1777065375.61636,
+    "ast_hash": "f984a75d41575bb71fca5dceaa13e70a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/South_Gloucestershire/sim_design_South_Gloucestershire.yaml": {
+    "mtime": 1777065354.3121626,
+    "ast_hash": "d5f760bbab072eb0d2dcdf6bd0628d04",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Gloucester/sim_design_Gloucester.yaml": {
+    "mtime": 1777065369.011299,
+    "ast_hash": "4c213c943a9f0592134ca730c99851ae",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design.yaml": {
+    "mtime": 1780065241.0285788,
+    "ast_hash": "0e62e5133ecf17b0bbb22bf035958db2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_2065.yaml": {
+    "mtime": 1774905730.7381444,
+    "ast_hash": "2de08a9812424e9066f7eaeaa717ed35",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_AFFIRMO.yaml": {
+    "mtime": 1774905730.7381444,
+    "ast_hash": "dad116ed5fba7d0e7aa5179c39420cc9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_NotinghamICS.yaml": {
+    "mtime": 1774905730.7381444,
+    "ast_hash": "0919dff5ca635292e7052f40e6f84be2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_NotinghamLA.yaml": {
+    "mtime": 1774905730.7381444,
+    "ast_hash": "564e41a83a8da80317e97c3e4124c716",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_elast.yaml": {
+    "mtime": 1774905730.7381444,
+    "ast_hash": "1f6652837ffa1cf49138580ab7fa5c75",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/alcpr_dur_forward.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "a2c67f30d688705b075769deb82abb87",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/andep_dur_forward.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "f9922bc3c4c5b0c009515631fcd20451",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/andep_dur_forward2.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "18d4fc9b2f4fb171877eebb10b68891c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/asthma_dur_forward.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "28f63acc1b938c5f38e524ed1b203a17",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/asthma_dur_forward2.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "69847be500ab3d7ff63fafc85b96e98b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/constipation_dur_forward.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "210c6486b0d98b0635c3dc4364aaef9e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/constipation_dur_forward2.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "f60db231dfaedb927291312430f7aae2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/pain_dur_forward.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "b30bff756ad1a145d04fc034d3de892c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/disease_burden/pain_dur_forward2.yaml": {
+    "mtime": 1771525776.199266,
+    "ast_hash": "67a06ec11b5fb82991f7c6026281a5ec",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/mortality/sim_design_mrtl_clbr.yaml": {
+    "mtime": 1768843840.0,
+    "ast_hash": "948f79b415c6173741cc893cb1dfac4f",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/sim_design_testing.yaml": {
+    "mtime": 1780065254.526709,
+    "ast_hash": "39021c4f99569962be6be31dbb456972",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_4.jpeg": {
+    "mtime": 1763133765.4338603,
+    "ast_hash": "68ac38e77040be0b816b5c70166ec01d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Github_6.jpeg": {
+    "mtime": 1763133765.524861,
+    "ast_hash": "c1f33386002b330acc29da2c5d16f0f8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_8.jpeg": {
+    "mtime": 1763133765.630862,
+    "ast_hash": "cba4365b75367d5afb546130bfeb5970",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_6.jpeg": {
+    "mtime": 1763133765.7218628,
+    "ast_hash": "a3bca8e3f1431256de0d1e9529ffa92b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_8.jpeg": {
+    "mtime": 1763133765.8128636,
+    "ast_hash": "486811767e04f6a04d25b4f1af528c59",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_7.jpeg": {
+    "mtime": 1763133765.9198644,
+    "ast_hash": "2e906edfc77aa677c89ac48a408c78b2",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_3.jpeg": {
+    "mtime": 1763133766.0108652,
+    "ast_hash": "aa2819e7523cdeec7a4cda8a749c76a1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_10.jpeg": {
+    "mtime": 1763133766.1188662,
+    "ast_hash": "7a11bba8da13618d948b1e4e5a3b0d3b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_17.jpeg": {
+    "mtime": 1763133766.209867,
+    "ast_hash": "8cfb021098f62112344f1d418d335de3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Github_5.jpeg": {
+    "mtime": 1763133766.3178678,
+    "ast_hash": "202d5699aad4b9f2229d7613308ec6e4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Rtools_4.jpeg": {
+    "mtime": 1763133766.4108686,
+    "ast_hash": "3b2aff018a77b4e0097de989f857aa58",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Github_4.jpeg": {
+    "mtime": 1763133766.5398698,
+    "ast_hash": "1ecad9eeff4c6bef560deb8414524fcb",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_4.jpeg": {
+    "mtime": 1763133766.6318705,
+    "ast_hash": "d0b75256e3bcb859293ea321b50ee234",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_11.jpeg": {
+    "mtime": 1763133766.7208714,
+    "ast_hash": "67b834022d74d4fd4556884d54acbb04",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_2.jpeg": {
+    "mtime": 1763133766.8098722,
+    "ast_hash": "7f9f4a4219138d8f0f0b724f1c531737",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_1.jpeg": {
+    "mtime": 1763133766.9178731,
+    "ast_hash": "6b550c8e19afcdbddc56f2d21d0b6c8d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_10.jpeg": {
+    "mtime": 1763133767.008874,
+    "ast_hash": "c5662068baecb0d670b7215faa3d9fa8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Rtools_3.jpeg": {
+    "mtime": 1763133767.0978746,
+    "ast_hash": "cea249f72754316a7d18f431bc5368d9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_6.jpeg": {
+    "mtime": 1763133767.2058756,
+    "ast_hash": "289b90fe4e13d311242d47b998b81044",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Rtools_7.jpeg": {
+    "mtime": 1763133767.2958763,
+    "ast_hash": "297a34c1874881a497516aebcaf72074",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_3.jpeg": {
+    "mtime": 1763133767.4258776,
+    "ast_hash": "21c55c34d6dbf3ed71ed9b61ba22e34e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_10.jpeg": {
+    "mtime": 1763133767.5338783,
+    "ast_hash": "f5b0aed9f59e1e8907be503a32c33a69",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_14.jpeg": {
+    "mtime": 1763133767.6408794,
+    "ast_hash": "034c8a57c89a86beec59dbce5efab8d4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_7.jpeg": {
+    "mtime": 1763133767.72988,
+    "ast_hash": "2ed03475a68e448fc96d464a975959db",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_5.jpeg": {
+    "mtime": 1763133767.822881,
+    "ast_hash": "20267d0bb9501eb04c7032139ffd93dc",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_2.jpeg": {
+    "mtime": 1763133767.9118817,
+    "ast_hash": "e16551674c32bb0df7536c1cf230839a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_12.jpeg": {
+    "mtime": 1763133768.0018826,
+    "ast_hash": "807d5a24afdd2d6ad23a1554f228c518",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_16.jpeg": {
+    "mtime": 1763133768.1118834,
+    "ast_hash": "cd6dc970c27fa285788874eed8c1f2de",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Rtools_1.jpeg": {
+    "mtime": 1763133768.2208843,
+    "ast_hash": "5c6d4cebb296f6cbb97e7ae3b5c00f1f",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Github_2.jpeg": {
+    "mtime": 1763133768.3298852,
+    "ast_hash": "abc728a5e72d232cc1f3c2755943f642",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_4.jpeg": {
+    "mtime": 1763133768.4218862,
+    "ast_hash": "d01544d4efd78c15dec19013cb876f84",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Rtools_6.jpeg": {
+    "mtime": 1763133768.509887,
+    "ast_hash": "c0564b5d3ceb8a50688c8384f306e567",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_19.jpeg": {
+    "mtime": 1763133768.6198878,
+    "ast_hash": "ce03bc5667e2abf9aa19780089c283ae",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_6.jpeg": {
+    "mtime": 1763133768.7098887,
+    "ast_hash": "9e6e47c54ed8d81a92bf41f9d52a17c1",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Rtools_5.jpeg": {
+    "mtime": 1763133768.7998893,
+    "ast_hash": "88309a2d9eb8a68bd11999a553e9ca8c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Github_1.jpeg": {
+    "mtime": 1763133768.8908901,
+    "ast_hash": "f772103df6a2e7191c97b7e087457dc4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_9.jpeg": {
+    "mtime": 1763133769.0018911,
+    "ast_hash": "494ab3da195390305fe4f2c2cb251301",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_1.jpeg": {
+    "mtime": 1763133769.1288922,
+    "ast_hash": "e91a93e4ce889775127e13a7d579aa9b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_9.jpeg": {
+    "mtime": 1763133769.2418933,
+    "ast_hash": "5fa63d379ff8283cda1a572e23a33618",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_13.jpeg": {
+    "mtime": 1763133769.3488941,
+    "ast_hash": "34e66481b125417a6fb4d64bf55f2299",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_18.jpeg": {
+    "mtime": 1763133769.4768953,
+    "ast_hash": "1442a9b57bb760481f610eed18fb4ceb",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_12.jpeg": {
+    "mtime": 1763133769.5838962,
+    "ast_hash": "5e8757a28f61b5d30d4e6a52775ef38e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_5.jpeg": {
+    "mtime": 1763133769.671897,
+    "ast_hash": "41cbb830aefc5aba8dad80a976967e1b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Rtools_2.jpeg": {
+    "mtime": 1763133769.7608979,
+    "ast_hash": "bb06383af3a3e38807038393ac22ca82",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_1.jpeg": {
+    "mtime": 1763133769.8478985,
+    "ast_hash": "7c12c1e945c3de3e93756d1b3c8f3510",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Rtools_8.jpeg": {
+    "mtime": 1763133769.9358993,
+    "ast_hash": "6ed47b045a838181102237c70834ebce",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_9.jpeg": {
+    "mtime": 1763133770.0239,
+    "ast_hash": "964f30a9278d5965894a4e2996fb92b8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_15.jpeg": {
+    "mtime": 1763133770.131901,
+    "ast_hash": "e6cbd54fdf26a12037b86aa5dd16e8a8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_7.jpeg": {
+    "mtime": 1763133770.239902,
+    "ast_hash": "a1522de1848581f7a701bc7f980d1500",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_3.jpeg": {
+    "mtime": 1763133770.3299026,
+    "ast_hash": "949fe78502c437eaed8f4efd478c5a5a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_5.jpeg": {
+    "mtime": 1763133770.4179034,
+    "ast_hash": "58eef6af1541133d9c2ae67c7028936c",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/R_8.jpeg": {
+    "mtime": 1763133770.5059042,
+    "ast_hash": "3cc59c6cfa5f1f4d34674461c0e8d4d6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Git_11.jpeg": {
+    "mtime": 1763133770.6139052,
+    "ast_hash": "9c71a5b8f49384322ea664792ca80a53",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/Github_3.jpeg": {
+    "mtime": 1763133770.7399063,
+    "ast_hash": "417fda5a2cb8ab0abee53f666c877515",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/installation_docs/img/RStudio_2.jpeg": {
+    "mtime": 1763133770.8299072,
+    "ast_hash": "b53b4b95bca1d1d904c711dec0e8e061",
+    "semantic_hash": ""
+  }
 }
