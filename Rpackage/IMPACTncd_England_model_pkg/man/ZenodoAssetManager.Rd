@@ -126,6 +126,7 @@ Signature: function(bytes_transferred, total_bytes, filename)}
     \item \href{#method-ZenodoAssetManager-compare_manifests}{\code{ZenodoAssetManager$compare_manifests()}}
     \item \href{#method-ZenodoAssetManager-check_source_changes}{\code{ZenodoAssetManager$check_source_changes()}}
     \item \href{#method-ZenodoAssetManager-upload_archive}{\code{ZenodoAssetManager$upload_archive()}}
+    \item \href{#method-ZenodoAssetManager-upload_archives}{\code{ZenodoAssetManager$upload_archives()}}
     \item \href{#method-ZenodoAssetManager-download_file}{\code{ZenodoAssetManager$download_file()}}
     \item \href{#method-ZenodoAssetManager-extract_archive}{\code{ZenodoAssetManager$extract_archive()}}
     \item \href{#method-ZenodoAssetManager-create_new_record}{\code{ZenodoAssetManager$create_new_record()}}
@@ -158,7 +159,8 @@ Signature: function(bytes_transferred, total_bytes, filename)}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{hash_file}}{Path to store/read hash manifest (default: "./simulation/zenodo_manifest.csv").}
-      \item{\code{archive_dir}}{Temporary directory for archives (default: tempdir()).}
+      \item{\code{archive_dir}}{Temporary directory for archives (default: a
+"zenodo_archives" subdirectory under \code{tempdir()}).}
       \item{\code{logs}}{Enable verbose logging.}
       \item{\code{sandbox}}{Use Zenodo sandbox (for testing).}
     }
@@ -182,7 +184,11 @@ Signature: function(bytes_transferred, total_bytes, filename)}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{token}}{Zenodo personal access token. If NULL, reads from ZENODO_TOKEN env var.}
+      \item{\code{token}}{Zenodo personal access token. If \code{NULL}, reads from the
+\code{ZENODO_TOKEN} environment variable; if that is also unset, the
+manager connects in \strong{anonymous read-only mode}. Anonymous mode
+is sufficient to list and download \emph{published, public} records;
+uploading or publishing requires a token.}
       \item{\code{sandbox}}{Use Zenodo sandbox for testing.}
     }
     \if{html}{\out{</div>}}
@@ -599,13 +605,47 @@ changed_dirs <- changes[changed == TRUE, directory]
 }
 
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-ZenodoAssetManager-upload_archives"></a>}}
+\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-upload_archives}{}}}
+\subsection{\code{ZenodoAssetManager$upload_archives()}}{
+  Upload a set of archives with verify-and-resume. Files
+already present on the record are skipped; transient failures are
+retried after refreshing the record object (a Zenodo 5xx can corrupt
+it and leave a stale incomplete file entry, which is cleared before
+retrying). If any archive is still missing after all attempts the
+method errors \strong{without} publishing — re-running resumes from
+where it left off (already-uploaded files are skipped).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{ZenodoAssetManager$upload_archives(archive_paths, max_rounds = 4L)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{archive_paths}}{Character vector of archive file paths.}
+      \item{\code{max_rounds}}{Maximum resume passes over the full set (default 4).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-ZenodoAssetManager-download_file"></a>}}
 \if{latex}{\out{\hypertarget{method-ZenodoAssetManager-download_file}{}}}
 \subsection{\code{ZenodoAssetManager$download_file()}}{
   Download a file from Zenodo record.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{ZenodoAssetManager$download_file(filename, dest_dir, overwrite = FALSE)}
+    \preformatted{ZenodoAssetManager$download_file(
+  filename,
+  dest_dir,
+  overwrite = FALSE,
+  checksum = NULL
+)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -614,6 +654,8 @@ changed_dirs <- changes[changed == TRUE, directory]
       \item{\code{filename}}{Name of the file to download.}
       \item{\code{dest_dir}}{Destination directory.}
       \item{\code{overwrite}}{Overwrite existing files.}
+      \item{\code{checksum}}{Optional Zenodo checksum string (e.g. "md5:...") used to
+verify the downloaded file's integrity.}
     }
     \if{html}{\out{</div>}}
   }
@@ -659,7 +701,7 @@ changed_dirs <- changes[changed == TRUE, directory]
   creators,
   version = "1.0.0",
   keywords = c("microsimulation", "health", "IMPACTncd"),
-  license = "cc-by-4.0",
+  license = "cc-by-sa-4.0",
   publisher = "Zenodo"
 )}
     \if{html}{\out{</div>}}

@@ -117,10 +117,9 @@ IMPACTncd$zenodo_connect(
   sandbox = TRUE
 )
 
-# Connect to production with a specific concept DOI
-IMPACTncd$zenodo_connect(
-  concept_doi = "10.5281/zenodo.XXXXXXX"
-)
+# Connect to production (defaults to the published input-data record;
+# no token needed to download published data)
+IMPACTncd$zenodo_connect()
 
 
 ## ------------------------------------------------
@@ -168,7 +167,7 @@ IMPACTncd$zenodo_download_PARFs_RRs(
 
 # New team member setup — download everything
 IMPACTncd$zenodo_connect(
-  concept_doi = "10.5281/zenodo.XXXXXXX"
+  concept_doi = "10.5281/zenodo.20812409"
 )
 IMPACTncd$zenodo_download_all()
 
@@ -1010,7 +1009,7 @@ data assets.
     \if{html}{\out{<div class="r">}}
     \preformatted{Simulation$zenodo_connect(
   token = NULL,
-  concept_doi = if (sandbox) "10.5072/zenodo.442996" else NULL,
+  concept_doi = if (sandbox) "10.5072/zenodo.442996" else "10.5281/zenodo.20812409",
   sandbox = FALSE,
   archive_dir = NULL,
   progress = TRUE
@@ -1021,10 +1020,16 @@ data assets.
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{token}}{Character. Zenodo personal access token. If \code{NULL}
-(default), reads from \code{ZENODO_TOKEN} environment variable.}
+(default), reads from the \code{ZENODO_TOKEN} environment variable;
+if that is also unset, connects in \strong{anonymous read-only mode}.
+A token is only needed to upload or publish — downloading the
+published public data works without one.}
       \item{\code{concept_doi}}{Character. The concept DOI for your data record.
-Default when \code{sandbox = TRUE}: \code{"10.5072/zenodo.442996"}
-(the IMPACTncd England sandbox record). Set to \code{NULL} to skip.}
+Defaults to the published IMPACTncd England input-data record:
+\code{"10.5281/zenodo.20812409"} for production, or
+\code{"10.5072/zenodo.442996"} when \code{sandbox = TRUE}. The
+concept DOI always resolves to the latest published version. Set to
+\code{NULL} to skip (e.g. for a brand-new first upload).}
       \item{\code{sandbox}}{Logical. If \code{TRUE}, connect to the Zenodo sandbox
 for testing. Default: \code{FALSE}.}
       \item{\code{archive_dir}}{Character. Directory for storing zip archives
@@ -1076,10 +1081,9 @@ IMPACTncd$zenodo_connect(
   sandbox = TRUE
 )
 
-# Connect to production with a specific concept DOI
-IMPACTncd$zenodo_connect(
-  concept_doi = "10.5281/zenodo.XXXXXXX"
-)
+# Connect to production (defaults to the published input-data record;
+# no token needed to download published data)
+IMPACTncd$zenodo_connect()
 }
     \if{html}{\out{</div>}}
   }
@@ -1143,8 +1147,8 @@ This is a read-only operation — nothing is downloaded or uploaded.
 Requires a prior call to \code{zenodo_connect()} with a concept DOI.
   }
   \subsection{Returns}{
-    A \code{data.table} with columns: \code{archive_name},
-\code{directory}, \code{local_exists}, and \code{size_bytes}.
+    A \code{data.table} with columns: \code{archive},
+\code{directory}, \code{local_exists}, and \code{remote_checksum}.
   }
   \subsection{Examples}{
     \if{html}{\out{<div class="r example copy">}}
@@ -1329,7 +1333,7 @@ needed to run the simulation.
     \if{html}{\out{<div class="r example copy">}}
     \preformatted{# New team member setup — download everything
 IMPACTncd$zenodo_connect(
-  concept_doi = "10.5281/zenodo.XXXXXXX"
+  concept_doi = "10.5281/zenodo.20812409"
 )
 IMPACTncd$zenodo_download_all()
 
@@ -1397,7 +1401,7 @@ discoverability. Default: \code{c("microsimulation", "health",
 DOI registration). Default: \code{"Zenodo"}.}
       \item{\code{exclude_patterns}}{Character vector of regex patterns for
 directories to skip. Default: \code{c("^unprocessed$", "_backup$",
-"_old$", "scripts$", "validation$")}.}
+"_old$", "scripts$", "validation$", "^RR$")}.}
       \item{\code{exclude_file_patterns}}{Character vector of regex patterns for
 files to skip. Default: \code{c("\\.R$", "\\.Rmd$")}.}
       \item{\code{group_by_prefix}}{Logical. Group subdirectories by shared
@@ -1816,7 +1820,7 @@ input subdirectories. Default: \code{"./inputs"}.}
 If \code{NULL} (default), processes all.}
       \item{\code{exclude_patterns}}{Character vector. Directory exclusion
 patterns. Default: \code{c("^unprocessed$", "_backup$", "_old$",
-"scripts$", "validation$")}.}
+"scripts$", "validation$", "^RR$")}.}
       \item{\code{exclude_file_patterns}}{Character vector. File exclusion
 patterns. Default: \code{c("\\.R$", "\\.Rmd$")}.}
       \item{\code{group_by_prefix}}{Logical. Default: \code{TRUE}.}

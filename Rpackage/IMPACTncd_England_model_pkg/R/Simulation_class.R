@@ -1612,10 +1612,16 @@ Simulation <-
       #' publications.
       #'
       #' @param token Character. Zenodo personal access token. If \code{NULL}
-      #'   (default), reads from \code{ZENODO_TOKEN} environment variable.
+      #'   (default), reads from the \code{ZENODO_TOKEN} environment variable;
+      #'   if that is also unset, connects in \strong{anonymous read-only mode}.
+      #'   A token is only needed to upload or publish — downloading the
+      #'   published public data works without one.
       #' @param concept_doi Character. The concept DOI for your data record.
-      #'   Default when \code{sandbox = TRUE}: \code{"10.5072/zenodo.442996"}
-      #'   (the IMPACTncd England sandbox record). Set to \code{NULL} to skip.
+      #'   Defaults to the published IMPACTncd England input-data record:
+      #'   \code{"10.5281/zenodo.20812409"} for production, or
+      #'   \code{"10.5072/zenodo.442996"} when \code{sandbox = TRUE}. The
+      #'   concept DOI always resolves to the latest published version. Set to
+      #'   \code{NULL} to skip (e.g. for a brand-new first upload).
       #' @param sandbox Logical. If \code{TRUE}, connect to the Zenodo sandbox
       #'   for testing. Default: \code{FALSE}.
       #' @param archive_dir Character. Directory for storing zip archives
@@ -1633,17 +1639,16 @@ Simulation <-
       #'   sandbox = TRUE
       #' )
       #'
-      #' # Connect to production with a specific concept DOI
-      #' IMPACTncd$zenodo_connect(
-      #'   concept_doi = "10.5281/zenodo.XXXXXXX"
-      #' )
+      #' # Connect to production (defaults to the published input-data record;
+      #' # no token needed to download published data)
+      #' IMPACTncd$zenodo_connect()
       #'
       #' @seealso \code{\link{zenodo_upload_inputs}},
       #'   \code{\link{zenodo_download_inputs}},
       #'   \code{\link{zenodo_list_files}}
       zenodo_connect = function(
         token = NULL,
-        concept_doi = if (sandbox) "10.5072/zenodo.442996" else NULL,
+        concept_doi = if (sandbox) "10.5072/zenodo.442996" else "10.5281/zenodo.20812409",
         sandbox = FALSE,
         archive_dir = NULL,
         progress = TRUE
@@ -1709,8 +1714,8 @@ Simulation <-
       #'   input subdirectories. Default: \code{"./inputs"}.
       #' @param directories Character vector. Specific subdirectories to check.
       #'   If \code{NULL} (default), checks all remote archives.
-      #' @return A \code{data.table} with columns: \code{archive_name},
-      #'   \code{directory}, \code{local_exists}, and \code{size_bytes}.
+      #' @return A \code{data.table} with columns: \code{archive},
+      #'   \code{directory}, \code{local_exists}, and \code{remote_checksum}.
       #'
       #' @examples
       #' IMPACTncd$zenodo_connect(sandbox = TRUE)
@@ -1974,7 +1979,7 @@ Simulation <-
       #' @examples
       #' # New team member setup — download everything
       #' IMPACTncd$zenodo_connect(
-      #'   concept_doi = "10.5281/zenodo.XXXXXXX"
+      #'   concept_doi = "10.5281/zenodo.20812409"
       #' )
       #' IMPACTncd$zenodo_download_all()
       #'
@@ -2080,7 +2085,7 @@ Simulation <-
       #'   DOI registration). Default: \code{"Zenodo"}.
       #' @param exclude_patterns Character vector of regex patterns for
       #'   directories to skip. Default: \code{c("^unprocessed$", "_backup$",
-      #'   "_old$", "scripts$", "validation$")}.
+      #'   "_old$", "scripts$", "validation$", "^RR$")}.
       #' @param exclude_file_patterns Character vector of regex patterns for
       #'   files to skip. Default: \code{c("\\.R$", "\\.Rmd$")}.
       #' @param group_by_prefix Logical. Group subdirectories by shared
@@ -2326,9 +2331,7 @@ Simulation <-
           message("Uploading ", nrow(archives), " simulation archives...")
         }
 
-        for (i in seq_len(nrow(archives))) {
-          private$zenodo_manager$upload_archive(archives$archive_path[i])
-        }
+        private$zenodo_manager$upload_archives(archives$archive_path)
 
         # Clean up temporary archive files after successful upload
         for (ap in archives$archive_path) {
@@ -2610,7 +2613,7 @@ Simulation <-
       #'   If \code{NULL} (default), processes all.
       #' @param exclude_patterns Character vector. Directory exclusion
       #'   patterns. Default: \code{c("^unprocessed$", "_backup$", "_old$",
-      #'   "scripts$", "validation$")}.
+      #'   "scripts$", "validation$", "^RR$")}.
       #' @param exclude_file_patterns Character vector. File exclusion
       #'   patterns. Default: \code{c("\\.R$", "\\.Rmd$")}.
       #' @param group_by_prefix Logical. Default: \code{TRUE}.
