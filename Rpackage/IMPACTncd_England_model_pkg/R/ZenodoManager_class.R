@@ -2659,28 +2659,14 @@ ZenodoAssetManager <- R6::R6Class(
           next
         }
 
-        # Determine the actual top-level directory inside the archive.
-        # Grouped archives (e.g. exposure_distributions_bmi.zip) contain
-        # paths like exposure_distributions/bmi/..., not
-        # exposure_distributions_bmi/...  We need to check the real
-        # extraction path, not the archive name with underscores.
-        zip_contents <- zip::zip_list(archive_path)
-        top_dir <- zip_contents$filename[1]
-        # Strip trailing slash and any deeper path components
-        top_dir <- sub("/.*", "", top_dir)
-        local_dir <- file.path(input_base, top_dir)
-
-        if (dir.exists(local_dir) && !overwrite) {
-          if (self$logs) {
-            message(
-              "Directory exists, skipping (use overwrite=TRUE to replace): ",
-              top_dir
-            )
-          }
-          next
-        }
-
-        # Extract
+        # Extract. extract_archive() decides per-FILE what to do: with
+        # overwrite = FALSE it keeps files already on disk and writes only the
+        # missing ones; with overwrite = TRUE it replaces them. We must NOT
+        # skip the whole archive just because its top-level directory exists —
+        # on a fresh git clone, data directories like inputs/disease_burden/
+        # already exist (they hold git-tracked .yaml/.R files), so a
+        # directory-level skip would silently drop ALL the Zenodo data. The
+        # per-file logic lands the data while preserving the git-tracked files.
         self$extract_archive(archive_path, input_base, overwrite = overwrite)
       }
 

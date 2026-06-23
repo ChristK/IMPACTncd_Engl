@@ -1743,8 +1743,11 @@ Simulation <-
       #'
       #' @details
       #' Downloads zip archives from the Zenodo record and extracts them into
-      #' \code{input_base}. By default, directories that already exist locally
-      #' are \strong{skipped} — pass \code{overwrite = TRUE} to replace them.
+      #' \code{input_base}. Extraction is per-file: by default missing data
+      #' files are added and existing files are kept (so a fresh git clone,
+      #' whose data directories already exist holding git-tracked \code{.yaml}/
+      #' \code{.R} files, still receives all the data) — pass
+      #' \code{overwrite = TRUE} to replace existing files instead.
       #'
       #' Use \code{zenodo_check_inputs()} first (a read-only check) to see
       #' exactly which directories would be downloaded.
@@ -1798,13 +1801,16 @@ Simulation <-
           exclude_archive_patterns = sim_pattern
         )
 
-        # Warn about existing directories
+        # Note existing directories. Extraction is per-file: missing data
+        # files are added and existing files are kept (use overwrite = TRUE to
+        # replace existing files). This matters on a fresh git clone, where
+        # data directories already exist holding git-tracked .yaml/.R files.
         if (nrow(status) > 0L && any(status$local_exists) && !overwrite) {
           existing_dirs <- status[local_exists == TRUE, directory]
           message(
-            "The following directories already exist and will be SKIPPED:\n  ",
-            paste(existing_dirs, collapse = "\n  "),
-            "\nUse overwrite=TRUE to replace them."
+            "These directories already exist; missing data files will be ",
+            "added and existing files kept (use overwrite=TRUE to replace):\n  ",
+            paste(existing_dirs, collapse = "\n  ")
           )
         }
 
@@ -1837,8 +1843,9 @@ Simulation <-
       #' against the \code{directories} parameter (e.g. archives whose name
       #' starts with \code{"parf"} or equals \code{"rr"}).
       #'
-      #' By default, directories that already exist locally are
-      #' \strong{skipped} — pass \code{overwrite = TRUE} to replace them.
+      #' Extraction is per-file: by default missing data files are added and
+      #' existing files are kept — pass \code{overwrite = TRUE} to replace
+      #' existing files instead.
       #'
       #' \strong{When to use:}
       #' \itemize{
