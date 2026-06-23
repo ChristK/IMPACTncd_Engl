@@ -69,7 +69,13 @@ install.packages("keyring")
 (`zip` and `digest` are already pulled in as package Imports — no need to
 install them separately.)
 
-### 2. Get a Zenodo Access Token
+### 2. Get a Zenodo Access Token (uploaders only)
+
+> **Downloading the published data needs no account or token.** The IMPACTncd
+> England input-data record is public, so `zenodo_connect()` followed by
+> `zenodo_download_all()` works anonymously. You only need a token to
+> **upload** or **publish** data. If you only want to run the model, skip to
+> [Quick Start](#quick-start).
 
 1. Create a Zenodo account at [zenodo.org](https://zenodo.org/)
 2. Go to
@@ -161,14 +167,14 @@ IMPACTncd$zenodo_connect(
 
 **Docker builds:**
 
-The `docker_build_push.sh` script in the `docker_setup/` directory
-automatically reads the token from `pass` based on the `ZENODO_SANDBOX`
-flag in the `.env` config file. Non-secret config (concept DOI, sandbox
-flag) is stored in `docker_setup/.env` (gitignored); secrets are read
-from `pass` at build time.
+The `docker_build_push.sh` script in the `docker_setup/` directory bundles the
+Zenodo-managed data files that are **already present locally** (downloaded
+beforehand via `zenodo_download_*()`, and listed in the inputs manifest) into
+the image build context. It does **not** download from Zenodo nor read a
+Zenodo token at build time — so make sure the data is downloaded locally first.
 
 ```bash
-# Build with Zenodo data — token is read from pass automatically
+# Data must already be present locally (run zenodo_download_all() first)
 cd docker_setup
 ./docker_build_push.sh Dockerfile.IMPACTncdENGL
 ```
@@ -258,34 +264,25 @@ token <- kb$get("zenodo_sandbox", username = "token", keyring = "zenodo_keyring"
 ### Downloading Input Data (New Team Member)
 
 If you're setting up the model for the first time, download the input data
-from Zenodo. Use **production** to get the real published data, or
-**sandbox** for testing (see
-[Sandbox vs Production](#sandbox-vs-production)):
+from Zenodo. The published data is **public**, so downloading needs **no
+Zenodo account or token** — just connect and download:
 
 ```{r download-quickstart}
 library(IMPACTncdEngland)
 
-# Create simulation object
+# Create simulation object (skeleton mode if data is not present yet)
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
-# --- Production (recommended for real use) ---
-IMPACTncd$zenodo_connect(
-  token       = Sys.getenv("ZENODO_TOKEN"),
-  concept_doi = "10.5281/zenodo.XXXXXXX"  # replace with real concept DOI
-)
+# Connect (no token needed for downloading published data); the production
+# concept DOI 10.5281/zenodo.20812409 is the default.
+IMPACTncd$zenodo_connect()
 
-# --- OR Sandbox (for testing the download pipeline) ---
-# IMPACTncd$zenodo_connect(
-#   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
-#   sandbox = TRUE  # concept_doi defaults to "10.5072/zenodo.442996"
-# )
-
-# Check what's available
-IMPACTncd$zenodo_check_inputs()
-
-# Download all missing inputs
-IMPACTncd$zenodo_download_inputs()
+# Download everything needed to run the model (inputs + PARFs + RR tables)
+IMPACTncd$zenodo_download_all()
 ```
+
+For testing the pipeline against the sandbox instead, pass `sandbox = TRUE`
+(see [Sandbox vs Production](#sandbox-vs-production)).
 
 ### Uploading Input Data (Data Manager)
 
@@ -335,7 +332,7 @@ IMPACTncd$zenodo_connect(
 # Production — specify your real concept DOI (no sandbox flag)
 # IMPACTncd$zenodo_connect(
 #   token       = Sys.getenv("ZENODO_TOKEN"),
-#   concept_doi = "10.5281/zenodo.XXXXXXX"  # replace with your real DOI
+#   concept_doi = "10.5281/zenodo.20812409"  # replace with your real DOI
 # )
 
 # Archives are created in tempdir() and automatically deleted after upload.
@@ -575,8 +572,11 @@ inputs/disease_burden/
 ```
 
 Set `group_by_prefix = FALSE` to create one archive per subdirectory instead.
-But note that Zenodo currently has a max limit of 100 files per record, so if
-you have many subdirectories, you may need to group by prefix.
+Note that Zenodo enforces a per-record file limit (100 files at the time of
+writing — an external Zenodo policy, not checked by this package beyond a
+pre-upload guard in the upload methods), so grouping by prefix is recommended
+when a directory has many subdirectories. The upload methods will error before
+uploading if the archive count for a record would exceed 100.
 
 ### Compression Level
 
@@ -726,7 +726,7 @@ The DOI prefix tells you instantly which system a record belongs to:
 
 - **`10.5072/zenodo.442996`** — This is a **sandbox** DOI. It only works
   with `sandbox = TRUE` and the sandbox token.
-- **`10.5281/zenodo.XXXXXXX`** — This is a **production** DOI. It only
+- **`10.5281/zenodo.20812409`** — This is a **production** DOI. It only
   works with `sandbox = FALSE` (the default) and the production token.
 
 A sandbox DOI will **not** resolve on production Zenodo and vice versa.
@@ -770,13 +770,20 @@ IMPACTncd$zenodo_connect(
 
 ### Connecting to Production
 
-For production, you must provide your concept DOI explicitly (there is no
-default):
+Production is the default. `zenodo_connect()` with no arguments uses the
+published IMPACTncd England input-data concept DOI
+(`10.5281/zenodo.20812409`) and connects anonymously (no token needed to
+download published data):
 
 ```{r production-connect}
+# Simplest: defaults to the published production record, no token
+IMPACTncd$zenodo_connect()
+
+# Equivalent, being explicit (and supplying a token if you also want to
+# upload/publish):
 IMPACTncd$zenodo_connect(
   token       = Sys.getenv("ZENODO_TOKEN"),
-  concept_doi = "10.5281/zenodo.XXXXXXX"  # your production concept DOI
+  concept_doi = "10.5281/zenodo.20812409"
 )
 ```
 
@@ -818,9 +825,9 @@ After uploading, the record object contains your new concept DOI. Save it
 collaborators:
 
 ```{r transition-doi}
-# Print the concept DOI assigned by Zenodo
-cat("Concept DOI:", IMPACTncd$zenodo_list_files()$concept_doi, "\n")
-# Example output: 10.5281/zenodo.1234567
+# The concept DOI is reported in the create_new_record/publish log messages.
+# You can also see all versions and their DOIs:
+IMPACTncd$zenodo_get_versions()
 ```
 
 **4. Verify and publish**
@@ -841,7 +848,7 @@ Collaborators now download from production using your concept DOI:
 ```{r transition-download}
 IMPACTncd$zenodo_connect(
   token       = Sys.getenv("ZENODO_TOKEN"),
-  concept_doi = "10.5281/zenodo.XXXXXXX"  # replace with your real DOI
+  concept_doi = "10.5281/zenodo.20812409"  # replace with your real DOI
 )
 IMPACTncd$zenodo_download_all()
 ```
@@ -931,15 +938,16 @@ print(diff$removed)   # Deleted files
 IMPACTncd$zenodo_connect(sandbox = TRUE)
 ```
 
-**2. "Zenodo token not provided"**
+**2. "... requires a Zenodo token, but the manager is connected anonymously"**
+
+Downloading works anonymously, but uploading/publishing needs a token.
+Reconnect with a token:
 
 ```r
 # Solution: Set environment variable or pass token directly
-Sys.setenv(ZENODO_SANDBOX_TOKEN = "your_token")
-IMPACTncd$zenodo_connect(
-  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
-  sandbox = TRUE
-)
+Sys.setenv(ZENODO_TOKEN = "your_token")
+IMPACTncd$zenodo_connect(token = Sys.getenv("ZENODO_TOKEN"))
+# (use ZENODO_SANDBOX_TOKEN and sandbox = TRUE for the sandbox)
 ```
 
 **3. "Record not found for DOI"**
@@ -1099,7 +1107,7 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 # Connect to production with the project's concept DOI
 IMPACTncd$zenodo_connect(
   token       = Sys.getenv("ZENODO_TOKEN"),
-  concept_doi = "10.5281/zenodo.XXXXXXX"  # replace with real concept DOI
+  concept_doi = "10.5281/zenodo.20812409"  # replace with real concept DOI
 )
 
 # Check what's available
@@ -1124,7 +1132,7 @@ production record:
 # Connect with existing production concept DOI
 IMPACTncd$zenodo_connect(
   token       = Sys.getenv("ZENODO_TOKEN"),
-  concept_doi = "10.5281/zenodo.XXXXXXX"  # your production concept DOI
+  concept_doi = "10.5281/zenodo.20812409"  # your production concept DOI
 )
 
 # Upload as new version (creates new version of existing record)

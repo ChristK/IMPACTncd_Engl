@@ -40,6 +40,18 @@ source("global.R")  # Initializes environment, installs deps, builds local packa
 ```
 Package rebuilds automatically when source changes are detected.
 
+### Download model data (required on a fresh clone)
+Large input/simulation data is not in git — it lives on Zenodo (concept DOI
+`10.5281/zenodo.20812409`, CC-BY-SA-4.0). Download once; no Zenodo token needed
+(published data is public):
+```r
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+IMPACTncd$zenodo_connect()        # defaults to the published production record
+IMPACTncd$zenodo_download_all()   # inputs + PARFs/RR (~13 GB)
+```
+See `vignette("zenodo_data_management")`. Data managers upload new versions with
+`zenodo_upload_all(version = "...", publish = TRUE)` (requires `ZENODO_TOKEN`).
+
 ### Running Simulations
 ```r
 source("global.R")

@@ -43,16 +43,19 @@ if (!nzchar(branch)) {
   )
 }
 
+# Default to PRODUCTION: this exercises the real new-user path (the published
+# public record). Set IMPACTNCD_SANDBOX=TRUE to test against the sandbox.
 use_sandbox <- as.logical(
-  Sys.getenv("IMPACTNCD_SANDBOX", unset = "TRUE")
+  Sys.getenv("IMPACTNCD_SANDBOX", unset = "FALSE")
 )
 
 concept_doi <- Sys.getenv("IMPACTNCD_CONCEPT_DOI", unset = "")
 if (!nzchar(concept_doi)) {
-  concept_doi <- if (use_sandbox) "10.5072/zenodo.442996" else NULL
+  concept_doi <- if (use_sandbox) "10.5072/zenodo.442996" else "10.5281/zenodo.20812409"
 }
 
-# Token: prefer sandbox token when sandbox=TRUE
+# A token is OPTIONAL: downloading published public data works anonymously.
+# A token is only required to upload/publish.
 token <- Sys.getenv(
   if (use_sandbox) "ZENODO_SANDBOX_TOKEN" else "ZENODO_TOKEN",
   unset = ""
@@ -61,11 +64,11 @@ if (!nzchar(token)) {
   token <- Sys.getenv("ZENODO_TOKEN", unset = "")
 }
 if (!nzchar(token)) {
-  stop(
-    "No Zenodo token found. Set ZENODO_SANDBOX_TOKEN (or ZENODO_TOKEN) ",
-    "environment variable before running this test.",
-    call. = FALSE
+  message(
+    "No Zenodo token found; connecting anonymously (fine for downloading ",
+    "published data)."
   )
+  token <- NULL
 }
 
 keep_tmpdir <- as.logical(

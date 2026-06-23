@@ -7,12 +7,12 @@ on:
       concept_doi:
         description: 'Zenodo concept DOI for input data'
         required: false
-        default: '10.5072/zenodo.442996'
+        default: '10.5281/zenodo.20812409'
       sandbox:
         description: 'Use Zenodo sandbox'
         required: false
         type: boolean
-        default: true
+        default: false
 
 jobs:
   test-global:
@@ -55,16 +55,15 @@ jobs:
           Rscript -e 'install.packages(c("zen4R", "httr2"), repos = "https://cloud.r-project.org")'
 
       - name: Download inputs from Zenodo
-        env:
-          ZENODO_TOKEN: ${{ secrets.ZENODO_SANDBOX_TOKEN }}
         run: |
           Rscript -e '
             library(IMPACTncdEngland)
             IMPACTncd <- Simulation$new("testing/sim_design_testing.yaml")
+            # Published data is public: download anonymously (no token needed).
             IMPACTncd$zenodo_connect(
-              token     = Sys.getenv("ZENODO_TOKEN"),
-              concept_doi = if (nzchar("${{ inputs.concept_doi }}")) "${{ inputs.concept_doi }}" else "10.5072/zenodo.442996",
-              sandbox   = if (nzchar("${{ inputs.sandbox }}")) as.logical("${{ inputs.sandbox }}") else TRUE
+              token       = NULL,
+              concept_doi = if (nzchar("${{ inputs.concept_doi }}")) "${{ inputs.concept_doi }}" else "10.5281/zenodo.20812409",
+              sandbox     = if (nzchar("${{ inputs.sandbox }}")) as.logical("${{ inputs.sandbox }}") else FALSE
             )
             IMPACTncd$zenodo_download_all()
           '
@@ -104,16 +103,15 @@ jobs:
           Rscript -e 'install.packages(c("zen4R", "httr2"))'
 
       - name: Download inputs from Zenodo
-        env:
-          ZENODO_TOKEN: ${{ secrets.ZENODO_SANDBOX_TOKEN }}
         run: |
           Rscript -e '
             library(IMPACTncdEngland)
             IMPACTncd <- Simulation$new("testing/sim_design_testing.yaml")
+            # Published data is public: download anonymously (no token needed).
             IMPACTncd$zenodo_connect(
-              token     = Sys.getenv("ZENODO_TOKEN"),
-              concept_doi = if (nzchar("${{ inputs.concept_doi }}")) "${{ inputs.concept_doi }}" else "10.5072/zenodo.442996",
-              sandbox   = if (nzchar("${{ inputs.sandbox }}")) as.logical("${{ inputs.sandbox }}") else TRUE
+              token       = NULL,
+              concept_doi = if (nzchar("${{ inputs.concept_doi }}")) "${{ inputs.concept_doi }}" else "10.5281/zenodo.20812409",
+              sandbox     = if (nzchar("${{ inputs.sandbox }}")) as.logical("${{ inputs.sandbox }}") else FALSE
             )
             IMPACTncd$zenodo_download_all()
           '

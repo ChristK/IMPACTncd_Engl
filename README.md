@@ -80,6 +80,23 @@ As the installation requires downloading numerous files from GitHub, you will ne
 
 ##### Important Note : It is highly recommended to create your own copies of `sim_design.yaml` present in `inputs` folder and `simulation.R` in the root folder to run this model and make no changes to the original `sim_design.yaml` and `simulation.R`, as this would help reducing conflicts while pulling changes from [GitHub](https://github.com/ChristK/IMPACTncd_Engl). 
 
+##### Download the model input data from Zenodo (required on a fresh clone)
+
+The large input and simulation data files are **not** stored in git — they are
+published on Zenodo ([concept DOI `10.5281/zenodo.20812409`](https://doi.org/10.5281/zenodo.20812409),
+CC-BY-SA-4.0). A freshly cloned repository has no data, so download it once
+before running. The data is public, so **no Zenodo account or token is needed**:
+
+```r
+source("global.R")
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+IMPACTncd$zenodo_connect()        # defaults to the published record, anonymous
+IMPACTncd$zenodo_download_all()   # inputs + pre-computed PARFs/RR tables (~13 GB)
+```
+
+See `vignette("zenodo_data_management", package = "IMPACTncdEngland")` for
+details (selective downloads, uploading new data, etc.).
+
 1. All vignettes can be viewed using the code below 
 
 ```{r}

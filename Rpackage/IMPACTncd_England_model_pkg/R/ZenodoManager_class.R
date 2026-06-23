@@ -62,11 +62,17 @@
   # Helper: create a single zip archive from one directory or grouped directories
   create_zip <- function(input_paths, archive_name, exclude_file_patterns,
                          compression_level, input_base) {
-    # Collect files
+    # Collect files. input_paths may be directories (list their contents) or
+    # individual files (e.g. root-level loose files), which must be included
+    # directly — list.files() on a file path returns nothing.
     all_files <- character(0)
     for (p in input_paths) {
-      all_files <- c(all_files, list.files(p, recursive = TRUE, full.names = TRUE,
-                                           all.files = FALSE))
+      if (dir.exists(p)) {
+        all_files <- c(all_files, list.files(p, recursive = TRUE,
+                                             full.names = TRUE, all.files = FALSE))
+      } else if (file.exists(p)) {
+        all_files <- c(all_files, p)
+      }
     }
 
     # Exclude files matching patterns
@@ -102,17 +108,19 @@
     # the zip will contain disease_burden/cancer_2020/... (relative to
     # ./inputs/), ensuring extraction to ./inputs/ recreates the correct
     # directory structure.
+    # Compute the absolute base and the paths relative to it BEFORE changing
+    # the working directory (the entries in `input_paths` are resolved against
+    # the original wd). Relativising with substring() rather than a regex
+    # avoids fragile escaping of regex-special characters in absolute paths
+    # (the previous gsub() pattern was an invalid TRE regex and threw on
+    # every archive, so no archives were ever created).
+    input_base_abs <- normalizePath(input_base, mustWork = TRUE)
+    input_paths_abs <- normalizePath(input_paths, mustWork = TRUE)
+    rel_paths <- substring(input_paths_abs, nchar(input_base_abs) + 2L)
+
     old_wd <- getwd()
     on.exit(setwd(old_wd), add = TRUE)
-    setwd(input_base)
-
-    # Compute relative paths from input_base
-    input_base_abs <- normalizePath(input_base, mustWork = TRUE)
-    rel_paths <- vapply(input_paths, function(p) {
-      sub(paste0("^", gsub("([\\[\\](){}|^$.*+?\\\\])", "\\\\\\1",
-                            input_base_abs), "/?"), "",
-          normalizePath(p, mustWork = TRUE))
-    }, character(1), USE.NAMES = FALSE)
+    setwd(input_base_abs)
 
     zip::zip(
       zipfile = archive_path,
@@ -211,7 +219,8 @@ ZenodoAssetManager <- R6::R6Class(
     # initialize ----
     #' @description Create a new ZenodoAssetManager object.
     #' @param hash_file Path to store/read hash manifest (default: "./simulation/zenodo_manifest.csv").
-    #' @param archive_dir Temporary directory for archives (default: tempdir()).
+    #' @param archive_dir Temporary directory for archives (default: a
+    #'   "zenodo_archives" subdirectory under \code{tempdir()}).
     #' @param logs Enable verbose logging.
     #' @param sandbox Use Zenodo sandbox (for testing).
     #' @return A new `ZenodoAssetManager` object.
@@ -241,7 +250,11 @@ ZenodoAssetManager <- R6::R6Class(
 
     # connect ----
     #' @description Connect to Zenodo API.
-    #' @param token Zenodo personal access token. If NULL, reads from ZENODO_TOKEN env var.
+    #' @param token Zenodo personal access token. If \code{NULL}, reads from the
+    #'   \code{ZENODO_TOKEN} environment variable; if that is also unset, the
+    #'   manager connects in \strong{anonymous read-only mode}. Anonymous mode
+    #'   is sufficient to list and download \emph{published, public} records;
+    #'   uploading or publishing requires a token.
     #' @param sandbox Use Zenodo sandbox for testing.
     #' @return The invisible self for chaining.
     connect = function(token = NULL, sandbox = NULL) {
@@ -255,11 +268,17 @@ ZenodoAssetManager <- R6::R6Class(
       if (is.null(token)) {
         token <- Sys.getenv("ZENODO_TOKEN", unset = NA)
         if (is.na(token) || token == "") {
-          stop(
-            "Zenodo token not provided. Set ZENODO_TOKEN environment variable ",
-            "or pass token to connect(). Get your token at: ",
-            "https://zenodo.org/account/settings/applications/tokens/new/"
-          )
+          # No token available: connect anonymously. Published public records
+          # can be listed and downloaded without authentication; only upload
+          # and publish operations require a token (see require_token()).
+          token <- NULL
+          if (self$logs) {
+            message(
+              "No Zenodo token provided; connecting in anonymous read-only ",
+              "mode. Downloading published data needs no token. To upload or ",
+              "publish, set ZENODO_TOKEN or pass token = to connect()."
+            )
+          }
         }
       }
 
@@ -269,8 +288,11 @@ ZenodoAssetManager <- R6::R6Class(
 
       logger_level <- if (self$logs) "INFO" else NULL
 
-      private$stored_token <- token
+      private$stored_token <- token  # may be NULL in anonymous mode
 
+      # Pass token through as-is: zen4R treats NULL as a lazy anonymous
+      # connection (no auth check), whereas an empty-string token triggers
+      # checkUserAuthentication() which can fail.
       self$zenodo <- zen4R::ZenodoManager$new(
         token = token,
         sandbox = self$sandbox,
@@ -280,7 +302,8 @@ ZenodoAssetManager <- R6::R6Class(
       if (self$logs) {
         message(
           "Connected to Zenodo ",
-          if (self$sandbox) "(sandbox)" else "(production)"
+          if (self$sandbox) "(sandbox)" else "(production)",
+          if (is.null(token)) " [anonymous]" else ""
         )
       }
 
@@ -308,7 +331,6 @@ ZenodoAssetManager <- R6::R6Class(
     #' @return The invisible self for chaining.
     #' @examples
     #' # Use default console progress bars
-
     #' manager$set_progress_callback(upload = TRUE, download = TRUE)
     #'
     #' # Use custom callback
@@ -435,9 +457,28 @@ ZenodoAssetManager <- R6::R6Class(
     #' @param concept_doi Optional concept DOI.
     #' @return A data.table with file information (filename, size, checksum).
     list_remote_files = function(concept_doi = NULL) {
-      # Always re-fetch the record to reflect any files uploaded since
-      # the record object was last retrieved
-      self$get_record(concept_doi)
+      # Refresh the record to reflect files uploaded since it was last
+      # retrieved. IMPORTANT: when an unpublished draft is loaded (e.g. a new
+      # version created via create_new_version while a published version
+      # already exists), refresh it by its own id — NOT via get_record(), which
+      # resolves the concept DOI and would return the PUBLISHED sibling,
+      # hiding the draft's files. get_record() is used only when no record is
+      # loaded yet or an explicit concept_doi is requested.
+      draft_loaded <- !is.null(self$record) &&
+        (isTRUE(self$record$is_draft) ||
+           (!is.null(self$record$is_published) &&
+              !isTRUE(self$record$is_published)))
+      if (!is.null(concept_doi) || is.null(self$record)) {
+        self$get_record(concept_doi)
+      } else if (draft_loaded && !is.null(self$record$id) &&
+                 !is.null(private$stored_token)) {
+        refreshed <- tryCatch(
+          self$zenodo$getDepositionById(self$record$id),
+          error = function(e) NULL
+        )
+        if (!is.null(refreshed)) self$record <- refreshed
+      }
+      # else: keep the currently-loaded (published) record and list its files.
 
       # Try zen4R's native method first
       files <- tryCatch(
@@ -741,23 +782,35 @@ ZenodoAssetManager <- R6::R6Class(
         dir.create(self$archive_dir, recursive = TRUE, showWarnings = FALSE)
       }
 
-      # Get subdirectories
+      # Get subdirectories. Track whether the caller specified an explicit
+      # subset: a partial upload must archive ONLY the named directories.
+      explicit_dirs <- !is.null(directories)
       if (is.null(directories)) {
         directories <- list.dirs(input_base, full.names = FALSE, recursive = FALSE)
         directories <- directories[directories != ""]
       }
 
-      # Check for root-level files (files directly in input_base, not in any
-      # subdirectory). These need a special "root" archive.
-      root_files <- list.files(input_base, full.names = FALSE, recursive = FALSE)
-      root_files <- root_files[!root_files %in% directories]
-      # Apply file exclusion patterns
-      if (!is.null(exclude_file_patterns) && length(root_files) > 0L) {
-        efp <- paste(exclude_file_patterns, collapse = "|")
-        root_files <- root_files[!grepl(efp, root_files)]
-      }
-      if (length(root_files) > 0L) {
-        directories <- c(directories, ".root")
+      # Check for root-level files (loose files directly in input_base, not in
+      # any subdirectory) — archived into a special "root" archive. Only on a
+      # FULL upload: when the caller passes an explicit `directories` subset we
+      # respect it literally and do NOT sweep in top-level files. Subtract ALL
+      # real subdirectories (list.files() returns directory names too), so only
+      # genuine loose files are picked up — never the unselected subdirectories.
+      root_files <- character(0)
+      if (!explicit_dirs) {
+        all_subdirs <- list.dirs(input_base, full.names = FALSE, recursive = FALSE)
+        all_subdirs <- all_subdirs[all_subdirs != ""]
+        root_files <- setdiff(
+          list.files(input_base, full.names = FALSE, recursive = FALSE),
+          all_subdirs
+        )
+        if (!is.null(exclude_file_patterns) && length(root_files) > 0L) {
+          efp <- paste(exclude_file_patterns, collapse = "|")
+          root_files <- root_files[!grepl(efp, root_files)]
+        }
+        if (length(root_files) > 0L) {
+          directories <- c(directories, ".root")
+        }
       }
 
       if (length(directories) == 0) {
@@ -913,11 +966,15 @@ ZenodoAssetManager <- R6::R6Class(
                 message("  Root-level files in ", dir_name, ": ",
                         paste(dir_root_files, collapse = ", "))
               }
+              # Use a "root" task with an explicit file list so ONLY the loose
+              # files are archived. (A "single" task with dir_path = dir_path
+              # would re-zip the entire directory, duplicating every grouped
+              # subfolder archive and ignoring exclude_patterns.)
               archive_tasks[[length(archive_tasks) + 1L]] <- list(
-                type = "single",
+                type = "root",
                 dir_name = dir_name,
                 group_prefix = "root_files",
-                dir_path = dir_path,
+                root_files = file.path(dir_name, dir_root_files),
                 archive_name = paste0(dir_name, "_root_files"),
                 exclude_file_patterns = exclude_file_patterns,
                 compression_level = compression_level,
@@ -1344,6 +1401,7 @@ ZenodoAssetManager <- R6::R6Class(
     #' @return The invisible self for chaining.
     upload_archive = function(archive_path, record = NULL) {
       private$check_connection()
+      private$require_token("Uploading to Zenodo")
 
       if (!file.exists(archive_path)) {
         stop("Archive file not found: ", archive_path)
@@ -1374,13 +1432,87 @@ ZenodoAssetManager <- R6::R6Class(
       invisible(self)
     },
 
+    # upload_archives ----
+    #' @description Upload a set of archives with verify-and-resume. Files
+    #'   already present on the record are skipped; transient failures are
+    #'   retried after refreshing the record object (a Zenodo 5xx can corrupt
+    #'   it and leave a stale incomplete file entry, which is cleared before
+    #'   retrying). If any archive is still missing after all attempts the
+    #'   method errors \strong{without} publishing — re-running resumes from
+    #'   where it left off (already-uploaded files are skipped).
+    #' @param archive_paths Character vector of archive file paths.
+    #' @param max_rounds Maximum resume passes over the full set (default 4).
+    #' @return The invisible self for chaining.
+    upload_archives = function(archive_paths, max_rounds = 4L) {
+      private$check_connection()
+      private$require_token("Uploading to Zenodo")
+      if (length(archive_paths) == 0L) return(invisible(self))
+      expected <- basename(archive_paths)
+      names(archive_paths) <- expected
+      remote_now <- function() {
+        tryCatch(self$list_remote_files()$filename, error = function(e) character(0))
+      }
+      for (round in seq_len(max_rounds)) {
+        todo <- expected[!expected %in% remote_now()]
+        if (length(todo) == 0L) break
+        if (self$logs && round > 1L) {
+          message("Upload resume round ", round, ": ", length(todo),
+                  " archive(s) remaining")
+        }
+        for (nm in todo) {
+          ap <- archive_paths[[nm]]
+          for (att in seq_len(3L)) {
+            tryCatch(
+              self$upload_archive(ap),
+              error = function(e) if (self$logs)
+                message("  upload error (", nm, "): ", conditionMessage(e))
+            )
+            Sys.sleep(1)  # let the new file register before checking
+            if (nm %in% remote_now()) break
+            # Not present: a failed/transient attempt may have left a stale
+            # incomplete entry that blocks re-upload, and the in-memory record
+            # may be corrupted. Clear the entry (we re-upload it next, so this
+            # is idempotent) and refresh the record before retrying.
+            private$delete_draft_file(nm)
+            # Re-fetch the SAME record by id. NOT get_record(), which resolves
+            # the concept DOI and would return a published sibling version when
+            # uploading a new-version draft — switching uploads to a published
+            # (unmodifiable) record.
+            rid <- if (!is.null(self$record)) self$record$id else NULL
+            if (!is.null(rid)) {
+              fresh <- tryCatch(self$zenodo$getDepositionById(rid),
+                                error = function(e) NULL)
+              if (!is.null(fresh)) self$record <- fresh
+            }
+            Sys.sleep(2 * att)
+          }
+        }
+      }
+      missing <- setdiff(expected, remote_now())
+      if (length(missing) > 0L) {
+        stop(
+          "Upload incomplete; ", length(missing), " archive(s) missing: ",
+          paste(missing, collapse = ", "),
+          ". Re-run the upload to resume (already-uploaded files are skipped).",
+          call. = FALSE
+        )
+      }
+      if (self$logs) {
+        message("All ", length(expected), " archive(s) present on the record.")
+      }
+      invisible(self)
+    },
+
     # download_file ----
     #' @description Download a file from Zenodo record.
     #' @param filename Name of the file to download.
     #' @param dest_dir Destination directory.
     #' @param overwrite Overwrite existing files.
+    #' @param checksum Optional Zenodo checksum string (e.g. "md5:...") used to
+    #'   verify the downloaded file's integrity.
     #' @return Path to downloaded file.
-    download_file = function(filename, dest_dir, overwrite = FALSE) {
+    download_file = function(filename, dest_dir, overwrite = FALSE,
+                             checksum = NULL) {
       private$check_connection()
 
       if (is.null(self$record)) {
@@ -1401,7 +1533,8 @@ ZenodoAssetManager <- R6::R6Class(
 
       # Download the single requested file via its direct URL
       download_url <- private$get_file_download_url(filename)
-      private$download_with_progress(download_url, dest_path, filename)
+      private$download_with_progress(download_url, dest_path, filename,
+                                     checksum = checksum)
 
       if (!file.exists(dest_path)) {
         stop("Download failed for: ", filename)
@@ -1432,7 +1565,42 @@ ZenodoAssetManager <- R6::R6Class(
         message("  To: ", dest_dir)
       }
 
-      zip::unzip(archive_path, exdir = dest_dir, overwrite = overwrite)
+      if (overwrite) {
+        zip::unzip(archive_path, exdir = dest_dir, overwrite = TRUE)
+      } else {
+        # zip::unzip(overwrite = FALSE) hard-errors and aborts the WHOLE
+        # archive the moment it meets a file that already exists on disk
+        # (e.g. the git-tracked sim_design*.yaml carried in root.zip). Stage
+        # to a temp dir, then copy over only files that are not already
+        # present, so existing files are skipped rather than fatal.
+        staging <- file.path(
+          tempdir(),
+          paste0("zenodo_extract_",
+                 sub("\\.zip$", "", basename(archive_path), ignore.case = TRUE))
+        )
+        if (dir.exists(staging)) unlink(staging, recursive = TRUE)
+        dir.create(staging, recursive = TRUE, showWarnings = FALSE)
+        on.exit(unlink(staging, recursive = TRUE), add = TRUE)
+        zip::unzip(archive_path, exdir = staging, overwrite = TRUE)
+        staged <- list.files(staging, recursive = TRUE, all.files = TRUE,
+                             no.. = TRUE)
+        n_copied <- 0L; n_skipped <- 0L
+        for (rel in staged) {
+          target <- file.path(dest_dir, rel)
+          if (file.exists(target)) {
+            n_skipped <- n_skipped + 1L
+            next
+          }
+          dir.create(dirname(target), recursive = TRUE, showWarnings = FALSE)
+          file.copy(file.path(staging, rel), target, overwrite = FALSE)
+          n_copied <- n_copied + 1L
+        }
+        if (self$logs && n_skipped > 0L) {
+          message("  Kept ", n_skipped,
+                  " existing file(s); extracted ", n_copied,
+                  " new file(s). Use overwrite = TRUE to replace.")
+        }
+      }
 
       if (self$logs) {
         message("  Extraction complete.")
@@ -1458,10 +1626,11 @@ ZenodoAssetManager <- R6::R6Class(
       creators,
       version = "1.0.0",
       keywords = c("microsimulation", "health", "IMPACTncd"),
-      license = "cc-by-4.0",
+      license = "cc-by-sa-4.0",
       publisher = "Zenodo"
     ) {
       private$check_connection()
+      private$require_token("Creating a Zenodo record")
 
       if (self$logs) {
         message("Creating new Zenodo record: ", title)
@@ -1519,6 +1688,7 @@ ZenodoAssetManager <- R6::R6Class(
     #' @return The new version record object.
     create_new_version = function(version, delete_previous_files = TRUE) {
       private$check_connection()
+      private$require_token("Creating a new Zenodo version")
 
       if (is.null(self$record) && is.null(self$concept_doi)) {
         stop("No record loaded. Call get_record() or provide concept_doi.")
@@ -1556,6 +1726,7 @@ ZenodoAssetManager <- R6::R6Class(
     #' @return The published record object.
     publish_record = function() {
       private$check_connection()
+      private$require_token("Publishing a Zenodo record")
 
       if (is.null(self$record)) {
         stop("No record to publish. Create or load a record first.")
@@ -1884,12 +2055,13 @@ ZenodoAssetManager <- R6::R6Class(
 
       if (length(all_files) == 0L) return(invisible(NULL))
 
-      # Convert to paths relative to git root
+      # Convert to paths relative to git root. Use substring() rather than a
+      # regex-escaped prefix match: the previous gsub() pattern was an invalid
+      # TRE regex (the `\]` inside the bracket expression closed the class
+      # early), which threw whenever update_gitignore was reached.
       git_root_norm <- normalizePath(git_root, winslash = "/")
-      rel_files <- sub(
-        paste0("^", gsub("([.\\\\|(){}^$*+?\\[\\]])", "\\\\\\1", git_root_norm), "/?"),
-        "", normalizePath(all_files, winslash = "/")
-      )
+      all_files_norm <- normalizePath(all_files, winslash = "/")
+      rel_files <- substring(all_files_norm, nchar(git_root_norm) + 2L)
 
       # Use git check-ignore to find which files are already covered
       already_ignored <- tryCatch({
@@ -2069,6 +2241,13 @@ ZenodoAssetManager <- R6::R6Class(
 
       base_url <- private$get_api_base_url()
       token <- private$get_token()
+      if (is.null(token)) {
+        # Draft files are not visible anonymously; nothing to list.
+        return(data.table::data.table(
+          filename = character(), size = numeric(),
+          checksum = character()
+        ))
+      }
       url <- paste0(base_url, "/records/", record_id, "/draft/files")
 
       resp <- tryCatch({
@@ -2114,13 +2293,80 @@ ZenodoAssetManager <- R6::R6Class(
       dt
     },
 
-    # get_token ----
-    # Return the token stored at connect() time.
-    get_token = function() {
-      if (is.null(private$stored_token)) {
-        stop("Not connected. Call connect() first.")
+    # delete_draft_file ----
+    # Best-effort deletion of a (possibly stale/incomplete) file entry from the
+    # current draft via the InvenioRDM API. Used by upload_archives() to clear
+    # a blocking partial entry before re-uploading. Ignores errors/404.
+    delete_draft_file = function(filename) {
+      if (!requireNamespace("httr2", quietly = TRUE)) return(invisible(FALSE))
+      token <- private$get_token()
+      if (is.null(token) || is.null(self$record) || is.null(self$record$id)) {
+        return(invisible(FALSE))
       }
+      url <- paste0(private$get_api_base_url(), "/records/", self$record$id,
+                    "/draft/files/", utils::URLencode(filename, reserved = TRUE))
+      tryCatch({
+        httr2::request(url) |>
+          httr2::req_method("DELETE") |>
+          httr2::req_headers(Authorization = paste("Bearer", token)) |>
+          httr2::req_error(is_error = function(r) FALSE) |>
+          httr2::req_perform()
+        invisible(TRUE)
+      }, error = function(e) invisible(FALSE))
+    },
+
+    # get_token ----
+    # Return the token stored at connect() time, or NULL in anonymous mode.
+    get_token = function() {
       private$stored_token
+    },
+
+    # require_token ----
+    # Stop with a clear message for operations that cannot run anonymously
+    # (upload, publish, new-version, draft listing).
+    require_token = function(operation = "this operation") {
+      if (is.null(self$zenodo)) {
+        stop("Not connected to Zenodo. Call connect() first.", call. = FALSE)
+      }
+      if (is.null(private$stored_token)) {
+        stop(
+          operation, " requires a Zenodo token, but the manager is connected ",
+          "anonymously. Reconnect with connect(token = <your token>) or set ",
+          "the ZENODO_TOKEN environment variable.",
+          call. = FALSE
+        )
+      }
+      invisible(TRUE)
+    },
+
+    # verify_checksum ----
+    # Compare a downloaded file against a Zenodo checksum string (e.g.
+    # "md5:abc..."). Errors on mismatch; no-op when checksum is NULL/empty or
+    # uses a non-md5 algorithm (Zenodo/InvenioRDM currently reports md5).
+    verify_checksum = function(path, checksum) {
+      if (is.null(checksum) || length(checksum) == 0L ||
+          is.na(checksum) || !nzchar(checksum)) {
+        return(invisible(TRUE))
+      }
+      parts <- strsplit(checksum, ":", fixed = TRUE)[[1]]
+      if (length(parts) == 2L) {
+        algo <- tolower(parts[1]); expected <- parts[2]
+      } else {
+        algo <- "md5"; expected <- parts[1]
+      }
+      if (algo != "md5") return(invisible(TRUE))
+      got <- tryCatch(as.character(tools::md5sum(path)),
+                      error = function(e) NA_character_)
+      if (is.na(got) || !identical(tolower(got), tolower(expected))) {
+        stop(
+          "Checksum mismatch for ", basename(path),
+          " (expected md5 ", expected, ", got ", got %||% "NA", "). ",
+          "The download may be corrupted; re-run to retry.",
+          call. = FALSE
+        )
+      }
+      if (self$logs) message("  Checksum verified (md5).")
+      invisible(TRUE)
     },
 
     # upload_with_progress ----
@@ -2148,8 +2394,11 @@ ZenodoAssetManager <- R6::R6Class(
     },
 
     # download_with_progress ----
-    # Download a file with progress callback using httr2
-    download_with_progress = function(url, dest_path, filename = NULL, total_size = NULL) {
+    # Download a file with progress callback using httr2. When `checksum`
+    # (a Zenodo checksum string, e.g. "md5:...") is supplied, the downloaded
+    # file is verified against it before returning.
+    download_with_progress = function(url, dest_path, filename = NULL,
+                                       total_size = NULL, checksum = NULL) {
       if (!requireNamespace("httr2", quietly = TRUE)) {
         stop("Package 'httr2' required for progress callbacks. Install with: install.packages('httr2')")
       }
@@ -2160,13 +2409,18 @@ ZenodoAssetManager <- R6::R6Class(
 
       token <- private$get_token()
 
-      # Try to get file size from record metadata if not provided
+      # Try to get file size from record metadata if not provided. zen4R's
+      # pretty listing uses "filesize" for published records and "size" for
+      # the draft fallback, so accept either. Wrapped because listFiles() can
+      # error/return empty for drafts.
       if (is.null(total_size) && !is.null(self$record)) {
-        files_info <- self$record$listFiles(pretty = TRUE)
+        files_info <- tryCatch(self$record$listFiles(pretty = TRUE),
+                               error = function(e) NULL)
         if (!is.null(files_info) && nrow(files_info) > 0) {
           file_row <- files_info[files_info$filename == filename, ]
-          if (nrow(file_row) > 0 && "size" %in% names(file_row)) {
-            total_size <- as.numeric(file_row$size[1])
+          szcol <- intersect(c("filesize", "size"), names(file_row))
+          if (nrow(file_row) > 0 && length(szcol) > 0) {
+            total_size <- as.numeric(file_row[[szcol[1]]][1])
           }
         }
       }
@@ -2179,9 +2433,12 @@ ZenodoAssetManager <- R6::R6Class(
         }
       }
 
-      # Build request
-      req <- httr2::request(url) |>
-        httr2::req_headers("Authorization" = paste("Bearer", token))
+      # Build request. Only attach the Authorization header when a token is
+      # available: public published content downloads fine anonymously.
+      req <- httr2::request(url)
+      if (!is.null(token)) {
+        req <- httr2::req_headers(req, "Authorization" = paste("Bearer", token))
+      }
 
       # Perform request and save to file
       resp <- httr2::req_perform(req, path = dest_path)
@@ -2189,6 +2446,9 @@ ZenodoAssetManager <- R6::R6Class(
       if (httr2::resp_status(resp) >= 400) {
         stop("Download failed with status ", httr2::resp_status(resp))
       }
+
+      # Verify integrity against the remote checksum when provided.
+      private$verify_checksum(dest_path, checksum)
 
       if (self$logs) {
         size_mb <- round(file.size(dest_path) / 1024^2, 2)
@@ -2224,16 +2484,33 @@ ZenodoAssetManager <- R6::R6Class(
         }
       }
 
-      # Fallback: construct URL from API base
-      # InvenioRDM format: /api/records/{id}/files/{filename}/content
+      # Fallback: construct URL from API base.
+      # InvenioRDM format: published -> /api/records/{id}/files/{name}/content
+      #                    draft     -> /api/records/{id}/draft/files/{name}/content
       base_url <- private$get_api_base_url()
       record_id <- self$record$id
       if (is.null(record_id)) {
         stop("Cannot determine download URL for: ", filename)
       }
-      paste0(base_url, "/records/", record_id, "/files/",
+      is_draft <- isTRUE(self$record$is_draft) ||
+        (!is.null(self$record$is_published) &&
+           !isTRUE(self$record$is_published))
+      seg <- if (is_draft) "draft/files" else "files"
+      paste0(base_url, "/records/", record_id, "/", seg, "/",
              utils::URLencode(filename, reserved = TRUE),
              "/content")
+    },
+
+    # archive_in_directories ----
+    # TRUE if an archive (basename without .zip) belongs to one of the named
+    # directories. Handles grouped archives whose names are "<dir>_<prefix>"
+    # by prefix-matching, not just exact equality, so requesting a parent
+    # directory by name selects all of its grouped archives.
+    archive_in_directories = function(archive_name, directories) {
+      if (is.null(directories)) return(TRUE)
+      any(vapply(directories, function(d) {
+        archive_name == d || startsWith(archive_name, paste0(d, "_"))
+      }, logical(1)))
     },
 
     # sync_check ----
@@ -2337,22 +2614,33 @@ ZenodoAssetManager <- R6::R6Class(
         fname <- remote_files$filename[i]
         archive_name <- gsub("\\.zip$", "", fname, ignore.case = TRUE)
 
-        # Check if this directory should be processed
-        if (!is.null(directories) && !(archive_name %in% directories)) {
+        # Check if this directory should be processed (prefix-aware so a
+        # parent name like "exposure_distributions" matches its grouped
+        # archives "exposure_distributions_*").
+        if (!private$archive_in_directories(archive_name, directories)) {
           if (self$logs) message("Skipping (not in list): ", archive_name)
           next
         }
 
-        # Get download URL and file size
+        # Get download URL, file size and checksum. The size column is
+        # "filesize" for zen4R published listings and "size" for the draft
+        # API fallback; checksum (md5:...) is used for integrity verification.
         download_url <- private$get_file_download_url(fname)
-        file_size <- if ("size" %in% names(remote_files)) {
-          as.numeric(remote_files$size[i])
+        szcol <- intersect(c("size", "filesize"), names(remote_files))
+        file_size <- if (length(szcol) > 0L) {
+          as.numeric(remote_files[[szcol[1]]][i])
+        } else {
+          NULL
+        }
+        chk <- if ("checksum" %in% names(remote_files)) {
+          remote_files$checksum[i]
         } else {
           NULL
         }
 
         dest_path <- file.path(download_dir, fname)
-        private$download_with_progress(download_url, dest_path, fname, file_size)
+        private$download_with_progress(download_url, dest_path, fname,
+                                       file_size, checksum = chk)
       }
 
       # Extract each archive
@@ -2361,7 +2649,7 @@ ZenodoAssetManager <- R6::R6Class(
         archive_name <- gsub("\\.zip$", "", fname, ignore.case = TRUE)
 
         # Check if this directory should be processed
-        if (!is.null(directories) && !(archive_name %in% directories)) {
+        if (!private$archive_in_directories(archive_name, directories)) {
           next
         }
 
@@ -2452,10 +2740,25 @@ ZenodoAssetManager <- R6::R6Class(
         )
       }
 
-      # Upload each archive
-      for (i in seq_len(nrow(archives))) {
-        self$upload_archive(archives$archive_path[i])
+      # Guard against Zenodo's 100-file-per-record limit (counting files
+      # already on the record plus the new archives about to be uploaded).
+      n_existing <- tryCatch(nrow(self$list_remote_files()),
+                             error = function(e) 0L)
+      if (n_existing + nrow(archives) > 100L) {
+        stop(
+          "This upload would put ", n_existing + nrow(archives),
+          " files on the record, exceeding Zenodo's 100-file-per-record ",
+          "limit. Consolidate into fewer, larger archives (e.g. keep ",
+          "group_by_prefix = TRUE, or combine directories) or split across ",
+          "records.",
+          call. = FALSE
+        )
       }
+
+      # Upload each archive (verify-and-resume: skips files already present,
+      # retries transient failures, refreshes the record on 5xx). Errors
+      # without proceeding if any archive could not be uploaded.
+      self$upload_archives(archives$archive_path)
 
       # Clean up temporary archive files after successful upload
       for (ap in archives$archive_path) {
