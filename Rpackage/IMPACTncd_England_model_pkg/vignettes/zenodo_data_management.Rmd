@@ -445,8 +445,10 @@ query.
 ### Downloading Input Data
 
 Downloads zip archives from the Zenodo record and extracts them into
-`./inputs/`. By default, directories that already exist locally are
-**skipped** — pass `overwrite = TRUE` to replace them.
+`./inputs/`. Extraction is **per-file**: by default missing data files are
+added and existing files are kept — so a fresh git clone (whose data
+directories already exist holding git-tracked `.yaml`/`.R` files) still
+receives all the data. Pass `overwrite = TRUE` to replace existing files.
 
 ```{r download-details}
 # Check what's available vs what you have locally

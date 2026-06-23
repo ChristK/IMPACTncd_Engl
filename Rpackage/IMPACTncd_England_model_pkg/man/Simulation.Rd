@@ -1188,8 +1188,11 @@ directories. Default: \code{FALSE}.}
   }
   \subsection{Details}{
     Downloads zip archives from the Zenodo record and extracts them into
-\code{input_base}. By default, directories that already exist locally
-are \strong{skipped} — pass \code{overwrite = TRUE} to replace them.
+\code{input_base}. Extraction is per-file: by default missing data
+files are added and existing files are kept (so a fresh git clone,
+whose data directories already exist holding git-tracked \code{.yaml}/
+\code{.R} files, still receives all the data) — pass
+\code{overwrite = TRUE} to replace existing files instead.
 
 Use \code{zenodo_check_inputs()} first (a read-only check) to see
 exactly which directories would be downloaded.
@@ -1253,8 +1256,9 @@ The method identifies simulation archives by matching archive names
 against the \code{directories} parameter (e.g. archives whose name
 starts with \code{"parf"} or equals \code{"rr"}).
 
-By default, directories that already exist locally are
-\strong{skipped} — pass \code{overwrite = TRUE} to replace them.
+Extraction is per-file: by default missing data files are added and
+existing files are kept — pass \code{overwrite = TRUE} to replace
+existing files instead.
 
 \strong{When to use:}
 \itemize{
