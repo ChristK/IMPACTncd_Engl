@@ -1,6 +1,10 @@
 name: Test simulation.R
 
 on:
+  # On push, only the package build runs (catches compilation breakage). The
+  # heavy steps — downloading ~13GB of data from Zenodo per environment and
+  # running the model — are gated to manual runs (workflow_dispatch) to avoid
+  # a multi-GB download on every commit across all four environments.
   push:
   workflow_dispatch:
     inputs:
@@ -55,6 +59,7 @@ jobs:
           Rscript -e 'install.packages(c("zen4R", "httr2"), repos = "https://cloud.r-project.org")'
 
       - name: Download inputs from Zenodo
+        if: github.event_name != 'push'
         run: |
           Rscript -e '
             library(IMPACTncdEngland)
@@ -69,6 +74,7 @@ jobs:
           '
 
       - name: Test testing/simulate_deep_testing.R
+        if: github.event_name != 'push'
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -103,6 +109,7 @@ jobs:
           Rscript -e 'install.packages(c("zen4R", "httr2"))'
 
       - name: Download inputs from Zenodo
+        if: github.event_name != 'push'
         run: |
           Rscript -e '
             library(IMPACTncdEngland)
@@ -117,6 +124,7 @@ jobs:
           '
 
       - name: Test testing/simulate_deep_testing.R
+        if: github.event_name != 'push'
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
         run: |
