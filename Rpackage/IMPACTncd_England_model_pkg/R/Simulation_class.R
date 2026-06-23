@@ -2014,10 +2014,16 @@ Simulation <-
           overwrite       = overwrite
         )
 
-        # Auto-complete initialization after download
-        if (!self$design$data_loaded) {
-          self$design$load_data()
-        }
+        # Auto-complete initialization after download. Force a full reload:
+        # on a fresh clone the constructor may have run a PARTIAL load_data()
+        # (git-tracked files in inputs/ make has_input_data() TRUE) which set
+        # data_loaded = TRUE while SKIPPING exposures, because the exposure
+        # data had not been downloaded yet. A plain `if (!data_loaded)` guard
+        # would then never reload, leaving exposures unloaded and the object
+        # unusable (e.g. "object 'active_days' not found" at run time). Forcing
+        # the reload now picks up the freshly-downloaded data so the object is
+        # fully usable without having to re-create it.
+        self$design$load_data(force = TRUE)
         if (!private$data_initialized) {
           private$complete_data_init()
         }
