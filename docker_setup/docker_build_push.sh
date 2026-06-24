@@ -165,7 +165,15 @@ BUILD_ARGS=()
 [[ -n "${ZENODO_CONCEPT_DOI:-}" ]] && BUILD_ARGS+=(--build-arg "ZENODO_CONCEPT_DOI=${ZENODO_CONCEPT_DOI}")
 [[ -n "${DOWNLOAD_DATA:-}" ]] && BUILD_ARGS+=(--build-arg "DOWNLOAD_DATA=${DOWNLOAD_DATA}")
 
-if docker build --no-cache ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} -f "$DOCKERFILE" -t "$BUILD_IMAGE_NAME" "$BUILD_CONTEXT"; then
+# Optional build network. Some hosts use an internal DNS that the Docker bridge
+# network cannot reach, which makes apt (prerequisite image) and the in-build
+# Zenodo download (main image) fail to resolve names. Set
+# DOCKER_BUILD_NETWORK=host (e.g. in .env) to build with host networking.
+# Unset = Docker's default bridge network.
+NETWORK_ARG=()
+[[ -n "${DOCKER_BUILD_NETWORK:-}" ]] && NETWORK_ARG=(--network "${DOCKER_BUILD_NETWORK}")
+
+if docker build --no-cache ${NETWORK_ARG[@]+"${NETWORK_ARG[@]}"} ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} -f "$DOCKERFILE" -t "$BUILD_IMAGE_NAME" "$BUILD_CONTEXT"; then
   log "Docker image built successfully."
 else
   log "Docker image build failed."
