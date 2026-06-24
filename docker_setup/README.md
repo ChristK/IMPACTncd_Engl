@@ -303,6 +303,24 @@ IMPACTncd$zenodo_download_all()
 
 The `docker_build_push.{sh,ps1}` scripts derive the image name from the Dockerfile filename, so the commands above produce `prerequisite.impactncdengl:local`, `data.impactncdengl:local`, and `impactncdengl:local` — the names the data/model `FROM` lines and `setup_user_docker_env.{sh,ps1}` expect.
 
+#### If the model build fails with `blob ... not found` (containerd GC race)
+
+On hosts using the **containerd image store** with an aggressive garbage collector, the model-image `docker build` can fail at the export step with:
+
+```
+failed to extract layer sha256:...: blob sha256:... not found
+```
+
+This is a **host infrastructure** issue, not a problem with the Dockerfile: containerd's GC evicts a base layer's *content* blob while the build is running. (The image still *runs* — running uses the unpacked snapshot store — but buildkit cannot compose a child image without the content blob.) The data image usually builds fine; the model image, which re-reads an older base blob at export, is the one that trips it. Re-pulling the base (`docker pull rocker/r-ver:4.6.0`) repopulates the blob but the GC can re-evict it mid-build, so it is not a reliable fix.
+
+**Reliable workaround** — build the model image with `docker commit` instead of buildkit (it never re-reads base content blobs). After building the data image, run:
+
+```bash
+./build_model_via_commit.sh        # data.impactncdengl:local -> impactncdengl:local
+```
+
+This mirrors `Dockerfile.IMPACTncdENGL` step-for-step (merge code over the data layer, build + install the package, snapshot, chmod) and produces an identical, runnable image. The proper long-term fix is on the host: tune the containerd GC (`io.containerd.gc.v1.scheduler` thresholds in `/etc/containerd/config.toml`) so it does not evict blobs referenced by in-flight builds.
+
 ### Build script options
 
 ```
