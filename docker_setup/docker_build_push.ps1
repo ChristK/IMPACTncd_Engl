@@ -120,12 +120,11 @@ Log "Building Docker image..."
 $DockerfileName = (Split-Path $Dockerfile -Leaf)
 $BuildContextDir = $null
 $BuildArgs = @()
-if ($DockerfileName -eq "Dockerfile.IMPACTncdENGL") {
-    # Clean build context from git-tracked files only. The model DATA is NOT
-    # bundled — it is downloaded from Zenodo during the build (see
-    # Dockerfile.IMPACTncdENGL). Using only git-tracked files keeps secrets
-    # (.env, tokens) and untracked content out of the image and keeps the
-    # build context small.
+if ($DockerfileName -eq "Dockerfile.IMPACTncdENGL" -or $DockerfileName -eq "Dockerfile.data.IMPACTncdENGL") {
+    # Clean build context from git-tracked files only (data and model images).
+    # The model DATA is NOT bundled — it is downloaded from Zenodo in the data
+    # image. Using only git-tracked files keeps secrets (.env, tokens) and
+    # untracked content out of the image and keeps the build context small.
     $BuildContextDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
     New-Item -ItemType Directory -Path $BuildContextDir | Out-Null
     Log "Creating build context from git-tracked files..."

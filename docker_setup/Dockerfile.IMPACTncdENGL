@@ -1,59 +1,53 @@
-# Base image with R and prerequisites
-FROM prerequisite.impactncdengl:local
-# Maintainer information
-LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>" 
+# Layer 3 of 3: the COMPLETE model image.
+#   = prerequisite (R environment)  -> Dockerfile.prerequisite.IMPACTncdENGL
+#   + model DATA from Zenodo        -> Dockerfile.data.IMPACTncdENGL  (this FROM)
+#   + model CODE from GitHub/local  -> this Dockerfile
+# The ~13GB of data is INHERITED from the data layer, so rebuilding this image
+# after a code change does NOT re-download it.
+FROM data.impactncdengl:local
+LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>"
 
-# Build argument to control source method: "copy" or "git"
+# Build argument to control source method: "copy" (local checkout) or "git".
 ARG SOURCE_METHOD=copy
 
-# Method 1: Copy from build context (only when using copy method)
-# Build context should be the parent directory that contains docker_setup: docker build -f Dockerfile.IMPACTncdENGL -t impactncd_england ..
-# Note: For git method, you can use an empty build context or the docker_setup directory to minimize copying
-RUN if [ "$SOURCE_METHOD" = "copy" ]; then \
-        echo "Copy method selected - will copy build context"; \
-    else \
-        echo "Git method selected - will clone from GitHub"; \
-    fi
-
-# Copy build context (unavoidable in Docker, but minimize impact for git method)
-# Build context should be the parent directory containing the entire project
-# The docker_build_push.sh script needs to be updated to use ".." as build context for copy method
+# /IMPACTncd_England already exists and holds the Zenodo data (inputs/ and
+# simulation/parf, simulation/rr) from the data layer. Overlay the model CODE on
+# top, MERGING with the data (cp -a / clone-then-copy, not mv, so the existing
+# data is preserved). The code (git-tracked files) does not include the data
+# files, so this only writes code/config on top of the data.
 COPY . /tmp/build_context/
-
-# Process the copied content only if using copy method
 RUN if [ "$SOURCE_METHOD" = "copy" ]; then \
-        echo "Using copy method - setting up from build context" && \
-        mkdir -p /IMPACTncd_England && \
-        mv /tmp/build_context/* /IMPACTncd_England/ && \
-        echo "Local files moved successfully"; \
+        echo "Copy method: merging local code over the data layer" && \
+        cp -a /tmp/build_context/. /IMPACTncd_England/ && \
+        echo "Code merged over data."; \
     fi && \
     rm -rf /tmp/build_context
 
-# Method 2: Clone from GitHub (when using git method)
-# This will be dynamically updated by GitHub Actions to clone the correct branch
+# Git method: clone the code into a temp dir, then merge over the data layer.
+# (This will be dynamically updated by GitHub Actions to clone the correct branch.)
 RUN if [ "$SOURCE_METHOD" = "git" ]; then \
-        echo "Using git method - cloning from GitHub" && \
-        git clone https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_England && \
-        echo "Repository cloned successfully"; \
+        echo "Git method: cloning code over the data layer" && \
+        git clone https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo && \
+        cp -a /tmp/repo/. /IMPACTncd_England/ && \
+        rm -rf /tmp/repo && \
+        echo "Code cloned over data."; \
     fi
 
-
 # Add littler tools to PATH
-ENV PATH="/usr/local/lib/R/site-library/littler/bin:${PATH}" 
+ENV PATH="/usr/local/lib/R/site-library/littler/bin:${PATH}"
 # Add littler examples to PATH
-ENV PATH="/usr/local/lib/R/site-library/littler/examples:${PATH}" 
+ENV PATH="/usr/local/lib/R/site-library/littler/examples:${PATH}"
 # Create directories for outputs and synthpop
-RUN mkdir -p /outputs
-RUN mkdir -p /synthpop
+RUN mkdir -p /outputs /synthpop
 # Change working directory to the package directory
 WORKDIR /IMPACTncd_England/Rpackage/IMPACTncd_England_model_pkg
-# Generate documentation using Roxygen 
-RUN roxy.r 
+# Generate documentation using Roxygen
+RUN roxy.r
 # Build the package
-RUN build.r 
-# Dynamically construct the .tar.gz filename for the local R package from its DESCRIPTION file and install it 
-RUN PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}') && \ 
-    VERSION=$(grep "^Version:" DESCRIPTION | awk '{print $2}') && \ 
+RUN build.r
+# Dynamically construct the .tar.gz filename for the local R package from its DESCRIPTION file and install it
+RUN PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}') && \
+    VERSION=$(grep "^Version:" DESCRIPTION | awk '{print $2}') && \
     TARBALL="${PACKAGE}_${VERSION}.tar.gz" && \
     install2.r "$TARBALL"
 
@@ -64,37 +58,23 @@ WORKDIR /IMPACTncd_England/
 # The snapshot file is in .gitignore so it's absent after git clone.
 RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")'
 
-# Download the model data (input data + pre-computed PARFs/RR) from Zenodo and
-# bake it into the image. The data is public, so no Zenodo account/token is
-# needed. This replaces bundling ~13GB of data into the build context — the
-# build context now only carries the code, and the canonical, versioned data
-# comes from the published Zenodo record.
-#   --build-arg DOWNLOAD_DATA=false        -> build a code-only image (the user
-#                                             can download later at runtime)
-#   --build-arg ZENODO_CONCEPT_DOI=10.5281/zenodo.NNNN  -> a specific record
-ARG DOWNLOAD_DATA=true
-ARG ZENODO_CONCEPT_DOI=10.5281/zenodo.20812409
-ENV DOWNLOAD_DATA=${DOWNLOAD_DATA}
-ENV ZENODO_CONCEPT_DOI=${ZENODO_CONCEPT_DOI}
-RUN Rscript docker_setup/download_zenodo_data.R
-
-# Make project files writable by any user so the entrypoint's dynamically
-# created user can modify them (e.g., update snapshot, write RR/PARF files,
-# re-download or update inputs from Zenodo). Runs after the data download so the
-# downloaded files are covered too.
-RUN chmod -R a+rw /IMPACTncd_England/ /outputs /synthpop
+# Make the CODE and runtime directories writable by the entrypoint's dynamically
+# created user. We deliberately do NOT `chmod -R` inputs/ or simulation/ here:
+# the data layer already made them writable, and re-chmod'ing ~13GB would
+# copy-up the whole dataset into a new layer and double the image size.
+RUN chmod -R a+rw /IMPACTncd_England/Rpackage /outputs /synthpop && \
+    chmod a+rw /IMPACTncd_England /IMPACTncd_England/*
 
 CMD ["/bin/bash"]
 
-# Build commands:
+# Build commands (build the three layers in order):
 #
 # Using docker_build_push.sh script (recommended):
-# ./docker_build_push.sh Dockerfile.IMPACTncdENGL                     # build only
-# ./docker_build_push.sh Dockerfile.IMPACTncdENGL --push              # build + push
-# ./docker_build_push.sh Dockerfile.IMPACTncdENGL --source-method git # git clone method
-#
-# Manual build (run from docker_setup directory):
-#   docker build --no-cache -f Dockerfile.IMPACTncdENGL -t impactncdengl ..
+#   ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL   # 1. R environment
+#   ./docker_build_push.sh Dockerfile.data.IMPACTncdENGL           # 2. Zenodo data
+#   ./docker_build_push.sh Dockerfile.IMPACTncdENGL                # 3. + code (this)
+#   ./docker_build_push.sh Dockerfile.IMPACTncdENGL --push         # 3. + push
+#   ./docker_build_push.sh Dockerfile.IMPACTncdENGL --source-method git
 #
 # Run:
 #   docker run -it --name test impactncdengl /bin/bash
