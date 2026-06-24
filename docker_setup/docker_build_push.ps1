@@ -143,7 +143,13 @@ if ($DockerfileName -eq "Dockerfile.IMPACTncdENGL") {
     Log "Using current directory (.) as build context for $DockerfileName"
 }
 
-docker build --no-cache @BuildArgs -f $Dockerfile -t $BuildImageName $BuildContext
+# Optional build network. Set DOCKER_BUILD_NETWORK=host on hosts whose internal
+# DNS the Docker bridge network cannot reach (so apt and the in-build Zenodo
+# download can resolve names). Unset = Docker's default bridge network.
+$NetworkArg = @()
+if ($env:DOCKER_BUILD_NETWORK) { $NetworkArg = @("--network", $env:DOCKER_BUILD_NETWORK) }
+
+docker build --no-cache @NetworkArg @BuildArgs -f $Dockerfile -t $BuildImageName $BuildContext
 $BuildExitCode = $LASTEXITCODE
 
 # Clean up the temporary build context

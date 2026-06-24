@@ -1,7 +1,7 @@
 # Safety net for manual `docker build` invocations.
 # The build script (docker_build_push.sh) assembles the build context from
-# git-tracked files + Zenodo manifest data, so these rules are a secondary
-# safeguard only.
+# git-tracked files; the model data is downloaded from Zenodo during the build.
+# These rules are a secondary safeguard only.
 
 # Version control and IDE
 .git/
@@ -13,6 +13,8 @@
 # Sensitive and non-essential directories
 secure_data/
 docker_setup/
+# ...except the build-time Zenodo data-download helper, which the Dockerfile runs
+!docker_setup/download_zenodo_data.R
 documents/
 debugging_info/
 auxil/
