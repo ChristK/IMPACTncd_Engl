@@ -258,7 +258,7 @@ The dev script does not accept `-Tag` — its image name is fixed.
 The project uses a layered architecture:
 
 1. **Prerequisite image** (`prerequisite.impactncdengl:local`) — base R environment with all dependencies.
-2. **Main image** (`impactncdengl:local`) — prerequisite + project code + input data (~20 GB).
+2. **Main image** (`impactncdengl:local`) — prerequisite + project code, with the model data **downloaded from Zenodo during the build** and baked into the image (~20 GB total).
 
 ```bash
 cd docker_setup
@@ -266,11 +266,34 @@ cd docker_setup
 # Build prerequisite image
 ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
 
-# Build main image
+# Build main image (downloads ~13 GB of data from Zenodo during the build)
 ./docker_build_push.sh Dockerfile.IMPACTncdENGL
 
 # Build and push to Docker Hub (requires DOCKERHUB_USERNAME / DOCKERHUB_TOKEN)
 ./docker_build_push.sh Dockerfile.IMPACTncdENGL --push
+```
+
+#### Model data from Zenodo
+
+The main image's input data and pre-computed PARFs/RR tables are **not** stored in git and are **not** bundled from your local copy. Instead, the build runs `download_zenodo_data.R`, which downloads the published, public data record from Zenodo (concept DOI `10.5281/zenodo.20812409`) anonymously — **no Zenodo account or token is required**. This keeps the build context tiny and means you do **not** need a local copy of the data to build the image.
+
+Control the data step with build args (or the matching variables in `.env`):
+
+```bash
+# Build a code-only image (no baked-in data); download later at runtime
+./docker_build_push.sh Dockerfile.IMPACTncdENGL          # with DOWNLOAD_DATA=false in .env
+docker build --build-arg DOWNLOAD_DATA=false -f Dockerfile.IMPACTncdENGL -t impactncdengl:nodata <context>
+
+# Build from a specific Zenodo record/version
+docker build --build-arg ZENODO_CONCEPT_DOI=10.5281/zenodo.NNNN -f Dockerfile.IMPACTncdENGL -t impactncdengl:local <context>
+```
+
+If you build a code-only image, download the data inside the running container with:
+
+```r
+IMPACTncd <- Simulation$new("inputs/sim_design.yaml")
+IMPACTncd$zenodo_connect()       # anonymous, defaults to the published record
+IMPACTncd$zenodo_download_all()
 ```
 
 To produce the `impactncdengl:local` image expected by `setup_user_docker_env.sh -Tag local`, override the default `--image-name`:
@@ -301,7 +324,7 @@ export DOCKERHUB_TOKEN=youraccesstoken
 
 ### Disk space
 
-The main image is large (~20 GB) due to bundled input data. Make sure Docker has room:
+The main image is large (~20 GB) because the model data (downloaded from Zenodo during the build) is baked into it. The build also temporarily needs ~13 GB to download and extract the data. Make sure Docker has room:
 - **Linux:** check the `/var` partition or set `data-root` in `/etc/docker/daemon.json`.
 - **Windows / macOS:** check Docker Desktop disk allocation in settings.
 

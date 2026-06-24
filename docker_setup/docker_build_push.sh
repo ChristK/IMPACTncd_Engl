@@ -9,7 +9,8 @@
 # - Image name and tag can be specified via arguments `--image-name` and `--image-tag`
 # - Uses token-based login if available; otherwise prompts for manual login.
 # - For Dockerfile.IMPACTncdENGL: builds a clean context from git-tracked files
-#   plus Zenodo-managed data files listed in the inputs manifest.
+#   only. The model data is NOT bundled — it is downloaded from Zenodo during
+#   the build (see Dockerfile.IMPACTncdENGL / download_zenodo_data.R).
 #
 # Config:
 #   Non-secret config is read from `.env`:
@@ -136,43 +137,19 @@ fi
 
 # Build the Docker image
 log "Building Docker image..."
-# For Dockerfile.IMPACTncdENGL, create a clean build context containing:
-#   1. Git-tracked files (via `git archive`) — code, configs, scripts
-#   2. Zenodo-managed data files (via inputs manifest) — .parquet, .fst, .qs, etc.
-# This prevents sensitive files (.env, tokens) and other untracked content from
-# leaking into the image.
+# For Dockerfile.IMPACTncdENGL, create a clean build context from git-tracked
+# files only (via `git archive`). The model DATA is NOT bundled — it is
+# downloaded from Zenodo during the build (see Dockerfile.IMPACTncdENGL). Using
+# only git-tracked files keeps sensitive files (.env, tokens) and other
+# untracked content out of the image and keeps the build context small.
 # For other Dockerfiles, use the current directory as build context.
 BUILD_CONTEXT_DIR=""
 if [[ "$(basename "$DOCKERFILE")" == "Dockerfile.IMPACTncdENGL" ]]; then
   BUILD_CONTEXT_DIR=$(mktemp -d)
   trap 'rm -rf "$BUILD_CONTEXT_DIR"' EXIT
 
-  # Step 1: Extract git-tracked files
   log "Creating build context from git-tracked files..."
   git -C ".." archive HEAD | tar -x -C "$BUILD_CONTEXT_DIR"
-
-  # Step 2: Copy Zenodo-managed data files listed in the inputs manifest
-  MANIFEST="../simulation/inputs_manifest_at_last_upload.csv"
-  if [[ -f "$MANIFEST" ]]; then
-    FILELIST=$(mktemp)
-    # Extract relative_path column (1st field) and prefix with inputs/
-    tail -n+2 "$MANIFEST" | cut -d',' -f1 | sed 's|^|inputs/|' > "$FILELIST"
-    # Also include simulation parf/ and rr/ files (uploaded to Zenodo too)
-    if [[ -d "../simulation/parf" ]]; then
-      find "../simulation/parf" -type f | sed 's|^\.\./||' >> "$FILELIST"
-    fi
-    if [[ -d "../simulation/rr" ]]; then
-      find "../simulation/rr" -type f | sed 's|^\.\./||' >> "$FILELIST"
-    fi
-    FILE_COUNT=$(wc -l < "$FILELIST")
-    log "Copying $FILE_COUNT Zenodo-managed data files into build context..."
-    tar -C ".." --ignore-failed-read --no-recursion -cf - -T "$FILELIST" 2>/dev/null | \
-      tar -xf - -C "$BUILD_CONTEXT_DIR" 2>/dev/null
-    rm -f "$FILELIST"
-    log "Data files copied"
-  else
-    log "Warning: inputs manifest not found — data files will not be in build context"
-  fi
 
   BUILD_CONTEXT="$BUILD_CONTEXT_DIR"
   log "Build context ready at $BUILD_CONTEXT_DIR"
@@ -181,7 +158,14 @@ else
   log "Using current directory (.) as build context for $(basename "$DOCKERFILE")"
 fi
 
-if docker build --no-cache -f "$DOCKERFILE" -t "$BUILD_IMAGE_NAME" "$BUILD_CONTEXT"; then
+# Pass the Zenodo concept DOI (and download flag) from .env to the build, so the
+# image downloads the matching data record. The Dockerfile has sensible
+# defaults (the published record, DOWNLOAD_DATA=true) if these are unset.
+BUILD_ARGS=()
+[[ -n "${ZENODO_CONCEPT_DOI:-}" ]] && BUILD_ARGS+=(--build-arg "ZENODO_CONCEPT_DOI=${ZENODO_CONCEPT_DOI}")
+[[ -n "${DOWNLOAD_DATA:-}" ]] && BUILD_ARGS+=(--build-arg "DOWNLOAD_DATA=${DOWNLOAD_DATA}")
+
+if docker build --no-cache ${BUILD_ARGS[@]+"${BUILD_ARGS[@]}"} -f "$DOCKERFILE" -t "$BUILD_IMAGE_NAME" "$BUILD_CONTEXT"; then
   log "Docker image built successfully."
 else
   log "Docker image build failed."
