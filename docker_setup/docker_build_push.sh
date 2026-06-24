@@ -137,14 +137,15 @@ fi
 
 # Build the Docker image
 log "Building Docker image..."
-# For Dockerfile.IMPACTncdENGL, create a clean build context from git-tracked
+# For the data and model images, create a clean build context from git-tracked
 # files only (via `git archive`). The model DATA is NOT bundled — it is
-# downloaded from Zenodo during the build (see Dockerfile.IMPACTncdENGL). Using
-# only git-tracked files keeps sensitive files (.env, tokens) and other
-# untracked content out of the image and keeps the build context small.
-# For other Dockerfiles, use the current directory as build context.
+# downloaded from Zenodo in the data image. Using only git-tracked files keeps
+# sensitive files (.env, tokens) and other untracked content out of the image
+# and keeps the build context small. The prerequisite image uses the current
+# directory (docker_setup) as its build context.
 BUILD_CONTEXT_DIR=""
-if [[ "$(basename "$DOCKERFILE")" == "Dockerfile.IMPACTncdENGL" ]]; then
+DOCKERFILE_BASE="$(basename "$DOCKERFILE")"
+if [[ "$DOCKERFILE_BASE" == "Dockerfile.IMPACTncdENGL" || "$DOCKERFILE_BASE" == "Dockerfile.data.IMPACTncdENGL" ]]; then
   BUILD_CONTEXT_DIR=$(mktemp -d)
   trap 'rm -rf "$BUILD_CONTEXT_DIR"' EXIT
 
