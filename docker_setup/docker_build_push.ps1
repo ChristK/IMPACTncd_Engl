@@ -117,19 +117,41 @@ if (-not $Dockerfile) {
 
 # Build
 Log "Building Docker image..."
-# Use parent directory as build context for Dockerfile.IMPACTncdENGL to include entire project
-# Use current directory for other dockerfiles
 $DockerfileName = (Split-Path $Dockerfile -Leaf)
+$BuildContextDir = $null
+$BuildArgs = @()
 if ($DockerfileName -eq "Dockerfile.IMPACTncdENGL") {
-    $BuildContext = ".."
-    Log "Using parent directory (..) as build context for Dockerfile.IMPACTncdENGL"
+    # Clean build context from git-tracked files only. The model DATA is NOT
+    # bundled — it is downloaded from Zenodo during the build (see
+    # Dockerfile.IMPACTncdENGL). Using only git-tracked files keeps secrets
+    # (.env, tokens) and untracked content out of the image and keeps the
+    # build context small.
+    $BuildContextDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+    New-Item -ItemType Directory -Path $BuildContextDir | Out-Null
+    Log "Creating build context from git-tracked files..."
+    git -C ".." archive HEAD | tar -x -C $BuildContextDir
+    $BuildContext = $BuildContextDir
+    Log "Build context ready at $BuildContextDir"
+
+    # Pass the Zenodo concept DOI / download flag from the environment (.env) to
+    # the build, so the image downloads the matching data record. The Dockerfile
+    # defaults to the published record (DOWNLOAD_DATA=true) if these are unset.
+    if ($env:ZENODO_CONCEPT_DOI) { $BuildArgs += @("--build-arg", "ZENODO_CONCEPT_DOI=$($env:ZENODO_CONCEPT_DOI)") }
+    if ($env:DOWNLOAD_DATA) { $BuildArgs += @("--build-arg", "DOWNLOAD_DATA=$($env:DOWNLOAD_DATA)") }
 } else {
     $BuildContext = "."
     Log "Using current directory (.) as build context for $DockerfileName"
 }
 
-docker build --no-cache -f $Dockerfile -t $BuildImageName $BuildContext
-if ($LASTEXITCODE -eq 0) {
+docker build --no-cache @BuildArgs -f $Dockerfile -t $BuildImageName $BuildContext
+$BuildExitCode = $LASTEXITCODE
+
+# Clean up the temporary build context
+if ($BuildContextDir -and (Test-Path $BuildContextDir)) {
+    Remove-Item -Recurse -Force $BuildContextDir
+}
+
+if ($BuildExitCode -eq 0) {
     Log "Docker image built successfully."
 } else {
     Log "Docker image build failed."
