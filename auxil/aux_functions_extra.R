@@ -1,40 +1,10 @@
 `:=` = function(...)
   NULL # due to NSE notes in R CMD check
 
-# loosely based on nsRFA::ADbootstrap.test
-#' Weighted Anderson-Darling Test
-#'
-#' @description This function performs a weighted Anderson-Darling test to assess whether two samples
-#' come from the same distribution. The test is based on the weighted Anderson-Darling statistic.
-#'
-#' @param x A numeric vector representing the values of the first sample.
-#' @param cod A vector indicating the group membership for each observation in the sample.
-#' @param wt A numeric vector of weights corresponding to each observation in the sample.
-#' @param Nsim Number of simulations for estimating the p-value (default is 500).
-#'
-#' @return A numeric vector containing the weighted Anderson-Darling statistic and the p-value.
-
-#' @export
-wtd_ADtest <- function(x, cod, wt, Nsim = 500) {
-  dt1 <- data.table(x1 = x, cod1 = cod, wt1 = wt)
-  dt2 <- split(dt1, by = "cod1", keep.by = FALSE)
-  invisible(lapply(dt2, setkeyv, "x1"))
-  A2kN <- wtd_ADstat(dt2[[1]]$x1, dt2[[1]]$wt1,
-                     dt2[[2]]$x1, dt2[[2]]$wt1)
-
-  A2kNs <- vector("numeric", Nsim)
-  for (i in 1:Nsim) {
-    dt2 <- split(dt1[dqsample(.N, sum(wt1), TRUE)], by = "cod1", keep.by = FALSE)
-    invisible(lapply(dt2, setkeyv, "x1"))
-    A2kNs[i] <-  wtd_ADstat(dt2[[1]]$x1, dt2[[1]]$wt1,
-                            dt2[[2]]$x1, dt2[[2]]$wt1)
-  }
-  ecdfA2kNs <- ecdf(A2kNs)
-  probabilita <- ecdfA2kNs(A2kN) # of 2 samples from same population. If < 0.05 then different
-  output <- c(A2kN, probabilita)
-  names(output) <- c("wtdADstat", "P")
-  output
-}
+# NOTE: wtd_ADtest() (a weighted Anderson-Darling two-sample test) was removed
+# here. It depended on the C++ helper wtd_ADstat(), which no longer exists in
+# this model or in CKutils, so the function could only ever error at runtime.
+# It had no callers anywhere in the repository.
 
 
 # get_causal_paths ----

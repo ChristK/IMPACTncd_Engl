@@ -183,7 +183,6 @@ Design <-
         sim_prm$sim_horizon_max <- as.integer(sim_prm$sim_horizon_max -
           sim_prm$init_year_long)
         sim_prm$init_year <- as.integer(sim_prm$init_year_long - 2000L)
-        # place holders to be updated from self$update_fromGUI(parameters)
 
         # Default values
         sim_prm$national_qimd <- TRUE
