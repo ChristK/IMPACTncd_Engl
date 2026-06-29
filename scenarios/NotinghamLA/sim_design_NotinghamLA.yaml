@@ -914,3 +914,12 @@ exposure_definitions:
     join_fn: absorb_dt
     invert: yes
     lower_tail: no
+
+# --- runtime params added to match current schema (from scenarios/England) ---
+keep_simulants_rn: no # keep the random numbers used in synthpop for scenarios
+discounting:
+  qaly_discount_rate: 3.5 # annual discount rate for QALYs (%)
+  cost_discount_rate: 3.5 # annual discount rate for costs (%)
+  discount_from_year: 2019 # the first year from which discounting starts (reference year)
+
+
