@@ -697,3 +697,220 @@ exposures:
 - bmi
 - sbp
 - tchol
+
+# --- params added to match the current sim_design schema (from scenarios/England) ---
+
+exposures_for_output:
+
+exposure_definitions:
+  - name: education
+    file_name: education
+    var_name: education
+    rank_var: rank_education
+    distribution: ordinal
+    join_fn: lookup_dt
+    thresholds: [ed1, ed2, ed3, ed4, ed5, ed6]
+    factorise:
+      levels: [1, 2, 3, 4, 5, 6, 7]
+      labels: ["NVQ4/NVQ5/Degree or equiv",
+                "Higher ed below degree",
+                "NVQ3/GCE A Level equiv",
+                "NVQ2/GCE O Level equiv",
+                "NVQ1/CSE other grade equiv",
+                "Foreign/other",
+                "No qualification"]
+
+  - name: income
+    file_name: income
+    var_name: income
+    rank_var: rank_income
+    distribution: ordinal
+    join_fn: lookup_dt
+    thresholds: [inc1, inc2, inc3, inc4]
+    factorise:
+      levels: [1, 2, 3, 4, 5]
+      labels: ['1 Lowest', '2', '3', '4', '5 Highest']
+  
+  - name: active_days
+    file_name: active_days
+    var_name: active_days
+    rank_var: rank_pa
+    distribution: ordinal
+    join_fn: lookup_dt
+    cast_to_int: yes
+    offset: -1  # Shift from 1:8 to 0:7
+
+  - name: ets
+    file_name: ets
+    var_name: ets
+    rank_var: rank_ets
+    distribution: binary
+    join_fn: lookup_dt
+    invert: yes
+  
+  - name: smok_status
+    file_name: smok_status
+    var_name: smok_status
+    rank_var: rankstat_smok
+    distribution: continuous
+    qfun: fqMN4
+    join_fn: lookup_dt
+    factorise:
+      levels: [1, 2, 3, 4]
+      labels: ['1', '2', '3', '4'] # 1=Never, 2=Ex(Occasional), 3=Ex, 4=Current
+
+  - name: smok_quit_yrs
+    file_name: smok_quit_yrs
+    var_name: smok_quit_yrs
+    rank_var: rankstat_smok_quit_yrs
+    distribution: continuous
+    qfun: fqDPO
+    join_fn: lookup_dt
+    cast_to_int: yes
+    min_value: 0
+    max_value: 90    
+
+  - name: smok_dur_ex
+    file_name: smok_dur_ex
+    var_name: smok_dur
+    rank_var: rankstat_smok_dur_ex
+    distribution: continuous
+    qfun: fqDPO
+    join_fn: absorb_dt
+    cast_to_int: yes
+    min_value: 0
+    max_value: 90
+
+  - name: smok_dur_curr
+    file_name: smok_dur_curr
+    var_name: smok_dur
+    rank_var: rankstat_smok_dur_curr
+    distribution: continuous
+    qfun: fqNBI
+    join_fn: lookup_dt
+    cast_to_int: yes
+    min_value: 0
+    max_value: 90
+
+  - name: smok_incid
+    file_name: smok_incid
+    var_name: prb_smok_incid
+    distribution: custom
+    join_fn: lookup_dt
+
+  - name: smok_cess
+    file_name: smok_cess
+    var_name: prb_smok_cess
+    distribution: custom
+    join_fn: lookup_dt
+
+  - name: smok_cig_curr
+    file_name: smok_cig_curr
+    var_name: smok_cig
+    rank_var: rankstat_smok_cig_curr
+    distribution: continuous
+    qfun: fqZINBI
+    join_fn: lookup_dt
+    min_value: 0
+    max_value: 80
+
+  - name: smok_cig_ex
+    file_name: smok_cig_ex
+    var_name: smok_cig
+    rank_var: rankstat_smok_cig_ex
+    distribution: continuous
+    qfun: qZABNB
+    join_fn: lookup_dt
+    min_value: 0
+    max_value: 80
+
+  - name: fruit # consumption
+    file_name: frtpor
+    var_name: fruit
+    rank_var: rank_fruit
+    distribution: continuous
+    qfun: fqZISICHEL
+    join_fn: lookup_dt
+    transform_fn: 80
+    min_value: 0
+    max_value: 10
+  
+  - name: veg # consumption
+    file_name: vegpor
+    var_name: veg
+    rank_var: rank_veg
+    distribution: continuous
+    qfun: fqDEL
+    join_fn: lookup_dt
+    transform_fn: 80
+    min_value: 0
+    max_value: 10
+  
+  - name: alcohol
+    file_name: alcohol
+    var_name: alcohol
+    rank_var: rank_alcohol
+    distribution: continuous
+    qfun: fqZINBI
+    join_fn: lookup_dt
+    cast_to_int: yes
+    min_value: 0
+    max_value: 250
+
+  - name: bmi
+    file_name: bmi
+    var_name: bmi
+    rank_var: rank_bmi
+    distribution: continuous
+    qfun: fqBCPEo
+    join_fn: lookup_dt
+    min_value: 14
+    max_value: 70
+  
+  - name: sbp
+    file_name: sbp
+    var_name: sbp
+    rank_var: rank_sbp
+    distribution: continuous
+    qfun: fqBCPEo
+    join_fn: lookup_dt
+    min_value: 75
+    max_value: 250
+  
+  - name: tchol
+    file_name: tchol
+    var_name: tchol
+    rank_var: rank_tchol
+    distribution: continuous
+    qfun: fqBCT
+    join_fn: lookup_dt
+    min_value: 0.5
+    max_value: 55
+
+  - name: hdl_to_tchol # (to tchol ratio)
+    file_name: hdl_to_tchol
+    var_name: tchol_hdl_ratio
+    rank_var: rank_hdl
+    distribution: continuous
+    qfun: qGB1
+    join_fn: lookup_dt
+    invert_ratio: yes
+    min_value: 0.02
+    max_value: 0.85
+
+  - name: bp_med
+    file_name: bp_med
+    var_name: bpmed
+    rank_var: rank_bpmed
+    distribution: binary
+    join_fn: absorb_dt
+    invert: yes
+
+  - name: statin_px
+    file_name: statin_px
+    var_name: statin_px
+    rank_var: rank_statin_px
+    distribution: binary
+    join_fn: absorb_dt
+    invert: yes
+    lower_tail: no
