@@ -6,7 +6,7 @@
 # export_summaries()/export_tables() (parquet/DuckDB) supersede it.
 source("./global.R")
 
-IMPACTncd <- Simulation$new("./inputs/sim_design_NotinghamLA.yaml")
+IMPACTncd <- Simulation$new("scenarios/NotinghamLA/sim_design_NotinghamLA.yaml")
 
 IMPACTncd$
   del_logs()$

@@ -15,7 +15,7 @@
 #     is dropped; use export_tables()/export_summaries() output instead.
 source("./global.R")
 
-IMPACTncd <- Simulation$new("./inputs/sim_design_AFFIRMO.yaml")
+IMPACTncd <- Simulation$new("scenarios/AFFIRMO/sim_design_AFFIRMO.yaml")
 
 n_runs <- 1:20
 
