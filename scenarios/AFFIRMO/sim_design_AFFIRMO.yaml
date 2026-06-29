@@ -900,3 +900,25 @@ exposure_definitions:
     join_fn: absorb_dt
     invert: yes
     lower_tail: no
+
+# --- runtime params added to match current schema (from scenarios/England) ---
+clusternumber_export: 10 # NEW: number of clusters for export_summaries
+keep_simulants_rn: no # keep the random numbers used in synthpop for scenarios
+calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population projections if no. Calibrate to population projections by Local Authority District if yes. For smaller than national localities, it is forced to yes and the user setting is ignored
+discounting:
+  qaly_discount_rate: 3.5 # annual discount rate for QALYs (%)
+  cost_discount_rate: 3.5 # annual discount rate for costs (%)
+  discount_from_year: 2019 # the first year from which discounting starts (reference year)
+
+
+uncertainty: # Note that uncertainties are independent
+  incidence:
+    upper: 0.05 # i.e. incd * ( 1 + 0.05)
+    lower: -0.05 # i.e. incd * ( 1 - 0.05)
+  prevalence:
+    upper: 0.05 # i.e. init prvl * ( 1 + 0.05)
+    lower: -0.05 # i.e. init prvl * ( 1 - 0.05)
+  mortality:
+    upper: 0.05 # i.e. mrtl * ( 1 + 0.05)
+    lower: -0.05 # i.e. mrtl * ( 1 - 0.05)
+
