@@ -37,6 +37,7 @@
 #include <minimal_int_set.h>
 #include <dqrng.h>
 #include <Rcpp.h>
+#include <distr_ZANBI.h>  // CKutils header-only scalar ZANBI (via LinkingTo: CKutils) for stochastic disease duration
 #include <map>
 #include <unordered_map>
 #include <unordered_set>
@@ -161,6 +162,34 @@ struct infl
 };
 
 /**
+ * @struct distr_prm_vr
+ * @brief GAMLSS linear-predictor coefficients for one distribution parameter (mu, sigma, or nu).
+ *
+ * Used by the stochastic forward-duration model (asthma-like diseases). The
+ * parameter is reconstructed per person-year as a function of log(age),
+ * log(year), sex and dIMD.
+ */
+struct distr_prm_vr
+{
+  double intercept;
+  double log_age_coef;
+  double log_year_coef;
+  NumericVector sex_coef;
+  NumericVector dimd_coef;
+};
+
+/**
+ * @struct duration_prm
+ * @brief GAMLSS parameters (mu/sigma/nu) for a stochastic disease-duration distribution (ZANBI).
+ */
+struct duration_prm
+{
+  distr_prm_vr mu;
+  distr_prm_vr sigma;
+  distr_prm_vr nu;
+};
+
+/**
  * @struct disease_epi
  * @brief Core epidemiological parameters for a single disease aspect
  * 
@@ -186,7 +215,8 @@ struct disease_epi
   double mm_wt;                  ///< Multimorbidity weight for comorbidity scoring
   bool can_recur;               ///< Whether disease can recur after resolution
   bool flag;                    ///< State flag: true if incidence occurred or cure achieved
-  int cure;                     ///< Years until automatic cure (0 = no cure)
+  int cure;                     ///< mrtl: fixed years to cure (0 = none / stochastic). For an asthma-like dgns it holds the stochastically-drawn spell duration.
+  duration_prm dur_forward;     ///< GAMLSS params for the stochastic forward duration (asthma-like dgns; used when dgns.flag is true)
   int death_code;               ///< Numeric code for cause-specific mortality classification
 };
 
@@ -227,6 +257,8 @@ struct simul_meta
   IntegerVector pid;          ///< Participant ID vector (reference to DataFrame column)
   IntegerVector year;         ///< Year vector (reference to DataFrame column)
   IntegerVector age;          ///< Age vector (reference to DataFrame column)  
+  IntegerVector sex;          ///< Sex vector (1-2; GAMLSS predictor for stochastic disease duration)
+  IntegerVector dimd;         ///< Deprivation decile vector (dIMD 1-10; GAMLSS predictor for stochastic disease duration)
   IntegerVector dead;         ///< Mortality status vector (0=alive, >0=cause of death, NA=long dead)
   IntegerVector mm_count;     ///< Multimorbidity count vector (number of diagnosed conditions)
   NumericVector mm_score;     ///< Multimorbidity score vector (weighted sum of conditions)
@@ -354,6 +386,8 @@ simul_meta get_simul_meta(const List l, DataFrame dt)
   out.pid = dt[as<string>(l["pids"])];                // Participant ID column
   out.year = dt[as<string>(l["years"])];              // Year column
   out.age = dt[as<string>(l["ages"])];                // Age column
+  out.sex = dt[as<string>(l["sexs"])];                // Sex column (stochastic disease duration)
+  out.dimd = dt[as<string>(l["dimds"])];              // Deprivation column (stochastic disease duration)
   out.dead = dt[as<string>(l["all_cause_mrtl"])];     // Mortality status column
   out.mm_count = dt[as<string>(l["cms_count"])];      // Multimorbidity count column
   out.mm_score = dt[as<string>(l["cms_score"])];      // Multimorbidity score column
@@ -626,8 +660,60 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
     // Link to population data columns
     if (dgns.containsElementNamed("diagnosed")) 
       out.dgns.prvl = dtSynthPop[as<string>(dgns["diagnosed"])];
-    if (dgns.containsElementNamed("probability")) 
+    if (dgns.containsElementNamed("probability"))
       out.dgns.prbl1 = dtSynthPop[as<string>(dgns["probability"])];
+
+    // Stochastic forward-duration model (asthma-like diseases). When present, the
+    // diagnosis carries a ZANBI duration distribution (mu/sigma/nu GAMLSS params)
+    // used to draw each incident spell's length; dgns.flag marks such diseases.
+    if (dgns.containsElementNamed("duration_distr_forwards"))
+    {
+      List ib = dgns["duration_distr_forwards"];
+      List pr = ib["mu"];
+      out.dgns.dur_forward.mu.intercept = as<double>(pr["intercept"]);
+      out.dgns.dur_forward.mu.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.mu.log_year_coef = as<double>(pr["log(year)"]);
+      out.dgns.dur_forward.mu.sex_coef = as<NumericVector>(pr["sex"]);
+      out.dgns.dur_forward.mu.dimd_coef = as<NumericVector>(pr["dimd"]);
+
+      pr = ib["sigma"];
+      out.dgns.dur_forward.sigma.intercept = as<double>(pr["intercept"]);
+      out.dgns.dur_forward.sigma.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.sigma.log_year_coef = as<double>(pr["log(year)"]);
+      out.dgns.dur_forward.sigma.sex_coef = as<NumericVector>(pr["sex"]);
+      out.dgns.dur_forward.sigma.dimd_coef = as<NumericVector>(pr["dimd"]);
+
+      pr = ib["nu"];
+      out.dgns.dur_forward.nu.intercept = as<double>(pr["intercept"]);
+      out.dgns.dur_forward.nu.log_age_coef = as<double>(pr["log(age)"]);
+      out.dgns.dur_forward.nu.log_year_coef = as<double>(pr["log(year)"]);
+      out.dgns.dur_forward.nu.sex_coef = as<NumericVector>(pr["sex"]);
+      out.dgns.dur_forward.nu.dimd_coef = as<NumericVector>(pr["dimd"]);
+
+      out.dgns.flag = true; // denotes an asthma-like (stochastic-duration) disease
+    }
+    else
+    {
+      out.dgns.dur_forward.mu.intercept = 0.0;
+      out.dgns.dur_forward.mu.log_age_coef = 0.0;
+      out.dgns.dur_forward.mu.log_year_coef = 0.0;
+      out.dgns.dur_forward.mu.sex_coef = {0.0, 0.0};
+      out.dgns.dur_forward.mu.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+      out.dgns.dur_forward.sigma.intercept = 0.0;
+      out.dgns.dur_forward.sigma.log_age_coef = 0.0;
+      out.dgns.dur_forward.sigma.log_year_coef = 0.0;
+      out.dgns.dur_forward.sigma.sex_coef = {0.0, 0.0};
+      out.dgns.dur_forward.sigma.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+      out.dgns.dur_forward.nu.intercept = 0.0;
+      out.dgns.dur_forward.nu.log_age_coef = 0.0;
+      out.dgns.dur_forward.nu.log_year_coef = 0.0;
+      out.dgns.dur_forward.nu.sex_coef = {0.0, 0.0};
+      out.dgns.dur_forward.nu.dimd_coef = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+      out.dgns.flag = false;
+    }
 
     // Configure diagnosis dependencies (Type0 only)
     if (out.dgns.type == "Type0")
@@ -643,7 +729,7 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
       }
     }
 
-    out.dgns.flag = false;  // Initialize state flag
+    out.dgns.cure = 0;      // holds the stochastically-drawn spell duration when dgns.flag is true
   }
 
   // =========================================================================
@@ -704,6 +790,111 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
 // DISEASE INCIDENCE MODELING FUNCTIONS
 // ===============================================================================
 
+// ===============================================================================
+// STOCHASTIC FORWARD-DURATION (asthma-like diseases)
+// ===============================================================================
+//
+// Some diagnoses (asthma, constipation, pain, anxiety/depression, alcohol
+// problems) are configured with mortality cure: 0 plus a `duration_distr_forwards`
+// ZANBI distribution. For these, each incident spell lasts a stochastically-drawn
+// number of years rather than a fixed cure horizon. The scalar ZANBI quantile/CDF
+// are provided header-only by CKutils (LinkingTo: CKutils, <distr_ZANBI.h>).
+
+// Inverse logit (logistic): maps a GAMLSS linear predictor to (0,1) for nu.
+inline double antilogit(const double& x) { return 1.0 / (1.0 + std::exp(-x)); }
+
+// Draw the duration (in years, >= 1) of a newly incident asthma-like spell from
+// its ZANBI forward-duration distribution, evaluated at this person-year.
+inline int get_dur_forward(const int i, const double& rn,
+                           const disease_meta& ds, const simul_meta& sm)
+{
+  const double mu = std::exp(ds.dgns.dur_forward.mu.intercept +
+                  ds.dgns.dur_forward.mu.log_age_coef * std::log(sm.age[i]) +
+                  ds.dgns.dur_forward.mu.log_year_coef * std::log(sm.year[i]) +
+                  ds.dgns.dur_forward.mu.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.mu.dimd_coef[sm.dimd[i] - 1]);
+  const double sigma = std::exp(ds.dgns.dur_forward.sigma.intercept +
+                  ds.dgns.dur_forward.sigma.log_age_coef * std::log(sm.age[i]) +
+                  ds.dgns.dur_forward.sigma.log_year_coef * std::log(sm.year[i]) +
+                  ds.dgns.dur_forward.sigma.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.sigma.dimd_coef[sm.dimd[i] - 1]);
+  const double nu = antilogit(ds.dgns.dur_forward.nu.intercept +
+                  ds.dgns.dur_forward.nu.log_age_coef * std::log(sm.age[i]) +
+                  ds.dgns.dur_forward.nu.log_year_coef * std::log(sm.year[i]) +
+                  ds.dgns.dur_forward.nu.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.nu.dimd_coef[sm.dimd[i] - 1]);
+
+  return 1 + fqZANBI_scalar(rn, mu, sigma, nu, true, false);
+}
+
+// As get_dur_forward, but for a case already prevalent (with current duration
+// prvl_dur) when it enters the simulation: draws its REMAINING duration.
+inline int get_dur_forward_prvl(const int& i, const double& rn, const int& prvl_dur,
+                                const disease_meta& ds, const simul_meta& sm)
+{
+  const double mu = std::exp(ds.dgns.dur_forward.mu.intercept +
+                  ds.dgns.dur_forward.mu.log_age_coef * std::log(sm.age[i]) +
+                  ds.dgns.dur_forward.mu.log_year_coef * std::log(sm.year[i]) +
+                  ds.dgns.dur_forward.mu.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.mu.dimd_coef[sm.dimd[i] - 1]);
+  const double sigma = std::exp(ds.dgns.dur_forward.sigma.intercept +
+                  ds.dgns.dur_forward.sigma.log_age_coef * std::log(sm.age[i]) +
+                  ds.dgns.dur_forward.sigma.log_year_coef * std::log(sm.year[i]) +
+                  ds.dgns.dur_forward.sigma.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.sigma.dimd_coef[sm.dimd[i] - 1]);
+  const double nu = antilogit(ds.dgns.dur_forward.nu.intercept +
+                  ds.dgns.dur_forward.nu.log_age_coef * std::log(sm.age[i]) +
+                  ds.dgns.dur_forward.nu.log_year_coef * std::log(sm.year[i]) +
+                  ds.dgns.dur_forward.nu.sex_coef[sm.sex[i] - 1] +
+                  ds.dgns.dur_forward.nu.dimd_coef[sm.dimd[i] - 1]);
+
+  const double thresh = fpZANBI_scalar(prvl_dur, mu, sigma, nu, true, false);
+  if (rn < thresh)
+    return prvl_dur + fqZANBI_scalar(1.0 - rn, mu, sigma, nu, true, false);
+  else
+    return prvl_dur + fqZANBI_scalar(rn, mu, sigma, nu, true, false);
+}
+
+// On new onset of an asthma-like case, draw and store its spell duration in dgns.cure.
+inline void set_incident_duration(disease_meta& dm, const int i, const simul_meta& meta)
+{
+  if (dm.dgns.flag) dm.dgns.cure = get_dur_forward(i, runif_impl(), dm, meta);
+}
+
+// For an asthma-like case already prevalent when it enters the simulation (first
+// simulated year or age-entry boundary), draw its remaining duration into dgns.cure.
+inline void set_prevalent_duration(disease_meta& dm, const int i, const simul_meta& meta)
+{
+  if (dm.dgns.flag &&
+      (meta.year[i] == meta.init_year || meta.age[i] == meta.age_low) &&
+      VECT_ELEM(dm.incd.prvl, i) > 1)
+    dm.dgns.cure = get_dur_forward_prvl(i, runif_impl(), VECT_ELEM(dm.incd.prvl, i), dm, meta);
+}
+
+// Advance a prevalent case's duration by one year, honouring the cure mechanism:
+//   - deterministic cure (mrtl Type2/Type4, mrtl.cure > 0; e.g. cancers): prvl < mrtl.cure
+//   - stochastic   cure (mrtl Type2/Type4, mrtl.cure == 0 && dgns.flag; e.g. asthma): prvl < dgns.cure
+//   - otherwise: indefinite progression
+inline void advance_disease_duration(disease_meta& dm, const int i)
+{
+  const bool curable = (dm.mrtl.type == "Type2" || dm.mrtl.type == "Type4");
+  if (curable && dm.mrtl.cure > 0)
+  {
+    if (VECT_ELEM(dm.incd.prvl, i - 1) > 0 && VECT_ELEM(dm.incd.prvl, i - 1) < dm.mrtl.cure)
+      VECT_ELEM(dm.incd.prvl, i) = VECT_ELEM(dm.incd.prvl, i - 1) + 1;
+  }
+  else if (curable && dm.mrtl.cure == 0 && dm.dgns.flag)
+  {
+    if (VECT_ELEM(dm.incd.prvl, i - 1) > 0 && VECT_ELEM(dm.incd.prvl, i - 1) < dm.dgns.cure)
+      VECT_ELEM(dm.incd.prvl, i) = VECT_ELEM(dm.incd.prvl, i - 1) + 1;
+  }
+  else
+  {
+    if (VECT_ELEM(dm.incd.prvl, i - 1) > 0)
+      VECT_ELEM(dm.incd.prvl, i) = VECT_ELEM(dm.incd.prvl, i - 1) + 1;
+  }
+}
+
 /**
  * @brief Evaluate Type2 disease incidence with cure dynamics
  * 
@@ -729,7 +920,7 @@ disease_meta get_disease_meta(const List diseaseFields, DataFrame dtSynthPop)
  * @param i Person index in population
  * @param rn1 Random number [0,1] for stochastic evaluation
  */
-inline void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int j, int i, double rn1)
+inline void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int j, int i, double rn1, simul_meta& meta)
 {
     if (dsmeta[j].incd.can_recur) // Recurrence allowed - no flag checking needed
     {
@@ -737,24 +928,14 @@ inline void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int j, int i, dou
         if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) == 0 && rn1 <= VECT_ELEM(dsmeta[j].incd.prbl1, i))
         {
             VECT_ELEM(dsmeta[j].incd.prvl, i) = 1; // Begin first year of disease
+            set_incident_duration(dsmeta[j], i, meta); // asthma-like: draw stochastic spell duration
         }
 
-        // Handle disease progression for existing cases
-        if (dsmeta[j].mrtl.type == "Type2" || dsmeta[j].mrtl.type == "Type4")
-        {
-            // Progression with cure limit
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) > 0 &&
-                VECT_ELEM(dsmeta[j].incd.prvl, i - 1) < dsmeta[j].mrtl.cure)
-                VECT_ELEM(dsmeta[j].incd.prvl, i) = VECT_ELEM(dsmeta[j].incd.prvl, i - 1) + 1;
-        }
-        else
-        {
-            // Indefinite progression (no automatic cure)
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) > 0)
-                VECT_ELEM(dsmeta[j].incd.prvl, i) = VECT_ELEM(dsmeta[j].incd.prvl, i - 1) + 1;
-            // Note: progression stops naturally at cure duration due to mortality
-        }
+        // Asthma-like case already prevalent at simulation entry: draw remaining duration
+        set_prevalent_duration(dsmeta[j], i, meta);
 
+        // Advance existing cases (deterministic cure / stochastic cure / indefinite)
+        advance_disease_duration(dsmeta[j], i);
     }
     else // No recurrence allowed - use flag to prevent repeat incidence
     {
@@ -764,20 +945,11 @@ inline void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int j, int i, dou
         {
             VECT_ELEM(dsmeta[j].incd.prvl, i) = 1; // Begin disease
             dsmeta[j].incd.flag = true; // Prevent future incidence
+            set_incident_duration(dsmeta[j], i, meta); // asthma-like: draw stochastic spell duration
         }
 
-        // Disease progression logic (same as recurrence case)
-        if (dsmeta[j].mrtl.type == "Type2" || dsmeta[j].mrtl.type == "Type4")
-        {
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) > 0 &&
-                VECT_ELEM(dsmeta[j].incd.prvl, i - 1) < dsmeta[j].mrtl.cure)
-                VECT_ELEM(dsmeta[j].incd.prvl, i) = VECT_ELEM(dsmeta[j].incd.prvl, i - 1) + 1;
-        }
-        else
-        {
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) > 0)
-                VECT_ELEM(dsmeta[j].incd.prvl, i) = VECT_ELEM(dsmeta[j].incd.prvl, i - 1) + 1;
-        }
+        set_prevalent_duration(dsmeta[j], i, meta);
+        advance_disease_duration(dsmeta[j], i);
     }
 }
 
@@ -811,7 +983,7 @@ inline void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int j, int i, dou
  * @param mltp Reference to risk multiplier (modified and reset by function)
  * @param rn1 Random number [0,1] for stochastic evaluation
  */
-inline void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int i, int j, double& mltp, double rn1)
+inline void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int i, int j, double& mltp, double rn1, simul_meta& meta)
 {
     // Calculate composite risk multiplier from all influencing diseases
     for (size_t k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k)
@@ -830,23 +1002,14 @@ inline void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int i, int j, dou
         if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) == 0 && rn1 <= VECT_ELEM(dsmeta[j].incd.prbl1, i) * mltp)
         {
             VECT_ELEM(dsmeta[j].incd.prvl, i) = 1; // Begin disease
+            set_incident_duration(dsmeta[j], i, meta); // asthma-like: draw stochastic spell duration
         }
 
-        // Disease progression logic (identical to Type2)
-        if (dsmeta[j].mrtl.type == "Type2" || dsmeta[j].mrtl.type == "Type4")
-        {
-            // Progression with cure limit
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) > 0 &&
-                VECT_ELEM(dsmeta[j].incd.prvl, i - 1) < dsmeta[j].mrtl.cure)
-                VECT_ELEM(dsmeta[j].incd.prvl, i) = VECT_ELEM(dsmeta[j].incd.prvl, i - 1) + 1;
-        }
-        else
-        {
-            // Indefinite progression
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) > 0)
-                VECT_ELEM(dsmeta[j].incd.prvl, i) = VECT_ELEM(dsmeta[j].incd.prvl, i - 1) + 1;
-        }
+        // Asthma-like case already prevalent at simulation entry: draw remaining duration
+        set_prevalent_duration(dsmeta[j], i, meta);
 
+        // Advance existing cases (deterministic cure / stochastic cure / indefinite)
+        advance_disease_duration(dsmeta[j], i);
     }
     else // No recurrence allowed
     {
@@ -856,20 +1019,11 @@ inline void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int i, int j, dou
         {
             VECT_ELEM(dsmeta[j].incd.prvl, i) = 1; // Begin disease
             dsmeta[j].incd.flag = true; // Prevent future incidence
+            set_incident_duration(dsmeta[j], i, meta); // asthma-like: draw stochastic spell duration
         }
 
-        // Disease progression (same as recurrence case)
-        if (dsmeta[j].mrtl.type == "Type2" || dsmeta[j].mrtl.type == "Type4")
-        {
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) > 0 &&
-                VECT_ELEM(dsmeta[j].incd.prvl, i - 1) < dsmeta[j].mrtl.cure)
-                VECT_ELEM(dsmeta[j].incd.prvl, i) = VECT_ELEM(dsmeta[j].incd.prvl, i - 1) + 1;
-        }
-        else
-        {
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i - 1) > 0)
-                VECT_ELEM(dsmeta[j].incd.prvl, i) = VECT_ELEM(dsmeta[j].incd.prvl, i - 1) + 1;
-        }
+        set_prevalent_duration(dsmeta[j], i, meta);
+        advance_disease_duration(dsmeta[j], i);
     }
 
     mltp = 1.0; // Reset multiplier for next use
@@ -910,7 +1064,7 @@ inline void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int i, int j, dou
  * @param mltp Reference to risk multiplier (used and reset by Type3)
  * @throws std::runtime_error If any disease evaluation logic fails
  */
-inline void EvalDiseaseIncidence(vector<disease_meta> &dsmeta,int i, int j, double rn1, double& mltp)
+inline void EvalDiseaseIncidence(vector<disease_meta> &dsmeta,int i, int j, double rn1, double& mltp, simul_meta& meta)
 {
   try {
 	  // Type0: Prevalence copying from influencing diseases
@@ -949,11 +1103,11 @@ inline void EvalDiseaseIncidence(vector<disease_meta> &dsmeta,int i, int j, doub
 
     // Type2: Stochastic baseline transitions
     else if (dsmeta[j].incd.type == "Type2")
-        DiseaseIncidenceType2(dsmeta,j, i, rn1);
+        DiseaseIncidenceType2(dsmeta,j, i, rn1, meta);
 
     // Type3: Complex disease interaction modeling
     else if (dsmeta[j].incd.type == "Type3")
-        DiseaseIncidenceType3(dsmeta,i, j, mltp, rn1);
+        DiseaseIncidenceType3(dsmeta,i, j, mltp, rn1, meta);
 
     // Future extensions for complex modeling
     else if (dsmeta[j].incd.type == "Type4")
@@ -1122,7 +1276,7 @@ inline void EvalMortality(vector<disease_meta> &dsmeta,vector<int> &tempdead,int
         else if (dsmeta[j].mrtl.type == "Type2")
         {
             // Evaluate mortality only before cure threshold
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i) < dsmeta[j].mrtl.cure)
+            if (VECT_ELEM(dsmeta[j].incd.prvl, i) < (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure + 1 : dsmeta[j].mrtl.cure)) // asthma-like: eligible up to & incl. drawn duration (dgns.cure)
             {
                 if (dsmeta[j].mrtl1flag)  // Separate first-year mortality
                 {
@@ -1187,7 +1341,7 @@ inline void EvalMortality(vector<disease_meta> &dsmeta,vector<int> &tempdead,int
             }
 
             // Evaluate mortality only before cure threshold
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i) < dsmeta[j].mrtl.cure)
+            if (VECT_ELEM(dsmeta[j].incd.prvl, i) < (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure + 1 : dsmeta[j].mrtl.cure)) // asthma-like: eligible up to & incl. drawn duration (dgns.cure)
             {
                 if (dsmeta[j].mrtl1flag)  // Separate first-year mortality
                 {
@@ -1371,7 +1525,7 @@ void simcpp(DataFrame dt, const List l, const int mc)
         }
 
         // Core disease evaluation sequence
-        EvalDiseaseIncidence(dsmeta,i, j, rn1, mltp);
+        EvalDiseaseIncidence(dsmeta,i, j, rn1, mltp, meta);
         EvalDiagnosis(dsmeta,rn1, j, i, meta);
         EvalMortality(dsmeta,tempdead,i, j, rn1, mltp);
         
@@ -1598,7 +1752,7 @@ void simcpp_year_based(DataFrame dt, const List l, const int mc)
                 }
 
                 // Core disease evaluation sequence (identical to sequential version)
-                EvalDiseaseIncidence(dsmeta, row_idx, j, rn1, mltp);
+                EvalDiseaseIncidence(dsmeta, row_idx, j, rn1, mltp, meta);
                 EvalDiagnosis(dsmeta, rn1, j, row_idx, meta);
                 EvalMortality(dsmeta, tempdead, row_idx, j, rn1, mltp);
                 
