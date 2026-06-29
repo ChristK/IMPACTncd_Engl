@@ -163,7 +163,7 @@ Disease <-
               "ageL",
               "ageH",
               "apply_RR_to_mrtl2",
-              "model_trends_in_redidual_incd"
+              "model_trends_in_residual_incd"
             )],
             rr_file_checksums,
             rr_lags,
