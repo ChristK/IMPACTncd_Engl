@@ -985,11 +985,17 @@ inline void DiseaseIncidenceType2(vector<disease_meta> &dsmeta,int j, int i, dou
  */
 inline void DiseaseIncidenceType3(vector<disease_meta> &dsmeta,int i, int j, double& mltp, double rn1, simul_meta& meta)
 {
-    // Calculate composite risk multiplier from all influencing diseases
+    // Calculate composite risk multiplier from all influencing diseases.
+    // lag > 0: the influencing disease must have been present at the lagged year.
+    // lag == 0 (self-dependence, e.g. asthma influenced by asthma): use the
+    // persistent incidence flag (the disease has occurred before for this person)
+    // rather than this year's prevalence, which has not been set yet -- restoring
+    // the original engine's behaviour.
     for (size_t k = 0; k < dsmeta[j].incd.influenced_by.disease_prvl.size(); ++k)
     {
-        // Check if influencing disease was present at the required lag time
-        if (VECT_ELEM(dsmeta[j].incd.influenced_by.disease_prvl[k], i - dsmeta[j].incd.influenced_by.lag[k]) > 0)
+        if ((dsmeta[j].incd.influenced_by.lag[k] > 0 &&
+             VECT_ELEM(dsmeta[j].incd.influenced_by.disease_prvl[k], i - dsmeta[j].incd.influenced_by.lag[k]) > 0) ||
+            (dsmeta[j].incd.influenced_by.lag[k] == 0 && dsmeta[j].incd.flag))
         {
             // Apply multiplicative risk factor (no lag on multiplier itself)
             mltp *= VECT_ELEM(dsmeta[j].incd.influenced_by.mltp[k], i);
@@ -1275,23 +1281,30 @@ inline void EvalMortality(vector<disease_meta> &dsmeta,vector<int> &tempdead,int
         // Type2: Curable mortality (automatic recovery after cure duration)
         else if (dsmeta[j].mrtl.type == "Type2")
         {
-            // Evaluate mortality only before cure threshold
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i) < (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure + 1 : dsmeta[j].mrtl.cure)) // asthma-like: eligible up to & incl. drawn duration (dgns.cure)
+            // Cure horizon: stochastically-drawn duration for asthma-like diseases
+            // (dgns.flag), else the fixed mrtl.cure. Mortality is evaluated up to AND
+            // INCLUDING the cure year (prvl <= cure_h), matching the original engine.
+            const int cure_h = dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure : dsmeta[j].mrtl.cure;
+            if (VECT_ELEM(dsmeta[j].incd.prvl, i) <= cure_h)
             {
                 if (dsmeta[j].mrtl1flag)  // Separate first-year mortality
                 {
-                    if (VECT_ELEM(dsmeta[j].incd.prvl, i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1, i)) 
+                    if (VECT_ELEM(dsmeta[j].incd.prvl, i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1, i))
                         tempdead.push_back(dsmeta[j].mrtl.death_code);
-                    if (VECT_ELEM(dsmeta[j].incd.prvl, i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2, i)) 
+                    if (VECT_ELEM(dsmeta[j].incd.prvl, i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2, i))
                         tempdead.push_back(dsmeta[j].mrtl.death_code);
                 }
                 else // Single probability
                 {
-                    if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2, i)) 
+                    if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2, i))
                         tempdead.push_back(dsmeta[j].mrtl.death_code);
                 }
             }
-            else 
+            // Deterministic-cure diseases (e.g. cancers) cure via the mortality flag
+            // once the horizon is reached. Asthma-like diseases instead resolve via
+            // their stochastic duration in the incidence step, so they must NOT set
+            // the flag here (keeps their progression-cure path unchanged).
+            if (!dsmeta[j].dgns.flag && VECT_ELEM(dsmeta[j].incd.prvl, i) >= cure_h)
             {
                 dsmeta[j].mrtl.flag = true; // Mark as cured after reaching cure duration
             }
@@ -1340,8 +1353,10 @@ inline void EvalMortality(vector<disease_meta> &dsmeta,vector<int> &tempdead,int
                 }
             }
 
-            // Evaluate mortality only before cure threshold
-            if (VECT_ELEM(dsmeta[j].incd.prvl, i) < (dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure + 1 : dsmeta[j].mrtl.cure)) // asthma-like: eligible up to & incl. drawn duration (dgns.cure)
+            // Cure horizon as in Type2 (see comment there). Mortality evaluated up
+            // to AND INCLUDING the cure year (prvl <= cure_h), matching main.
+            const int cure_h = dsmeta[j].dgns.flag ? dsmeta[j].dgns.cure : dsmeta[j].mrtl.cure;
+            if (VECT_ELEM(dsmeta[j].incd.prvl, i) <= cure_h)
             {
                 if (dsmeta[j].mrtl1flag)  // Separate first-year mortality
                 {
@@ -1349,16 +1364,18 @@ inline void EvalMortality(vector<disease_meta> &dsmeta,vector<int> &tempdead,int
                     if (VECT_ELEM(dsmeta[j].incd.prvl, i) == 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl1, i))
                         tempdead.push_back(dsmeta[j].mrtl.death_code);
                     // Subsequent years: risk-modified probability
-                    if (VECT_ELEM(dsmeta[j].incd.prvl, i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2, i) * mltp) 
+                    if (VECT_ELEM(dsmeta[j].incd.prvl, i) > 1 && rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2, i) * mltp)
                         tempdead.push_back(dsmeta[j].mrtl.death_code);
                 }
                 else // Single risk-modified probability
                 {
-                    if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2, i) * mltp) 
+                    if (rn1 < VECT_ELEM(dsmeta[j].mrtl.prbl2, i) * mltp)
                         tempdead.push_back(dsmeta[j].mrtl.death_code);
                 }
             }
-            else 
+            // Deterministic-cure (cancers) cure via the flag at the horizon;
+            // asthma-like diseases resolve via their stochastic duration, not here.
+            if (!dsmeta[j].dgns.flag && VECT_ELEM(dsmeta[j].incd.prvl, i) >= cure_h)
             {
                 dsmeta[j].mrtl.flag = true; // Mark as cured
             }
