@@ -126,7 +126,10 @@ if (file.exists(pkg_list_file)) {
   pkg_list <- pkg_list[!pkg_list %in% rownames(installed.packages())]
 
   if (length(pkg_list) > 0) {
-    # update = FALSE prevents updating already installed packages
+    # update = FALSE prevents updating already installed packages. CKutils
+    # (>= 3cffe8e) re-checks installed status per package, so it no longer
+    # reinstalls a dependency that was loaded as a side effect of an earlier
+    # one -- the previous Windows "package in use" warning muffle is gone.
     CKutils::dependencies(pkg_list, update = FALSE)
   }
   rm(pkg_list, pkg_list_file) # Clean up
@@ -138,21 +141,13 @@ if (file.exists(pkg_list_file)) {
 # Install the local R package if its source code has changed
 # Uses a snapshot file to track changes
 # Assumes the working directory is the project root
-# Use withCallingHandlers to suppress "package in use" warnings on Windows
-suppressPackageStartupMessages(withCallingHandlers(
-  {
-    installLocalPackageIfChanged(
-      pkg_path = "./Rpackage/IMPACTncd_England_model_pkg/",
-      snapshot_path = "./Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds",
-      debug = dev_mode # Set to TRUE for debug builds with -O0, FALSE for production builds with -O2
-    )
-  },
-  warning = function(w) {
-    if (grepl("is in use and will not be installed", conditionMessage(w))) {
-      invokeRestart("muffleWarning")
-    }
-  }
-))
+suppressPackageStartupMessages(
+  installLocalPackageIfChanged(
+    pkg_path = "./Rpackage/IMPACTncd_England_model_pkg/",
+    snapshot_path = "./Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds",
+    debug = dev_mode # Set to TRUE for debug builds with -O0, FALSE for production builds with -O2
+  )
+)
 
 if (dev_mode) {
   library(IMPACTncdEngland)
