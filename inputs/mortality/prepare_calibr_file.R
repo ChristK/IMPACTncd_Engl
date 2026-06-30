@@ -83,7 +83,7 @@ e[dimd == "1 most deprived" & between(age, 90, 99), mrtl_clbr := 0.96 * mrtl_clb
 
 
 setkeyv(e, c("year", "age", "dimd", "sex"))
-IMPACTncdEngl::is_valid_lookup_tbl(e, c("year", "age", "sex", "dimd"))
+IMPACTncdEngland::is_valid_lookup_tbl(e, c("year", "age", "sex", "dimd"))
 write_fst(e, "./inputs/mortality/mrtl_clb.fst")
 
 

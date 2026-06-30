@@ -1,11 +1,33 @@
-# Exclude folders named secure_data and docker_setup
+# Safety net for manual `docker build` invocations.
+# The build script (docker_build_push.sh) assembles the build context from
+# git-tracked files; the model data is downloaded from Zenodo during the build.
+# These rules are a secondary safeguard only.
+
+# Version control and IDE
+.git/
 .history/
 .Rproj.user/
 .vscode/
-auxil/
-debugging_info/
+.claude/
+
+# Sensitive and non-essential directories
 secure_data/
 docker_setup/
+# ...except the build-time Zenodo data-download helper, which the Dockerfile runs
+!docker_setup/download_zenodo_data.R
 documents/
+debugging_info/
+auxil/
 validation/
 validation_internal/
+
+# Runtime directories (not in git)
+outputs/
+synthpop/
+
+# Python virtual environment
+.venv/
+
+# R session files
+.Rhistory
+.RData

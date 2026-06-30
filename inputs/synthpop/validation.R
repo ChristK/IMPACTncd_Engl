@@ -293,7 +293,7 @@ if (all(file.exists(output_dir(filenames)))) {
 
   out <- foreach(
     mc_iter =  1:(design$sim_prm$iteration_n_final *
-        design$sim_prm$n_synthpop_aggregation),
+        design$sim_prm$num_chunks),
     # .combine = rbind,
     .inorder = FALSE,
     .options.multicore = list(preschedule = FALSE),
@@ -333,12 +333,12 @@ if (all(file.exists(output_dir(filenames)))) {
   out_incd <- fread(output_dir(filenames[[1]]))
   out_mrtl <- fread(output_dir(filenames[[2]]))
 
-  if (design$sim_prm$n_synthpop_aggregation > 1L) {
-    out_incd[, mc := as.integer(ceiling(mc / design$sim_prm$n_synthpop_aggregation))]
+  if (design$sim_prm$num_chunks > 1L) {
+    out_incd[, mc := as.integer(ceiling(mc / design$sim_prm$num_chunks))]
     out_incd <-
       out_incd[, lapply(.SD, sum), keyby = .(year, sex, agegrp20, qimd, mc)]
     fwrite(out_incd, output_dir(filenames[[1]]))
-    out_mrtl[, mc := as.integer(ceiling(mc / design$sim_prm$n_synthpop_aggregation))]
+    out_mrtl[, mc := as.integer(ceiling(mc / design$sim_prm$num_chunks))]
     out_mrtl <-
       out_mrtl[, lapply(.SD, sum), keyby = .(year, sex, agegrp20, qimd, mc)]
     fwrite(out_mrtl, output_dir(filenames[[2]]))

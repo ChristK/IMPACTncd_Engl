@@ -1,0 +1,81 @@
+# Layer 3 of 3: the COMPLETE model image.
+#   = prerequisite (R environment)  -> Dockerfile.prerequisite.IMPACTncdENGL
+#   + model DATA from Zenodo        -> Dockerfile.data.IMPACTncdENGL  (this FROM)
+#   + model CODE from GitHub/local  -> this Dockerfile
+# The ~13GB of data is INHERITED from the data layer, so rebuilding this image
+# after a code change does NOT re-download it.
+FROM data.impactncdengl:local
+LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>"
+
+# Build argument to control source method: "copy" (local checkout) or "git".
+ARG SOURCE_METHOD=copy
+
+# /IMPACTncd_England already exists and holds the Zenodo data (inputs/ and
+# simulation/parf, simulation/rr) from the data layer. Overlay the model CODE on
+# top, MERGING with the data (cp -a / clone-then-copy, not mv, so the existing
+# data is preserved). The code (git-tracked files) does not include the data
+# files, so this only writes code/config on top of the data.
+COPY . /tmp/build_context/
+RUN if [ "$SOURCE_METHOD" = "copy" ]; then \
+        echo "Copy method: merging local code over the data layer" && \
+        cp -a /tmp/build_context/. /IMPACTncd_England/ && \
+        echo "Code merged over data."; \
+    fi && \
+    rm -rf /tmp/build_context
+
+# Git method: clone the code into a temp dir, then merge over the data layer.
+# (This will be dynamically updated by GitHub Actions to clone the correct branch.)
+RUN if [ "$SOURCE_METHOD" = "git" ]; then \
+        echo "Git method: cloning code over the data layer" && \
+        git clone https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo && \
+        cp -a /tmp/repo/. /IMPACTncd_England/ && \
+        rm -rf /tmp/repo && \
+        echo "Code cloned over data."; \
+    fi
+
+# Add littler tools to PATH
+ENV PATH="/usr/local/lib/R/site-library/littler/bin:${PATH}"
+# Add littler examples to PATH
+ENV PATH="/usr/local/lib/R/site-library/littler/examples:${PATH}"
+# Create directories for outputs and synthpop
+RUN mkdir -p /outputs /synthpop
+# Change working directory to the package directory
+WORKDIR /IMPACTncd_England/Rpackage/IMPACTncd_England_model_pkg
+# Generate documentation using Roxygen
+RUN roxy.r
+# Build the package
+RUN build.r
+# Dynamically construct the .tar.gz filename for the local R package from its DESCRIPTION file and install it
+RUN PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}') && \
+    VERSION=$(grep "^Version:" DESCRIPTION | awk '{print $2}') && \
+    TARBALL="${PACKAGE}_${VERSION}.tar.gz" && \
+    install2.r "$TARBALL"
+
+WORKDIR /IMPACTncd_England/
+
+# Create the package snapshot so global.R's installLocalPackageIfChanged()
+# knows the package is already installed and skips reinstallation.
+# The snapshot file is in .gitignore so it's absent after git clone.
+RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")'
+
+# Make the CODE and runtime directories writable by the entrypoint's dynamically
+# created user. We deliberately do NOT `chmod -R` inputs/ or simulation/ here:
+# the data layer already made them writable, and re-chmod'ing ~13GB would
+# copy-up the whole dataset into a new layer and double the image size.
+RUN chmod -R a+rw /IMPACTncd_England/Rpackage /outputs /synthpop && \
+    chmod a+rw /IMPACTncd_England /IMPACTncd_England/*
+
+CMD ["/bin/bash"]
+
+# Build commands (build the three layers in order):
+#
+# Using docker_build_push.sh script (recommended):
+#   ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL   # 1. R environment
+#   ./docker_build_push.sh Dockerfile.data.IMPACTncdENGL           # 2. Zenodo data
+#   ./docker_build_push.sh Dockerfile.IMPACTncdENGL                # 3. + code (this)
+#   ./docker_build_push.sh Dockerfile.IMPACTncdENGL --push         # 3. + push
+#   ./docker_build_push.sh Dockerfile.IMPACTncdENGL --source-method git
+#
+# Run:
+#   docker run -it --name test impactncdengl /bin/bash
+#   docker run -it --name test chriskypri/impactncdengl /bin/bash

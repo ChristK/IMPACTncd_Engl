@@ -1,0 +1,131 @@
+name: Test simulation.R
+
+on:
+  # On push, only the package build runs (catches compilation breakage). The
+  # heavy steps — downloading ~13GB of data from Zenodo per environment and
+  # running the model — are gated to manual runs (workflow_dispatch) to avoid
+  # a multi-GB download on every commit across all four environments.
+  push:
+  workflow_dispatch:
+    inputs:
+      concept_doi:
+        description: 'Zenodo concept DOI for input data'
+        required: false
+        default: '10.5281/zenodo.20812409'
+      sandbox:
+        description: 'Use Zenodo sandbox'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  test-global:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        r-version: ['release']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r-version }}
+          use-public-rspm: true
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libglpk-dev libsecret-1-dev
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew list harfbuzz || brew install harfbuzz
+          brew list fribidi || brew install fribidi
+
+      - name: Install packages via global.R
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Rscript -e 'tryCatch(source("./global.R"), error = function(e) { print(e); quit(status = 1) })'
+
+      - name: Install Zenodo dependencies
+        run: |
+          Rscript -e 'install.packages(c("zen4R", "httr2"), repos = "https://cloud.r-project.org")'
+
+      - name: Download inputs from Zenodo
+        if: github.event_name != 'push'
+        run: |
+          Rscript -e '
+            library(IMPACTncdEngland)
+            IMPACTncd <- Simulation$new("testing/sim_design_testing.yaml")
+            # Published data is public: download anonymously (no token needed).
+            IMPACTncd$zenodo_connect(
+              token       = NULL,
+              concept_doi = if (nzchar("${{ inputs.concept_doi }}")) "${{ inputs.concept_doi }}" else "10.5281/zenodo.20812409",
+              sandbox     = if (nzchar("${{ inputs.sandbox }}")) as.logical("${{ inputs.sandbox }}") else FALSE
+            )
+            IMPACTncd$zenodo_download_all()
+          '
+
+      - name: Test testing/simulate_deep_testing.R
+        if: github.event_name != 'push'
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Rscript -e 'tryCatch(source("testing/simulate_deep_testing.R"), error = function(e) { print(e); quit(status = 1) })'
+
+  test-rhel:
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+    steps:
+      - name: Install system dependencies
+        run: |
+          dnf install -y git wget epel-release dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf install -y R libcurl-devel openssl-devel libxml2-devel fontconfig-devel harfbuzz-devel fribidi-devel freetype-devel libpng-devel libtiff-devel libjpeg-turbo-devel glpk-devel libsecret-devel gcc make gcc-c++ cmake pandoc
+
+      - name: Configure R repositories (Binary)
+        run: |
+          mkdir -p ~/.R
+          echo 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/rhel9/latest"))' >> ~/.Rprofile
+          echo 'options(HTTPUserAgent = sprintf("R/%s R (%s)", getRversion(), paste(getRversion(), R.version$platform, R.version$arch, R.version$os)))' >> ~/.Rprofile
+
+      - uses: actions/checkout@v4
+
+      - name: Install packages via global.R
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Rscript -e 'tryCatch(source("./global.R"), error = function(e) { print(e); quit(status = 1) })'
+
+      - name: Install Zenodo dependencies
+        run: |
+          Rscript -e 'install.packages(c("zen4R", "httr2"))'
+
+      - name: Download inputs from Zenodo
+        if: github.event_name != 'push'
+        run: |
+          Rscript -e '
+            library(IMPACTncdEngland)
+            IMPACTncd <- Simulation$new("testing/sim_design_testing.yaml")
+            # Published data is public: download anonymously (no token needed).
+            IMPACTncd$zenodo_connect(
+              token       = NULL,
+              concept_doi = if (nzchar("${{ inputs.concept_doi }}")) "${{ inputs.concept_doi }}" else "10.5281/zenodo.20812409",
+              sandbox     = if (nzchar("${{ inputs.sandbox }}")) as.logical("${{ inputs.sandbox }}") else FALSE
+            )
+            IMPACTncd$zenodo_download_all()
+          '
+
+      - name: Test testing/simulate_deep_testing.R
+        if: github.event_name != 'push'
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Rscript -e 'tryCatch(source("testing/simulate_deep_testing.R"), error = function(e) { print(e); quit(status = 1) })'
