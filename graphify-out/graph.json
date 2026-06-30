@@ -2460,6 +2460,45 @@
       "norm_label": "cleanup()"
     },
     {
+      "label": "build_push_data.sh",
+      "file_type": "code",
+      "source_file": "docker_setup/build_push_data.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "id": "docker_setup_build_push_data_sh",
+      "community": 61,
+      "norm_label": "build_push_data.sh"
+    },
+    {
+      "label": "build_push_data.sh script",
+      "file_type": "code",
+      "source_file": "docker_setup/build_push_data.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "id": "home_ckyprid_my_models_impactncd_engl_docker_setup_build_push_data_sh__entry",
+      "community": 61,
+      "norm_label": "build_push_data.sh script"
+    },
+    {
+      "label": "log()",
+      "file_type": "code",
+      "source_file": "docker_setup/build_push_data.sh",
+      "source_location": "L41",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "id": "docker_setup_build_push_data_log",
+      "community": 61,
+      "norm_label": "log()"
+    },
+    {
       "label": "update-apt-packages.sh",
       "file_type": "code",
       "source_file": "docker_setup/update-apt-packages.sh",
@@ -2955,10 +2994,19 @@
       "norm_label": "code:bash (./docker_setup/setup_user_docker_env.sh          # interacti)"
     },
     {
+      "label": "code:bash (./docker_setup/build_push_data.sh   # auto-tags data.impactn)",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L83",
+      "id": "impactncd_engl_claude_codeblock_7",
+      "community": 45,
+      "norm_label": "code:bash (./docker_setup/build_push_data.sh   # auto-tags data.impactn)"
+    },
+    {
       "label": "Code Conventions",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L79",
+      "source_location": "L95",
       "id": "impactncd_engl_claude_code_conventions",
       "community": 45,
       "norm_label": "code conventions"
@@ -2967,7 +3015,7 @@
       "label": "R Code Style",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L81",
+      "source_location": "L97",
       "id": "impactncd_engl_claude_r_code_style",
       "community": 45,
       "norm_label": "r code style"
@@ -2976,7 +3024,7 @@
       "label": "Column Naming",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L86",
+      "source_location": "L102",
       "id": "impactncd_engl_claude_column_naming",
       "community": 45,
       "norm_label": "column naming"
@@ -2985,7 +3033,7 @@
       "label": "Key Exposure Variables (Primary Prevention)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L93",
+      "source_location": "L109",
       "id": "impactncd_engl_claude_key_exposure_variables_primary_prevention",
       "community": 45,
       "norm_label": "key exposure variables (primary prevention)"
@@ -2994,7 +3042,7 @@
       "label": "Key Disease Variables (Secondary Prevention)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L104",
+      "source_location": "L120",
       "id": "impactncd_engl_claude_key_disease_variables_secondary_prevention",
       "community": 45,
       "norm_label": "key disease variables (secondary prevention)"
@@ -3003,7 +3051,7 @@
       "label": "Scenario Definition Pattern",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L109",
+      "source_location": "L125",
       "id": "impactncd_engl_claude_scenario_definition_pattern",
       "community": 45,
       "norm_label": "scenario definition pattern"
@@ -3012,8 +3060,8 @@
       "label": "code:r (IMPACTncd$update_primary_prevention_scn()",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L110",
-      "id": "impactncd_engl_claude_codeblock_7",
+      "source_location": "L126",
+      "id": "impactncd_engl_claude_codeblock_8",
       "community": 45,
       "norm_label": "code:r (impactncd$update_primary_prevention_scn()"
     },
@@ -3021,7 +3069,7 @@
       "label": "File Paths",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L119",
+      "source_location": "L135",
       "id": "impactncd_engl_claude_file_paths",
       "community": 45,
       "norm_label": "file paths"
@@ -3030,7 +3078,7 @@
       "label": "Key YAML Parameters (inputs/sim_design.yaml)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L124",
+      "source_location": "L140",
       "id": "impactncd_engl_claude_key_yaml_parameters_inputs_sim_design_yaml",
       "community": 45,
       "norm_label": "key yaml parameters (inputs/sim_design.yaml)"
@@ -3039,7 +3087,7 @@
       "label": "Key Dependencies",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L135",
+      "source_location": "L151",
       "id": "impactncd_engl_claude_key_dependencies",
       "community": 45,
       "norm_label": "key dependencies"
@@ -3048,7 +3096,7 @@
       "label": "Debugging",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L144",
+      "source_location": "L160",
       "id": "impactncd_engl_claude_debugging",
       "community": 45,
       "norm_label": "debugging"
@@ -3057,7 +3105,7 @@
       "label": "Common Pitfalls",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L151",
+      "source_location": "L167",
       "id": "impactncd_engl_claude_common_pitfalls",
       "community": 45,
       "norm_label": "common pitfalls"
@@ -3066,7 +3114,7 @@
       "label": "Documentation",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L158",
+      "source_location": "L174",
       "id": "impactncd_engl_claude_documentation",
       "community": 45,
       "norm_label": "documentation"
@@ -3075,7 +3123,7 @@
       "label": "graphify",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L169",
+      "source_location": "L185",
       "id": "impactncd_engl_claude_graphify",
       "community": 45,
       "norm_label": "graphify"
@@ -3381,16 +3429,52 @@
       "label": "code:bash (cd docker_setup)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L266",
+      "source_location": "L273",
       "id": "docker_setup_readme_codeblock_10",
       "community": 46,
       "norm_label": "code:bash (cd docker_setup)"
     },
     {
+      "label": "Parametrized base images (`DATA_IMAGE` / `PREREQ_IMAGE`)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L292",
+      "id": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
+      "community": 46,
+      "norm_label": "parametrized base images (`data_image` / `prereq_image`)"
+    },
+    {
+      "label": "code:bash (docker build --build-arg DATA_IMAGE=chriskypri/data.impactnc)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L301",
+      "id": "docker_setup_readme_codeblock_11",
+      "community": 46,
+      "norm_label": "code:bash (docker build --build-arg data_image=chriskypri/data.impactnc)"
+    },
+    {
+      "label": "Data image: built locally, tagged by Zenodo version \u2014 `build_push_data.sh`",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L306",
+      "id": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
+      "community": 46,
+      "norm_label": "data image: built locally, tagged by zenodo version \u2014 `build_push_data.sh`"
+    },
+    {
+      "label": "code:bash (./build_push_data.sh)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L310",
+      "id": "docker_setup_readme_codeblock_12",
+      "community": 46,
+      "norm_label": "code:bash (./build_push_data.sh)"
+    },
+    {
       "label": "Model data from Zenodo",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L282",
+      "source_location": "L321",
       "id": "docker_setup_readme_model_data_from_zenodo",
       "community": 46,
       "norm_label": "model data from zenodo"
@@ -3399,8 +3483,8 @@
       "label": "code:bash (# Build a data-less data image (e.g. to download at runtime )",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L288",
-      "id": "docker_setup_readme_codeblock_11",
+      "source_location": "L327",
+      "id": "docker_setup_readme_codeblock_13",
       "community": 46,
       "norm_label": "code:bash (# build a data-less data image (e.g. to download at runtime )"
     },
@@ -3408,8 +3492,8 @@
       "label": "code:r (IMPACTncd <- Simulation$new(\"inputs/sim_design.yaml\"))",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L298",
-      "id": "docker_setup_readme_codeblock_12",
+      "source_location": "L337",
+      "id": "docker_setup_readme_codeblock_14",
       "community": 46,
       "norm_label": "code:r (impactncd <- simulation$new(\"inputs/sim_design.yaml\"))"
     },
@@ -3417,26 +3501,26 @@
       "label": "If the model build fails with `blob ... not found` (containerd GC race)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L306",
+      "source_location": "L345",
       "id": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
       "community": 46,
       "norm_label": "if the model build fails with `blob ... not found` (containerd gc race)"
     },
     {
-      "label": "code:block13 (failed to extract layer sha256:...: blob sha256:... not foun)",
+      "label": "code:block15 (failed to extract layer sha256:...: blob sha256:... not foun)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L310",
-      "id": "docker_setup_readme_codeblock_13",
+      "source_location": "L349",
+      "id": "docker_setup_readme_codeblock_15",
       "community": 46,
-      "norm_label": "code:block13 (failed to extract layer sha256:...: blob sha256:... not foun)"
+      "norm_label": "code:block15 (failed to extract layer sha256:...: blob sha256:... not foun)"
     },
     {
       "label": "code:bash (./build_model_via_commit.sh        # data.impactncdengl:loca)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L318",
-      "id": "docker_setup_readme_codeblock_14",
+      "source_location": "L357",
+      "id": "docker_setup_readme_codeblock_16",
       "community": 46,
       "norm_label": "code:bash (./build_model_via_commit.sh        # data.impactncdengl:loca)"
     },
@@ -3444,34 +3528,34 @@
       "label": "Build script options",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L324",
+      "source_location": "L363",
       "id": "docker_setup_readme_build_script_options",
       "community": 46,
       "norm_label": "build script options"
     },
     {
-      "label": "code:block15 (docker_build_push.sh <Dockerfile> [--image-name <name>] [--i)",
+      "label": "code:block17 (docker_build_push.sh <Dockerfile> [--image-name <name>] [--i)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L326",
-      "id": "docker_setup_readme_codeblock_15",
+      "source_location": "L365",
+      "id": "docker_setup_readme_codeblock_17",
       "community": 46,
-      "norm_label": "code:block15 (docker_build_push.sh <dockerfile> [--image-name <name>] [--i)"
+      "norm_label": "code:block17 (docker_build_push.sh <dockerfile> [--image-name <name>] [--i)"
     },
     {
-      "label": "code:block16 (export DOCKERHUB_USERNAME=yourusername)",
+      "label": "code:block18 (export DOCKERHUB_USERNAME=yourusername)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L339",
-      "id": "docker_setup_readme_codeblock_16",
+      "source_location": "L378",
+      "id": "docker_setup_readme_codeblock_18",
       "community": 46,
-      "norm_label": "code:block16 (export dockerhub_username=yourusername)"
+      "norm_label": "code:block18 (export dockerhub_username=yourusername)"
     },
     {
       "label": "Disk space",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L344",
+      "source_location": "L383",
       "id": "docker_setup_readme_disk_space",
       "community": 46,
       "norm_label": "disk space"
@@ -3480,7 +3564,7 @@
       "label": "Verbose builds (see package version substitutions)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L350",
+      "source_location": "L389",
       "id": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
       "community": 46,
       "norm_label": "verbose builds (see package version substitutions)"
@@ -3489,8 +3573,8 @@
       "label": "code:bash (# Bash)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L352",
-      "id": "docker_setup_readme_codeblock_17",
+      "source_location": "L391",
+      "id": "docker_setup_readme_codeblock_19",
       "community": 46,
       "norm_label": "code:bash (# bash)"
     },
@@ -3498,8 +3582,8 @@
       "label": "code:powershell (# PowerShell)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L358",
-      "id": "docker_setup_readme_codeblock_18",
+      "source_location": "L397",
+      "id": "docker_setup_readme_codeblock_20",
       "community": 46,
       "norm_label": "code:powershell (# powershell)"
     },
@@ -3507,7 +3591,7 @@
       "label": "\ud83d\udce6 Package management",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L366",
+      "source_location": "L405",
       "id": "docker_setup_readme_package_management",
       "community": 46,
       "norm_label": "\ud83d\udce6 package management"
@@ -3516,43 +3600,43 @@
       "label": "System packages \u2014 `apt-packages.txt`",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L368",
+      "source_location": "L407",
       "id": "docker_setup_readme_system_packages_apt_packages_txt",
       "community": 46,
       "norm_label": "system packages \u2014 `apt-packages.txt`"
     },
     {
-      "label": "code:block19 (automake=1:1.16.5-1.3ubuntu1)",
+      "label": "code:block21 (automake=1:1.16.5-1.3ubuntu1)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L371",
-      "id": "docker_setup_readme_codeblock_19",
+      "source_location": "L410",
+      "id": "docker_setup_readme_codeblock_21",
       "community": 46,
-      "norm_label": "code:block19 (automake=1:1.16.5-1.3ubuntu1)"
+      "norm_label": "code:block21 (automake=1:1.16.5-1.3ubuntu1)"
     },
     {
       "label": "R packages \u2014 `r-packages.txt`",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L379",
+      "source_location": "L418",
       "id": "docker_setup_readme_r_packages_r_packages_txt",
       "community": 46,
       "norm_label": "r packages \u2014 `r-packages.txt`"
     },
     {
-      "label": "code:block20 (# CRAN snapshot date: 2026-02-18)",
+      "label": "code:block22 (# CRAN snapshot date: 2026-06-22)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L383",
-      "id": "docker_setup_readme_codeblock_20",
+      "source_location": "L422",
+      "id": "docker_setup_readme_codeblock_22",
       "community": 46,
-      "norm_label": "code:block20 (# cran snapshot date: 2026-02-18)"
+      "norm_label": "code:block22 (# cran snapshot date: 2026-06-22)"
     },
     {
       "label": "Updating pinned package versions",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L390",
+      "source_location": "L429",
       "id": "docker_setup_readme_updating_pinned_package_versions",
       "community": 46,
       "norm_label": "updating pinned package versions"
@@ -3561,8 +3645,8 @@
       "label": "code:bash (# Linux/macOS)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L394",
-      "id": "docker_setup_readme_codeblock_21",
+      "source_location": "L433",
+      "id": "docker_setup_readme_codeblock_23",
       "community": 46,
       "norm_label": "code:bash (# linux/macos)"
     },
@@ -3570,8 +3654,8 @@
       "label": "code:powershell (# Windows)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L402",
-      "id": "docker_setup_readme_codeblock_22",
+      "source_location": "L441",
+      "id": "docker_setup_readme_codeblock_24",
       "community": 46,
       "norm_label": "code:powershell (# windows)"
     },
@@ -3579,7 +3663,7 @@
       "label": "\ud83d\udd04 Development workflow",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L412",
+      "source_location": "L451",
       "id": "docker_setup_readme_development_workflow",
       "community": 46,
       "norm_label": "\ud83d\udd04 development workflow"
@@ -3588,8 +3672,8 @@
       "label": "code:bash (./docker_build_push.sh Dockerfile.IMPACTncdENGL)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L416",
-      "id": "docker_setup_readme_codeblock_23",
+      "source_location": "L455",
+      "id": "docker_setup_readme_codeblock_25",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.impactncdengl)"
     },
@@ -3597,8 +3681,8 @@
       "label": "code:bash (./setup_user_docker_env.sh -Tag local)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L420",
-      "id": "docker_setup_readme_codeblock_24",
+      "source_location": "L459",
+      "id": "docker_setup_readme_codeblock_26",
       "community": 46,
       "norm_label": "code:bash (./setup_user_docker_env.sh -tag local)"
     },
@@ -3606,8 +3690,8 @@
       "label": "code:bash (./docker_build_push.sh Dockerfile.IMPACTncdENGL --push)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L424",
-      "id": "docker_setup_readme_codeblock_25",
+      "source_location": "L463",
+      "id": "docker_setup_readme_codeblock_27",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.impactncdengl --push)"
     },
@@ -3615,7 +3699,7 @@
       "label": "Adding R or system dependencies",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L428",
+      "source_location": "L467",
       "id": "docker_setup_readme_adding_r_or_system_dependencies",
       "community": 46,
       "norm_label": "adding r or system dependencies"
@@ -3624,17 +3708,26 @@
       "label": "code:bash (./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L432",
-      "id": "docker_setup_readme_codeblock_26",
+      "source_location": "L471",
+      "id": "docker_setup_readme_codeblock_28",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.prerequisite.impactncdengl)"
+    },
+    {
+      "label": "code:bash (./docker_build_push.sh Dockerfile.data.IMPACTncdENGL   # loc)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L476",
+      "id": "docker_setup_readme_codeblock_29",
+      "community": 46,
+      "norm_label": "code:bash (./docker_build_push.sh dockerfile.data.impactncdengl   # loc)"
     },
     {
       "label": "code:bash (./docker_build_push.sh Dockerfile.IMPACTncdENGL)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L436",
-      "id": "docker_setup_readme_codeblock_27",
+      "source_location": "L481",
+      "id": "docker_setup_readme_codeblock_30",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.impactncdengl)"
     },
@@ -3642,7 +3735,7 @@
       "label": "\ud83c\udff7 Project details",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L442",
+      "source_location": "L487",
       "id": "docker_setup_readme_project_details",
       "community": 46,
       "norm_label": "\ud83c\udff7 project details"
@@ -6532,7 +6625,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 13,
       "norm_label": "simsmok (rcpp export)",
       "id": "simsmok_simsmok"
     },
@@ -6545,7 +6638,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 13,
       "norm_label": "simsmok_sc (rcpp export, scenario)",
       "id": "simsmok_simsmok_sc"
     },
@@ -6558,7 +6651,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 13,
       "norm_label": "simsmok_postcalibration (rcpp export)",
       "id": "simsmok_simsmok_postcalibration"
     },
@@ -6792,7 +6885,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "package: data.table",
       "id": "pkg_data_table"
     },
@@ -6805,7 +6898,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 75,
       "norm_label": "package: yaml",
       "id": "pkg_yaml"
     },
@@ -6818,7 +6911,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "package: fst",
       "id": "pkg_fst"
     },
@@ -6831,7 +6924,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 63,
       "norm_label": "package: arrow",
       "id": "pkg_arrow"
     },
@@ -6896,7 +6989,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 13,
       "norm_label": "package: rcpp",
       "id": "pkg_rcpp"
     },
@@ -7312,7 +7405,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 94,
       "norm_label": "*_prvl prevalence outputs",
       "id": "cprd_sim_validation_plots_concept_prvl"
     },
@@ -7351,7 +7444,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 94,
       "norm_label": "cprd_sim_validation_plots_ck.r",
       "id": "cprd_sim_validation_plots_ck"
     },
@@ -7364,7 +7457,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 94,
       "norm_label": "validation_plot()",
       "id": "cprd_sim_validation_plots_ck_validation_plot"
     },
@@ -7611,7 +7704,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 63,
       "norm_label": "deconstructed_sim.r",
       "id": "deconstructed_sim"
     },
@@ -7637,7 +7730,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 63,
       "norm_label": "hlpfn()",
       "id": "deconstructed_sim_hlpfn"
     },
@@ -7650,7 +7743,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 63,
       "norm_label": "export_xps()",
       "id": "deconstructed_sim_export_xps"
     },
@@ -7663,7 +7756,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 92,
       "norm_label": "exp_valplots.r",
       "id": "exp_valplots"
     },
@@ -7676,7 +7769,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 92,
       "norm_label": "alcohol exposure",
       "id": "exp_valplots_concept_alcohol"
     },
@@ -7689,7 +7782,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 92,
       "norm_label": "bmi exposure",
       "id": "exp_valplots_concept_bmi"
     },
@@ -7702,7 +7795,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 92,
       "norm_label": "fruit exposure",
       "id": "exp_valplots_concept_fruit"
     },
@@ -7715,7 +7808,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 92,
       "norm_label": "veg exposure",
       "id": "exp_valplots_concept_veg"
     },
@@ -7728,7 +7821,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 92,
       "norm_label": "tchol exposure",
       "id": "exp_valplots_concept_tchol"
     },
@@ -7754,7 +7847,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "impact_of_disease_on_exposures.r",
       "id": "impact_of_disease_on_exposures"
     },
@@ -7767,7 +7860,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "cvdis (cardiovascular disease)",
       "id": "impact_of_disease_on_exposures_concept_cvdis"
     },
@@ -7780,7 +7873,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "diabete2r (diabetes)",
       "id": "impact_of_disease_on_exposures_concept_diabetes"
     },
@@ -7793,7 +7886,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "omsysval (sbp)",
       "id": "impact_of_disease_on_exposures_concept_sbp"
     },
@@ -7806,7 +7899,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "cholval1 (total cholesterol)",
       "id": "impact_of_disease_on_exposures_concept_chol"
     },
@@ -7819,7 +7912,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "bmival (bmi)",
       "id": "impact_of_disease_on_exposures_concept_bmi"
     },
@@ -7832,7 +7925,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "pop_proj_by_dimd.r",
       "id": "pop_proj_by_dimd"
     },
@@ -7845,7 +7938,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "plot_all_ages()",
       "id": "pop_proj_by_dimd_plot_all_ages"
     },
@@ -7858,7 +7951,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 63,
       "norm_label": "structural_plots.r",
       "id": "structural_plots"
     },
@@ -7871,7 +7964,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 63,
       "norm_label": "mod_plot()",
       "id": "structural_plots_mod_plot"
     },
@@ -7884,7 +7977,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 63,
       "norm_label": "scenario_fn()",
       "id": "structural_plots_scenario_fn"
     },
@@ -7923,7 +8016,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 75,
       "norm_label": "aux_fn.r (disease_burden helpers)",
       "id": "aux_fn"
     },
@@ -7936,7 +8029,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 75,
       "norm_label": "input_path()",
       "id": "aux_fn_input_path"
     },
@@ -7949,7 +8042,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 75,
       "norm_label": "output_path()",
       "id": "aux_fn_output_path"
     },
@@ -7962,7 +8055,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 75,
       "norm_label": "harmonise()",
       "id": "aux_fn_harmonise"
     },
@@ -7975,7 +8068,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 75,
       "norm_label": "validate_plots()",
       "id": "aux_fn_validate_plots"
     },
@@ -7988,7 +8081,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 75,
       "norm_label": "mod_sel()",
       "id": "aux_fn_mod_sel"
     },
@@ -8001,7 +8094,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 75,
       "norm_label": "rrfn()",
       "id": "aux_fn_rrfn"
     },
@@ -8014,7 +8107,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 94,
       "norm_label": "ggplot2",
       "id": "pkg_ggplot2"
     },
@@ -8027,7 +8120,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 92,
       "norm_label": "ggthemes",
       "id": "pkg_ggthemes"
     },
@@ -8040,7 +8133,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 53,
+      "community": 4,
       "norm_label": "scales",
       "id": "pkg_scales"
     },
@@ -8053,7 +8146,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 63,
       "norm_label": "rcolorbrewer",
       "id": "pkg_rcolorbrewer"
     },
@@ -8118,7 +8211,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 94,
       "norm_label": "foreach",
       "id": "pkg_foreach"
     },
@@ -8131,7 +8224,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "qs",
       "id": "pkg_qs"
     },
@@ -8144,7 +8237,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 68,
       "norm_label": "readxl",
       "id": "pkg_readxl"
     },
@@ -8157,7 +8250,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 63,
       "norm_label": "jsonlite",
       "id": "pkg_jsonlite"
     },
@@ -8170,7 +8263,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 63,
       "norm_label": "global.r",
       "id": "shared_global_r"
     },
@@ -8768,7 +8861,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "tmpanna xps template writer",
       "id": "tmpanna_template"
     },
@@ -8911,7 +9004,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "parf outputs visualization",
       "id": "parfoutputs_plots"
     },
@@ -8924,7 +9017,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "parf case numbers visualization",
       "id": "parfoutputs_casenum_plots"
     },
@@ -8937,7 +9030,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "exposure trends visualization",
       "id": "exposure_trends_plots"
     },
@@ -8950,7 +9043,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "hse correlation structure extractor",
       "id": "extract_hse_correlation_structure_script"
     },
@@ -8976,7 +9069,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "health survey for england (hse)",
       "id": "data_source_hse"
     },
@@ -9028,7 +9121,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "parf_final.csv (parf outputs)",
       "id": "data_source_parf_final_csv"
     },
@@ -9041,7 +9134,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "xps20.csv.gz exposure outputs",
       "id": "data_source_xps20_csv"
     },
@@ -9054,7 +9147,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "r package: data.table",
       "id": "rpkg_data_table"
     },
@@ -9067,7 +9160,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "r package: fst",
       "id": "rpkg_fst"
     },
@@ -9132,7 +9225,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "r package: ggplot2",
       "id": "rpkg_ggplot2"
     },
@@ -9171,7 +9264,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "r package: ckutils",
       "id": "rpkg_ckutils"
     },
@@ -9340,7 +9433,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "fit_hfss_energy_model_england_nonooh_withtotalenergy.r",
       "id": "fit_hfss_energy_model"
     },
@@ -9353,7 +9446,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "fit_hfss_food_weight_gram_model_england_nonooh_withhfssenergy.r",
       "id": "fit_hfss_food_weight_model"
     },
@@ -9366,7 +9459,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "fit_hfss_salt_model_england_nonooh_withtotalsalt.r",
       "id": "fit_hfss_salt_model"
     },
@@ -9392,7 +9485,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 1,
       "norm_label": "fit_alcohol_model.r",
       "id": "fit_alcohol_model"
     },
@@ -9405,7 +9498,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 1,
       "norm_label": "fit_alcohol_model_2024.r",
       "id": "fit_alcohol_model_2024"
     },
@@ -9522,7 +9615,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 50,
       "norm_label": "fit_ethnicitygrp_model_2024.r",
       "id": "fit_ethnicitygrp_model_2024"
     },
@@ -9535,7 +9628,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "fit_ets_model.r",
       "id": "fit_ets_model"
     },
@@ -9548,7 +9641,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "fit_ets_model_2024.r",
       "id": "fit_ets_model_2024"
     },
@@ -9613,7 +9706,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "secure_data/hse_ts_03_19.fst",
       "id": "concept_hse_ts_03_19_fst"
     },
@@ -9626,7 +9719,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "health survey for england (hse)",
       "id": "concept_hse_health_survey_england"
     },
@@ -9665,7 +9758,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 1,
       "norm_label": "alcohol exposure",
       "id": "concept_alcohol"
     },
@@ -9730,7 +9823,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 50,
       "norm_label": "ethnicity",
       "id": "concept_ethnicity"
     },
@@ -9743,7 +9836,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "ets environmental tobacco smoke",
       "id": "concept_ets"
     },
@@ -9782,7 +9875,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "hfss energy intake",
       "id": "concept_hfss_energy"
     },
@@ -9795,7 +9888,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "hfss food weight (g)",
       "id": "concept_hfss_food_weight"
     },
@@ -9808,7 +9901,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "hfss salt intake",
       "id": "concept_hfss_salt"
     },
@@ -9873,7 +9966,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "reldist r package",
       "id": "pkg_reldist"
     },
@@ -9886,7 +9979,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "haven r package",
       "id": "pkg_haven"
     },
@@ -9925,7 +10018,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 50,
       "norm_label": "nnet r package (multinomial)",
       "id": "pkg_nnet"
     },
@@ -9938,7 +10031,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 1,
       "norm_label": "zinbi distribution family",
       "id": "distr_zinbi"
     },
@@ -9951,7 +10044,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 1,
       "norm_label": "zibnb distribution family",
       "id": "distr_zibnb"
     },
@@ -9964,7 +10057,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 0,
       "norm_label": "bct distribution family",
       "id": "distr_bct"
     },
@@ -9977,7 +10070,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "bcto distribution family",
       "id": "distr_bcto"
     },
@@ -10055,7 +10148,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 50,
       "norm_label": "multinomial regression (nnet)",
       "id": "distr_multinomial"
     },
@@ -10068,7 +10161,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "fit_hdl_model.r",
       "id": "fit_hdl_model"
     },
@@ -10302,7 +10395,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "fit_smok_relapse_model.r",
       "id": "fit_smok_relapse_model"
     },
@@ -10315,7 +10408,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 53,
       "norm_label": "fit_smok_status_model.r",
       "id": "fit_smok_status_model"
     },
@@ -10328,7 +10421,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 53,
       "norm_label": "fit_smok_status_model_2024.r",
       "id": "fit_smok_status_model_2024"
     },
@@ -10354,7 +10447,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "hdl to total cholesterol ratio",
       "id": "concept_hdl_to_tchol"
     },
@@ -10510,7 +10603,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 4,
       "norm_label": "smoking relapse probability",
       "id": "concept_smok_relapse"
     },
@@ -10523,7 +10616,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 53,
       "norm_label": "smoking status (4-level)",
       "id": "concept_smok_status"
     },
@@ -10562,7 +10655,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 60,
+      "community": 53,
       "norm_label": "hse_ts_03_19.fst (hse 2003-2019)",
       "id": "data_hse_ts_03_19"
     },
@@ -10575,7 +10668,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "gamlss gb1 distribution",
       "id": "distr_gb1"
     },
@@ -10627,7 +10720,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 53,
       "norm_label": "gamlss mn4 multinomial 4-category distribution",
       "id": "distr_mn4"
     },
@@ -10887,7 +10980,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 61,
+      "community": 84,
       "norm_label": "mrtl_projections.r",
       "id": "mrtl_projections_script"
     },
@@ -10900,7 +10993,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 61,
+      "community": 84,
       "norm_label": "mrtl_projections_coherent.r",
       "id": "mrtl_projections_coherent_script"
     },
@@ -10913,7 +11006,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 61,
+      "community": 84,
       "norm_label": "prepare_calibr_file.r",
       "id": "prepare_calibr_file_script"
     },
@@ -10926,7 +11019,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 61,
+      "community": 84,
       "norm_label": "preprocess_mrtl.r",
       "id": "preprocess_mrtl_script"
     },
@@ -11017,7 +11110,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 61,
+      "community": 84,
       "norm_label": "all-cause mortality projections",
       "id": "concept_all_cause_mortality"
     },
@@ -11056,7 +11149,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 61,
+      "community": 84,
       "norm_label": "mortality calibration",
       "id": "concept_mortality_calibration"
     },
@@ -11082,7 +11175,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 61,
+      "community": 84,
       "norm_label": "ons mortality (deaths by dimd/sex/age)",
       "id": "datasource_ons_mortality"
     },
@@ -11290,7 +11383,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 61,
+      "community": 84,
       "norm_label": "demography (r package)",
       "id": "package_demography"
     },
@@ -15294,6 +15387,37 @@
     {
       "relation": "defines",
       "confidence": "EXTRACTED",
+      "source_file": "docker_setup/build_push_data.sh",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_build_push_data_sh",
+      "target": "docker_setup_build_push_data_log"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/build_push_data.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_build_push_data_sh",
+      "target": "home_ckyprid_my_models_impactncd_engl_docker_setup_build_push_data_sh__entry"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/build_push_data.sh",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "call",
+      "confidence_score": 1.0,
+      "source": "home_ckyprid_my_models_impactncd_engl_docker_setup_build_push_data_sh__entry",
+      "target": "docker_setup_build_push_data_log"
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
       "source_file": "docker_setup/update-apt-packages.sh",
       "source_location": "L129",
       "weight": 1.0,
@@ -16084,11 +16208,31 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "CLAUDE.md",
+      "source_location": "L83",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "impactncd_engl_claude_docker_environment",
+      "target": "impactncd_engl_claude_codeblock_7"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
       "source_location": "L98",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "impactncd_engl_claude_scenario_definition_pattern",
       "target": "impactncd_engl_claude_codeblock_6"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
+      "source_location": "L110",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "impactncd_engl_claude_scenario_definition_pattern",
+      "target": "impactncd_engl_claude_codeblock_7"
     },
     {
       "relation": "contains",
@@ -16154,11 +16298,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "CLAUDE.md",
-      "source_location": "L110",
+      "source_location": "L126",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "impactncd_engl_claude_scenario_definition_pattern",
-      "target": "impactncd_engl_claude_codeblock_7"
+      "target": "impactncd_engl_claude_codeblock_8"
     },
     {
       "relation": "contains",
@@ -16566,6 +16710,16 @@
       "source_file": "docker_setup/README.md",
       "source_location": "L306",
       "weight": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L306",
+      "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
       "target": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race"
@@ -16584,11 +16738,51 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L292",
+      "weight": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L301",
+      "weight": 1.0,
+      "source": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
+      "target": "docker_setup_readme_codeblock_11",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L282",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_model_data_from_zenodo",
       "target": "docker_setup_readme_codeblock_11"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L310",
+      "weight": 1.0,
+      "source": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
+      "target": "docker_setup_readme_codeblock_12",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L284",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_12"
     },
     {
       "relation": "contains",
@@ -16614,31 +16808,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L284",
+      "source_location": "L337",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_12"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L310",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
-      "target": "docker_setup_readme_codeblock_13"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L318",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
-      "target": "docker_setup_readme_codeblock_14"
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_14",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -16648,6 +16822,16 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_13"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L310",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
       "target": "docker_setup_readme_codeblock_13"
     },
     {
@@ -16664,11 +16848,41 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L318",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L310",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
       "target": "docker_setup_readme_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L349",
+      "weight": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_15",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L357",
+      "weight": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_16",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -16684,21 +16898,21 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L339",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_16"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
       "source_location": "L316",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
       "target": "docker_setup_readme_codeblock_15"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L339",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_16"
     },
     {
       "relation": "contains",
@@ -16724,21 +16938,21 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L339",
+      "source_location": "L365",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
-      "target": "docker_setup_readme_codeblock_17"
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_17",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L358",
+      "source_location": "L378",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
-      "target": "docker_setup_readme_codeblock_18"
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_18",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -16758,6 +16972,16 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_system_packages_apt_packages_txt",
+      "target": "docker_setup_readme_codeblock_17"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L339",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
       "target": "docker_setup_readme_codeblock_17"
     },
     {
@@ -16794,6 +17018,96 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L358",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_18"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L391",
+      "weight": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_19",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L397",
+      "weight": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_20",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L364",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_r_packages_r_packages_txt",
+      "target": "docker_setup_readme_codeblock_19"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L371",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_system_packages_apt_packages_txt",
+      "target": "docker_setup_readme_codeblock_19"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L360",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_19"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L374",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_20"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L383",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_r_packages_r_packages_txt",
+      "target": "docker_setup_readme_codeblock_20"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L375",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_20"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L337",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -16824,81 +17138,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L371",
+      "source_location": "L410",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docker_setup_readme_system_packages_apt_packages_txt",
-      "target": "docker_setup_readme_codeblock_19"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L364",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_r_packages_r_packages_txt",
-      "target": "docker_setup_readme_codeblock_19"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L360",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_updating_pinned_package_versions",
-      "target": "docker_setup_readme_codeblock_19"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L383",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_r_packages_r_packages_txt",
-      "target": "docker_setup_readme_codeblock_20"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L374",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_20"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L375",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_updating_pinned_package_versions",
-      "target": "docker_setup_readme_codeblock_20"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L383",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_updating_pinned_package_versions",
-      "target": "docker_setup_readme_codeblock_21"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L402",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_updating_pinned_package_versions",
-      "target": "docker_setup_readme_codeblock_22"
+      "target": "docker_setup_readme_codeblock_21",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -16914,6 +17158,26 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L383",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_21"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L422",
+      "weight": 1.0,
+      "source": "docker_setup_readme_r_packages_r_packages_txt",
+      "target": "docker_setup_readme_codeblock_22",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L382",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -16924,41 +17188,31 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L386",
+      "source_location": "L402",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_adding_r_or_system_dependencies"
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_22"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L401",
+      "source_location": "L433",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_23"
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_23",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L405",
+      "source_location": "L441",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_24"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L424",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_25"
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_24",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -16974,11 +17228,71 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L401",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_23"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L394",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_adding_r_or_system_dependencies",
       "target": "docker_setup_readme_codeblock_24"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L405",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_24"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L386",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_adding_r_or_system_dependencies"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L424",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_25"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L459",
+      "weight": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_26",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L463",
+      "weight": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_27",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -17009,6 +17323,36 @@
       "confidence_score": 1.0,
       "source": "docker_setup_readme_adding_r_or_system_dependencies",
       "target": "docker_setup_readme_codeblock_27"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L471",
+      "weight": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_28",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L476",
+      "weight": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_29",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L481",
+      "weight": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_30",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -28977,5 +29321,5 @@
       "source_file": "inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model_2024.R"
     }
   ],
-  "built_at_commit": "697829b0dccac542ff415b05cbd4c20b3076aa53"
+  "built_at_commit": "77b574f55fa51d68bbcc96af572d901e7deefcac"
 }
