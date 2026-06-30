@@ -51,20 +51,14 @@ jobs:
     # to always proceed for push events.
     if: ${{ github.event_name == 'push' }}
     steps:
-      # STEP 1: Prerequisite Workflow Coordination
-      # Wait for any running prerequisite workflow to complete.
-      # This prevents race conditions where both workflows might run simultaneously
-      # and ensures we use the latest prerequisite image if it's being updated.
-      - name: Wait for prerequisite workflow
-        uses: lewagon/wait-on-check-action@v1.3.4
-        with:
-          ref: ${{ github.sha }}
-          check-name: "run_if_needed"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 30
-          allowed-conclusions: success,failure,cancelled,skipped
+      # NOTE: there is deliberately no "wait for prerequisite workflow" step.
+      # The model image builds FROM the data image
+      # (chriskypri/data.impactncdengl:latest), which already bakes in the
+      # prerequisite layers — it does NOT consume the CI-built prerequisite image.
+      # The previous lewagon/wait-on-check-action step was removed: it only added
+      # latency and a transitive Node-20 (actions/cache) dependency.
 
-      # STEP 2: Source Code Checkout
+      # STEP 1: Source Code Checkout
       # Checkout the repository source code using the current commit being pushed
       - name: Checkout code
         uses: actions/checkout@v5
