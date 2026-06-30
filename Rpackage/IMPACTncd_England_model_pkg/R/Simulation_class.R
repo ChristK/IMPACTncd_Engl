@@ -2359,6 +2359,148 @@ Simulation <-
         invisible(self)
       },
 
+      # zenodo_resync_simulation ----
+      #' @description Efficiently re-sync simulation archives (e.g. PARFs) to a
+      #'   new version of the published Zenodo record, re-uploading ONLY the
+      #'   changed archives while carrying every other file over server-side.
+      #'
+      #' @details
+      #' When a cache key changes (e.g. a fix that alters PARF hashes), the
+      #' already-published PARFs no longer match what the current code
+      #' generates, so users would needlessly regenerate them on first run.
+      #' This publishes a new version containing the regenerated archives
+      #' \strong{without} re-uploading the (unchanged, often many-GB) input
+      #' data:
+      #' \enumerate{
+      #'   \item create a new-version draft (\code{create_new_version});
+      #'   \item import every file from the previous version server-side
+      #'     (\code{import_previous_files}, via the InvenioRDM
+      #'     \code{files-import} action) -- no input re-upload;
+      #'   \item delete the existing archives for \code{directories} from the
+      #'     draft so the regenerated ones replace them (uploads skip names
+      #'     already present);
+      #'   \item build and upload the regenerated archives from
+      #'     \code{simulation_base};
+      #'   \item verify the inputs were preserved and the target archives
+      #'     replaced, then optionally publish.
+      #' }
+      #' The verification \strong{gates the publish}: if the import dropped
+      #' input files or not all target archives uploaded, the draft is left
+      #' unpublished and an error is raised. As always with publishing, dry-run
+      #' against the sandbox first (\code{zenodo_connect(sandbox = TRUE)}) and
+      #' review with \code{zenodo_list_files()}.
+      #'
+      #' @param version Character. New version string, e.g. \code{"1.0.1"}.
+      #' @param simulation_base Character. Path to the simulation directory.
+      #'   Default \code{"./simulation"}.
+      #' @param directories Character vector of simulation subdirectories to
+      #'   re-sync. Default \code{c("parf")}.
+      #' @param exclude_file_patterns Character vector of regex patterns for
+      #'   files to exclude from the new archives. The default also excludes
+      #'   \code{.qs} so stale pre-parquet PARF files are not re-uploaded.
+      #' @param group_by_prefix,compression_level,multicore,n_cores,update_gitignore
+      #'   As in \code{\link{zenodo_upload_simulation}}.
+      #' @param min_preserved_inputs Integer. Lower bound on the number of
+      #'   preserved (non-target) input files required before publishing, as a
+      #'   guard against an incomplete server-side import. Default \code{1L}.
+      #' @param publish Logical. Publish after a successful, verified re-sync?
+      #'   Default \code{FALSE}.
+      #' @return The invisible \code{Simulation} object (for method chaining).
+      #'
+      #' @examples
+      #' \dontrun{
+      #' # Dry-run on the sandbox first, then production.
+      #' IMPACTncd$zenodo_connect(sandbox = TRUE)
+      #' IMPACTncd$zenodo_resync_simulation("1.0.1", directories = "parf",
+      #'                                    publish = TRUE)
+      #' }
+      #' @seealso \code{\link{zenodo_upload_simulation}},
+      #'   \code{\link{zenodo_publish}}, \code{\link{zenodo_list_files}}
+      zenodo_resync_simulation = function(
+        version,
+        simulation_base = "./simulation",
+        directories = c("parf"),
+        exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$"),
+        group_by_prefix = TRUE,
+        compression_level = 6L,
+        multicore = TRUE,
+        n_cores = self$design$sim_prm$clusternumber,
+        update_gitignore = TRUE,
+        min_preserved_inputs = 1L,
+        publish = FALSE
+      ) {
+        if (is.null(private$zenodo_manager)) {
+          stop("Not connected to Zenodo. Call zenodo_connect() first.")
+        }
+        mgr <- private$zenodo_manager
+        logs <- isTRUE(self$design$sim_prm$logs)
+        pat <- paste0("^(", paste(directories, collapse = "|"), ")_")
+
+        # 1. New-version draft (empty on InvenioRDM).
+        mgr$create_new_version(version, delete_previous_files = TRUE)
+
+        # 2. Inherit ALL files from the previous version server-side.
+        mgr$import_previous_files()
+
+        # 3. Build the regenerated archives for the target directories.
+        archives <- mgr$create_input_archives(
+          input_base = simulation_base,
+          directories = directories,
+          exclude_file_patterns = exclude_file_patterns,
+          group_by_prefix = group_by_prefix,
+          compression_level = compression_level,
+          multicore = multicore,
+          n_cores = n_cores,
+          update_gitignore = update_gitignore
+        )
+        if (nrow(archives) == 0L) {
+          stop("No archives produced from '", simulation_base, "' for: ",
+               paste(directories, collapse = ", "))
+        }
+
+        # 4. Delete the imported old archives for these directories so the
+        #    regenerated ones replace them (upload skips names already present).
+        existing <- mgr$list_remote_files()$filename
+        old_targets <- existing[grepl(pat, existing)]
+        n_inputs_before <- length(setdiff(existing, old_targets))
+        mgr$delete_draft_files(old_targets)
+
+        # 5. Upload the regenerated archives, then clean up the temp zips.
+        if (logs) {
+          message("Re-syncing ", nrow(archives), " archive(s) for: ",
+                  paste(directories, collapse = ", "))
+        }
+        mgr$upload_archives(archives$archive_path)
+        for (ap in archives$archive_path) {
+          if (file.exists(ap)) file.remove(ap)
+        }
+
+        # 6. Verify inputs preserved + targets replaced BEFORE publishing.
+        after <- mgr$list_remote_files()$filename
+        n_target_after <- sum(grepl(pat, after))
+        n_inputs_after <- length(after) - n_target_after
+        if (logs) {
+          message("Draft now has ", length(after), " file(s): ",
+                  n_inputs_after, " preserved input(s) + ", n_target_after,
+                  " re-synced archive(s).")
+        }
+        if (n_inputs_after < max(min_preserved_inputs, n_inputs_before)) {
+          stop("Re-sync aborted before publish: only ", n_inputs_after,
+               " input file(s) survived the import (expected >= ",
+               n_inputs_before, "). Draft left unpublished for inspection.",
+               call. = FALSE)
+        }
+        if (n_target_after < nrow(archives)) {
+          stop("Re-sync aborted before publish: ", n_target_after,
+               " target archive(s) present, expected ", nrow(archives),
+               ". Draft left unpublished for inspection.", call. = FALSE)
+        }
+
+        # 7. Publish only on a clean, verified draft.
+        if (publish) self$zenodo_publish()
+        invisible(self)
+      },
+
       # zenodo_upload_all ----
       #' @description Upload both input data and simulation outputs to
       #'   Zenodo in a single call.

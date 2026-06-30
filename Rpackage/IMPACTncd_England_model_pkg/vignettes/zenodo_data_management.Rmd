@@ -429,6 +429,39 @@ IMPACTncd$zenodo_upload_all(version = "1.1.0")
 IMPACTncd$zenodo_publish()
 ```
 
+### Re-syncing Simulation Archives (PARFs) Efficiently
+
+Sometimes only the **simulation archives** change while the inputs stay
+identical — most commonly when a fix alters the PARF cache-key hash, so the
+published PARFs no longer match what the model generates and every user would
+regenerate them on first run. Re-uploading the (often many-GB) inputs just to
+ship new PARFs is wasteful, so `zenodo_resync_simulation()` publishes a new
+version that **re-uploads only the changed archives** and carries every other
+file over server-side:
+
+```{r resync}
+IMPACTncd$zenodo_connect(
+  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+  sandbox = TRUE
+)
+
+# New version with regenerated PARFs only; inputs are imported server-side.
+IMPACTncd$zenodo_resync_simulation(
+  version     = "1.0.1",
+  directories = "parf",   # which ./simulation/ subdirs to re-sync
+  publish     = TRUE      # publishes only if the verify-gate passes
+)
+```
+
+Internally it (1) creates a new-version draft, (2) imports every file from the
+previous version via the InvenioRDM `files-import` action (no input
+re-upload), (3) deletes the old target archives from the draft, (4) uploads the
+regenerated ones, and (5) **verifies the inputs were preserved and all target
+archives uploaded before publishing** — otherwise the draft is left
+unpublished and an error is raised. The default `exclude_file_patterns` also
+drops stale pre-parquet `.qs` PARF files so only the current format is shipped.
+As with any publish, dry-run on the sandbox first.
+
 ### Listing Remote Files
 
 After uploading, verify what's on the server:
@@ -1163,6 +1196,7 @@ IMPACTncd$zenodo_get_versions()
 | `zenodo_upload_inputs(input_base, ..., publish)` | Create archives and upload inputs |
 | `zenodo_upload_simulation(simulation_base, directories, ...)` | Upload simulation outputs (PARF, RR) |
 | `zenodo_upload_all(input_base, simulation_base, ..., publish)` | Upload inputs + simulation in one call |
+| `zenodo_resync_simulation(version, directories, ..., publish)` | New version re-uploading ONLY changed simulation archives (e.g. PARFs); imports unchanged inputs server-side |
 | `zenodo_publish()` | Publish the draft record (**irreversible!**) |
 | `zenodo_list_files(concept_doi)` | List all files in the current record |
 | `zenodo_get_versions()` | Get version history with DOIs |

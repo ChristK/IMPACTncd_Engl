@@ -131,6 +131,8 @@ Signature: function(bytes_transferred, total_bytes, filename)}
     \item \href{#method-ZenodoAssetManager-extract_archive}{\code{ZenodoAssetManager$extract_archive()}}
     \item \href{#method-ZenodoAssetManager-create_new_record}{\code{ZenodoAssetManager$create_new_record()}}
     \item \href{#method-ZenodoAssetManager-create_new_version}{\code{ZenodoAssetManager$create_new_version()}}
+    \item \href{#method-ZenodoAssetManager-import_previous_files}{\code{ZenodoAssetManager$import_previous_files()}}
+    \item \href{#method-ZenodoAssetManager-delete_draft_files}{\code{ZenodoAssetManager$delete_draft_files()}}
     \item \href{#method-ZenodoAssetManager-publish_record}{\code{ZenodoAssetManager$publish_record()}}
     \item \href{#method-ZenodoAssetManager-get_versions}{\code{ZenodoAssetManager$get_versions()}}
     \item \href{#method-ZenodoAssetManager-sync_inputs}{\code{ZenodoAssetManager$sync_inputs()}}
@@ -745,6 +747,58 @@ registration). Defaults to "Zenodo".}
   }
   \subsection{Returns}{
     The new version record object.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-ZenodoAssetManager-import_previous_files"></a>}}
+\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-import_previous_files}{}}}
+\subsection{\code{ZenodoAssetManager$import_previous_files()}}{
+  Import all files from the previous version into the current
+new-version draft, server-side (no re-upload).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{ZenodoAssetManager$import_previous_files()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    InvenioRDM new-version drafts start empty. This calls the
+InvenioRDM \code{files-import} draft action so the draft inherits every
+file from the parent record's latest published version without
+re-uploading them. Requires a draft created via
+\code{create_new_version()}. Used by
+\code{Simulation$zenodo_resync_simulation()} to preserve unchanged
+inputs while replacing only selected simulation archives.
+  }
+  \subsection{Returns}{
+    Invisibly, the number of files on the draft after the import.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-ZenodoAssetManager-delete_draft_files"></a>}}
+\if{latex}{\out{\hypertarget{method-ZenodoAssetManager-delete_draft_files}{}}}
+\subsection{\code{ZenodoAssetManager$delete_draft_files()}}{
+  Delete one or more files from the current draft, by key.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{ZenodoAssetManager$delete_draft_files(filenames)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{filenames}}{Character vector of file keys (archive names) to remove.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    Best-effort: missing files (HTTP 404) are ignored. Used to clear
+the imported old archives that a re-sync is about to replace, since
+\code{upload_archives()} skips names already present on the record.
+  }
+  \subsection{Returns}{
+    Invisibly, the number of delete requests issued.
   }
 }
 
