@@ -1,20 +1,22 @@
 source("./global.R")
-design <- Design$new("./inputs/sim_design_NotinghamICS.yaml")
+library(data.table)
+library(fst)
+design <- Design$new("testing/sim_design_testing.yaml")
 
 # RR ----
 # Create a named list of Exposure objects for the files in ./inputs/RR
 fl <- list.files(path = "./inputs/RR", pattern = ".csvy$", full.names = TRUE)
-# RR <- lapply(fl, Exposure$new, design)
-# names(RR) <- sapply(RR, function(x) x$get_name())
-# lapply(RR, function(x) {
-#     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
-# })
-RR <- future_lapply(fl, Exposure$new, design,future.seed = 950480304L)
+RR <- lapply(fl, ExposureEffect$new, design)
 names(RR) <- sapply(RR, function(x) x$get_name())
-invisible(future_lapply(RR, function(x) {
+lapply(RR, function(x) {
     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
-},
-future.seed = 627524136L))
+})
+# RR <- future.apply::future_lapply(fl, ExposureEffect$new, design,future.seed = 950480304L)
+# names(RR) <- sapply(RR, function(x) x$get_name())
+# invisible(future_lapply(RR, function(x) {
+#     x$gen_stochastic_effect(design, overwrite = FALSE, smooth = FALSE)
+# },
+# future.seed = 627524136L))
 # NOTE smooth cannot be exported to Design for now, because the first time
 # this parameter changes we need logic to overwrite unsmoothed files
 rm(fl)
@@ -37,28 +39,97 @@ diseases <- lapply(design$sim_prm$diseases, function(x) {
 
 names(diseases) <- sapply(design$sim_prm$diseases, `[[`, "name")
 
+
+
+# Create Exposure objects from YAML configuration and store in design
+exposures <- lapply(
+          design$sim_prm$exposure_definitions,
+          function(exp_def) {
+            # Convert YAML configuration to Exposure$new() arguments
+            args <- list(
+              name = exp_def$name,
+              file_name = exp_def$file_name,
+              var_name = exp_def$var_name,
+              rank_var = exp_def$rank_var,
+              distribution = exp_def$distribution
+            )
+
+            # Add optional parameters if present
+            if (!is.null(exp_def$qfun)) {
+              args$qfun <- exp_def$qfun
+            }
+            if (!is.null(exp_def$pfun)) {
+              args$pfun <- exp_def$pfun
+            }
+            if (!is.null(exp_def$min_value)) {
+              args$min_value <- exp_def$min_value
+            }
+            if (!is.null(exp_def$max_value)) {
+              args$max_value <- exp_def$max_value
+            }
+            if (!is.null(exp_def$qargs)) {
+              args$qargs <- exp_def$qargs
+            }
+            if (!is.null(exp_def$invert)) {
+              args$invert <- exp_def$invert
+            }
+            if (!is.null(exp_def$transform_fn)) {
+              args$transform_fn <- exp_def$transform_fn
+            }
+            if (!is.null(exp_def$additional_rank_vars)) {
+              args$additional_rank_vars <- exp_def$additional_rank_vars
+            }
+            if (!is.null(exp_def$join_fn)) {
+              args$join_fn <- exp_def$join_fn
+            }
+
+            # Create the Exposure object
+            exp_obj <- do.call(Exposure$new, args)
+
+            # Store factorisation parameters if present (to be applied after generation)
+            if (!is.null(exp_def$factorise)) {
+              exp_obj$factorise_params <- exp_def$factorise
+            }
+
+            # Store additional metadata
+            if (!is.null(exp_def$cast_to_int)) {
+              exp_obj$cast_to_int <- exp_def$cast_to_int
+            }
+            if (!is.null(exp_def$invert_ratio)) {
+              exp_obj$invert_ratio <- exp_def$invert_ratio
+            }
+
+            exp_obj
+          }
+        )
+        names(exposures) <- sapply(
+          exposures,
+          function(x) x$var_name
+        )
+
 mk_scenario_init2 <- function(scenario_name, diseases_, sp, design_) {
 
     scenario_suffix_for_pop <- ""
 
     list(
-        "exposures"          = design_$sim_prm$exposures,
-        "scenarios"          = design_$sim_prm$scenarios, # to be generated programmatically
-        "scenario"           = scenario_name,
-        "kismet"             = design_$sim_prm$kismet, # If TRUE random numbers are the same for each scenario.
-        "init_year"          = design_$sim_prm$init_year,
-        "pids"               = "pid",
-        "years"              = "year",
-        "ages"               = "age",
-        "sexs"               = "sex",
-        "dimds"              = "dimd",
-        "ageL"               = design_$sim_prm$ageL,
-        "all_cause_mrtl"     = paste0("all_cause_mrtl", scenario_suffix_for_pop),
-        "cms_score"          = paste0("cms_score", scenario_suffix_for_pop),
-        "cms_count"          = paste0("cms_count", scenario_suffix_for_pop),
-        "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
-        "diseases"           = lapply(diseases_, function(x)
-            x$to_cpp(sp, design_, scenario_suffix_for_pop))
+      "exposures" = design_$sim_prm$exposures_for_output,
+      "scenarios" = design_$sim_prm$scenarios, # to be generated programmatically
+      "scenario" = scenario_name,
+      "kismet" = design_$sim_prm$kismet, # If TRUE random numbers are the same for each scenario.
+      "init_year" = design_$sim_prm$init_year,
+      "pids" = "pid",
+      "years" = "year",
+      "ages" = "age",
+      "sexs" = "sex",
+      "dimds" = "dimd",
+      "ageL" = design_$sim_prm$ageL,
+      "all_cause_mrtl" = paste0("all_cause_mrtl", scenario_suffix_for_pop),
+      "cms_score" = paste0("cms_score", scenario_suffix_for_pop),
+      "cms_count" = paste0("cms_count", scenario_suffix_for_pop),
+      "strata_for_outputs" = c("pid", "year", "age", "sex", "dimd"),
+      "diseases" = lapply(diseases_, function(x) {
+        x$to_cpp(sp, design_, scenario_suffix_for_pop)
+      })
     )
 }
 
@@ -605,3 +676,80 @@ dcast(lc[year >= 23L & cmsmm1.5_prvl == 0L,
 
 le <- lc[all_cause_mrtl > 0, .("popsize" = sum(wt), LE = weighted.mean(age, wt)), keyby = .(year, scenario)]
 dur <- lc[cmsmm1.5_prvl > 0L, .("popsize" = sum(wt), LE = weighted.mean(cmsmm1.5_prvl, wt)), keyby = .(year, scenario)] # bias because of dur at init year all set to 1
+
+
+
+fl <- list.files("/home/ckyprid/My_Models/IMPACTncd_Engl/inputs", full.names = TRUE, recursive = TRUE)
+large_files <- fl[file.size(fl) / 1024^2 > 100] # GitHub limit is 100 MB
+large_files
+
+
+
+
+library(data.table)
+library(arrow)
+library(fst)
+library(jsonlite)
+
+fst_files <- list.files(
+  path = file.path("inputs", "exposure_distributions"),
+  pattern = "^exposure.*\\.fst$",
+  recursive = FALSE,
+  full.names = TRUE
+)
+i <- 1L
+for (i in seq_along(fst_files)) {
+  f <- fst_files[[i]]
+  print(f)
+  fout <- sub("\\.fst$", "", basename(f))
+  print(fout)
+  tbl <- fst::read_fst(f, as.data.table = TRUE)
+  print(key(tbl))
+  kc <- NULL
+
+  tbl <- arrow_table(tbl)
+  
+# Arrow Schema metadata must be string->string; JSON is a safe encoding
+  meta <- tbl$metadata
+  meta[["r.data.table.keys"]] <- toJSON(kc, auto_unbox = TRUE)
+  meta[["r.data.table.keys_format"]] <- "json"
+  tbl$metadata <- meta
+
+    arrow::write_dataset(
+      dataset = tbl,
+      path = file.path("inputs", "exposure_distributions", fout),
+      format = "parquet",
+      partitioning = if ("year" %in% names(tbl)) "year" else NULL
+    )
+}
+
+file.remove(fst_files)
+
+
+source("./global.R")
+design <- Design$new("testing/sim_design_testing.yaml")
+
+lapply(design$exposures, function(exposure) {
+  print(exposure$name)
+  exposure$add_qmin_qmax(
+    read_parquet_dt(exposure$file_path),
+    force = FALSE,
+    write_to_disk = TRUE
+  )
+})
+
+tt <- read_parquet_dt(design$exposures$income$file_path)
+names(tt)
+data.table::key(tt)
+
+
+
+
+
+
+library(data.table)
+library(fst)
+tt <- read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst", as.data.table=T)
+tt[, sort(unique(LAD17NM))]
+# South_Gloucestershire
+# Gloucester

@@ -9,18 +9,16 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Reduce size of POP and memory footprint
-- DONE. Store int cols as int and not double (```View(transpose(POP[, lapply(.SD, pryr::object_size)], keep.names = "rn")[, V1 := V1/1024^2])```). Ensure that c++ side gets the col type it is expecting.
-- Pass a seed for random number instead of the column to the c++ side.
-- Check whether disease status needs to be stored in .fst for the initial synthpop. I.e. it may get recalculated for the baseline scenario 
-
-# Improve epi engine
-- Consider smoothing PARF and fatality rates
-
-# Outputs
-- Export costs for each disease separately
-
-# GUI
-- scenario selection in effectiveness tab is occassionally stops working
+# transition
+- Why ram peaks at the start of the simulation?
+- Fix logic to include exposure files to parf generation when required
+- Fix logic to include synthpop files to parf generation when required
+- make sure qs2 in docker is multithreaded ( R -q -e "install.packages(
+    \"qs2\",
+    type = \"source\",
+    lib = \"/usr/lib64/R/library\",
+    repos = \"https://cloud.r-project.org\",
+    configure.args = \"--with-TBB --with-simd=AVX2\"
+  )")
 
 

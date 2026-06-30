@@ -4,10 +4,10 @@
 
 IMPACT<sub>NCD_Engl</sub> is an implementation of the IMPACT<sub>NCD</sub> framework, developed by Chris
 Kypridemos with contributions from Max Birkett, Karl Emmert-Fees, Anna Head, Brendan Collins, Martin O'Flaherty,
-Peter Crowther (Melandra Ltd), Maria Guzman-Castillo, Amandine Robert, Piotr Bandosz, and Adithi R. Upadhya. 
+Peter Crowther (Melandra Ltd), Maria Guzman-Castillo, Amandine Robert, Piotr Bandosz, and Adithi R. Upadhya.
 
 Several research grants have supported its development including grants from the Health Foundation,
-NIHR, EU Horizon2020, Liverpool City Council, MRC, NIH, and the National Cerebral and Cardiovascular Center in Japan.  
+NIHR, EU Horizon2020, Liverpool City Council, MRC, NIH, and the National Cerebral and Cardiovascular Center in Japan.
 
 Copyright (C) 2018-2025 University of Liverpool, Chris Kypridemos.
 
@@ -26,7 +26,7 @@ Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 ## Overview
 
 This microsimulation translates changes in the trends of established chronic disease risk factors to changes in the incidence and prevalence of common chronic
-diseases, and changes in all-cause mortality, in England. A typical simulation consists of a *baseline* and one or more *what-if* policy scenarios. Policy scenarios usually comprise of changes in the exposure of a population segment to a risk factor, e.g. after some future health policy, 10% of the population show 
+diseases, and changes in all-cause mortality, in England. A typical simulation consists of a *baseline* and one or more *what-if* policy scenarios. Policy scenarios usually comprise of changes in the exposure of a population segment to a risk factor, e.g. after some future health policy, 10% of the population show
 
 - improved body mass index (BMI), blood pressure, or cholesterol level (each by 5%).
 - increased fruit and vegetable intake (by 5%).
@@ -34,81 +34,85 @@ diseases, and changes in all-cause mortality, in England. A typical simulation c
 - reduced smoking prevalence or passive smoking (each by 5%).
 - increased physical activity (by having an additional active day).
 
-The microsimulation can then estimate the effectiveness and equity of the modelled health policy. 
-
-## Requirements
-
-The IMPACT<sub>NCD_Engl</sub> distribution is usually installed directly from [GitHub](https://github.com/ChristK/IMPACTncd_Engl/) via the [Git](https://git-scm.com/) version control system, which should be installed on the target system. While not absolutely required, Git eases installation of future updates and previous releases. While earlier versions will suffice, Git 2.40.0 was the latest at release time.
-
-The IMPACT<sub>NCD_Engl</sub> model is written primarily in, and so requires installation of, the [R programming language](https://cran.r-project.org/), for which version 4.2.3 was the latest at release time. Additional R packages (listed in `dependencies.yaml`) will be installed automatically if missing at execution time, e.g. `data.table`, `piggyback`, `foreach`.
+The microsimulation can then estimate the effectiveness and equity of the modelled health policy.
 
 ## Installation
 
-IMPACT<sub>NCD_Engl</sub> is installed directly from GitHub, after which a model-specific configuration is set. With multiple configurations, different policy scenarios may be tested on the same server. 
+The model has two parts that are obtained separately:
 
-As the installation requires downloading numerous files from GitHub, you will need a Personal Access Token. Instructions [here](https://github.com/ChristK/IMPACTncd_Engl/blob/main/installation_docs/installing_git.md#setting-a-personal-access-token) 
+1. **The code** — cloned (or downloaded) from the public [GitHub repository](https://github.com/ChristK/IMPACTncd_Engl). No GitHub account or access token is required.
+2. **The data** — the large input data and pre-computed PARFs/RR tables are **not** in git. They are published on Zenodo ([concept DOI `10.5281/zenodo.20812409`](https://doi.org/10.5281/zenodo.20812409), CC-BY-SA-4.0) and downloaded with one command. The data is public, so **no Zenodo account or token is required**.
 
-### Download without GitHub
+There are two ways to install and run the model: a **Docker** image (recommended — everything is bundled and reproducible) or a **native R** installation.
 
-##### To install and run IMPACT<sub>NCD_Engl</sub> we need to install R on [Windows](installation_docs/installing_R_on_windows.md) / [Linux](installation_docs/installing_R_on_linux.md); and [rtools](installation_docs/installing_rtools_on_windows.md) (only for Windows) before these following steps
+### Option A — Docker (recommended)
 
-1. To use IMPACTncd England navigate here: https://github.com/ChristK/IMPACTncd_Engl 
+Pre-built Docker images bundle the full R environment, all model data (from Zenodo), and the model code, so there is nothing to compile or download by hand. After installing Docker:
 
-2. Select Code on the right side corner, this will show an option of **Download ZIP**
-
-![](installation_docs/img/Github_4.jpeg)
-
-3. Once downloaded unzip the folder and save it in desired location
-
-
-### Download with GitHub
-
-##### To install and run IMPACT<sub>NCD_Engl</sub> we need to install R on [Windows](installation_docs/installing_R_on_windows.md) / [Linux](installation_docs/installing_R_on_linux.md); [Git](installation_docs/installing_git.md); and [rtools](installation_docs/installing_rtools_on_windows.md) (only for Windows) before these following steps
-
-1. To use IMPACT<sub>NCD_Engl</sub> navigate here: https://github.com/ChristK/IMPACTncd_Engl 
-
-2. Select Code on the right side corner, this will present a link which can be used to download the package in local system. Copy this link
-
-![](installation_docs/img/Github_4.jpeg)
-
-
-3. In terminal, type git clone https://github.com/ChristK/IMPACTncd_Engl.git (which is the copied link) 
-
-
-### Modelling with IMPACT<sub>NCD_Engl</sub>
-
-
-##### Important Note : It is highly recommended to create your own copies of `sim_design.yaml` present in `inputs` folder and `simulation.R` in the root folder to run this model and make no changes to the original `sim_design.yaml` and `simulation.R`, as this would help reducing conflicts while pulling changes from [GitHub](https://github.com/ChristK/IMPACTncd_Engl). 
-
-1. All vignettes can be viewed using the code below 
-
-```{r}
-vignette(package = "IMPACTncdEngl")
+```bash
+cd docker_setup
+./setup_user_docker_env.sh        # Linux/macOS   (Windows PowerShell: setup_user_docker_env.ps1)
 ```
 
-2. The next steps can be found in the vignette which can be accessed using the code below
+See **[docker_setup/README.md](docker_setup/README.md)** for the full Docker guide: installing Docker, the `setup_user_docker_env`/`setup_dev_docker_env` helpers, the three-layer image architecture (prerequisite → data → model), and how to build the images locally.
 
-```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngl")
+### Option B — Native R installation
+
+Run the model directly in R on your machine.
+
+**Prerequisites** — install:
+
+- [R](https://cran.r-project.org/) (≥ 4.1.0; the model is developed and tested against R 4.6.0) — guides for [Windows](installation_docs/installing_R_on_windows.md) and [Linux](installation_docs/installing_R_on_linux.md).
+- [Rtools](installation_docs/installing_rtools_on_windows.md) — **Windows only**, required to compile the C++ simulation engine.
+- [Git](installation_docs/installing_git.md) — recommended (eases future updates), and optionally [RStudio](installation_docs/installing_RStudio_on_windows.md).
+
+Additional R packages (listed in [`docker_setup/r-packages.txt`](docker_setup/r-packages.txt), e.g. `data.table`, `foreach`) are installed automatically the first time you `source("global.R")`.
+
+**1. Get the code.** Clone the public repository:
+
+```bash
+git clone https://github.com/ChristK/IMPACTncd_Engl.git
 ```
 
-3. Use the following code to open the vignette to run different policy scenarios
+Or download a ZIP: on the [repository page](https://github.com/ChristK/IMPACTncd_Engl), click **Code ▸ Download ZIP**, then unzip it to your chosen location.
 
-```{r}
-vignette("how_to_run_scenarios", package = "IMPACTncdEngl")
+**2. Download the model data from Zenodo** (required on a fresh clone — a freshly cloned repository has no data). The data is public, so no account or token is needed:
+
+```r
+source("global.R")
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+IMPACTncd$zenodo_connect()        # defaults to the published record, anonymous
+IMPACTncd$zenodo_download_all()   # inputs + pre-computed PARFs/RR tables (~13 GB)
 ```
 
-4. Use the following code to open the vignette to understand model outputs 
+See the **`zenodo_data_management`** vignette for selective downloads, updating to a new data version, and (for data managers) publishing new data.
 
-```{r}
-vignette("understanding_model_outputs", package = "IMPACTncdEngl")
+> **Tip:** It is highly recommended to create your own copies of `inputs/sim_design.yaml` and `simulation.R`, edit those, and leave the originals untouched. This minimises merge conflicts when pulling updates from GitHub.
+
+## Documentation and tutorials
+
+The package ships tutorial vignettes. List them all with:
+
+```r
+vignette(package = "IMPACTncdEngland")
 ```
 
-5. To completely delete the package IMPACTncdEngl is explained in a section called **How to remove IMPACTncdEngl installed package** in the vignette mentioned below
+and open one with `vignette("<name>", package = "IMPACTncdEngland")`. The source `.Rmd` files live in [`Rpackage/IMPACTncd_England_model_pkg/vignettes/`](Rpackage/IMPACTncd_England_model_pkg/vignettes).
 
-```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngl")
-```
+| Vignette | Topic |
+|---|---|
+| `how_to_test_run` | **Start here** — run a test simulation (also covers how to uninstall the package). |
+| `how_to_run_scenarios` | Define and run a baseline plus what-if policy scenarios. |
+| `understanding_model_outputs` | Interpret the model's output files. |
+| `custom-scenario-columns` | Export custom columns created within scenarios. |
+| `inputs_manifest_system` | The inputs manifest / data-asset tracking system. |
+| `zenodo_data_management` | Download, manage, and publish the model's input data on Zenodo. |
+
+Other help files:
+
+- **[docker_setup/README.md](docker_setup/README.md)** — Docker images, the three-layer build, and user/developer environment setup.
+- **[installation_docs/](installation_docs)** — step-by-step guides for installing R, Rtools, Git, and RStudio.
+- **CLAUDE.md** — architecture notes and common commands for the repository.
 
 ## Further notes and references
 

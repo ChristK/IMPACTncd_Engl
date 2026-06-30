@@ -1,0 +1,45 @@
+# Layer 2 of 3: model DATA from Zenodo, on top of the prerequisite R environment.
+#
+# Three-layer architecture:
+#   1. prerequisite.impactncdengl  - R environment + system/R dependencies
+#                                     (Dockerfile.prerequisite.IMPACTncdENGL).
+#                                     The dev workflow mounts source on top of this.
+#   2. data.impactncdengl          - THIS image: prerequisite + ~13GB of model
+#                                     data downloaded from Zenodo. Rebuilt only
+#                                     when the Zenodo data changes.
+#   3. impactncdengl               - prerequisite + data + model code from GitHub
+#                                     (Dockerfile.IMPACTncdENGL). Rebuilt on code
+#                                     changes; the data is INHERITED from here, so
+#                                     code rebuilds do NOT re-download ~13GB.
+#
+FROM prerequisite.impactncdengl:local
+LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>"
+
+# Build args:
+#   --build-arg DOWNLOAD_DATA=false      -> build an empty data layer (download later)
+#   --build-arg ZENODO_CONCEPT_DOI=...   -> a specific Zenodo record/version
+ARG DOWNLOAD_DATA=true
+ARG ZENODO_CONCEPT_DOI=10.5281/zenodo.20812409
+ENV DOWNLOAD_DATA=${DOWNLOAD_DATA}
+ENV ZENODO_CONCEPT_DOI=${ZENODO_CONCEPT_DOI}
+
+WORKDIR /IMPACTncd_England
+
+# Only the files needed to download the data — NOT the model code/package. The
+# data layer must not depend on the package (it sits beneath it), so the
+# download script sources the ZenodoAssetManager class directly.
+COPY docker_setup/download_zenodo_data.R docker_setup/download_zenodo_data.R
+COPY Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R
+
+# Download the data AND make it writable in a SINGLE layer. A separate
+# `chmod -R` RUN would copy-up all ~13GB into a second layer and double the
+# image size; doing it in one RUN keeps the data to a single layer.
+RUN Rscript docker_setup/download_zenodo_data.R && \
+    chmod -R a+rw /IMPACTncd_England
+
+CMD ["/bin/bash"]
+
+# Build (from the docker_setup directory; data is downloaded from Zenodo):
+#   ./docker_build_push.sh Dockerfile.data.IMPACTncdENGL
+# Build a data-less layer (download at runtime instead):
+#   docker build --build-arg DOWNLOAD_DATA=false -f Dockerfile.data.IMPACTncdENGL ...

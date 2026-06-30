@@ -1,0 +1,320 @@
+---
+title: "Exporting custom columns created in scenarios"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Exporting custom columns created in scenarios}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## What this is for
+
+A scenario function can attach new columns to the synthetic population
+(`synthpop$pop`). By default those columns are **dropped** before the
+lifecourse is written to disk, so they never reach the summaries or tables.
+
+This vignette explains the mechanism that lets a user-created column survive to
+the lifecourse output **and** be aggregated into the summary files and tables,
+with no changes to the model's source code. The mechanism is purely a **naming
+convention** plus, optionally, one entry in the design YAML.
+
+## The two requirements
+
+For a scenario-created column to appear in the summaries, it must satisfy
+**both** of the following:
+
+1. **Be kept by the lifecourse pruning step** — either by being listed in
+   `cols_for_output` in the design YAML, *or* by being named with a recognised
+   suffix that is kept automatically (`_prvl`, `_contd`, `_costs`, `_dgns`,
+   `_mrtl`, or a `cms_` prefix).
+2. **Use a recognised suffix** so the export step knows how to aggregate it.
+
+The recognised suffixes and their treatment are:
+
+| Suffix    | Interpreted as        | Aggregation                              | Output folder(s)                                   |
+|-----------|-----------------------|------------------------------------------|----------------------------------------------------|
+| `_prvl`   | duration counter      | prevalence `SUM(wt)` where `col > 0` **and** incidence `SUM(wt)` where `col = 1` | `summaries/prvl_scaled_up/`, `summaries/incd_scaled_up/` (+ `_esp`) |
+| `_contd`  | continuous quantity   | population-weighted mean                  | `summaries/contd_scaled_up/`, `summaries/contd_esp/` |
+| `_costs`  | monetary cost         | `SUM(col * wt)`                           | `summaries/costs_scaled_up/`, `summaries/costs_esp/` |
+
+`_prvl` and `_costs` ride on the existing exporters; `_contd` is exported by a
+dedicated step that you opt into with `type = c(..., "contd")` in
+`export_summaries()`.
+
+> **Note on the `_costs` suffix.** The model's *built-in* cost columns use the
+> singular `_cost` suffix (`healthcare_cost`, `socialcare_cost`,
+> `informalcare_cost`, `total_cost`, …). Custom cost columns use the **plural**
+> `_costs` suffix so the two never collide. Both end up side-by-side in the
+> `costs` summary.
+
+## How `_prvl` yields both prevalence and incidence
+
+The disease prevalence columns in the model are not 0/1 flags — they are
+**duration counters**: the value is `1` in the year the condition first appears
+(the incidence event), then `2`, `3`, … for each subsequent year the person
+carries the condition. The prevalence exporter counts everyone with `col > 0`;
+the incidence exporter counts only `col = 1`. A single column drives both.
+
+To build such a counter from a 0/1 event vector, use `carry_forward_incr()`, the
+same helper the model uses internally:
+
+```{r}
+# inside a scenario function, `synthpop$pop` is keyed by (pid, year)
+synthpop$pop[, my_event_prvl := carry_forward_incr(
+  as.integer(some_condition),  # 1 in the event year, 0 otherwise
+  pid_mrk,                     # per-simulant marker (already present)
+  recur = FALSE,               # FALSE = once-only (e.g. CHD); TRUE = can recur
+  y = 1L,
+  byref = TRUE
+)]
+```
+
+If you only care about prevalence and not incidence timing, a plain
+non-decreasing indicator also works — anything `> 0` counts as prevalent and
+anything `= 1` counts as incident in that year.
+
+## A worked example
+
+The example below defines a primary-prevention scenario that, from 2025 onwards,
+reduces systolic blood pressure (SBP) by 10% and records three custom columns:
+
+* `sbp_intervention_prvl` — a flag for "is currently exposed to the
+  intervention", as a duration counter so it yields both a prevalence and an
+  incidence summary;
+* `sbp_excess_contd` — a continuous quantity (mmHg of SBP above 130), summarised
+  as a population-weighted mean;
+* `sbp_intervention_costs` — a per-person-year monetary cost of delivering the
+  intervention.
+
+> **Year format.** In England the lifecourse `year` column is stored in *short*
+> form (e.g. `25` for 2025), so scenario conditions use `year >= 25L`. The
+> tables produced by `$export_tables()` are converted to full years (2025).
+
+### Step 1 — (optionally) declare the columns in the design YAML
+
+`_prvl`, `_contd` and `_costs` columns are kept automatically by the pruning
+step, so strictly you do not need to list them. Listing them anyway is good
+documentation and is **required** for any custom column that does *not* use a
+recognised suffix:
+
+```yaml
+cols_for_output:
+- pid
+- pid_mrk
+- year
+- mc
+- age
+- agegrp
+- sex
+- dimd
+- wt
+- wt_esp
+- sbp_intervention_prvl    # optional for suffixed cols, but explicit is nice
+- sbp_excess_contd
+- sbp_intervention_costs
+```
+
+### Step 2 — create the columns in the scenario function
+
+Create the columns in **every** scenario (including the baseline) so the
+lifecourse schema is consistent across scenarios — set them to their "off"
+values in the baseline.
+
+```{r}
+source("./global.R")
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+
+# Baseline scenario (sc0): intervention OFF, but columns present at base values.
+IMPACTncd$update_primary_prevention_scn(
+  function(synthpop) {
+    synthpop$pop[, sbp_intervention_prvl := 0L]
+    synthpop$pop[, sbp_excess_contd := pmax(0, sbp_curr_xps - 130)]
+    synthpop$pop[, sbp_intervention_costs := 0]
+    NULL
+  }
+)
+
+IMPACTncd$
+  del_logs()$
+  del_outputs()$
+  run(1:2, multicore = TRUE, "sc0")   # baseline
+
+# Intervention scenario (sc1): 10% SBP reduction from 2025 onwards.
+IMPACTncd$update_primary_prevention_scn(
+  function(synthpop) {
+    synthpop$pop[year >= 25L, sbp_curr_xps := sbp_curr_xps * 0.9]
+
+    # (1) _prvl: duration counter -> drives prvl AND incd summaries
+    synthpop$pop[, sbp_intervention_prvl := carry_forward_incr(
+      as.integer(year >= 25L),
+      pid_mrk,
+      recur = FALSE,
+      y = 1L,
+      byref = TRUE
+    )]
+
+    # (2) _contd: continuous -> population-weighted mean
+    synthpop$pop[, sbp_excess_contd := pmax(0, sbp_curr_xps - 130)]
+
+    # (3) _costs: monetary -> SUM(col * wt); feeds net_costs downstream
+    synthpop$pop[, sbp_intervention_costs := fifelse(year >= 25L, 500, 0)]
+
+    NULL
+  }
+)
+
+IMPACTncd$
+  run(1:2, multicore = TRUE, "sc1")   # intervention scenario
+```
+
+### Step 3 — export summaries, including the continuous one
+
+`prvl`, `incd` and `costs` are standard types and pick up the custom columns
+with no extra work. Add `"contd"` to also export the weighted-mean summary for
+`_contd` columns.
+
+```{r}
+IMPACTncd$export_summaries(
+  multicore = TRUE,
+  type = c(
+    "le", "hle", "dis_char",
+    "prvl", "incd", "dis_mrtl", "mrtl",
+    "all_cause_mrtl_by_dis", "cms",
+    "qalys", "costs",
+    "contd"            # <- exports summaries/contd_scaled_up/ etc.
+  )
+)
+```
+
+## What the outputs look like
+
+Each summary is one Parquet dataset per Monte Carlo iteration, stratified by
+`strata_for_output` (by default `scenario, year, agegrp, sex, dimd`) plus `mc`
+and a `popsize` column. The idiomatic way to read a summary is
+`arrow::open_dataset()` on the summary *folder*, which combines all Monte Carlo
+files at once.
+
+```{r}
+library(arrow)
+library(data.table)
+
+smr <- file.path(IMPACTncd$design$sim_prm$output_dir, "summaries")
+
+# (1) prevalence of the intervention flag
+prvl <- as.data.table(open_dataset(file.path(smr, "prvl_scaled_up")))
+prvl[, .(mc, scenario, year, agegrp, sex, dimd, popsize, sbp_intervention_prvl)]
+
+# the SAME _prvl column also produced an incidence column (col == 1)
+incd <- as.data.table(open_dataset(file.path(smr, "incd_scaled_up")))
+incd[, .(mc, scenario, year, agegrp, sex, dimd, sbp_intervention_incd)]
+
+# (2) weighted-mean of the continuous column
+contd <- as.data.table(open_dataset(file.path(smr, "contd_scaled_up")))
+contd[, .(mc, scenario, year, agegrp, sex, dimd, popsize, sbp_excess_contd)]
+
+# (3) summed cost column, alongside the model's built-in cost columns
+costs <- as.data.table(open_dataset(file.path(smr, "costs_scaled_up")))
+costs[, .(mc, scenario, year, agegrp, sex, dimd, sbp_intervention_costs)]
+```
+
+Notes on the column names:
+
+* The `_prvl` column keeps its name in the prevalence file
+  (`sbp_intervention_prvl`) and is renamed `…_incd` in the incidence file
+  (`sbp_intervention_incd`).
+* The `_contd` column keeps its name and holds the weighted mean.
+* The `_costs` column keeps its name and holds the weighted sum.
+
+## Downstream tables (`$export_tables()`)
+
+`$export_tables()` turns the per-Monte-Carlo summaries into quantile tables in
+`output_dir/tables/`. It selects columns by **suffix**, so most custom columns
+are tabulated automatically — you do not need to edit any code:
+
+* `_prvl` columns feed the `prevalence`, `prevalence change` and
+  `case-years prevented or postponed` (cypp) tables.
+* the derived `_incd` columns feed `incidence`, `incidence change` and
+  `cases prevented or postponed` (cpp).
+* `_costs` columns feed `costs` and `net costs`.
+* `_contd` columns feed the `continuous outcome` tables (a population-weighted
+  mean, re-weighted by `popsize` when collapsing strata).
+
+```{r}
+IMPACTncd$export_tables()
+```
+
+### Costs, net costs and economic evaluation
+
+The `net costs` output is the difference versus the comparator scenario (by
+default `sc0`). Because it discovers all cost columns by suffix, your custom
+cost appears in net-cost tables without further configuration.
+
+Incremental cost-effectiveness ratios (ICER) and net monetary benefit (NMB) are
+produced directly by `$export_tables()` when `cea = TRUE` (the default). It
+writes `cost-effectiveness by <strata> (<perspective>-<scale>) (not
+standardised).csv` files containing the cumulative discounted incremental QALYs
+(`dQALYs_cuml`) and costs (`dCosts_cuml`), the `ICER`, and the `NMB` at each
+willingness-to-pay threshold, for the EQ-5D-5L QALY scale and from two
+perspectives:
+
+* **societal** — uses `total_cost` (healthcare + social care + informal care,
+  net of `economic_output`), plus all custom `_costs` columns;
+* **healthcare** — uses `healthcare_cost` (direct treatment costs only).
+
+Discounting is applied with separate annual rates for costs and QALYs
+(`cost_discount_rate`, `qaly_discount_rate`, default 3.5% each per NICE) and is
+controlled **only** by these `export_tables()` arguments — there is no
+`discounting` block in `sim_design.yaml`. Discounting is applied **only** to the
+cost-effectiveness tables; the prevalence, incidence, mortality, QALY and cost
+tables are reported undiscounted. `discount_from_year` defaults to the baseline
+(reference) year. The willingness-to-pay thresholds are set with the `wtp`
+argument (default `c(20000, 30000)` GBP/QALY, the NICE thresholds):
+
+```{r}
+IMPACTncd$export_tables(
+  cea = TRUE,
+  wtp = c(20000, 30000),       # GBP per QALY
+  qaly_discount_rate = 3.5,    # discounting lives only in the CEA tables
+  cost_discount_rate = 3.5
+)
+```
+
+**Where do your custom `_costs` columns count?** Custom cost columns are
+**always** added to the **societal** perspective. By default they are *not*
+included in the healthcare perspective (which captures direct treatment costs
+only). If some of your custom costs *are* healthcare costs, pass their column
+names to `custom_costs_in_healthcare` in `export_tables()` and they are added to
+the healthcare perspective as well, e.g.
+`custom_costs_in_healthcare = c("screening_costs", "drug_costs")`. For example,
+an intervention-delivery cost paid by the health system should be listed here,
+whereas a productivity-loss or out-of-pocket cost should be left in the societal
+perspective only. (Passing `TRUE` includes *all* custom cost columns and
+`NULL`/`FALSE` includes none.)
+
+If you need a bespoke calculation, you can still derive ICER and NMB yourself
+from the `net costs` and `net QALYs` tables in your own analysis scripts.
+
+## Tips and gotchas
+
+* **Keep the column present in every scenario.** If a column exists in `sc1` but
+  not in `sc0`, the baseline rows will be missing it. When the lifecourse files
+  are combined across scenarios the missing values become `NULL`, which the
+  prevalence/incidence/cost aggregations treat as 0. If you want a genuine zero
+  baseline, create the column in *every* scenario (including the baseline) — e.g.
+  set it to `0` when the intervention is not active.
+* **Avoid the substring `wt` in custom column names.** The ESP-weighted variants
+  of some summaries are produced by string-replacing `wt` with `wt_esp` in the
+  SQL. A column name containing `wt` could be corrupted by that substitution.
+* **`_contd` is opt-in.** Remember to add `"contd"` to the `type` argument of
+  `export_summaries()`, otherwise the continuous summary is not written.
+* **Type matters.** `_prvl` and `_incd` logic compares against integers (`> 0`,
+  `= 1`), so make `_prvl` columns integer counters. `_contd` and `_costs` should
+  be numeric.
