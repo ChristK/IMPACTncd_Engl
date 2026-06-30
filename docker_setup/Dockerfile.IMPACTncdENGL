@@ -4,7 +4,14 @@
 #   + model CODE from GitHub/local  -> this Dockerfile
 # The ~13GB of data is INHERITED from the data layer, so rebuilding this image
 # after a code change does NOT re-download it.
-FROM data.impactncdengl:local
+#
+# The data base image is parametrized via a build-arg so CI and other builds can
+# point FROM at a Zenodo-versioned data image on Docker Hub (e.g.
+# chriskypri/data.impactncdengl:1.0.1 or :latest) WITHOUT editing this file or
+# re-downloading from Zenodo (the data is baked into those layers and pulled from
+# Hub). The default keeps the local 3-layer build working unchanged.
+ARG DATA_IMAGE=data.impactncdengl:local
+FROM ${DATA_IMAGE}
 LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>"
 
 # Build argument to control source method: "copy" (local checkout) or "git".
