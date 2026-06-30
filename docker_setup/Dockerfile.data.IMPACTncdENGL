@@ -12,7 +12,11 @@
 #                                     changes; the data is INHERITED from here, so
 #                                     code rebuilds do NOT re-download ~13GB.
 #
-FROM prerequisite.impactncdengl:local
+# The prerequisite base is parametrized via a build-arg so the data image can be
+# built against a versioned/branch prerequisite without editing this file. The
+# default keeps the local 3-layer build working unchanged.
+ARG PREREQ_IMAGE=prerequisite.impactncdengl:local
+FROM ${PREREQ_IMAGE}
 LABEL maintainer="Chris Kypridemos <ckyprid@liverpool.ac.uk>"
 
 # Build args:
