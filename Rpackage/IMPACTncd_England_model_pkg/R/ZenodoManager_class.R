@@ -1721,6 +1721,66 @@ ZenodoAssetManager <- R6::R6Class(
       self$record
     },
 
+    # import_previous_files ----
+    #' @description Import all files from the previous version into the current
+    #'   new-version draft, server-side (no re-upload).
+    #' @details InvenioRDM new-version drafts start empty. This calls the
+    #'   InvenioRDM \code{files-import} draft action so the draft inherits every
+    #'   file from the parent record's latest published version without
+    #'   re-uploading them. Requires a draft created via
+    #'   \code{create_new_version()}. Used by
+    #'   \code{Simulation$zenodo_resync_simulation()} to preserve unchanged
+    #'   inputs while replacing only selected simulation archives.
+    #' @return Invisibly, the number of files on the draft after the import.
+    import_previous_files = function() {
+      private$check_connection()
+      private$require_token("Importing files from the previous version")
+      if (is.null(self$record) || is.null(self$record$id)) {
+        stop("No draft record loaded. Call create_new_version() first.",
+             call. = FALSE)
+      }
+      if (!requireNamespace("httr2", quietly = TRUE)) {
+        stop("Package 'httr2' is required to import previous-version files.",
+             call. = FALSE)
+      }
+      url <- paste0(private$get_api_base_url(), "/records/", self$record$id,
+                    "/draft/actions/files-import")
+      resp <- httr2::request(url) |>
+        httr2::req_method("POST") |>
+        httr2::req_headers(
+          Authorization = paste("Bearer", private$get_token())
+        ) |>
+        httr2::req_error(is_error = function(r) FALSE) |>
+        httr2::req_perform()
+      st <- httr2::resp_status(resp)
+      if (st >= 400L) {
+        stop("files-import failed (HTTP ", st, "): ",
+             substr(httr2::resp_body_string(resp), 1L, 300L), call. = FALSE)
+      }
+      n <- nrow(self$list_remote_files())
+      if (self$logs) {
+        message("Imported ", n, " file(s) from the previous version.")
+      }
+      invisible(n)
+    },
+
+    # delete_draft_files ----
+    #' @description Delete one or more files from the current draft, by key.
+    #' @param filenames Character vector of file keys (archive names) to remove.
+    #' @details Best-effort: missing files (HTTP 404) are ignored. Used to clear
+    #'   the imported old archives that a re-sync is about to replace, since
+    #'   \code{upload_archives()} skips names already present on the record.
+    #' @return Invisibly, the number of delete requests issued.
+    delete_draft_files = function(filenames) {
+      private$require_token("Deleting draft files")
+      filenames <- unique(filenames[nzchar(filenames)])
+      for (nm in filenames) private$delete_draft_file(nm)
+      if (self$logs && length(filenames) > 0L) {
+        message("Removed ", length(filenames), " existing draft archive(s).")
+      }
+      invisible(length(filenames))
+    },
+
     # publish_record ----
     #' @description Publish the current record.
     #' @return The published record object.

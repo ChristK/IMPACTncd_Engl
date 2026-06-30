@@ -215,6 +215,17 @@ IMPACTncd$zenodo_publish()
 
 
 ## ------------------------------------------------
+## Method `Simulation$zenodo_resync_simulation()`
+## ------------------------------------------------
+
+\dontrun{
+# Dry-run on the sandbox first, then production.
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_resync_simulation("1.0.1", directories = "parf",
+                                   publish = TRUE)
+}
+
+## ------------------------------------------------
 ## Method `Simulation$zenodo_upload_all()`
 ## ------------------------------------------------
 
@@ -328,6 +339,9 @@ EQ-5D Scores for the United Kingdom." \emph{Medical Decision Making},
 \code{\link{zenodo_upload_inputs}},
 \code{\link{zenodo_upload_all}}
 
+\code{\link{zenodo_upload_simulation}},
+\code{\link{zenodo_publish}}, \code{\link{zenodo_list_files}}
+
 \code{\link{zenodo_upload_inputs}},
 \code{\link{zenodo_upload_simulation}},
 \code{\link{zenodo_publish}}
@@ -389,6 +403,7 @@ EQ-5D Scores for the United Kingdom." \emph{Medical Decision Making},
     \item \href{#method-Simulation-zenodo_download_all}{\code{Simulation$zenodo_download_all()}}
     \item \href{#method-Simulation-zenodo_upload_inputs}{\code{Simulation$zenodo_upload_inputs()}}
     \item \href{#method-Simulation-zenodo_upload_simulation}{\code{Simulation$zenodo_upload_simulation()}}
+    \item \href{#method-Simulation-zenodo_resync_simulation}{\code{Simulation$zenodo_resync_simulation()}}
     \item \href{#method-Simulation-zenodo_upload_all}{\code{Simulation$zenodo_upload_all()}}
     \item \href{#method-Simulation-zenodo_publish}{\code{Simulation$zenodo_publish()}}
     \item \href{#method-Simulation-zenodo_list_files}{\code{Simulation$zenodo_list_files()}}
@@ -1562,6 +1577,90 @@ IMPACTncd$zenodo_upload_inputs(version = "1.0.0", title = "...",
   description = "...", creators = list(...))
 IMPACTncd$zenodo_upload_simulation()
 IMPACTncd$zenodo_publish()
+}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-zenodo_resync_simulation"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-zenodo_resync_simulation}{}}}
+\subsection{\code{Simulation$zenodo_resync_simulation()}}{
+  Efficiently re-sync simulation archives (e.g. PARFs) to a
+new version of the published Zenodo record, re-uploading ONLY the
+changed archives while carrying every other file over server-side.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$zenodo_resync_simulation(
+  version,
+  simulation_base = "./simulation",
+  directories = c("parf"),
+  exclude_file_patterns = c("\\\\.R$", "\\\\.csv$", "\\\\.qs$"),
+  group_by_prefix = TRUE,
+  compression_level = 6L,
+  multicore = TRUE,
+  n_cores = self$design$sim_prm$clusternumber,
+  update_gitignore = TRUE,
+  min_preserved_inputs = 1L,
+  publish = FALSE
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{version}}{Character. New version string, e.g. \code{"1.0.1"}.}
+      \item{\code{simulation_base}}{Character. Path to the simulation directory.
+Default \code{"./simulation"}.}
+      \item{\code{directories}}{Character vector of simulation subdirectories to
+re-sync. Default \code{c("parf")}.}
+      \item{\code{exclude_file_patterns}}{Character vector of regex patterns for
+files to exclude from the new archives. The default also excludes
+\code{.qs} so stale pre-parquet PARF files are not re-uploaded.}
+      \item{\code{group_by_prefix, compression_level, multicore, n_cores, update_gitignore}}{As in \code{\link{zenodo_upload_simulation}}.}
+      \item{\code{min_preserved_inputs}}{Integer. Lower bound on the number of
+preserved (non-target) input files required before publishing, as a
+guard against an incomplete server-side import. Default \code{1L}.}
+      \item{\code{publish}}{Logical. Publish after a successful, verified re-sync?
+Default \code{FALSE}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    When a cache key changes (e.g. a fix that alters PARF hashes), the
+already-published PARFs no longer match what the current code
+generates, so users would needlessly regenerate them on first run.
+This publishes a new version containing the regenerated archives
+\strong{without} re-uploading the (unchanged, often many-GB) input
+data:
+\enumerate{
+\item create a new-version draft (\code{create_new_version});
+\item import every file from the previous version server-side
+(\code{import_previous_files}, via the InvenioRDM
+\code{files-import} action) -- no input re-upload;
+\item delete the existing archives for \code{directories} from the
+draft so the regenerated ones replace them (uploads skip names
+already present);
+\item build and upload the regenerated archives from
+\code{simulation_base};
+\item verify the inputs were preserved and the target archives
+replaced, then optionally publish.
+}
+The verification \strong{gates the publish}: if the import dropped
+input files or not all target archives uploaded, the draft is left
+unpublished and an error is raised. As always with publishing, dry-run
+against the sandbox first (\code{zenodo_connect(sandbox = TRUE)}) and
+review with \code{zenodo_list_files()}.
+  }
+  \subsection{Returns}{
+    The invisible \code{Simulation} object (for method chaining).
+  }
+  \subsection{Examples}{
+    \if{html}{\out{<div class="r example copy">}}
+    \preformatted{# Dry-run on the sandbox first, then production.
+IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_resync_simulation("1.0.1", directories = "parf",
+                                   publish = TRUE)
 }
     \if{html}{\out{</div>}}
   }
