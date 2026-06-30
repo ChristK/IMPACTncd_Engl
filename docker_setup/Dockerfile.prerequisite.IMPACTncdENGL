@@ -40,7 +40,7 @@ RUN sed -i '1s/^\xEF\xBB\xBF//' /tmp/r-packages.txt && \
     && strip /usr/local/lib/R/site-library/*/libs/*.so
 
 # RUN installGithub.r "ChristK/CKutils@master"
-RUN installGithub.r "ChristK/CKutils@c086fc420ef2dc65b332b69f6525f6ab63df60a1" # CKutils with header-only scalar distribution API (LinkingTo support)
+RUN installGithub.r "ChristK/CKutils@3cffe8e5b081cbd0f3ce4b9d96b6c0709db936c2" # CKutils: header-only scalar distribution API (LinkingTo) + dependencies() per-package install check (fixes Windows "package in use" warnings)
 # The following commented out lines are an example on how to load a specific version of a package
 # RUN wget http://cran.r-project.org/src/contrib/Archive/data.table/data.table_1.16.4.tar.gz
 # RUN R CMD INSTALL data.table_1.16.4.tar.gz && rm data.table_1.16.4.tar.gz
