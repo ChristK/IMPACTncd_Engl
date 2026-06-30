@@ -28,7 +28,7 @@ jobs:
         r-version: ['release']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
@@ -96,7 +96,7 @@ jobs:
           echo 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/__linux__/rhel9/latest"))' >> ~/.Rprofile
           echo 'options(HTTPUserAgent = sprintf("R/%s R (%s)", getRversion(), paste(getRversion(), R.version$platform, R.version$arch, R.version$os)))' >> ~/.Rprofile
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install packages via global.R
         env:
