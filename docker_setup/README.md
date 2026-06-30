@@ -258,8 +258,15 @@ The dev script does not accept `-Tag` — its image name is fixed.
 The project uses a **three-layer architecture**, so that frequent code changes do not trigger a ~13 GB data re-download and the dev base stays lean:
 
 1. **Prerequisite image** (`prerequisite.impactncdengl:local`) — base R environment with all system/R dependencies. The dev workflow runs this with your source mounted on top.
-2. **Data image** (`data.impactncdengl:local`) — prerequisite **+ ~13 GB of model data downloaded from Zenodo**. Rebuilt only when the Zenodo data changes.
-3. **Model image** (`impactncdengl:local`) — data **+ model code** (from your checkout or GitHub) + the built package. Rebuilt on code changes; the data is **inherited** from the data image, so it is **not** re-downloaded (~20 GB total).
+2. **Data image** (`data.impactncdengl`) — prerequisite **+ ~13 GB of model data downloaded from Zenodo**. Rebuilt only when the Zenodo data (or the prerequisite) changes. Published to Docker Hub tagged by **Zenodo version** (see `build_push_data.sh` below).
+3. **Model image** (`impactncdengl:local`) — data **+ model code** (from your checkout or GitHub) + the built package. Rebuilt on code changes; the data is **inherited** from the data image, so it is **not** re-downloaded (~33 GB total).
+
+> **How images reach Docker Hub:** the **prerequisite** and **model** images are
+> built and pushed by GitHub Actions on every push
+> (`.github/workflows/build_push_prerequisite_*.yml`, `build_push_impactncdengl.yml`).
+> The **data** image is published **manually** with `build_push_data.sh` (below),
+> because it is large and changes rarely. The model build (CI or local) pulls the
+> data layers from Docker Hub — it **never re-downloads from Zenodo**.
 
 Build the three layers in order:
 
@@ -269,15 +276,47 @@ cd docker_setup
 # 1. Prerequisite (R environment) — rebuild only when apt/R packages change
 ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
 
-# 2. Data (downloads ~13 GB from Zenodo) — rebuild only when the data changes
+# 2. Data (downloads ~13 GB from Zenodo) — rebuild only when the data changes.
+#    Local-only :local build:
 ./docker_build_push.sh Dockerfile.data.IMPACTncdENGL
+#    ...or build + tag by Zenodo version + push to Docker Hub (see below):
+./build_push_data.sh
 
-# 3. Model image (code on top of the data; no re-download)
+# 3. Model image (code on top of the data; no Zenodo re-download)
 ./docker_build_push.sh Dockerfile.IMPACTncdENGL
 
 # Build and push the model image to Docker Hub (requires DOCKERHUB_USERNAME / DOCKERHUB_TOKEN)
 ./docker_build_push.sh Dockerfile.IMPACTncdENGL --push
 ```
+
+#### Parametrized base images (`DATA_IMAGE` / `PREREQ_IMAGE`)
+
+The data and model Dockerfiles take their base image from a build-arg, defaulting to the local `:local` tags so the commands above work unchanged:
+
+- `Dockerfile.IMPACTncdENGL`: `ARG DATA_IMAGE=data.impactncdengl:local` → `FROM ${DATA_IMAGE}`
+- `Dockerfile.data.IMPACTncdENGL`: `ARG PREREQ_IMAGE=prerequisite.impactncdengl:local` → `FROM ${PREREQ_IMAGE}`
+
+That lets a build point `FROM` at a published image on Docker Hub without editing the Dockerfile — e.g. build the model image on top of the versioned data layer (this is what the model CI workflow does):
+
+```bash
+docker build --build-arg DATA_IMAGE=chriskypri/data.impactncdengl:latest \
+  -f Dockerfile.IMPACTncdENGL -t impactncdengl:local <context>
+```
+
+#### Data image: built locally, tagged by Zenodo version — `build_push_data.sh`
+
+The data layer is large (~33 GB) and changes rarely, so it is **not** built in CI — it is built **locally** and published to Docker Hub, tagged by the Zenodo data version so downstream images can pin or float against it:
+
+```bash
+./build_push_data.sh
+```
+
+This script:
+1. Resolves the published Zenodo data version (via `print_zenodo_version.R`, which reads `record$metadata$version` for the concept DOI — anonymous, no token).
+2. Builds the data image (clean git-tracked context, ~13 GB Zenodo download).
+3. Pushes `chriskypri/data.impactncdengl:<version>` (immutable) **and** `:latest` (moving alias), and leaves a local `data.impactncdengl:local`.
+
+Run it whenever the Zenodo data record changes, or after rebuilding the prerequisite image (the data layer is `FROM` it). Requires `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` (and optionally `ZENODO_CONCEPT_DOI` to override the default record) — set them in `.env`.
 
 #### Model data from Zenodo
 
@@ -301,7 +340,7 @@ IMPACTncd$zenodo_connect()       # anonymous, defaults to the published record
 IMPACTncd$zenodo_download_all()
 ```
 
-The `docker_build_push.{sh,ps1}` scripts derive the image name from the Dockerfile filename, so the commands above produce `prerequisite.impactncdengl:local`, `data.impactncdengl:local`, and `impactncdengl:local` — the names the data/model `FROM` lines and `setup_user_docker_env.{sh,ps1}` expect.
+The `docker_build_push.{sh,ps1}` scripts derive the image name from the Dockerfile filename, so the local commands above produce `prerequisite.impactncdengl:local`, `data.impactncdengl:local`, and `impactncdengl:local` — the defaults the `ARG`-based `FROM` lines (`DATA_IMAGE` / `PREREQ_IMAGE`, above) and `setup_user_docker_env.{sh,ps1}` expect.
 
 #### If the model build fails with `blob ... not found` (containerd GC race)
 
@@ -343,7 +382,7 @@ export DOCKERHUB_TOKEN=youraccesstoken
 
 ### Disk space
 
-The data and model images are large (~13–20 GB) because the model data (downloaded from Zenodo into the data image) is baked in. The data-image build also temporarily needs ~13 GB to download and extract the data. Make sure Docker has room:
+The data and model images are large (~33 GB unpacked, ~15 GB compressed) because the model data (downloaded from Zenodo into the data image) is baked in. The data-image build also temporarily needs ~13 GB to download and extract the data. Make sure Docker has room:
 - **Linux:** check the `/var` partition or set `data-root` in `/etc/docker/daemon.json`.
 - **Windows / macOS:** check Docker Desktop disk allocation in settings.
 
@@ -381,7 +420,7 @@ The intelligent installer (`install_packages.sh`) falls back to the nearest avai
 Installed from the Posit Package Manager snapshot whose date is the first line of `r-packages.txt`. The snapshot URL pins the versions; this file just lists the package names.
 
 ```
-# CRAN snapshot date: 2026-02-18
+# CRAN snapshot date: 2026-06-22
 data.table
 ggplot2
 fst
@@ -432,7 +471,13 @@ To bump the R package snapshot, edit the first line of `r-packages.txt` and rebu
    ```bash
    ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
    ```
-3. Rebuild the main image:
+3. Rebuild the **data** image on top of it (the data layer is `FROM` the
+   prerequisite, so it must be rebuilt when the prerequisite changes):
+   ```bash
+   ./docker_build_push.sh Dockerfile.data.IMPACTncdENGL   # local :local
+   # or: ./build_push_data.sh                             # versioned + :latest, pushed to Hub
+   ```
+4. Rebuild the model image:
    ```bash
    ./docker_build_push.sh Dockerfile.IMPACTncdENGL
    ```
@@ -443,9 +488,9 @@ To bump the R package snapshot, edit the first line of `r-packages.txt` and rebu
 
 | Property | Value | Source of truth |
 |---|---|---|
-| Base image | `rocker/r-ver:4.5.2` | `Dockerfile.prerequisite.IMPACTncdENGL` line 1 |
-| R version | 4.5.2 | implied by base image |
-| CRAN snapshot date | see first line of `r-packages.txt` (currently **2026-02-18**) | `r-packages.txt` |
+| Base image | `rocker/r-ver:4.6.0` | `Dockerfile.prerequisite.IMPACTncdENGL` line 1 |
+| R version | 4.6.0 | implied by base image |
+| CRAN snapshot date | see first line of `r-packages.txt` (currently **2026-06-22**) | `r-packages.txt` |
 | Package manager | [Posit Package Manager](https://packagemanager.posit.co/) | — |
 | Docker Hub | [chriskypri/impactncdengl](https://hub.docker.com/r/chriskypri/impactncdengl) | — |
 | Supported platforms | Windows 10/11 (incl. PowerShell-in-WSL), macOS, Linux (Ubuntu / Debian / Fedora / CentOS / Rocky) | — |

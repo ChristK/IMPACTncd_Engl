@@ -76,6 +76,22 @@ roxygen2::roxygenise("Rpackage/IMPACTncd_England_model_pkg")
 ./docker_setup/docker_build_push.sh Dockerfile.IMPACTncdENGL --push  # Build/push images
 ```
 
+**Three-layer images** (build in order): `prerequisite` (R env) → `data`
+(prerequisite + ~13GB Zenodo data) → `impactncdengl` (data + model code). The
+`data` layer is heavy (~33GB) and changes rarely, so it is built **locally** and
+tagged by Zenodo version:
+```bash
+./docker_setup/build_push_data.sh   # auto-tags data.impactncdengl:<zenodo_ver> + :latest, pushes
+```
+Downstream Dockerfiles parametrize their base via build-args
+(`FROM ${DATA_IMAGE}` / `FROM ${PREREQ_IMAGE}`, default `:local`), so CI/other
+builds point `FROM` at the pushed image (e.g.
+`--build-arg DATA_IMAGE=chriskypri/data.impactncdengl:latest`) without
+re-downloading from Zenodo. CI: `prerequisite` and `impactncdengl` build in
+GitHub Actions; the model build pulls the data layers from Docker Hub.
+If a layer-3 build trips the host containerd GC race
+(`blob ... not found` at export), use `./docker_setup/build_model_via_commit.sh`.
+
 ## Code Conventions
 
 ### R Code Style
