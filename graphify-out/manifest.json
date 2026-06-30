@@ -15,13 +15,13 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp": {
-    "mtime": 1771546829.060938,
+    "mtime": 1782744711.4946935,
     "ast_hash": "fd0e604c4500f4571c9d887a37d85f30",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp": {
-    "mtime": 1771525736.984881,
-    "ast_hash": "be6b0e5f7d8b5cf7724824ad60d08d11",
+    "mtime": 1782744684.7473483,
+    "ast_hash": "9c843d85d47ff6ac83ccfe2b33a6d43f",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_dev_docker_env.ps1": {
@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/aux_functions_extra.R": {
-    "mtime": 1771525738.520896,
-    "ast_hash": "ba0635037673b6be6ddb3ab7d32971f8",
+    "mtime": 1782744055.19822,
+    "ast_hash": "f95833812d0db55cd7ab0b05d2582142",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/deconstructed_sim.R": {
@@ -230,27 +230,27 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Design_class.R": {
-    "mtime": 1777902389.1520357,
-    "ast_hash": "9aaf126a017eb044a25c1f12cfa0610b",
+    "mtime": 1782744019.1237535,
+    "ast_hash": "bcea25255134d878acf7a331336a79e2",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Disease_class.R": {
-    "mtime": 1777377329.7833173,
-    "ast_hash": "f6981abfcba5f66272ce6a25ac3ce469",
+    "mtime": 1782744012.8536725,
+    "ast_hash": "709d05275e408095442519492fe4e8bc",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class.R": {
-    "mtime": 1782241347.3614116,
-    "ast_hash": "80ba0e3ccead9ce02b613d32cb6b71cc",
+    "mtime": 1782812464.7790043,
+    "ast_hash": "be828e2c2a50e56d62432696d62200b6",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R": {
-    "mtime": 1782239846.523326,
-    "ast_hash": "beb82a12993161be5d884d77f727f688",
+    "mtime": 1782812284.4962273,
+    "ast_hash": "68a2a3608d90a68502996d3392a0249f",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/RcppExports.R": {
-    "mtime": 1771546829.060938,
+    "mtime": 1782744711.4946935,
     "ast_hash": "6e8aa8b17fd68491bc4147271d099b81",
     "semantic_hash": ""
   },
@@ -1184,21 +1184,6 @@
     "ast_hash": "2de08a9812424e9066f7eaeaa717ed35",
     "semantic_hash": ""
   },
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_AFFIRMO.yaml": {
-    "mtime": 1774905730.7381444,
-    "ast_hash": "dad116ed5fba7d0e7aa5179c39420cc9",
-    "semantic_hash": ""
-  },
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_NotinghamICS.yaml": {
-    "mtime": 1774905730.7381444,
-    "ast_hash": "0919dff5ca635292e7052f40e6f84be2",
-    "semantic_hash": ""
-  },
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_NotinghamLA.yaml": {
-    "mtime": 1774905730.7381444,
-    "ast_hash": "564e41a83a8da80317e97c3e4124c716",
-    "semantic_hash": ""
-  },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/inputs/sim_design_elast.yaml": {
     "mtime": 1774905730.7381444,
     "ast_hash": "1f6652837ffa1cf49138580ab7fa5c75",
@@ -1542,6 +1527,51 @@
   "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/build_model_via_commit.sh": {
     "mtime": 1782293273.355924,
     "ast_hash": "7c88f3738a70fc9be2b271e24ba8da32",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/validate_duration_port.R": {
+    "mtime": 1782740530.2896652,
+    "ast_hash": "cf31c77ae86481d182024e3ee6073912",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/parity_vs_main_duration.cpp": {
+    "mtime": 1782741601.328496,
+    "ast_hash": "58b1b084a16e81a482a596067260bf0a",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/parity_vs_main_duration.R": {
+    "mtime": 1782741660.898264,
+    "ast_hash": "3ffc480764368b7b8772c7af4945b05b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/NotinghamICS/simulate_NotinghamICS.R": {
+    "mtime": 1782764675.7620459,
+    "ast_hash": "94a09970daef62aac1b105bb247c7d31",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/NotinghamLA/simulate_NotinghamLA.R": {
+    "mtime": 1782764683.8241246,
+    "ast_hash": "8bfa55eea5ac7ad9092a44de9a076bc4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/AFFIRMO/simulate_AFFIRMO.R": {
+    "mtime": 1782764663.8499296,
+    "ast_hash": "1f667051c8b49c8a11e87a2648dfe485",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/NotinghamICS/sim_design_NotinghamICS.yaml": {
+    "mtime": 1782771273.1590345,
+    "ast_hash": "5aa53a59592db4c5d7a5378d6bb78e23",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/NotinghamLA/sim_design_NotinghamLA.yaml": {
+    "mtime": 1782771273.1610343,
+    "ast_hash": "aa3cbe52f657ce55597e5078df3424e9",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/AFFIRMO/sim_design_AFFIRMO.yaml": {
+    "mtime": 1782771273.1560345,
+    "ast_hash": "0c48821d7256e5d310347b12a1972e47",
     "semantic_hash": ""
   }
 }
