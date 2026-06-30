@@ -67,38 +67,48 @@ jobs:
       # STEP 2: Source Code Checkout
       # Checkout the repository source code using the current commit being pushed
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Use the current commit for push events
           ref: ${{ github.sha }}
 
-      # STEP 3: Dynamic Dockerfile Configuration
-      # Updates the Dockerfile to use the correct prerequisite image tag and
-      # clone the correct branch. The Dockerfile contains:
-      # 1. A default ':local' tag that needs to be replaced with the branch name
-      # 2. A git clone command that needs to target the specific branch
-      #
-      # Branch name selection logic:
-      # - For WORKFLOW_RUN events: Use the branch that triggered prerequisite
-      # - For PUSH events: Use the current branch being pushed
-      #
-      # This ensures the main image builds against the correct prerequisite
-      # image version AND contains code from the same branch, maintaining
-      # complete branch-specific isolation.
-      #
-      # Updates performed:
-      # - FROM prerequisite.impactncdengl:local → FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}
-      # - FROM chriskypri/prerequisite.impactncdengl:local → FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}
-      # - git clone → git clone -b ${BRANCH_NAME} (within the conditional RUN command)
-      #
-      # Note: These changes are ephemeral (only in the workflow runner) and
-      # do not modify the repository's Dockerfile.
-      - name: Update base image tag and git clone branch
+      # STEP 3a: Reclaim disk space.
+      # The data base image is ~33GB unpacked; pulling it and building the model
+      # layer on top needs more room than the default runner image leaves free.
+      - name: Free up disk space
+        run: |
+          echo "Disk before:"; df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker image prune --all --force || true
+          echo "Disk after:"; df -h /
+
+      # STEP 3b: Verify the data base image exists on Docker Hub.
+      # The data image (layer 2) is built and pushed LOCALLY by
+      # docker_setup/build_push_data.sh, tagged with the Zenodo data version plus
+      # a moving :latest. The model build below points FROM at it via the
+      # DATA_IMAGE build-arg. No Zenodo re-download happens here: the ~13GB of
+      # data is baked into these layers and pulled from Docker Hub; on push the
+      # data layers are cross-mounted (only the new code layer uploads).
+      # (docker manifest inspect is unauthenticated, as in the prerequisite
+      # workflow — the chriskypri/* repos are public.)
+      - name: Verify data base image exists
+        run: |
+          DATA_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/data.impactncdengl:latest"
+          if ! docker manifest inspect "$DATA_IMAGE" > /dev/null 2>&1; then
+            echo "::error::Data base image '$DATA_IMAGE' not found on Docker Hub. Build & push it locally first: docker_setup/build_push_data.sh"
+            exit 1
+          fi
+          echo "Model image will build FROM $DATA_IMAGE"
+
+      # STEP 3c: Point the git-clone (SOURCE_METHOD=git) at the pushed branch.
+      # The base image is NOT rewritten here — it is supplied via the DATA_IMAGE
+      # build-arg in the build step below (the Dockerfile's `ARG DATA_IMAGE` /
+      # `FROM ${DATA_IMAGE}`). This edit is ephemeral (runner only).
+      - name: Update git clone branch
         run: |
           BRANCH_NAME="${{ github.ref_name }}"
-          sed -i "s|^FROM prerequisite.impactncdengl:.*|FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}|" docker_setup/Dockerfile.IMPACTncdENGL
-          sed -i "s|^FROM chriskypri/prerequisite.impactncdengl:.*|FROM chriskypri/prerequisite.impactncdengl:${BRANCH_NAME}|" docker_setup/Dockerfile.IMPACTncdENGL
-          sed -i "s|git clone https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_England|git clone -b ${BRANCH_NAME} https://github.com/ChristK/IMPACTncd_Engl.git /IMPACTncd_England|" docker_setup/Dockerfile.IMPACTncdENGL
+          sed -i "s|git clone https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo|git clone -b ${BRANCH_NAME} https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo|" docker_setup/Dockerfile.IMPACTncdENGL
 
       # STEP 4: Docker Environment Setup
       # Configure Docker Buildx for enhanced build capabilities including:
@@ -107,7 +117,7 @@ jobs:
       # - Build output options
       # - Extended build features
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # STEP 5: Docker Registry Authentication
       # Authenticate with Docker Hub using stored repository secrets.
@@ -116,7 +126,7 @@ jobs:
       # - DOCKERHUB_USERNAME: Docker Hub username
       # - DOCKERHUB_TOKEN: Docker Hub access token (not password)
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -136,7 +146,7 @@ jobs:
       # - Uses the main application Dockerfile
       # - Sets SOURCE_METHOD=git to use git clone approach
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: docker_setup # Build context directory containing Dockerfile and configurations
           push: true # Push the built image to Docker Hub registry
@@ -145,6 +155,7 @@ jobs:
           file: docker_setup/Dockerfile.IMPACTncdENGL # Main application Dockerfile
           build-args: |
             SOURCE_METHOD=git
+            DATA_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/data.impactncdengl:latest
 
 # =============================================================================
 # WORKFLOW COMPLETION AND OUTCOMES:
