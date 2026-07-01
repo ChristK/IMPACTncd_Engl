@@ -12,6 +12,7 @@ Cross-platform Docker configuration and setup scripts for the **IMPACTncd Englan
 - [Prerequisites](#-prerequisites)
 - [Quick Start — running simulations](#-quick-start--running-simulations)
 - [Mount points](#-mount-points)
+- [Sharing the image across a team (one server)](#-sharing-the-image-across-a-team-one-server)
 - [Docker images](#-docker-images)
 - [Troubleshooting](#-troubleshooting)
 - [Cleanup](#-cleanup)
@@ -146,6 +147,93 @@ Host directories are mounted directly. Real-time visibility, lower overhead. Rec
 
 ### Volume mode (`--UseVolumes` / `-UseVolumes`)
 The script creates Docker-managed volumes for the output and synthpop directories, runs the container against them, then rsyncs results back to the host directories on exit and removes the volumes. Recommended on Windows and macOS where bind mounts have higher I/O overhead.
+
+---
+
+## 👥 Sharing the image across a team (one server)
+
+If several people use the **same server**, they do **not** each need their own
+~34 GB copy of the image. Docker stores an image **once**, in the shared daemon's
+storage (`docker info` → *Docker Root Dir*), and every user runs their own
+lightweight container on top of it. The extra disk cost per teammate is
+essentially the size of their **own simulation outputs** — not the image, and
+not the ~13 GB of Zenodo data baked into it.
+
+### What's shared vs. per-user
+
+| Thing | Shared or per-user? | Where it lives |
+|---|---|---|
+| The `impactncdengl` image (code + ~13 GB Zenodo data) | **Shared — stored once** | Daemon storage (`Docker Root Dir`) |
+| The running container | Per-user, ephemeral (`--rm`) | Thin writable layer, a few MB |
+| `output_dir` (simulation results) | **Per-user** | Host dir from each user's YAML → `/outputs` |
+| `synthpop_dir` (synthetic population cache) | Per-user by default; **can be shared read-only** | Host dir from YAML → `/synthpop` |
+| Scenario scripts | Per-user | `-ScenariosDir` → `/IMPACTncd_England/scenarios` |
+
+### One-time setup (per teammate)
+
+1. **Grant Docker access.** An admin adds each teammate to the `docker` group
+   (membership is root-equivalent on the host — only add trusted users):
+   ```bash
+   sudo usermod -aG docker <username>   # teammate then logs out and back in
+   docker info                          # they verify they can reach the daemon
+   ```
+2. **First run pulls once; everyone else reuses it.** The first person to run
+   `setup_user_docker_env.sh` pulls `chriskypri/impactncdengl:main`. Every
+   subsequent user's `docker pull` finds it already present and downloads
+   nothing — there is still exactly one copy on disk.
+
+### Each teammate runs their own container
+
+Give each person their **own** `output_dir`/`synthpop_dir` (set in their YAML)
+so results don't collide. On Linux keep the **default bind-mount mode** — do
+**not** pass `--UseVolumes` (that path is for macOS/Windows and creates an extra
+per-user volume copy).
+
+#### Example — own `sim_design.yaml` + own scenarios folder
+
+Say teammate *alice* keeps a personal config and a folder of scenario scripts:
+
+```
+/home/alice/impactncd/
+├── my_sim_design.yaml         # output_dir:   /mnt/storage_fast/alice/outputs
+│                              # synthpop_dir: /mnt/storage_fast/alice/synthpop
+└── my_scenarios/
+    └── simulate_England.R     # her scenario script(s)
+```
+
+She launches her own container from the shared image, pointing at both her YAML
+and her scenarios folder:
+
+```bash
+cd docker_setup
+./setup_user_docker_env.sh \
+  -Tag main \
+  -SimDesignYaml /home/alice/impactncd/my_sim_design.yaml \
+  -ScenariosDir  /home/alice/impactncd/my_scenarios
+```
+
+This mounts:
+- her `output_dir` → `/outputs` and `synthpop_dir` → `/synthpop` (read from her YAML), and
+- `my_scenarios/` → `/IMPACTncd_England/scenarios`.
+
+Inside the container she runs her scenario:
+```r
+source("global.R")
+source("scenarios/simulate_England.R")   # the file from her -ScenariosDir folder
+```
+
+> **Tip — share the synthpop cache to save disk.** If teammates run the *same*
+> synthetic population, point everyone's `synthpop_dir` at **one common folder**
+> so the population is generated once instead of per user. Keep each person's
+> `output_dir` **separate** — that's where their distinct results go.
+
+### Don't share one literal container
+
+Everyone should run their **own** container from the shared image (exactly what
+the script does). Having several people `docker exec` into a single
+long-running container saves **no** disk — the image is already shared — and
+gives them one shared R session and working directory where they overwrite each
+other's state. **Same image + separate containers** is both cheaper and safer.
 
 ---
 
