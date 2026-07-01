@@ -69,8 +69,15 @@ RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_mode
 # created user. We deliberately do NOT `chmod -R` inputs/ or simulation/ here:
 # the data layer already made them writable, and re-chmod'ing ~13GB would
 # copy-up the whole dataset into a new layer and double the image size.
+# EXCEPTION: the small bookkeeping files the CODE overlay ships directly in
+# simulation/ (rr_generation_record.csv, *_manifest.csv, calibration_prms.csv, …)
+# arrive root-owned 644 and the model OVERWRITES them at runtime. `chmod ... /*`
+# above only touches the simulation/ dir, not the files inside it, so make just
+# those top-level files writable. -maxdepth 1 avoids recursing into the ~13GB
+# simulation/rr and simulation/parf data dirs.
 RUN chmod -R a+rw /IMPACTncd_England/Rpackage /outputs /synthpop && \
-    chmod a+rw /IMPACTncd_England /IMPACTncd_England/*
+    chmod a+rw /IMPACTncd_England /IMPACTncd_England/* && \
+    find /IMPACTncd_England/simulation -maxdepth 1 -type f -exec chmod a+rw {} +
 
 CMD ["/bin/bash"]
 
