@@ -1,0 +1,203 @@
+# =============================================================================
+# Data Image Freshness Guard
+# =============================================================================
+#
+# PURPOSE:
+# The data image (layer 2 of 3: chriskypri/data.impactncdengl) is deliberately
+# built LOCALLY via docker_setup/build_push_data.sh — it is too heavy for
+# GitHub-hosted runners (~13GB Zenodo download, ~33GB unpacked) and changes
+# rarely. This guard keeps that manual step honest.
+#
+# CHECK 1 — data image vs its inputs (timestamp comparison):
+# Compares the time each data-determining file last LANDED ON MAIN (first-
+# parent history, so PR merge commits count as arrival time) against the
+# Docker Hub push time of data.impactncdengl:latest. Any file newer than the
+# image -> FAIL with rebuild instructions. Because this compares against the
+# published image (not "what changed in this push"), a forgotten rebuild keeps
+# failing on every push to main until the image is refreshed.
+# Residual gap: a fast-forward push of commits authored before the image push
+# keeps original committer dates and is not detected — merge or squash-merge
+# to main is covered.
+#
+# CHECK 2 — model image vs data image:
+# After a data rebuild, build_push_data.sh triggers the model rebuild on main;
+# if that dispatch failed or was skipped, impactncdengl:main silently bakes an
+# old data layer. This check fails when impactncdengl:main is older than
+# data.impactncdengl:latest (with a grace period for the in-flight rebuild).
+#
+# TRIGGERS: every push to main; a weekly schedule (catches Zenodo-only data
+# updates and missed dispatches, which involve no git push); manual dispatch.
+#
+# WHAT THIS CANNOT DETECT:
+# A NEW ZENODO DATA VERSION is an external event no git push can see. After
+# publishing a new data record, run docker_setup/build_push_data.sh directly
+# (no commit needed) — it resolves the new version and tags the image with it.
+#
+# RESOLVING A FAILURE:
+# 0. Update the build machine's clone FIRST — the images are built from the
+#    local checkout (prereq from the live docker_setup dir, data from
+#    `git archive HEAD`), so a stale/wrong-branch clone would bake old content
+#    yet still turn this guard green:
+#        git checkout main && git pull --ff-only
+# 1. If prerequisite inputs changed (Dockerfile.prerequisite / apt-packages /
+#    r-packages / install_packages.sh / entrypoint.sh), rebuild the
+#    prerequisite image locally first:
+#        cd docker_setup && ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
+# 2. Rebuild + push the data image (also re-triggers the model build on main):
+#        docker_setup/build_push_data.sh
+#
+# =============================================================================
+
+name: Data Image Freshness Guard
+
+on:
+  push:
+    branches: [main]
+  # Weekly sweep: catches staleness that involves no git push (Zenodo-only
+  # data updates, failed model-rebuild dispatches). Monday 06:00 UTC.
+  schedule:
+    - cron: '0 6 * * 1'
+  # Manual re-check (e.g. after running build_push_data.sh, to confirm green)
+  workflow_dispatch:
+
+jobs:
+  check_freshness:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: we need first-parent `git log` times for individual files
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Compare data-relevant file ages vs published images
+        # Secrets are passed via env, never interpolated into the script body.
+        env:
+          HUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$HUB_USER" ]; then
+            echo "::error::Guard misconfigured: DOCKERHUB_USERNAME secret is empty/unset."
+            exit 1
+          fi
+
+          # hub_tag_epoch <repo> <tag>
+          # Prints the tag's last_updated as epoch seconds, or:
+          #   exits 1  -> deterministic problem (404/401/403, or 200 without a
+          #               timestamp): misconfiguration or missing image — the
+          #               guard must go RED, not silently no-op.
+          #   prints "" -> transient problem (timeout/5xx/429): caller warns
+          #               and skips — Docker Hub flakiness must not block main.
+          hub_tag_epoch() {
+            local url="https://hub.docker.com/v2/repositories/${HUB_USER}/$1/tags/$2"
+            local body http_code
+            body=$(mktemp)
+            http_code=$(curl -sSL --max-time 30 -o "$body" -w '%{http_code}' "$url" || echo 000)
+            case "$http_code" in
+              200)
+                local ts
+                ts=$(jq -r '.last_updated // empty' "$body"); rm -f "$body"
+                if [ -z "$ts" ]; then
+                  echo "::error::Docker Hub returned 200 but no .last_updated for $1:$2 — investigate." >&2
+                  return 1
+                fi
+                date -d "$ts" +%s
+                ;;
+              404|401|403)
+                rm -f "$body"
+                echo "::error::Docker Hub returned HTTP $http_code for $1:$2 — guard misconfigured or image missing (check the DOCKERHUB_USERNAME secret, the repo name, and that the tag has been pushed)." >&2
+                return 1
+                ;;
+              *)
+                rm -f "$body"
+                echo "::warning::Docker Hub unreachable for $1:$2 (HTTP $http_code) — skipping this comparison." >&2
+                echo ""
+                ;;
+            esac
+          }
+
+          T_IMAGE=$(hub_tag_epoch data.impactncdengl latest)
+          if [ -z "$T_IMAGE" ]; then
+            echo "Docker Hub transient failure — freshness not checked this run."
+            exit 0
+          fi
+          echo "data.impactncdengl:latest pushed: $(date -u -d "@$T_IMAGE" +%FT%TZ)"
+
+          # ------------------------------------------------------------------
+          # CHECK 1: data image vs the files that determine its content.
+          # data layer's own inputs:
+          #   Dockerfile.data.IMPACTncdENGL  — the build recipe
+          #   download_zenodo_data.R         — runs at build time, fetches the data
+          # prerequisite inputs (the data image builds FROM the prerequisite):
+          #   Dockerfile.prerequisite.IMPACTncdENGL, apt-packages.txt,
+          #   r-packages.txt, install_packages.sh (COPY'd + RUN by the prereq
+          #   Dockerfile — decides what actually gets installed), entrypoint.sh
+          # ------------------------------------------------------------------
+          HARD_FILES="
+            docker_setup/Dockerfile.data.IMPACTncdENGL
+            docker_setup/download_zenodo_data.R
+            docker_setup/Dockerfile.prerequisite.IMPACTncdENGL
+            docker_setup/apt-packages.txt
+            docker_setup/r-packages.txt
+            docker_setup/install_packages.sh
+            docker_setup/entrypoint.sh
+          "
+
+          # --first-parent: date a change by when it LANDED ON MAIN (a PR's
+          # merge commit), not by its feature-branch committer date — otherwise
+          # a change authored before the image push but merged after it would
+          # never be flagged.
+          NOW=$(date +%s)
+          STALE=""
+          for f in $HARD_FILES; do
+            T_FILE=$(git log -1 --format=%ct --first-parent HEAD -- "$f" || echo 0)
+            [ -z "$T_FILE" ] && T_FILE=0
+            if [ "$T_FILE" -gt "$NOW" ]; then
+              # A future committer time is an untrusted clock: it carries no
+              # ordering information and would red-X main forever (no rebuild
+              # can outrun it). Warn and exclude from the hard gate.
+              echo "::warning::$f's last commit claims a FUTURE committer time ($(git log -1 --format=%ci --first-parent HEAD -- "$f")) — excluded from the staleness gate. Verify manually whether the data image needs a rebuild, and consider re-committing the file to fix its timestamp."
+              continue
+            fi
+            if [ "$T_FILE" -gt "$T_IMAGE" ]; then
+              STALE="$STALE\n  - $f  (landed on main: $(git log -1 --format=%ci --first-parent HEAD -- "$f"))"
+            fi
+          done
+
+          # Soft check: download_zenodo_data.R sources this class at build time,
+          # but most edits to it (e.g. upload-side features) do not change what
+          # is downloaded. Warn, don't fail — a hard gate here would red-X main
+          # on every unrelated Zenodo-class tweak and train people to ignore it.
+          SOFT_FILE="Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R"
+          T_SOFT=$(git log -1 --format=%ct --first-parent HEAD -- "$SOFT_FILE" || echo 0)
+          [ -z "$T_SOFT" ] && T_SOFT=0
+          if [ "$T_SOFT" -gt "$T_IMAGE" ] && [ "$T_SOFT" -le "$NOW" ]; then
+            echo "::warning::$SOFT_FILE is newer than data.impactncdengl:latest. It is sourced by download_zenodo_data.R at build time — if the change affects DOWNLOAD behaviour, rebuild the data image (docker_setup/build_push_data.sh)."
+          fi
+
+          if [ -n "$STALE" ]; then
+            printf "The published data image is STALE. Files newer than data.impactncdengl:latest:%b\n" "$STALE"
+            echo "::error::data.impactncdengl:latest is STALE — inputs changed after it was pushed. Rebuild locally: (0) git checkout main && git pull --ff-only ; (1) if prerequisite inputs changed: cd docker_setup && ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL ; (2) docker_setup/build_push_data.sh (this also re-triggers the model build on main). This check keeps failing on every push to main until the data image is refreshed."
+            exit 1
+          fi
+          echo "CHECK 1 OK: data.impactncdengl:latest is newer than all of its inputs."
+
+          # ------------------------------------------------------------------
+          # CHECK 2: model image vs data image. build_push_data.sh triggers the
+          # model rebuild after a data push; if that dispatch failed or was
+          # skipped, impactncdengl:main silently bakes an old data layer. Grace
+          # period tolerates the in-flight rebuild right after a data push.
+          # ------------------------------------------------------------------
+          GRACE=5400   # 90 min: data push -> model rebuild completes
+          T_MODEL=$(hub_tag_epoch impactncdengl main)
+          if [ -z "$T_MODEL" ]; then
+            echo "Docker Hub transient failure on impactncdengl:main — model-vs-data not checked this run."
+            exit 0
+          fi
+          echo "impactncdengl:main pushed:        $(date -u -d "@$T_MODEL" +%FT%TZ)"
+          if [ $((T_MODEL + GRACE)) -lt "$T_IMAGE" ]; then
+            echo "::error::impactncdengl:main is OLDER than data.impactncdengl:latest — the model rebuild after the last data push never ran (or failed). Trigger it: gh workflow run build_push_impactncdengl.yml --ref main --repo ChristK/IMPACTncd_Engl (or use the 'Run workflow' button on the Actions tab)."
+            exit 1
+          fi
+          echo "CHECK 2 OK: impactncdengl:main is at least as new as the data image."

@@ -34,6 +34,7 @@
 # - docker_setup/Dockerfile.prerequisite.IMPACTncdENGL (base Dockerfile)
 # - docker_setup/apt-packages.txt (system packages)
 # - docker_setup/r-packages.txt (R packages)
+# - docker_setup/install_packages.sh (installer: decides what actually gets installed)
 # - docker_setup/entrypoint.sh (container startup script)
 # - .github/workflows/build_push_prerequisite_impactncdENGL.yml (this workflow)
 #
@@ -106,8 +107,25 @@ jobs:
             docker_setup/Dockerfile.prerequisite.IMPACTncdENGL
             docker_setup/apt-packages.txt
             docker_setup/r-packages.txt
+            docker_setup/install_packages.sh
             docker_setup/entrypoint.sh
             .github/workflows/build_push_prerequisite_impactncdeng.yml
+
+      # STEP 2b: Compute a Docker-safe image tag from the branch name.
+      # Docker tags must match [A-Za-z0-9_][A-Za-z0-9._-]{0,127}; git branch
+      # names may contain '/' (e.g. feature/foo) and other characters:
+      # disallowed chars -> '-', a disallowed LEADING '-'/'.' -> '_', truncated
+      # to 128 chars. $GITHUB_REF_NAME (runner env var) is used instead of
+      # interpolating ${{ github.ref_name }} into the script: interpolation
+      # happens BEFORE bash parses the script, so a branch name containing
+      # shell-active characters would break the step — or execute as code
+      # (script injection in a job that holds Docker Hub credentials).
+      - name: Compute Docker-safe image tag
+        run: |
+          SAFE_TAG=$(printf '%s' "$GITHUB_REF_NAME" | sed -e 's|[^A-Za-z0-9._-]|-|g' -e 's|^[.-]|_|')
+          SAFE_TAG=${SAFE_TAG:0:128}
+          echo "SAFE_TAG=${SAFE_TAG}" >> "$GITHUB_ENV"
+          echo "Image tag: ${SAFE_TAG}"
 
       # STEP 3: Check if branch image exists
       # For new branches, we need to build even if no files changed
@@ -116,7 +134,7 @@ jobs:
         if: steps.changed-files.outputs.any_changed != 'true'
         run: |
           # Check if Docker image exists for this branch
-          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/prerequisite.impactncdengl:${{ github.ref_name }} > /dev/null 2>&1; then
+          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/prerequisite.impactncdengl:${{ env.SAFE_TAG }} > /dev/null 2>&1; then
             echo "image_exists=true" >> $GITHUB_OUTPUT
             echo "Image exists for branch ${{ github.ref_name }}"
           else
@@ -173,7 +191,7 @@ jobs:
           context: docker_setup # Build context directory containing Dockerfile and dependencies
           push: true # Push the built image to Docker Hub
           no-cache: true # Force rebuild without using cache to ensure latest dependencies
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/prerequisite.impactncdengl:${{ github.ref_name }} # Tag with branch name
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/prerequisite.impactncdengl:${{ env.SAFE_TAG }} # Tag with sanitized branch name
           file: docker_setup/Dockerfile.prerequisite.IMPACTncdENGL # Specific Dockerfile for prerequisites
 
 # =============================================================================
