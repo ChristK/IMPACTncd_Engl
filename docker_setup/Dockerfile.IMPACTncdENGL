@@ -75,13 +75,18 @@ RUN chmod -R a+rw /IMPACTncd_England/Rpackage /outputs /synthpop && \
     find /IMPACTncd_England/simulation -maxdepth 1 -type f -exec chmod a+rw {} +
 
 # Create the package snapshot so global.R's installLocalPackageIfChanged() knows
-# the package is already installed and skips reinstallation.
-# IMPORTANT: this MUST run AFTER the chmod above. fileSnapshot records each file's
-# mode, and changedFiles() compares it; if the snapshot were taken before the
-# `chmod a+rw` flips the package files 644->666, all 78 package files would look
-# "changed" at runtime and the model would needlessly roxygenise+reinstall on
-# first run. The snapshot file is in .gitignore so it's absent after git clone.
-RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")' && \
+# the package is already installed and skips reinstallation. changedFiles() compares
+# fileSnapshot's recorded mode + mtime, so TWO hazards make the snapshot go stale and
+# force a needless roxygenise+reinstall on first run — both handled here:
+#   1. MODE — this MUST run AFTER the `chmod a+rw` above, else all package files show
+#      644 (snapshot) vs 666 (shipped).
+#   2. MTIME — Docker layer export truncates file mtimes to whole seconds, but
+#      fileSnapshot records sub-second precision (e.g. .709907 -> .000000 after pull),
+#      so every file shows a phantom mtime diff. `touch` all package files to a
+#      whole-second mtime FIRST, making the snapshot truncation-invariant.
+# The snapshot file is in .gitignore so it's absent after git clone.
+RUN find /IMPACTncd_England/Rpackage/IMPACTncd_England_model_pkg -exec touch -d "@$(date +%s)" {} + && \
+    Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")' && \
     chmod a+rw Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds
 
 CMD ["/bin/bash"]
