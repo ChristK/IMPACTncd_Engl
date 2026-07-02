@@ -60,6 +60,16 @@ RUN PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}') && \
 
 WORKDIR /IMPACTncd_England/
 
+# Refresh the container ENTRYPOINT from the CODE layer. entrypoint.sh is baked
+# into the prerequisite layer, but the data layer (which sits between it and
+# this image) is rebuilt manually and rarely — without this step, an
+# entrypoint fix would stay dormant in the published model image until the
+# next ~33GB data rebuild. The code merged above always carries the current
+# entrypoint.sh, so re-copying it here makes entrypoint changes go live with
+# every (automatic, per-push) model build.
+RUN cp /IMPACTncd_England/docker_setup/entrypoint.sh /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/entrypoint.sh
+
 # Make the CODE and runtime directories writable by the entrypoint's dynamically
 # created user. We deliberately do NOT `chmod -R` inputs/ or simulation/ here:
 # the data layer already made them writable, and re-chmod'ing ~13GB would

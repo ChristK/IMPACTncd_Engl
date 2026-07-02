@@ -32,8 +32,18 @@
 #      * Shell: /bin/bash
 #    - Ensures the home directory has correct ownership
 #
-# 5. Executes the command as the specified user:
-#    - Uses 'gosu' to switch to the non-root user and execute the original command
+# 5. Grants supplementary groups (if ADDITIONAL_GIDS is provided):
+#    - ADDITIONAL_GIDS is a space-separated list of numeric host GIDs
+#      (the setup scripts pass `id -G`)
+#    - Each GID is registered in the container (existing GIDs are reused;
+#      missing ones get a placeholder group) and added to the user
+#    - This is what makes group-based permissions on shared bind mounts work
+#      (e.g. the team's shared synthpop cache): `gosu uid:gid` alone strips
+#      supplementary groups
+#
+# 6. Executes the command as the specified user:
+#    - Uses `gosu "$USER_ID"` (no :gid) so the user's FULL group list from
+#      /etc/group applies — primary plus the supplementary groups from step 5
 #
 # WHY THIS MATTERS:
 # Without this script, the container would run as root or a generic user, causing
@@ -47,11 +57,13 @@
 #
 # USAGE:
 # This script is automatically called as the Docker ENTRYPOINT when the container
-# starts. The setup_dev_docker_env.sh script passes the necessary environment variables:
+# starts. The setup_*_docker_env.sh scripts pass the necessary environment variables:
 #   -e USER_ID="$(id -u)"
 #   -e GROUP_ID="$(id -g)"
 #   -e USER_NAME="$(whoami)"
 #   -e GROUP_NAME="$(id -gn)"
+#   -e ADDITIONAL_GIDS="$(id -G)"  # optional: supplementary host GIDs (step 5);
+#                                  # omit for the old single-group behavior
 #
 # -----------------------------------------------------------------------------
 
@@ -102,7 +114,7 @@ if ! getent passwd "$USER_ID" > /dev/null 2>&1; then
     
     # Create user with home directory, using the actual group name
     useradd -u "$USER_ID" -g "$ACTUAL_GROUP_NAME" -m -s /bin/bash "$SAFE_USER_NAME"
-    
+
     # Ensure home directory has correct ownership
     chown "$USER_ID:$GROUP_ID" "/home/$SAFE_USER_NAME"
     echo "Created user: $SAFE_USER_NAME with home /home/$SAFE_USER_NAME"
@@ -110,6 +122,76 @@ else
     echo "User with ID $USER_ID already exists"
 fi
 
-# Execute the command as the specified user
-echo "Executing command as user $USER_ID:$GROUP_ID"
-exec gosu "$USER_ID:$GROUP_ID" "$@"
+# Resolve the container-side username for the target UID (needed below; the
+# user is guaranteed to exist at this point — created above or pre-existing).
+TARGET_USER_NAME=$(getent passwd "$USER_ID" | cut -d: -f1)
+
+# If the (pre-existing) user's primary group differs from the requested
+# GROUP_ID, align it — `gosu "$USER_ID"` below uses the passwd entry's primary
+# group, whereas the previous `gosu uid:gid` form forced GROUP_ID.
+if [ -n "$TARGET_USER_NAME" ]; then
+    CURRENT_GID=$(getent passwd "$USER_ID" | cut -d: -f4)
+    if [ "$CURRENT_GID" != "$GROUP_ID" ]; then
+        echo "Aligning primary group of $TARGET_USER_NAME to GID $GROUP_ID"
+        usermod -g "$GROUP_ID" "$TARGET_USER_NAME"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
+# Supplementary groups (ADDITIONAL_GIDS: space-separated numeric host GIDs,
+# passed by the setup scripts as `id -G`).
+#
+# WHY: `gosu uid:gid` grants ONLY that single group — supplementary groups are
+# stripped. That silently breaks group-based permissions on bind mounts (e.g.
+# a shared synthpop cache directory owned by a shared host group): the host
+# user is in the group, but the container process is not. So we register each
+# host GID on the container user and exec `gosu "$USER_ID"` (no :gid) instead,
+# which applies the user's full group list from /etc/group (initgroups).
+#
+# Only numeric GIDs are accepted (defense against a malformed/hostile value —
+# this block runs as root). Unset/empty ADDITIONAL_GIDS keeps the previous
+# single-group behavior, so older setup scripts remain fully compatible.
+# -----------------------------------------------------------------------------
+if [ -n "${ADDITIONAL_GIDS:-}" ] && [ -n "$TARGET_USER_NAME" ]; then
+    for gid in $ADDITIONAL_GIDS; do
+        case "$gid" in
+            ''|*[!0-9]*)
+                echo "Skipping invalid supplementary GID '$gid' (numeric GIDs only)"
+                continue
+                ;;
+        esac
+        # Never grant the root group — `id -G` can legitimately contain 0 on
+        # some admin hosts, but group 0 in the container is not something a
+        # shared-cache mount should ever need. Numeric -eq also catches "00".
+        if [ "$gid" -eq 0 ]; then
+            echo "Skipping GID 0 (root group is never granted)"
+            continue
+        fi
+        # Primary group is already set; skip it.
+        [ "$gid" = "$GROUP_ID" ] && continue
+        # Create a placeholder group if no container group has this GID yet
+        # (the kernel checks numeric GIDs; the name is irrelevant).
+        if ! getent group "$gid" > /dev/null 2>&1; then
+            groupadd -g "$gid" "hostgrp_$gid"
+        fi
+        usermod -aG "$gid" "$TARGET_USER_NAME"
+    done
+    echo "Supplementary groups for $TARGET_USER_NAME: $(id -G "$TARGET_USER_NAME")"
+fi
+
+# Execute the command as the specified user. `gosu "$USER_ID"` (without :gid)
+# resolves the user's passwd entry and applies primary + supplementary groups.
+# GUARD: if user creation failed above (e.g. the sanitized host username
+# collides with a system account baked into the image, or groupadd rejected an
+# exotic host group name), there is NO passwd entry for USER_ID — and
+# `gosu <uid>` for a passwd-less UID falls back to gid=0 (ROOT group). In that
+# case degrade to the old explicit uid:gid form: correct primary group, no
+# supplementary groups (matching the pre-ADDITIONAL_GIDS behavior).
+if [ -n "$TARGET_USER_NAME" ]; then
+    echo "Executing command as user $USER_ID (primary GID $GROUP_ID)"
+    exec gosu "$USER_ID" "$@"
+else
+    echo "WARNING: no passwd entry for UID $USER_ID (user creation failed above);" >&2
+    echo "         supplementary groups unavailable — running as $USER_ID:$GROUP_ID" >&2
+    exec gosu "$USER_ID:$GROUP_ID" "$@"
+fi
