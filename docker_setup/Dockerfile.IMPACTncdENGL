@@ -60,11 +60,6 @@ RUN PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}') && \
 
 WORKDIR /IMPACTncd_England/
 
-# Create the package snapshot so global.R's installLocalPackageIfChanged()
-# knows the package is already installed and skips reinstallation.
-# The snapshot file is in .gitignore so it's absent after git clone.
-RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")'
-
 # Make the CODE and runtime directories writable by the entrypoint's dynamically
 # created user. We deliberately do NOT `chmod -R` inputs/ or simulation/ here:
 # the data layer already made them writable, and re-chmod'ing ~13GB would
@@ -78,6 +73,16 @@ RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_mode
 RUN chmod -R a+rw /IMPACTncd_England/Rpackage /outputs /synthpop && \
     chmod a+rw /IMPACTncd_England /IMPACTncd_England/* && \
     find /IMPACTncd_England/simulation -maxdepth 1 -type f -exec chmod a+rw {} +
+
+# Create the package snapshot so global.R's installLocalPackageIfChanged() knows
+# the package is already installed and skips reinstallation.
+# IMPORTANT: this MUST run AFTER the chmod above. fileSnapshot records each file's
+# mode, and changedFiles() compares it; if the snapshot were taken before the
+# `chmod a+rw` flips the package files 644->666, all 78 package files would look
+# "changed" at runtime and the model would needlessly roxygenise+reinstall on
+# first run. The snapshot file is in .gitignore so it's absent after git clone.
+RUN Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")' && \
+    chmod a+rw Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds
 
 CMD ["/bin/bash"]
 
