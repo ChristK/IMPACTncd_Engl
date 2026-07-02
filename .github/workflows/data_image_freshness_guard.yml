@@ -34,15 +34,17 @@
 # (no commit needed) — it resolves the new version and tags the image with it.
 #
 # RESOLVING A FAILURE:
-# 0. Update the build machine's clone FIRST — the images are built from the
-#    local checkout (prereq from the live docker_setup dir, data from
-#    `git archive HEAD`), so a stale/wrong-branch clone would bake old content
+# 0. Update the build machine's clone FIRST — the data image is built from
+#    `git archive HEAD`, so a stale/wrong-branch clone would bake old content
 #    yet still turn this guard green:
 #        git checkout main && git pull --ff-only
 # 1. If prerequisite inputs changed (Dockerfile.prerequisite / apt-packages /
-#    r-packages / install_packages.sh / entrypoint.sh), rebuild the
-#    prerequisite image locally first:
-#        cd docker_setup && ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
+#    r-packages / install_packages.sh / entrypoint.sh), CI has ALREADY rebuilt
+#    the prerequisite image for main — pull it and retag (no local rebuild):
+#        docker pull chriskypri/prerequisite.impactncdengl:main
+#        docker tag chriskypri/prerequisite.impactncdengl:main prerequisite.impactncdengl:local
+#    (Local rebuild is the fallback if CI failed:
+#        cd docker_setup && ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL)
 # 2. Rebuild + push the data image (also re-triggers the model build on main):
 #        docker_setup/build_push_data.sh
 #
@@ -178,7 +180,7 @@ jobs:
 
           if [ -n "$STALE" ]; then
             printf "The published data image is STALE. Files newer than data.impactncdengl:latest:%b\n" "$STALE"
-            echo "::error::data.impactncdengl:latest is STALE — inputs changed after it was pushed. Rebuild locally: (0) git checkout main && git pull --ff-only ; (1) if prerequisite inputs changed: cd docker_setup && ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL ; (2) docker_setup/build_push_data.sh (this also re-triggers the model build on main). This check keeps failing on every push to main until the data image is refreshed."
+            echo "::error::data.impactncdengl:latest is STALE — inputs changed after it was pushed. Rebuild locally: (0) git checkout main && git pull --ff-only ; (1) if prerequisite inputs changed, pull the CI-built prereq instead of rebuilding: docker pull ${HUB_USER}/prerequisite.impactncdengl:main && docker tag ${HUB_USER}/prerequisite.impactncdengl:main prerequisite.impactncdengl:local ; (2) docker_setup/build_push_data.sh (this also re-triggers the model build on main). This check keeps failing on every push to main until the data image is refreshed."
             exit 1
           fi
           echo "CHECK 1 OK: data.impactncdengl:latest is newer than all of its inputs."

@@ -50,6 +50,22 @@ USER_ID=$(id -u)
 GROUP_ID=$(id -g)
 USER_NAME=$(whoami)
 GROUP_NAME=$(id -gn)
+# Supplementary host GIDs (space-separated). The entrypoint grants these inside
+# the container so group-based access to shared bind mounts (e.g. the team's
+# shared synthpop cache) works — `gosu uid:gid` alone strips supplementary
+# groups. Older images ignore the variable; older scripts omit it harmlessly.
+ADDITIONAL_GIDS=$(id -G)
+# The same GIDs as --group-add flags for the HELPER containers (volume
+# populate / rsync sync-back) that run with a bare `--user uid:gid` and no
+# entrypoint — Docker grants supplementary groups to those directly.
+# GID 0 (root group) is never granted; non-numeric tokens are dropped.
+GROUP_ADD_FLAGS=""
+for gid in $ADDITIONAL_GIDS; do
+  case "$gid" in ''|*[!0-9]*) continue ;; esac
+  [ "$gid" = "$GROUP_ID" ] && continue
+  [ "$gid" -eq 0 ] && continue
+  GROUP_ADD_FLAGS="$GROUP_ADD_FLAGS --group-add $gid"
+done
 # User-specific Docker volume names to avoid conflicts
 VOLUME_PROJECT="impactncd_england_project_${CURRENT_USER}"
 VOLUME_OUTPUT_NAME="impactncd_england_output_${CURRENT_USER}"
@@ -251,19 +267,19 @@ if [ "$USE_VOLUMES" = true ]; then
   echo "Populating project volume from host project directory (excluding dot files/folders)..."
   # Use tar to copy, excluding dot files/folders at the root of the source
   docker run --rm \
-    --user "${USER_ID}:${GROUP_ID}" \
+    --user "${USER_ID}:${GROUP_ID}" $GROUP_ADD_FLAGS \
     -v "${PROJECT_ROOT}":/source \
     -v "${VOLUME_PROJECT}":/destination \
     alpine sh -c "tar -C /source --exclude='./.*' -cf - . | tar -C /destination -xf -"
 
   echo "Populating output and synthpop volumes from local folders..."
   docker run --rm \
-    --user "${USER_ID}:${GROUP_ID}" \
+    --user "${USER_ID}:${GROUP_ID}" $GROUP_ADD_FLAGS \
     -v "$OUTPUT_DIR":/source \
     -v "$VOLUME_OUTPUT_NAME":/volume \
     alpine sh -c "cp -r /source/. /volume/ 2>/dev/null || cp -a /source/. /volume/ 2>/dev/null || true"
   docker run --rm \
-    --user "${USER_ID}:${GROUP_ID}" \
+    --user "${USER_ID}:${GROUP_ID}" $GROUP_ADD_FLAGS \
     -v "$SYNTHPOP_DIR":/source \
     -v "$VOLUME_SYNTHPOP_NAME":/volume \
     alpine sh -c "cp -r /source/. /volume/ 2>/dev/null || cp -a /source/. /volume/ 2>/dev/null || true"
@@ -275,6 +291,7 @@ if [ "$USE_VOLUMES" = true ]; then
     -e GROUP_ID="${GROUP_ID}" \
     -e USER_NAME="${USER_NAME}" \
     -e GROUP_NAME="${GROUP_NAME}" \
+    -e ADDITIONAL_GIDS="${ADDITIONAL_GIDS}" \
     --mount type=volume,source="$VOLUME_PROJECT",target=/IMPACTncd_England \
     --mount type=volume,source="$VOLUME_OUTPUT_NAME",target=/outputs \
     --mount type=volume,source="$VOLUME_SYNTHPOP_NAME",target=/synthpop \
@@ -286,12 +303,12 @@ if [ "$USE_VOLUMES" = true ]; then
   # - Synchronize the volumes back to the local directories using rsync (checksum mode).
   echo "Container exited. Syncing volumes back to local directories using rsync (checksum mode)..."
   docker run --rm \
-    --user "${USER_ID}:${GROUP_ID}" \
+    --user "${USER_ID}:${GROUP_ID}" $GROUP_ADD_FLAGS \
     -v "$VOLUME_OUTPUT_NAME":/volume \
     -v "$OUTPUT_DIR":/backup \
     rsync-alpine rsync -avc --no-owner --no-group --no-times /volume/ /backup/
   docker run --rm \
-    --user "${USER_ID}:${GROUP_ID}" \
+    --user "${USER_ID}:${GROUP_ID}" $GROUP_ADD_FLAGS \
     -v "$VOLUME_SYNTHPOP_NAME":/volume \
     -v "$SYNTHPOP_DIR":/backup \
     rsync-alpine rsync -avc --no-owner --no-group --no-times /volume/ /backup/
@@ -299,7 +316,7 @@ if [ "$USE_VOLUMES" = true ]; then
   SIMULATION_DIR="$PROJECT_ROOT/simulation"
   echo "Syncing simulation folder back to: $SIMULATION_DIR"
   docker run --rm \
-    --user "${USER_ID}:${GROUP_ID}" \
+    --user "${USER_ID}:${GROUP_ID}" $GROUP_ADD_FLAGS \
     -v "$VOLUME_PROJECT":/project \
     -v "$SIMULATION_DIR":/backup \
     rsync-alpine rsync -avc --no-owner --no-group --no-times /project/simulation/ /backup/
@@ -317,6 +334,7 @@ else
     -e GROUP_ID="${GROUP_ID}" \
     -e USER_NAME="${USER_NAME}" \
     -e GROUP_NAME="${GROUP_NAME}" \
+    -e ADDITIONAL_GIDS="${ADDITIONAL_GIDS}" \
     --mount type=bind,source="$PROJECT_ROOT",target=/IMPACTncd_England \
     --mount type=bind,source="$OUTPUT_DIR",target=/outputs \
     --mount type=bind,source="$SYNTHPOP_DIR",target=/synthpop \

@@ -64,10 +64,23 @@ PACKAGE=$(grep "^Package:" DESCRIPTION | awk '{print $2}')
 VERSION=$(grep "^Version:" DESCRIPTION | awk '{print $2}')
 install2.r "${PACKAGE}_${VERSION}.tar.gz"
 cd /IMPACTncd_England/
-Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")'
+# Refresh the ENTRYPOINT from the code layer (mirrors Dockerfile.IMPACTncdENGL:
+# entrypoint fixes must not stay dormant until the next manual data rebuild).
+cp /IMPACTncd_England/docker_setup/entrypoint.sh /usr/local/bin/entrypoint.sh
+chmod +x /usr/local/bin/entrypoint.sh
 # Make code + runtime dirs writable (data is already a+rw from the data layer).
+# Mirrors the Dockerfile: the top-level simulation/ bookkeeping files shipped by
+# the code overlay are overwritten by the model at runtime and need a+rw too.
 chmod -R a+rw /IMPACTncd_England/Rpackage /outputs /synthpop
 chmod a+rw /IMPACTncd_England /IMPACTncd_England/* 2>/dev/null || true
+find /IMPACTncd_England/simulation -maxdepth 1 -type f -exec chmod a+rw {} +
+# Snapshot LAST (after chmod), with whole-second mtimes — mirrors the
+# Dockerfile: changedFiles() compares mode AND mtime, so a snapshot taken
+# before the chmod (or with sub-second mtimes on the CI path) makes the model
+# needlessly roxygenise+reinstall the package on first run.
+find /IMPACTncd_England/Rpackage/IMPACTncd_England_model_pkg -exec touch -d "@$(date +%s)" {} +
+Rscript -e 'snapshot <- utils::fileSnapshot("Rpackage/IMPACTncd_England_model_pkg/", timestamp = NULL, md5sum = TRUE, recursive = TRUE); saveRDS(snapshot, "Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds")'
+chmod a+rw Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds
 Rscript -e 'stopifnot(requireNamespace("IMPACTncdEngland", quietly = TRUE)); cat("package installs OK\n")'
 BUILD
 
