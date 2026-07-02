@@ -399,12 +399,26 @@ The data layer is large (~33 GB) and changes rarely, so it is **not** built in C
 ./build_push_data.sh
 ```
 
-This script:
-1. Resolves the published Zenodo data version (via `print_zenodo_version.R`, which reads `record$metadata$version` for the concept DOI — anonymous, no token).
-2. Builds the data image (clean git-tracked context, ~13 GB Zenodo download).
-3. Pushes `chriskypri/data.impactncdengl:<version>` (immutable) **and** `:latest` (moving alias), and leaves a local `data.impactncdengl:local`.
+This script keys off the **checked-out git branch**:
 
-Run it whenever the Zenodo data record changes, or after rebuilding the prerequisite image (the data layer is `FROM` it). Requires `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` (and optionally `ZENODO_CONCEPT_DOI` to override the default record) — set them in `.env`.
+- **on `main`** it maintains the canonical images:
+  1. Resolves the published Zenodo data version (via `print_zenodo_version.R`, which reads `record$metadata$version` for the concept DOI — anonymous, no token).
+  2. Builds the data image (clean git-tracked context, ~13 GB Zenodo download) from `prerequisite.impactncdengl:local`.
+  3. Pushes `chriskypri/data.impactncdengl:<version>` (immutable) **and** `:latest` (moving alias), and leaves a local `data.impactncdengl:local`.
+- **on any other branch** it produces a **branch-scoped** image instead — for
+  branches whose prerequisite/data inputs diverge from main:
+  - builds `FROM` the branch's **CI-built** prerequisite
+    (`chriskypri/prerequisite.impactncdengl:<branch>`, falling back to the local
+    `:local` with a warning if CI hasn't built it yet), and
+  - pushes **only** `chriskypri/data.impactncdengl:<branch>` — it never moves
+    `:latest` or the version tag (those belong to main).
+  The model CI resolves `data.impactncdengl:<branch>` first and falls back to
+  `:latest`, so branches **without** a branch data image automatically keep
+  using main's environment, and branches **with** one get their own — no
+  workflow edits needed. (A pre-existing branch must contain the branch-aware
+  workflow files — merge main into it once if its CI still hardcodes `:latest`.)
+
+Run it whenever the Zenodo data record changes, after prerequisite inputs change on main (pull the CI-built prereq and retag it as `:local` first — faster than rebuilding), or on a branch that needs its own environment. Requires `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` (and optionally `ZENODO_CONCEPT_DOI` to override the default record) — set them in `.env`.
 
 #### Model data from Zenodo
 

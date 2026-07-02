@@ -79,11 +79,25 @@ fi
 
 # Source .env file for non-secret config (DOIs, usernames, flags).
 # The .env file is gitignored. Permissions should be restricted: chmod 600 .env
+# CALLER-ENV PRECEDENCE for the base-image overrides: a caller that explicitly
+# sets PREREQ_IMAGE/DATA_IMAGE (build_push_data.sh exports the branch-specific
+# prerequisite on non-main branches) must not have it silently clobbered by a
+# stray line in .env — an explicit environment beats a config-file default.
+_CALLER_PREREQ_IMAGE="${PREREQ_IMAGE:-}"
+_CALLER_DATA_IMAGE="${DATA_IMAGE:-}"
 if [[ -f ".env" ]]; then
   echo "Sourcing config from .env"
   set -a
   source .env
   set +a
+fi
+if [[ -n "$_CALLER_PREREQ_IMAGE" && "$_CALLER_PREREQ_IMAGE" != "${PREREQ_IMAGE:-}" ]]; then
+  echo "NOTE: keeping caller-provided PREREQ_IMAGE=${_CALLER_PREREQ_IMAGE} (overrides .env)"
+  PREREQ_IMAGE="$_CALLER_PREREQ_IMAGE"
+fi
+if [[ -n "$_CALLER_DATA_IMAGE" && "$_CALLER_DATA_IMAGE" != "${DATA_IMAGE:-}" ]]; then
+  echo "NOTE: keeping caller-provided DATA_IMAGE=${_CALLER_DATA_IMAGE} (overrides .env)"
+  DATA_IMAGE="$_CALLER_DATA_IMAGE"
 fi
 
 
@@ -93,14 +107,16 @@ if [[ -z "${IMAGE_NAME:-}" ]]; then
   IMAGE_NAME="$(basename "$DOCKERFILE" | sed 's/^[Dd]ockerfile\.//' | tr '[:upper:]' '[:lower:]')"
 fi
 
-# Convert image name and tag to lowercase
+# Convert the image NAME to lowercase — Docker requires lowercase repository
+# names. The TAG is deliberately case-PRESERVED: Docker tags are case-sensitive
+# and may contain uppercase, and callers align tags with git branch names
+# (e.g. data.impactncdengl:Report_1, prerequisite.impactncdengl:update_from_JPN
+# — the CI workflows push case-preserved branch tags). Lowercasing the tag here
+# would push data:report_1 while CI resolves data:Report_1 (silent fallback to
+# :latest) and then crash the caller's retag step after the full build.
 if [[ "$IMAGE_NAME" != "${IMAGE_NAME,,}" ]]; then
     echo "Image name '$IMAGE_NAME' converted to lowercase."
     IMAGE_NAME="${IMAGE_NAME,,}"
-fi
-if [[ "$IMAGE_TAG" != "${IMAGE_TAG,,}" ]]; then
-    echo "Image tag '$IMAGE_TAG' converted to lowercase."
-    IMAGE_TAG="${IMAGE_TAG,,}"
 fi
 
 # Construct the image name for building
@@ -165,6 +181,12 @@ fi
 BUILD_ARGS=()
 [[ -n "${ZENODO_CONCEPT_DOI:-}" ]] && BUILD_ARGS+=(--build-arg "ZENODO_CONCEPT_DOI=${ZENODO_CONCEPT_DOI}")
 [[ -n "${DOWNLOAD_DATA:-}" ]] && BUILD_ARGS+=(--build-arg "DOWNLOAD_DATA=${DOWNLOAD_DATA}")
+# Base-image overrides (the Dockerfiles declare ARG PREREQ_IMAGE / DATA_IMAGE
+# with :local defaults). Lets a caller point the build at e.g. a branch-tagged
+# base from Docker Hub, as build_push_data.sh does for non-main branches:
+#   PREREQ_IMAGE=chriskypri/prerequisite.impactncdengl:<branch>
+[[ -n "${PREREQ_IMAGE:-}" ]] && BUILD_ARGS+=(--build-arg "PREREQ_IMAGE=${PREREQ_IMAGE}")
+[[ -n "${DATA_IMAGE:-}" ]] && BUILD_ARGS+=(--build-arg "DATA_IMAGE=${DATA_IMAGE}")
 
 # Optional build network. Some hosts use an internal DNS that the Docker bridge
 # network cannot reach, which makes apt (prerequisite image) and the in-build
