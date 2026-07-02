@@ -49,6 +49,17 @@ sudo usermod -aG docker $USER   # then log out and back in
 
 ## 🚀 Quick Start — running simulations
 
+**Get the scripts first** (the model code and data live inside the Docker
+image — you only need this repository's scripts and config):
+
+```bash
+git clone https://github.com/ChristK/IMPACTncd_Engl.git
+cd IMPACTncd_Engl/docker_setup
+```
+
+(Alternatively, download just the launcher script and a config with `curl` —
+see the raw files on GitHub — it works standalone.)
+
 Both scripts accept the same parameters. Note that `--UseVolumes` is a double-dash flag in bash but `-UseVolumes` in PowerShell — that's a PowerShell convention, not a typo.
 
 ### Linux / macOS (Bash)
@@ -58,7 +69,10 @@ The bash script uses **flag-style** arguments (`-Tag value`), not positional.
 ```bash
 cd docker_setup
 
-# Default: pulls chriskypri/impactncdengl:main from Docker Hub
+# Default: pulls chriskypri/impactncdengl:main from Docker Hub.
+# NOTE: with no -SimDesignYaml this uses the repo's inputs/sim_design.yaml —
+# the maintainer's own config (paths + core counts). On a shared machine,
+# always pass -SimDesignYaml pointing at your own copy.
 ./setup_user_docker_env.sh
 
 # Specific Docker Hub tag
@@ -122,9 +136,14 @@ cd docker_setup
 2. **Reads your `sim_design.yaml`** to find `output_dir` and `synthpop_dir`.
 3. **Creates those host directories** if they don't exist.
 4. **Starts an interactive container** with those directories mounted.
-5. **Runs as your user** (UID/GID auto-detected) — not root — to avoid permission issues.
+5. **Runs as your user** (UID/GID auto-detected, including your supplementary
+   groups) — not root — so files you create belong to you and group-based
+   permissions on shared folders (e.g. a team synthpop cache) work inside the
+   container. *(Supplementary-group forwarding is currently implemented in the
+   bash launchers only; the PowerShell scripts pass just UID/GID.)*
 
-Once inside the container:
+Once inside the container you land in a **bash shell** — start R first
+(type `R`), then:
 ```r
 source("global.R")
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
@@ -166,7 +185,7 @@ not the ~13 GB of Zenodo data baked into it.
 | The `impactncdengl` image (code + ~13 GB Zenodo data) | **Shared — stored once** | Daemon storage (`Docker Root Dir`) |
 | The running container | Per-user, ephemeral (`--rm`) | Thin writable layer, a few MB |
 | `output_dir` (simulation results) | **Per-user** | Host dir from each user's YAML → `/outputs` |
-| `synthpop_dir` (synthetic population cache) | Per-user by default; **can be shared read-only** | Host dir from YAML → `/synthpop` |
+| `synthpop_dir` (synthetic population cache) | Per-user by default; **can be shared read-write** (group/ACL access works in-container — the launcher forwards your supplementary groups) | Host dir from YAML → `/synthpop` |
 | Scenario scripts | Per-user | `-ScenariosDir` → `/IMPACTncd_England/scenarios` |
 
 ### One-time setup (per teammate)
@@ -184,9 +203,14 @@ not the ~13 GB of Zenodo data baked into it.
 
 ### Each teammate runs their own container
 
-Give each person their **own** `output_dir`/`synthpop_dir` (set in their YAML)
-so results don't collide. On Linux keep the **default bind-mount mode** — do
-**not** pass `--UseVolumes` (that path is for macOS/Windows and creates an extra
+Give each person their **own** `output_dir` (set in their YAML) so results
+don't collide. For `synthpop_dir`, the recommended team pattern is **one
+shared cache folder** (see the tip below) so the synthetic population is
+generated once — per-user synthpop folders are the fallback when teammates
+run *different* populations. If your team has a server-specific handout
+(e.g. a TEAM_QUICKSTART), **its paths win** over the generic examples here.
+On Linux keep the **default bind-mount mode** — do **not** pass
+`--UseVolumes` (that path is for macOS/Windows and creates an extra
 per-user volume copy).
 
 #### Example — own `sim_design.yaml` + own scenarios folder
@@ -196,7 +220,7 @@ Say teammate *alice* keeps a personal config and a folder of scenario scripts:
 ```
 /home/alice/impactncd/
 ├── my_sim_design.yaml         # output_dir:   /mnt/storage_fast/alice/outputs
-│                              # synthpop_dir: /mnt/storage_fast/alice/synthpop
+│                              # synthpop_dir: <the team's shared cache folder>
 └── my_scenarios/
     └── simulate_England.R     # her scenario script(s)
 ```
@@ -281,19 +305,29 @@ The scripts auto-translate Windows-style absolute paths (`C:/...`) via `wsl.exe 
 
 **Container runs out of memory**
 Edit your `sim_design.yaml` and reduce:
-- `clusternumber` — fewer parallel cores, less RAM (~10 GB per core).
-- `n` and `num_chunks` — smaller synthetic population.
+- `clusternumber` **and** `clusternumber_export` first — fewer parallel cores,
+  less RAM (~10 GB per core).
+- `n` and `num_chunks` — smaller synthetic population. ⚠️ If your team shares
+  a synthpop cache, changing these forks/invalidates it — coordinate first.
 
 **Specific apt versions failing**
-The intelligent installer in `Dockerfile.prerequisite.IMPACTncdENGL` automatically substitutes the closest available version and prints a `PACKAGE VERSION UPDATES DETECTED` block at the end of the build. Run `update-apt-packages.{sh,ps1} --interactive` to fold those substitutions back into `apt-packages.txt`.
+The intelligent installer in `Dockerfile.prerequisite.IMPACTncdENGL` automatically substitutes the closest available version and prints a `PACKAGE VERSION UPDATES DETECTED` block at the end of the build. Run `update-apt-packages.sh --interactive` (PowerShell: `update-apt-packages.ps1 -Interactive`) to fold those substitutions back into `apt-packages.txt`.
 
 ---
 
 ## 🧹 Cleanup
 
+> ⚠️ **On a shared server these commands affect everyone using the daemon** —
+> images are stored once and shared, so removing one (or pruning) takes it
+> away from every user. Coordinate before cleaning up.
+
 ```bash
 # User-facing images
 docker rmi chriskypri/impactncdengl:main impactncdengl:local
+
+# Local build artifacts (the data image is the big one, ~33 GB unpacked;
+# rsync-alpine is created by --UseVolumes runs)
+docker rmi data.impactncdengl:local rsync-alpine
 
 # Dev-facing image (built by setup_dev_docker_env.{sh,ps1})
 docker rmi prerequisite.impactncdengl:local
@@ -349,12 +383,20 @@ The project uses a **three-layer architecture**, so that frequent code changes d
 2. **Data image** (`data.impactncdengl`) — prerequisite **+ ~13 GB of model data downloaded from Zenodo**. Rebuilt only when the Zenodo data (or the prerequisite) changes. Published to Docker Hub tagged by **Zenodo version** (see `build_push_data.sh` below).
 3. **Model image** (`impactncdengl:local`) — data **+ model code** (from your checkout or GitHub) + the built package. Rebuilt on code changes; the data is **inherited** from the data image, so it is **not** re-downloaded (~33 GB total).
 
-> **How images reach Docker Hub:** the **prerequisite** and **model** images are
-> built and pushed by GitHub Actions on every push
-> (`.github/workflows/build_push_prerequisite_*.yml`, `build_push_impactncdengl.yml`).
+> **How images reach Docker Hub:** the **model** image is built and pushed by
+> GitHub Actions on every push (and on manual dispatch); the **prerequisite**
+> image is rebuilt only when its input files change or a new branch needs
+> bootstrapping (`.github/workflows/build_push_prerequisite_*.yml`,
+> `build_push_impactncdengl.yml`).
 > The **data** image is published **manually** with `build_push_data.sh` (below),
-> because it is large and changes rarely. The model build (CI or local) pulls the
-> data layers from Docker Hub — it **never re-downloads from Zenodo**.
+> because it is large and changes rarely. The model build builds FROM existing
+> data layers (the local `:local` tag, or pulled from Docker Hub via
+> `DATA_IMAGE`) — it **never re-downloads from Zenodo**.
+> A CI **freshness guard** (`data_image_freshness_guard.yml`, on every push to
+> main + weekly) keeps the manual step honest: it fails the build on main —
+> with rebuild instructions — whenever the published data image is older than
+> the files that determine its content, and whenever `impactncdengl:main` is
+> older than the data image (a missed post-data-push model rebuild).
 
 Build the three layers in order:
 
@@ -384,7 +426,7 @@ The data and model Dockerfiles take their base image from a build-arg, defaultin
 - `Dockerfile.IMPACTncdENGL`: `ARG DATA_IMAGE=data.impactncdengl:local` → `FROM ${DATA_IMAGE}`
 - `Dockerfile.data.IMPACTncdENGL`: `ARG PREREQ_IMAGE=prerequisite.impactncdengl:local` → `FROM ${PREREQ_IMAGE}`
 
-That lets a build point `FROM` at a published image on Docker Hub without editing the Dockerfile — e.g. build the model image on top of the versioned data layer (this is what the model CI workflow does):
+That lets a build point `FROM` at a published image on Docker Hub without editing the Dockerfile — e.g. build the model image on top of the versioned data layer (the model CI does this, resolving `data.impactncdengl:<branch>` first and falling back to `:latest`):
 
 ```bash
 docker build --build-arg DATA_IMAGE=chriskypri/data.impactncdengl:latest \
@@ -442,7 +484,7 @@ IMPACTncd$zenodo_connect()       # anonymous, defaults to the published record
 IMPACTncd$zenodo_download_all()
 ```
 
-The `docker_build_push.{sh,ps1}` scripts derive the image name from the Dockerfile filename, so the local commands above produce `prerequisite.impactncdengl:local`, `data.impactncdengl:local`, and `impactncdengl:local` — the defaults the `ARG`-based `FROM` lines (`DATA_IMAGE` / `PREREQ_IMAGE`, above) and `setup_user_docker_env.{sh,ps1}` expect.
+The **bash** `docker_build_push.sh` derives the image name from the Dockerfile filename, so the local commands above produce `prerequisite.impactncdengl:local`, `data.impactncdengl:local`, and `impactncdengl:local` — the defaults the `ARG`-based `FROM` lines (`DATA_IMAGE` / `PREREQ_IMAGE`, above) and `setup_user_docker_env.{sh,ps1}` expect. The **PowerShell** `docker_build_push.ps1` currently defaults `-ImageName` to a fixed value and lowercases tags — on Windows pass `-ImageName` explicitly (e.g. `-ImageName impactncdengl`), and note that branch-tagged data builds (`build_push_data.sh`) are bash-only.
 
 #### If the model build fails with `blob ... not found` (containerd GC race)
 
@@ -460,7 +502,7 @@ This is a **host infrastructure** issue, not a problem with the Dockerfile: cont
 ./build_model_via_commit.sh        # data.impactncdengl:local -> impactncdengl:local
 ```
 
-This mirrors `Dockerfile.IMPACTncdENGL` step-for-step (merge code over the data layer, build + install the package, snapshot, chmod) and produces an identical, runnable image. The proper long-term fix is on the host: tune the containerd GC (`io.containerd.gc.v1.scheduler` thresholds in `/etc/containerd/config.toml`) so it does not evict blobs referenced by in-flight builds.
+This mirrors `Dockerfile.IMPACTncdENGL` step-for-step (merge code over the data layer, build + install the package, refresh the entrypoint, chmod, then snapshot — the snapshot must come **after** the chmod, and with whole-second mtimes, or the model needlessly reinstalls the package on first run) and produces an identical, runnable image. The proper long-term fix is on the host: tune the containerd GC (`io.containerd.gc.v1.scheduler` thresholds in `/etc/containerd/config.toml`) so it does not evict blobs referenced by in-flight builds.
 
 ### Build script options
 
@@ -481,6 +523,15 @@ Push credentials come from the environment or a `.env` file alongside the script
 export DOCKERHUB_USERNAME=yourusername
 export DOCKERHUB_TOKEN=youraccesstoken
 ```
+
+Other `.env` / environment options the build scripts honor:
+- `DOCKER_BUILD_NETWORK=host` — build with host networking (for hosts whose
+  internal DNS is unreachable from Docker's default bridge network).
+- `ZENODO_CONCEPT_DOI` / `DOWNLOAD_DATA` — data-image build args (see above).
+- `PREREQ_IMAGE` / `DATA_IMAGE` — base-image overrides forwarded as
+  `--build-arg`s. A value set by the **caller's environment takes precedence
+  over `.env`** (build_push_data.sh relies on this to select the branch
+  prerequisite), and the scripts print a NOTE whenever an override is active.
 
 ### Disk space
 
@@ -569,7 +620,13 @@ To bump the R package snapshot, edit the first line of `r-packages.txt` and rebu
 ### Adding R or system dependencies
 
 1. Edit `r-packages.txt` or `apt-packages.txt`.
-2. Rebuild the prerequisite image:
+2. Get the updated prerequisite image. If the change is already **pushed**,
+   CI has built it — pull and retag (faster, and exactly what CI validated):
+   ```bash
+   docker pull chriskypri/prerequisite.impactncdengl:main
+   docker tag  chriskypri/prerequisite.impactncdengl:main prerequisite.impactncdengl:local
+   ```
+   For pre-push local iteration, rebuild instead:
    ```bash
    ./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
    ```
