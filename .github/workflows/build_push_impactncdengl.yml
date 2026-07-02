@@ -33,11 +33,16 @@ name: Build Push IMPACTncdEngl
 # and proper coordination with the prerequisite workflow.
 
 on:
-  # TRIGGER: Push Events Only
+  # TRIGGER 1: Push Events
   # Runs on every push to any branch to ensure the main image is always
-  # built after code changes. Coordination with prerequisite workflow
-  # is handled internally through the wait step.
+  # built after code changes.
   push:
+  # TRIGGER 2: Manual / programmatic dispatch
+  # Lets docker_setup/build_push_data.sh re-trigger the model build after a
+  # local data-image push (`gh workflow run build_push_impactncdengl.yml
+  # --ref main`), so a fresh data:latest flows into the team's :main image
+  # without waiting for the next code push. Also usable from the Actions tab.
+  workflow_dispatch:
 
 jobs:
   # JOB: build
@@ -45,11 +50,10 @@ jobs:
   # Handles coordination with prerequisite workflow through conditional logic
   build:
     runs-on: ubuntu-latest
-    
+
     # CONDITIONAL EXECUTION LOGIC:
-    # Since we only use push events now, this condition is simplified
-    # to always proceed for push events.
-    if: ${{ github.event_name == 'push' }}
+    # Proceed for both push and manual/programmatic dispatch events.
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
     steps:
       # NOTE: there is deliberately no "wait for prerequisite workflow" step.
       # The model image builds FROM the data image
@@ -99,10 +103,28 @@ jobs:
       # The base image is NOT rewritten here — it is supplied via the DATA_IMAGE
       # build-arg in the build step below (the Dockerfile's `ARG DATA_IMAGE` /
       # `FROM ${DATA_IMAGE}`). This edit is ephemeral (runner only).
+      # $GITHUB_REF_NAME (runner env var) is used instead of interpolating
+      # ${{ github.ref_name }} into the script: interpolation happens BEFORE
+      # bash parses the script, so a branch name containing shell-active
+      # characters would break the step — or execute as code (script injection
+      # in a job that holds Docker Hub credentials).
       - name: Update git clone branch
         run: |
-          BRANCH_NAME="${{ github.ref_name }}"
-          sed -i "s|git clone https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo|git clone -b ${BRANCH_NAME} https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo|" docker_setup/Dockerfile.IMPACTncdENGL
+          sed -i "s|git clone https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo|git clone -b ${GITHUB_REF_NAME} https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo|" docker_setup/Dockerfile.IMPACTncdENGL
+
+      # STEP 3d: Compute a Docker-safe image tag from the branch name.
+      # Docker tags must match [A-Za-z0-9_][A-Za-z0-9._-]{0,127}; git branch
+      # names may contain '/' (e.g. feature/foo) and other characters. The git
+      # clone above keeps the REAL branch name — only the image tag is
+      # sanitized: disallowed chars -> '-', a disallowed LEADING '-'/'.' -> '_',
+      # and the result is truncated to Docker's 128-char tag limit.
+      # $GITHUB_REF_NAME env var, not ${{ }} interpolation — see STEP 3c.
+      - name: Compute Docker-safe image tag
+        run: |
+          SAFE_TAG=$(printf '%s' "$GITHUB_REF_NAME" | sed -e 's|[^A-Za-z0-9._-]|-|g' -e 's|^[.-]|_|')
+          SAFE_TAG=${SAFE_TAG:0:128}
+          echo "SAFE_TAG=${SAFE_TAG}" >> "$GITHUB_ENV"
+          echo "Image tag: ${SAFE_TAG}"
 
       # STEP 4: Docker Environment Setup
       # Configure Docker Buildx for enhanced build capabilities including:
@@ -145,7 +167,7 @@ jobs:
           context: docker_setup # Build context directory containing Dockerfile and configurations
           push: true # Push the built image to Docker Hub registry
           no-cache: true # Force complete rebuild without using cached layers
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/impactncdengl:${{ github.ref_name }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/impactncdengl:${{ env.SAFE_TAG }}
           file: docker_setup/Dockerfile.IMPACTncdENGL # Main application Dockerfile
           build-args: |
             SOURCE_METHOD=git
