@@ -61,6 +61,7 @@ IMPACTncd_Engl.code-workspace
 IMPACTncd_Engl.Rproj
 Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds
 docker_setup/.env
+docker_setup/TEAM_QUICKSTART.md
 lad17_proj_byDIMD
 
 # Generated manifest (regenerated from input files on init)
