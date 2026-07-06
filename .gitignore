@@ -63,6 +63,9 @@ IMPACTncd_Engl.Rproj
 Rpackage/.IMPACTncd_England_model_pkg_snapshot.rds
 docker_setup/.env
 docker_setup/TEAM_QUICKSTART.md
+# Rendered handouts generated from TEAM_QUICKSTART.md (distribution artifacts)
+docker_setup/TEAM_QUICKSTART.html
+docker_setup/TEAM_QUICKSTART.pdf
 lad17_proj_byDIMD
 
 # Generated manifest (regenerated from input files on init)

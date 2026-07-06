@@ -5,7 +5,19 @@
 # IMPACTncd England project. This script supports two operation modes:
 #
 # USAGE:
-#   .\setup_user_docker_env.ps1 [[-Tag] <string>] [[-ScenariosDir] <string>] [[-SimDesignYaml] <string>] [-UseVolumes]
+#   .\setup_user_docker_env.ps1 [[-Tag] <string>] [[-ScenariosDir] <string>] [[-SimDesignYaml] <string>] [-Run] [-UseVolumes]
+#
+# STANDALONE ("drop-in folder") MODE:
+#   Download just this script into a folder that also holds your own
+#   sim_design*.yaml (plus scenarios / a driver R script) and run it with no
+#   arguments. It auto-detects the single sim_design*.yaml next to it and merges
+#   that folder's files (via symlinks) into the model folder /IMPACTncd_England,
+#   so your config + scripts sit alongside global.R — referenced with no
+#   subfolder prefix and no paths to pass.
+#   Relative output_dir/synthpop_dir are resolved relative to the YAML's folder.
+#   Add -Run to auto-run the single simulate*.R driver via Rscript and exit;
+#   otherwise you land in an interactive bash shell (as before). If no YAML sits
+#   next to the script it falls back to the repo default inputs/sim_design.yaml.
 #
 # EXAMPLES:
 #   # Basic usage with default settings (uses main tag, bind mounts)
@@ -46,8 +58,15 @@
 #       
 #   -SimDesignYaml <string>
 #       Path to the simulation design YAML file. Can be relative or absolute.
-#       Default: "..\inputs\sim_design.yaml"
-#       
+#       Default: empty -> auto-detect a single sim_design*.yaml next to the
+#       script (standalone mode); if none is found, fall back to the repo
+#       default ..\inputs\sim_design.yaml.
+#
+#   -Run [<SwitchParameter>]
+#       Standalone mode only. Auto-run the single simulate*.R driver in the
+#       working folder via Rscript, then exit (instead of an interactive shell).
+#       Default: False (interactive bash shell).
+#
 #   -UseVolumes [<SwitchParameter>]
 #       Use Docker-managed volumes instead of direct bind mounts.
 #       Recommended for macOS and Windows for better I/O performance.
@@ -96,7 +115,8 @@
 param (
     [string]$Tag = "main",
     [string]$ScenariosDir = "",
-    [string]$SimDesignYaml = "..\inputs\sim_design.yaml",
+    [string]$SimDesignYaml = "",
+    [switch]$Run,
     [switch]$UseVolumes
 )
 
@@ -107,30 +127,67 @@ Push-Location $ScriptDir
 # Resolve project root directory (one level above the current script directory)
 $ProjectRoot = (Resolve-Path "$ScriptDir/..").Path -replace '\\', '/'
 
-# If SimDesignYaml is a relative path, resolve it relative to the project root
-if (-not [System.IO.Path]::IsPathRooted($SimDesignYaml)) {
-    # Normalize path separators to forward slashes for cross-platform compatibility
-    $SimDesignYamlNormalized = $SimDesignYaml -replace '\\', '/'
-    $TempPath = "$ProjectRoot/$SimDesignYamlNormalized" -replace '/+', '/'
-    # Resolve the path to handle .. components properly
-    $SimDesignYaml = (Resolve-Path $TempPath -ErrorAction SilentlyContinue).Path
-    if (-not $SimDesignYaml) {
-        # If Resolve-Path fails, try manual construction (for the actual inputs directory)
-        if ($SimDesignYamlNormalized -eq "../inputs/sim_design.yaml") {
-            $SimDesignYaml = "$ProjectRoot/inputs/sim_design.yaml"
-        } else {
-            $SimDesignYaml = $TempPath
+# -----------------------------------------------------------------------------
+# Resolve the simulation-design YAML and, in "standalone" mode, the working
+# folder to mount.
+#
+# Standalone mode = this launcher was downloaded into a folder that also holds
+# the user's own sim_design*.yaml (plus scenarios / a driver script). With no
+# -SimDesignYaml and exactly one YAML next to the script, it is used
+# automatically and its files are merged (symlinked) into the model folder
+# /IMPACTncd_England. If none sits next to the script we fall back to the repo
+# default (inputs/sim_design.yaml) and the classic behaviour.
+# -----------------------------------------------------------------------------
+$WorkdirMount = $null   # host folder merged into /IMPACTncd_England ($null = none)
+
+if ($SimDesignYaml) {
+    # Explicit -SimDesignYaml. Resolve relative to the project root if needed.
+    if (-not [System.IO.Path]::IsPathRooted($SimDesignYaml)) {
+        $SimDesignYamlNormalized = $SimDesignYaml -replace '\\', '/'
+        $TempPath = "$ProjectRoot/$SimDesignYamlNormalized" -replace '/+', '/'
+        $resolved = (Resolve-Path $TempPath -ErrorAction SilentlyContinue).Path
+        if ($resolved) { $SimDesignYaml = $resolved } else { $SimDesignYaml = $TempPath }
+    }
+    if (-not (Test-Path $SimDesignYaml)) {
+        Write-Host "Error: YAML file not found at '$SimDesignYaml'"
+        Write-Host "Project root: '$ProjectRoot'"
+        Pop-Location
+        Exit 1
+    }
+    $SimDesignYaml = (Resolve-Path $SimDesignYaml).Path
+    # Mount its containing folder unless it lives inside the repo tree.
+    $yamlDirFwd = ((Split-Path -Parent $SimDesignYaml) -replace '\\', '/').TrimEnd('/')
+    $projFwd    = ($ProjectRoot -replace '\\', '/').TrimEnd('/')
+    if (-not ($yamlDirFwd -eq $projFwd -or $yamlDirFwd.StartsWith("$projFwd/"))) {
+        $WorkdirMount = (Split-Path -Parent $SimDesignYaml)
+    }
+} else {
+    # No -SimDesignYaml: look for a single YAML next to this script. Prefer the
+    # sim_design* naming convention; fall back to any single generic *.yaml/*.yml.
+    $cands = @(Get-ChildItem -Path $ScriptDir -Filter 'sim_design*.yaml' -File -ErrorAction SilentlyContinue) +
+             @(Get-ChildItem -Path $ScriptDir -Filter 'sim_design*.yml'  -File -ErrorAction SilentlyContinue)
+    if ($cands.Count -eq 0) {
+        $cands = @(Get-ChildItem -Path $ScriptDir -Filter '*.yaml' -File -ErrorAction SilentlyContinue) +
+                 @(Get-ChildItem -Path $ScriptDir -Filter '*.yml'  -File -ErrorAction SilentlyContinue)
+    }
+    if ($cands.Count -eq 1) {
+        $SimDesignYaml = $cands[0].FullName
+        $WorkdirMount  = $ScriptDir
+        Write-Host "Auto-detected sim-design YAML next to the script: $($cands[0].Name)"
+    } elseif ($cands.Count -gt 1) {
+        Write-Host "Error: multiple YAML files sit next to the script; cannot choose one automatically:"
+        $cands | ForEach-Object { Write-Host "  - $($_.Name)" }
+        Write-Host "Re-run with -SimDesignYaml <file> to pick one."
+        Pop-Location
+        Exit 1
+    } else {
+        $SimDesignYaml = "$ProjectRoot/inputs/sim_design.yaml"
+        if (-not (Test-Path $SimDesignYaml)) {
+            Write-Host "Error: no YAML sits next to the script and the repo default was not found at '$SimDesignYaml'"
+            Pop-Location
+            Exit 1
         }
     }
-}
-
-# Validate that the YAML file exists
-if (-not (Test-Path $SimDesignYaml)) {
-    Write-Host "Error: YAML file not found at '$SimDesignYaml'"
-    Write-Host "Original path provided: '..\inputs\sim_design.yaml'"
-    Write-Host "Project root: '$ProjectRoot'"
-    Pop-Location
-    Exit 1
 }
 
 Write-Host "Using configuration file: $SimDesignYaml"
@@ -262,9 +319,16 @@ function Get-YamlPathValue {
     return $null
 }
 
-# Call the function passing $ProjectRoot
-$outputDir    = Get-YamlPathValue -YamlPath $SimDesignYaml -Key "output_dir" -BaseDir $ProjectRoot
-$synthpopDir  = Get-YamlPathValue -YamlPath $SimDesignYaml -Key "synthpop_dir" -BaseDir $ProjectRoot
+# Base for resolving RELATIVE output_dir/synthpop_dir. In standalone mode a
+# relative path is relative to the YAML's own folder (inside the mounted working
+# folder); otherwise relative to the repo root (classic behaviour).
+if ($WorkdirMount) {
+    $RelBase = ((Split-Path -Parent $SimDesignYaml) -replace '\\', '/')
+} else {
+    $RelBase = $ProjectRoot
+}
+$outputDir    = Get-YamlPathValue -YamlPath $SimDesignYaml -Key "output_dir" -BaseDir $RelBase
+$synthpopDir  = Get-YamlPathValue -YamlPath $SimDesignYaml -Key "synthpop_dir" -BaseDir $RelBase
 
 # --- Path Validation and Creation ---
 # Helper function to check and create directory
@@ -401,6 +465,111 @@ function Convert-PathToDockerFormat {
     return $Path
 }
 
+# -----------------------------------------------------------------------------
+# Assemble the pieces shared by both mount strategies (volumes and bind mounts):
+# env vars, optional bind mounts (scenarios + the standalone working folder),
+# and the container command (interactive bash, or a batch Rscript for -Run).
+# On Windows the launcher uses fixed UID/GID 1000:1000 and does not forward
+# supplementary host groups (the bash launchers do).
+# -----------------------------------------------------------------------------
+$EnvArgs = @(
+    "-e", "USER_ID=$UserId",
+    "-e", "GROUP_ID=$GroupId",
+    "-e", "USER_NAME=$UserName",
+    "-e", "GROUP_NAME=$GroupName"
+)
+
+# Internal staging mount for the standalone working folder. MergeScript (below)
+# symlinks its files into the model root at container start, so the user
+# references them with NO subfolder prefix. Keep this in sync with the literal
+# path used inside $MergeScript.
+$WorkStage = "/mnt/impactncd_project"
+$ExtraMounts = @()
+if ($ScenariosDir) {
+    $DockerScenariosDir = Convert-PathToDockerFormat -Path $ScenariosDir
+    $ExtraMounts += @("--mount", "type=bind,source=$DockerScenariosDir,target=/IMPACTncd_England/scenarios")
+}
+if ($WorkdirMount) {
+    $DockerWorkdirMount = Convert-PathToDockerFormat -Path $WorkdirMount
+    $ExtraMounts += @("--mount", "type=bind,source=$DockerWorkdirMount,target=$WorkStage")
+    $yamlBase = [System.IO.Path]::GetFileName($SimDesignYaml)
+    $EnvArgs += @("-e", "SIM_DESIGN_YAML=/IMPACTncd_England/$yamlBase")
+}
+
+# Wrapper run at container start (standalone mode): symlink each file from the
+# staging mount into the model root, skipping the launcher and any name that
+# already exists there (never shadow a model file; checked against the real
+# in-container tree). Then cd to the model root. POSIX-sh run by the container's
+# bash — keep the /mnt/impactncd_project literal identical to $WorkStage.
+$MergeScript = @'
+for f in /mnt/impactncd_project/*; do
+  [ -e "$f" ] || continue
+  n=$(basename "$f")
+  case "$n" in setup_*_docker_env.sh|setup_*_docker_env.ps1) continue ;; esac
+  if [ -e "/IMPACTncd_England/$n" ]; then
+    echo "NOTE: \"$n\" already exists in the model folder; keeping the model version (rename your copy if you need it)." >&2
+    continue
+  fi
+  ln -sfn "$f" "/IMPACTncd_England/$n"
+done
+cd /IMPACTncd_England
+'@
+
+# -Run: locate the single driver R script in the working folder to run.
+$DriverName = $null
+if ($Run) {
+    if (-not $WorkdirMount) {
+        Write-Host "Error: -Run needs a working folder (standalone mode). Put your sim_design*.yaml and a simulate*.R driver next to this script, then re-run with -Run."
+        Pop-Location
+        Exit 1
+    }
+    $drv = @(Get-ChildItem -Path $WorkdirMount -Filter 'simulate*.R' -File -ErrorAction SilentlyContinue)
+    if ($drv.Count -eq 0) {
+        $drv = @(Get-ChildItem -Path $WorkdirMount -Filter '*.R' -File -ErrorAction SilentlyContinue)
+    }
+    if ($drv.Count -eq 1) {
+        $DriverName = $drv[0].Name
+    } elseif ($drv.Count -gt 1) {
+        Write-Host "Error: -Run found multiple R scripts in the working folder; cannot choose one:"
+        $drv | ForEach-Object { Write-Host "  - $($_.Name)" }
+        Write-Host "Keep a single simulate*.R driver, or run interactively (omit -Run)."
+        Pop-Location
+        Exit 1
+    } else {
+        Write-Host "Error: -Run found no R script in the working folder to execute."
+        Pop-Location
+        Exit 1
+    }
+}
+
+if ($Run) {
+    $TtyFlags = @("--rm")                        # non-interactive (batch)
+    # Wrap: merge the user's files into the model root, then exec the driver.
+    # The driver name is passed as $0 to avoid quoting/injection.
+    $ContainerCmd = @("bash", "-c", ($MergeScript + "`nexec Rscript `"`$0`""), $DriverName)
+    Write-Host "Auto-run mode: will run $DriverName via Rscript (merged into the model folder), then exit."
+} elseif ($WorkdirMount) {
+    $TtyFlags = @("-it", "--rm")
+    $ContainerCmd = @("bash", "-c", ($MergeScript + "`nexec bash"))
+} else {
+    $TtyFlags = @("-it", "--rm")                 # classic mode: nothing to merge
+    $ContainerCmd = @("bash")
+}
+
+if ((-not $Run) -and $WorkdirMount) {
+    $yamlBaseHint = [System.IO.Path]::GetFileName($SimDesignYaml)
+    Write-Host "-----------------------------------------------------------------------"
+    Write-Host "Your files are available directly in the model folder (no subfolder to remember)."
+    Write-Host "Inside the container, run your simulation, e.g.:"
+    Write-Host "    R"
+    Write-Host '    > source("global.R")'
+    Write-Host ('    > IMPACTncd <- Simulation$new("' + $yamlBaseHint + '")')
+    Write-Host '    > IMPACTncd$run(1:10, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)'
+    Write-Host '  ...or source your driver:  source("<your-driver>.R")'
+    Write-Host "  (outputs are written to /outputs -> your host output_dir)"
+    Write-Host "-----------------------------------------------------------------------"
+}
+
 # -----------------------------
 # Run Docker container
 # -----------------------------
@@ -461,32 +630,14 @@ RUN apk add --no-cache rsync
 
     # Run the main container with volumes mounted.
     Write-Host "Running the main container using Docker volumes..."
-    # Construct arguments as an array for reliable passing
-    $dockerArgs = @(
-        "run", "-it", "--rm",
-        # User identity environment variables
-        "-e", "USER_ID=$UserId",
-        "-e", "GROUP_ID=$GroupId", 
-        "-e", "USER_NAME=$UserName",
-        "-e", "GROUP_NAME=$GroupName",
-        # Use -v syntax within the array elements (no project volume needed)
+    # Construct arguments as an array for reliable passing. Shared env vars,
+    # optional bind mounts (scenarios + working folder) and the container
+    # command are assembled above.
+    $dockerArgs = @("run") + $TtyFlags + $EnvArgs + @(
         "-v", "${VolumeOutput}:/outputs",
         "-v", "${VolumeSynthpop}:/synthpop"
-    )
-    
-    # Add scenarios mount if provided
-    if ($ScenariosDir) {
-        $DockerScenariosDir = Convert-PathToDockerFormat -Path $ScenariosDir
-        $dockerArgs += "--mount"
-        $dockerArgs += "type=bind,source=$DockerScenariosDir,target=/IMPACTncd_England/scenarios"
-    }
-    
-    # Add final arguments
-    $dockerArgs += "--workdir"
-    $dockerArgs += "/IMPACTncd_England"
-    $dockerArgs += $ImageName
-    $dockerArgs += "bash"
-    
+    ) + $ExtraMounts + @("--workdir", "/IMPACTncd_England", $ImageName) + $ContainerCmd
+
     # Execute docker with the arguments array
     & docker $dockerArgs
 
@@ -513,32 +664,14 @@ RUN apk add --no-cache rsync
     Write-Host "Docker Output Dir:   $DockerOutputDir"
     Write-Host "Docker Synthpop Dir: $DockerSynthpopDir"
 
-    # Pass mount arguments correctly to docker run (no project mount needed)
-    if ($ScenariosDir) {
-        $DockerScenariosDir = Convert-PathToDockerFormat -Path $ScenariosDir
-        docker run -it --rm `
-            -e "USER_ID=$UserId" `
-            -e "GROUP_ID=$GroupId" `
-            -e "USER_NAME=$UserName" `
-            -e "GROUP_NAME=$GroupName" `
-            --mount "type=bind,source=$DockerOutputDir,target=/outputs" `
-            --mount "type=bind,source=$DockerSynthpopDir,target=/synthpop" `
-            --mount "type=bind,source=$DockerScenariosDir,target=/IMPACTncd_England/scenarios" `
-            --workdir /IMPACTncd_England `
-            $ImageName `
-            bash
-    } else {
-        docker run -it --rm `
-            -e "USER_ID=$UserId" `
-            -e "GROUP_ID=$GroupId" `
-            -e "USER_NAME=$UserName" `
-            -e "GROUP_NAME=$GroupName" `
-            --mount "type=bind,source=$DockerOutputDir,target=/outputs" `
-            --mount "type=bind,source=$DockerSynthpopDir,target=/synthpop" `
-            --workdir /IMPACTncd_England `
-            $ImageName `
-            bash
-    }
+    # Build the argument array (shared env + optional mounts + command, all
+    # assembled above) and pass it to docker for reliable argument handling.
+    $dockerArgs = @("run") + $TtyFlags + $EnvArgs + @(
+        "--mount", "type=bind,source=$DockerOutputDir,target=/outputs",
+        "--mount", "type=bind,source=$DockerSynthpopDir,target=/synthpop"
+    ) + $ExtraMounts + @("--workdir", "/IMPACTncd_England", $ImageName) + $ContainerCmd
+
+    & docker $dockerArgs
 }
 
 # Restore the original directory
