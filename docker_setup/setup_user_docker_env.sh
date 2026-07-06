@@ -171,10 +171,13 @@ if [[ -n "$SCENARIOS_DIR" ]]; then
   echo "Using scenarios from: $SCENARIOS_DIR"
 fi
 
-# Set simulation design file and extract output directories from YAML
+# Set simulation design file and extract output directories from YAML.
+# `tr -d '\r'` strips any trailing carriage return so a YAML saved with
+# Windows/CRLF line endings can't smuggle a \r into the mount path — that
+# makes `docker run --mount` fail with "value should not have whitespace".
 SIM_DESIGN_FILE="$YAML_FILE"
-OUTPUT_DIR_RAW=$(grep '^output_dir:' "$SIM_DESIGN_FILE" | sed -E 's/output_dir:[[:space:]]*([^#]*).*/\1/' | xargs)
-SYNTHPOP_DIR_RAW=$(grep '^synthpop_dir:' "$SIM_DESIGN_FILE" | sed -E 's/synthpop_dir:[[:space:]]*([^#]*).*/\1/' | xargs)
+OUTPUT_DIR_RAW=$(grep '^output_dir:' "$SIM_DESIGN_FILE" | sed -E 's/output_dir:[[:space:]]*([^#]*).*/\1/' | tr -d '\r' | xargs)
+SYNTHPOP_DIR_RAW=$(grep '^synthpop_dir:' "$SIM_DESIGN_FILE" | sed -E 's/synthpop_dir:[[:space:]]*([^#]*).*/\1/' | tr -d '\r' | xargs)
 
 # Resolve paths relative to the PROJECT_ROOT if they are not absolute
 if [[ "$OUTPUT_DIR_RAW" != /* && "$OUTPUT_DIR_RAW" != ~* ]]; then

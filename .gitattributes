@@ -1,0 +1,15 @@
+# Line-ending normalization.
+#
+# Shell scripts and YAML configs must stay LF on every OS. A YAML saved with
+# Windows/CRLF line endings injects a stray carriage return (\r) into the
+# values that docker_setup/*.sh parse for `output_dir` / `synthpop_dir`, which
+# makes `docker run --mount` fail with "value should not have whitespace".
+# (The scripts also strip \r defensively, but keeping tracked files LF avoids
+# the problem at the source.)
+*.sh   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.R    text eol=lf
+
+# PowerShell is Windows-native; keep it CRLF.
+*.ps1  text eol=crlf
