@@ -27,9 +27,10 @@ use the server handout (`TEAM_QUICKSTART`) rather than this guide.
 8. [Run the model](#8-run-the-model)
 9. [Find your results](#9-find-your-results)
 10. [Run a policy scenario](#10-run-a-policy-scenario)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Updating and cleaning up](#12-updating-and-cleaning-up)
-13. [How it works (optional background)](#13-how-it-works-optional-background)
+11. [Read the built-in tutorials (vignettes)](#11-read-the-built-in-tutorials-vignettes)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Updating and cleaning up](#13-updating-and-cleaning-up)
+14. [How it works (optional background)](#14-how-it-works-optional-background)
 
 ---
 
@@ -369,12 +370,58 @@ cat("Done! Compare sc0 vs sc1 in ./outputs.\n")
 
 Run it exactly as in [section 8](#8-run-the-model). Other risk factors you can
 nudge the same way include blood pressure, cholesterol, smoking, alcohol, fruit
-and vegetable intake, and physical activity. See the model's vignettes
-(`how_to_run_scenarios`) for the full menu.
+and vegetable intake, and physical activity. For the full menu, read the
+built-in tutorials — see the [next section](#11-read-the-built-in-tutorials-vignettes).
 
 ---
 
-## 11. Troubleshooting
+## 11. Read the built-in tutorials (vignettes)
+
+The model ships several tutorials ("vignettes"). List them from inside R with:
+
+```r
+vignette(package = "IMPACTncdEngland")
+```
+
+Note that **`vignette("how_to_test_run")` will fail** inside the container with
+`sh: 1: xdg-open: not found`. That is expected — the container has no web browser
+to open the page in. Nothing is broken; you view the tutorials on your own
+computer instead, like this:
+
+**Copy the tutorials into your results folder, then open them in your browser.**
+In your R session inside the container:
+
+```r
+doc <- system.file("doc", package = "IMPACTncdEngland")
+dir.create("/outputs/vignettes", showWarnings = FALSE)
+file.copy(list.files(doc, full.names = TRUE), "/outputs/vignettes", overwrite = TRUE)
+```
+
+Then, **on your own computer**, open your project folder → `outputs/vignettes/`
+and double-click **`index.html`** — it links to every tutorial, nicely
+formatted. (`/outputs` inside the container is the very same folder as
+`./outputs` on your machine, so the copied files are already on your disk.)
+
+The tutorials available:
+
+| Vignette | What it covers |
+|---|---|
+| `how_to_test_run` | **Start here** — running a test simulation. |
+| `how_to_run_scenarios` | Defining and running a baseline plus policy scenarios. |
+| `understanding_model_outputs` | Interpreting the output files. |
+| `custom-scenario-columns` | Exporting custom columns created in scenarios. |
+| `inputs_manifest_system` | The inputs manifest / data-asset tracking system. |
+| `zenodo_data_management` | Downloading and managing the model's input data. |
+
+> **Prefer to stay in the terminal?** The tutorial sources are plain text you can
+> read in place — for example
+> `less /usr/local/lib/R/site-library/IMPACTncdEngland/doc/how_to_test_run.Rmd`
+> (press `q` to quit). The matching `.R` file beside it holds just the runnable
+> code from that tutorial.
+
+---
+
+## 12. Troubleshooting
 
 **"Cannot connect to the Docker daemon."**
 Docker is not running or you lack permission. Start Docker Desktop
@@ -406,6 +453,11 @@ with more memory.
 Expected. The first run downloads the image and builds the synthetic population
 once. Subsequent runs reuse the cached `synthpop` folder and are much faster.
 
+**`vignette(...)` gives `xdg-open: not found`.**
+Expected — the container has no browser to open the page in. See
+[section 11](#11-read-the-built-in-tutorials-vignettes) for how to read the
+tutorials on your own computer instead.
+
 **"multiple YAML files … cannot choose one automatically."**
 You have more than one `sim_design*.yaml` in the folder. Remove the extras, or
 add `-SimDesignYaml sim_design.yaml` to the launch command to pick one.
@@ -416,7 +468,7 @@ Docker Desktop, or use forward-slash POSIX-style paths in your YAML.
 
 ---
 
-## 12. Updating and cleaning up
+## 13. Updating and cleaning up
 
 **Get the latest model.** The image is updated over time. To fetch the newest
 version, pull it (the launcher also does this automatically each run):
@@ -441,7 +493,7 @@ image does not touch them.
 
 ---
 
-## 13. How it works (optional background)
+## 14. How it works (optional background)
 
 - **Image vs. container.** The *image* is a frozen, read-only copy of the whole
   model (software + data). Each time you run the launcher it starts a fresh,
