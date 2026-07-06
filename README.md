@@ -9,7 +9,7 @@ Peter Crowther (Melandra Ltd), Maria Guzman-Castillo, Amandine Robert, Piotr Ban
 Several research grants have supported its development including grants from the Health Foundation,
 NIHR, EU Horizon2020, Liverpool City Council, MRC, NIH, and the National Cerebral and Cardiovascular Center in Japan.
 
-Copyright (C) 2018-2025 University of Liverpool, Chris Kypridemos.
+Copyright (C) 2018-2026 University of Liverpool, Chris Kypridemos.
 
 IMPACT<sub>NCD_Engl</sub> is free software; you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
@@ -54,7 +54,12 @@ cd docker_setup
 ./setup_user_docker_env.sh        # Linux/macOS   (Windows PowerShell: setup_user_docker_env.ps1)
 ```
 
-See **[docker_setup/README.md](docker_setup/README.md)** for the full Docker guide: installing Docker, the `setup_user_docker_env`/`setup_dev_docker_env` helpers, the three-layer image architecture (prerequisite → data → model), and how to build the images locally.
+> 📖 **New to this, or not a developer?** Follow the step-by-step
+> **[Installation & Getting-Started Guide](docker_setup/INSTALLATION_GUIDE.md)** —
+> it walks you from installing Docker on Windows, macOS, or Linux all the way to
+> running your own scenarios.
+
+See **[docker_setup/README.md](docker_setup/README.md)** for the full Docker reference: the `setup_user_docker_env`/`setup_dev_docker_env` helpers, the three-layer image architecture (prerequisite → data → model), and how to build the images locally.
 
 ### Option B — Native R installation
 

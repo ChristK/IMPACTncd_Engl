@@ -3,10 +3,27 @@
 # setup_user_docker_env.sh
 #
 # Usage:
-#   ./setup_user_docker_env.sh [-Tag <tag>] [-ScenariosDir <path_to_scenarios>] [-SimDesignYaml <path_to_yaml>] [--UseVolumes]
+#   ./setup_user_docker_env.sh [-Tag <tag>] [-ScenariosDir <path_to_scenarios>] [-SimDesignYaml <path_to_yaml>] [-Run] [--UseVolumes]
 #
 # Description:
 #   This script pulls and runs a Docker container for the IMPACTncd England project.
+#
+# Standalone ("drop-in folder") mode:
+#   Download just this script into a folder that also holds your own
+#   sim_design*.yaml (plus any scenarios / a driver R script), then run it with
+#   NO arguments. It will:
+#     - auto-detect the single sim_design*.yaml sitting next to it (if exactly
+#       one YAML is present; otherwise pass -SimDesignYaml to choose), and
+#     - merge that folder's files into the model folder /IMPACTncd_England
+#       (via symlinks) so your config + scripts sit alongside global.R — you
+#       reference them with no subfolder prefix and pass no paths.
+#   Relative output_dir/synthpop_dir in the YAML are resolved relative to the
+#   YAML's own folder.
+#   Add -Run to auto-run the single simulate*.R driver in the folder via Rscript
+#   and exit (otherwise you land in an interactive bash shell, as before).
+#
+#   If no YAML sits next to the script, it falls back to the repo default
+#   inputs/sim_design.yaml and the classic behaviour (nothing extra mounted).
 #
 # Container Selection:
 #   - If <tag> is "main" (default): pulls and uses "chriskypri/impactncdengl:main".
@@ -60,8 +77,9 @@ PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
 
 # Variable definitions
 DOCKER_TAG="main"  # Default tag
-YAML_FILE="$PROJECT_ROOT/inputs/sim_design.yaml" # Default YAML path relative to project root
+YAML_FILE=""       # Sim-design YAML; stays empty until set by -SimDesignYaml or auto-detected
 SCENARIOS_DIR=""  # Scenarios directory to copy into container
+RUN_MODE=false     # -Run: auto-run the single driver R script in the working folder, then exit
 CURRENT_USER=$(whoami)
 # Get current user's UID and GID for running containers as non-root
 USER_ID=$(id -u)
@@ -136,6 +154,10 @@ while [[ $# -gt 0 ]]; do
       USE_VOLUMES=true
       shift
       ;;
+    -Run)
+      RUN_MODE=true
+      shift
+      ;;
     *)
       echo "Unknown argument: $1"
       exit 1
@@ -145,7 +167,56 @@ done
 
 # Ensure default values if arguments are not provided
 DOCKER_TAG=${DOCKER_TAG:-"main"}
-YAML_FILE=${YAML_FILE:-"$PROJECT_ROOT/inputs/sim_design.yaml"}
+
+# -----------------------------------------------------------------------------
+# Resolve the simulation-design YAML and, in "standalone" mode, the working
+# folder to mount.
+#
+# Standalone mode = this launcher was downloaded into a folder that also holds
+# the user's own sim_design*.yaml (plus scenarios / a driver script). When no
+# -SimDesignYaml is given and exactly one YAML sits next to the script, it is
+# used automatically and its files are merged (symlinked) into the model folder
+# /IMPACTncd_England — so the user's config and scripts sit alongside the model
+# and are referenced with no subfolder prefix, without passing any paths.
+#
+# If no YAML sits next to the script we fall back to the repo default
+# (inputs/sim_design.yaml) and the classic behaviour, with nothing extra
+# mounted. Passing -SimDesignYaml explicitly also mounts its containing folder,
+# unless that folder is inside the repo tree (the developer workflow).
+# -----------------------------------------------------------------------------
+WORKDIR_MOUNT=""   # host folder merged into /IMPACTncd_England ("" = none)
+
+if [ -n "$YAML_FILE" ]; then
+  # Explicit -SimDesignYaml (already realpath'd and existence-checked above).
+  YAML_DIR="$(cd "$(dirname "$YAML_FILE")" && pwd)"
+  case "$YAML_DIR/" in
+    "$PROJECT_ROOT"/*) : ;;            # inside the repo tree -> classic, no work mount
+    *) WORKDIR_MOUNT="$YAML_DIR" ;;    # a user folder outside the repo -> mount it
+  esac
+else
+  # No -SimDesignYaml: look for a single YAML next to this script. Prefer the
+  # sim_design* naming convention; fall back to any single generic *.yaml/*.yml.
+  shopt -s nullglob
+  yaml_candidates=( "$SCRIPT_DIR"/sim_design*.yaml "$SCRIPT_DIR"/sim_design*.yml )
+  if [ ${#yaml_candidates[@]} -eq 0 ]; then
+    yaml_candidates=( "$SCRIPT_DIR"/*.yaml "$SCRIPT_DIR"/*.yml )
+  fi
+  shopt -u nullglob
+
+  if [ ${#yaml_candidates[@]} -eq 1 ]; then
+    YAML_FILE="$(realpath "${yaml_candidates[0]}")"
+    WORKDIR_MOUNT="$SCRIPT_DIR"
+    echo "Auto-detected sim-design YAML next to the script: $(basename "$YAML_FILE")"
+  elif [ ${#yaml_candidates[@]} -gt 1 ]; then
+    echo "Error: multiple YAML files sit next to the script; cannot choose one automatically:"
+    for y in "${yaml_candidates[@]}"; do echo "  - $(basename "$y")"; done
+    echo "Re-run with -SimDesignYaml <file> to pick one."
+    exit 1
+  else
+    # Nothing next to the script -> classic repo default.
+    YAML_FILE="$PROJECT_ROOT/inputs/sim_design.yaml"
+  fi
+fi
 
 # Determine the Docker image name based on the tag
 if [[ "$DOCKER_TAG" == "local" ]]; then
@@ -179,14 +250,24 @@ SIM_DESIGN_FILE="$YAML_FILE"
 OUTPUT_DIR_RAW=$(grep '^output_dir:' "$SIM_DESIGN_FILE" | sed -E 's/output_dir:[[:space:]]*([^#]*).*/\1/' | tr -d '\r' | xargs)
 SYNTHPOP_DIR_RAW=$(grep '^synthpop_dir:' "$SIM_DESIGN_FILE" | sed -E 's/synthpop_dir:[[:space:]]*([^#]*).*/\1/' | tr -d '\r' | xargs)
 
-# Resolve paths relative to the PROJECT_ROOT if they are not absolute
+# Base for resolving RELATIVE output_dir/synthpop_dir from the YAML. In
+# standalone mode a relative path (e.g. ./outputs) is relative to the YAML's
+# own folder — i.e. inside the mounted working folder; in classic mode it is
+# relative to the repo root, preserving the previous behaviour.
+if [ -n "$WORKDIR_MOUNT" ]; then
+  REL_BASE="$(cd "$(dirname "$YAML_FILE")" && pwd)"
+else
+  REL_BASE="$PROJECT_ROOT"
+fi
+
+# Resolve paths relative to REL_BASE if they are not absolute
 if [[ "$OUTPUT_DIR_RAW" != /* && "$OUTPUT_DIR_RAW" != ~* ]]; then
-  OUTPUT_DIR_TEMP="$PROJECT_ROOT/$OUTPUT_DIR_RAW"
+  OUTPUT_DIR_TEMP="$REL_BASE/$OUTPUT_DIR_RAW"
 else
   OUTPUT_DIR_TEMP="$OUTPUT_DIR_RAW"
 fi
 if [[ "$SYNTHPOP_DIR_RAW" != /* && "$SYNTHPOP_DIR_RAW" != ~* ]]; then
-  SYNTHPOP_DIR_TEMP="$PROJECT_ROOT/$SYNTHPOP_DIR_RAW"
+  SYNTHPOP_DIR_TEMP="$REL_BASE/$SYNTHPOP_DIR_RAW"
 else
   SYNTHPOP_DIR_TEMP="$SYNTHPOP_DIR_RAW"
 fi
@@ -238,6 +319,111 @@ fi
 # Note: The Docker image already contains the /IMPACTncd_England project, so no project
 # volume or bind mount is needed.
 # -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Assemble the pieces shared by both mount strategies (volumes and bind mounts)
+# so the actual `docker run` is written once each, instead of being duplicated
+# for every scenarios / -Run combination.
+# -----------------------------------------------------------------------------
+RUN_ENV_ARGS=(
+  -e USER_ID="${USER_ID}"
+  -e GROUP_ID="${GROUP_ID}"
+  -e USER_NAME="${USER_NAME}"
+  -e GROUP_NAME="${GROUP_NAME}"
+  -e ADDITIONAL_GIDS="${ADDITIONAL_GIDS}"
+)
+
+# Optional bind mounts: a user scenarios dir and/or the standalone working
+# folder. In standalone mode the working folder is bind-mounted at a private
+# STAGING path, and MERGE_SCRIPT (below) symlinks its files into the model root
+# /IMPACTncd_England at container start — so they sit alongside global.R and the
+# user references them with NO subfolder prefix. SIM_DESIGN_YAML points at that
+# post-symlink location so a driver can do Simulation$new(Sys.getenv("SIM_DESIGN_YAML")).
+WORK_STAGE="/mnt/impactncd_project"   # internal staging mount (users never see it)
+EXTRA_MOUNTS=()
+if [[ -n "$SCENARIOS_DIR" ]]; then
+  EXTRA_MOUNTS+=( --mount "type=bind,source=$SCENARIOS_DIR,target=/IMPACTncd_England/scenarios" )
+fi
+if [[ -n "$WORKDIR_MOUNT" ]]; then
+  EXTRA_MOUNTS+=( --mount "type=bind,source=$WORKDIR_MOUNT,target=$WORK_STAGE" )
+  RUN_ENV_ARGS+=( -e SIM_DESIGN_YAML="/IMPACTncd_England/$(basename "$YAML_FILE")" )
+fi
+
+# Wrapper run at container start in standalone mode: symlink each file from the
+# staging mount into the model root, skipping the launcher itself and any name
+# that ALREADY exists there — so a user file never shadows a model file (global.R,
+# Rpackage, …). The skip check runs against the real in-container tree, so there
+# is no hardcoded reserved list to keep in sync. Then cd to the model root so the
+# relative paths in global.R and in the user's driver resolve.
+MERGE_SCRIPT='for f in '"$WORK_STAGE"'/*; do
+  [ -e "$f" ] || continue
+  n=$(basename "$f")
+  case "$n" in setup_*_docker_env.sh|setup_*_docker_env.ps1) continue ;; esac
+  if [ -e "/IMPACTncd_England/$n" ]; then
+    echo "NOTE: \"$n\" already exists in the model folder; keeping the model version (rename your copy if you need it)." >&2
+    continue
+  fi
+  ln -sfn "$f" "/IMPACTncd_England/$n"
+done
+cd /IMPACTncd_England'
+
+# -Run: locate the single driver R script in the working folder to execute
+# non-interactively (requires standalone mode, i.e. a mounted working folder).
+DRIVER_NAME=""
+if [ "$RUN_MODE" = true ]; then
+  if [ -z "$WORKDIR_MOUNT" ]; then
+    echo "Error: -Run needs a working folder (standalone mode). Put your sim_design*.yaml"
+    echo "       and a simulate*.R driver next to this script, then re-run with -Run."
+    exit 1
+  fi
+  shopt -s nullglob
+  drivers=( "$WORKDIR_MOUNT"/simulate*.R "$WORKDIR_MOUNT"/simulate*.r )
+  if [ ${#drivers[@]} -eq 0 ]; then
+    drivers=( "$WORKDIR_MOUNT"/*.R "$WORKDIR_MOUNT"/*.r )
+  fi
+  shopt -u nullglob
+  if [ ${#drivers[@]} -eq 1 ]; then
+    DRIVER_NAME="$(basename "${drivers[0]}")"
+  elif [ ${#drivers[@]} -gt 1 ]; then
+    echo "Error: -Run found multiple R scripts in the working folder; cannot choose one:"
+    for d in "${drivers[@]}"; do echo "  - $(basename "$d")"; done
+    echo "Keep a single simulate*.R driver, or run interactively (omit -Run)."
+    exit 1
+  else
+    echo "Error: -Run found no R script in the working folder to execute."
+    exit 1
+  fi
+fi
+
+# Container command + TTY flags. In standalone mode the real command (bash, or
+# Rscript for -Run) is wrapped so MERGE_SCRIPT symlinks the user's files into the
+# model root first. The driver name is passed as $0 to avoid quoting/injection.
+if [ "$RUN_MODE" = true ]; then
+  TTY_FLAGS=()                                 # non-interactive (batch)
+  CONTAINER_CMD=( bash -c "$MERGE_SCRIPT"$'\n'"exec Rscript \"\$0\"" "$DRIVER_NAME" )
+  echo "Auto-run mode: will run $DRIVER_NAME via Rscript (merged into the model folder), then exit."
+elif [ -n "$WORKDIR_MOUNT" ]; then
+  TTY_FLAGS=( -it )
+  CONTAINER_CMD=( bash -c "$MERGE_SCRIPT"$'\n'"exec bash" )
+else
+  TTY_FLAGS=( -it )                            # classic mode: nothing to merge
+  CONTAINER_CMD=( bash )
+fi
+
+# Friendly hint for interactive standalone runs.
+if [ "$RUN_MODE" != true ] && [ -n "$WORKDIR_MOUNT" ]; then
+  echo "-----------------------------------------------------------------------"
+  echo "Your files are available directly in the model folder (no subfolder to"
+  echo "remember). Inside the container, run your simulation, e.g.:"
+  echo "    R"
+  echo "    > source(\"global.R\")"
+  echo "    > IMPACTncd <- Simulation\$new(\"$(basename "$YAML_FILE")\")"
+  echo "    > IMPACTncd\$run(1:10, multicore = TRUE, \"sc0\")\$export_summaries(multicore = TRUE)"
+  echo "  ...or source your driver:  source(\"<your-driver>.R\")"
+  echo "  (outputs are written to /outputs -> your host output_dir)"
+  echo "-----------------------------------------------------------------------"
+fi
+
 if [ "$USE_VOLUMES" = true ]; then
   echo "Using Docker volumes for outputs and synthpop..."
 
@@ -305,34 +491,14 @@ EOF
 
   # Run the main container using the pre-built image
   echo "Running the main container using Docker volumes..."
-  
-  # Prepare docker run command with scenarios mount if provided
-  if [[ -n "$SCENARIOS_DIR" ]]; then
-    docker run -it --rm \
-      -e USER_ID="${USER_ID}" \
-      -e GROUP_ID="${GROUP_ID}" \
-      -e USER_NAME="${USER_NAME}" \
-      -e GROUP_NAME="${GROUP_NAME}" \
-      -e ADDITIONAL_GIDS="${ADDITIONAL_GIDS}" \
-      --mount type=volume,source="$VOLUME_OUTPUT_NAME",target=/outputs \
-      --mount type=volume,source="$VOLUME_SYNTHPOP_NAME",target=/synthpop \
-      --mount type=bind,source="$SCENARIOS_DIR",target=/IMPACTncd_England/scenarios \
-      --workdir /IMPACTncd_England \
-      "$IMAGE_NAME" \
-      bash
-  else
-    docker run -it --rm \
-      -e USER_ID="${USER_ID}" \
-      -e GROUP_ID="${GROUP_ID}" \
-      -e USER_NAME="${USER_NAME}" \
-      -e GROUP_NAME="${GROUP_NAME}" \
-      -e ADDITIONAL_GIDS="${ADDITIONAL_GIDS}" \
-      --mount type=volume,source="$VOLUME_OUTPUT_NAME",target=/outputs \
-      --mount type=volume,source="$VOLUME_SYNTHPOP_NAME",target=/synthpop \
-      --workdir /IMPACTncd_England \
-      "$IMAGE_NAME" \
-      bash
-  fi
+  docker run "${TTY_FLAGS[@]}" --rm \
+    "${RUN_ENV_ARGS[@]}" \
+    --mount type=volume,source="$VOLUME_OUTPUT_NAME",target=/outputs \
+    --mount type=volume,source="$VOLUME_SYNTHPOP_NAME",target=/synthpop \
+    "${EXTRA_MOUNTS[@]}" \
+    --workdir /IMPACTncd_England \
+    "$IMAGE_NAME" \
+    "${CONTAINER_CMD[@]}"
 
   # After the container exits:
   # - Synchronize the volumes back to the local directories using rsync (checksum mode).
@@ -354,32 +520,12 @@ EOF
   docker volume rm "$VOLUME_SYNTHPOP_NAME"
 else
   echo "Using direct bind mounts for outputs and synthpop..."
-
-  # Prepare docker run command with scenarios mount if provided
-  if [[ -n "$SCENARIOS_DIR" ]]; then
-    docker run -it --rm \
-      -e USER_ID="${USER_ID}" \
-      -e GROUP_ID="${GROUP_ID}" \
-      -e USER_NAME="${USER_NAME}" \
-      -e GROUP_NAME="${GROUP_NAME}" \
-      -e ADDITIONAL_GIDS="${ADDITIONAL_GIDS}" \
-      --mount type=bind,source="$OUTPUT_DIR",target=/outputs \
-      --mount type=bind,source="$SYNTHPOP_DIR",target=/synthpop \
-      --mount type=bind,source="$SCENARIOS_DIR",target=/IMPACTncd_England/scenarios \
-      --workdir /IMPACTncd_England \
-      "$IMAGE_NAME" \
-      bash
-  else
-    docker run -it --rm \
-      -e USER_ID="${USER_ID}" \
-      -e GROUP_ID="${GROUP_ID}" \
-      -e USER_NAME="${USER_NAME}" \
-      -e GROUP_NAME="${GROUP_NAME}" \
-      -e ADDITIONAL_GIDS="${ADDITIONAL_GIDS}" \
-      --mount type=bind,source="$OUTPUT_DIR",target=/outputs \
-      --mount type=bind,source="$SYNTHPOP_DIR",target=/synthpop \
-      --workdir /IMPACTncd_England \
-      "$IMAGE_NAME" \
-      bash
-  fi
+  docker run "${TTY_FLAGS[@]}" --rm \
+    "${RUN_ENV_ARGS[@]}" \
+    --mount type=bind,source="$OUTPUT_DIR",target=/outputs \
+    --mount type=bind,source="$SYNTHPOP_DIR",target=/synthpop \
+    "${EXTRA_MOUNTS[@]}" \
+    --workdir /IMPACTncd_England \
+    "$IMAGE_NAME" \
+    "${CONTAINER_CMD[@]}"
 fi

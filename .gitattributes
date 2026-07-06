@@ -10,6 +10,7 @@
 *.yaml text eol=lf
 *.yml  text eol=lf
 *.R    text eol=lf
-
-# PowerShell is Windows-native; keep it CRLF.
-*.ps1  text eol=crlf
+# PowerShell runs fine with LF (PowerShell 5.1+ and pwsh); the repo stores these
+# LF already, so keep them LF to avoid CRLF churn and the very mixed-ending
+# problems this file exists to prevent.
+*.ps1  text eol=lf

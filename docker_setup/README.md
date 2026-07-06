@@ -49,6 +49,12 @@ sudo usermod -aG docker $USER   # then log out and back in
 
 ## 🚀 Quick Start — running simulations
 
+> **New here, or not a developer?** For a gentle, step-by-step walkthrough that
+> starts from installing Docker on Windows, macOS, or Linux and ends with you
+> running your own scenarios, follow the **[Installation & Getting-Started Guide](INSTALLATION_GUIDE.md)**.
+> The section below is the terser reference for people already comfortable with
+> a terminal.
+
 **Get the scripts first** (the model code and data live inside the Docker
 image — you only need this repository's scripts and config):
 
@@ -57,8 +63,57 @@ git clone https://github.com/ChristK/IMPACTncd_Engl.git
 cd IMPACTncd_Engl/docker_setup
 ```
 
-(Alternatively, download just the launcher script and a config with `curl` —
-see the raw files on GitHub — it works standalone.)
+### Standalone ("drop-in folder") mode — no clone needed
+
+If you just want to run simulations with your own config, you don't need to
+clone the repo. Make a folder for your run, drop in **the one launcher script**
+for your OS plus your own `sim_design*.yaml` (and, optionally, scenario scripts
+and a `simulate*.R` driver), and run it with **no arguments**:
+
+```text
+my_run/
+  setup_user_docker_env.sh        # or .ps1 on Windows
+  sim_design_testing.yaml         # your config (the only *.yaml here)
+  simulate_testing.R              # optional driver
+```
+
+```bash
+cd my_run
+./setup_user_docker_env.sh            # Linux/macOS  — interactive shell
+./setup_user_docker_env.sh -Run       # ...or auto-run simulate_testing.R and exit
+```
+```powershell
+cd my_run
+.\setup_user_docker_env.ps1           # Windows
+.\setup_user_docker_env.ps1 -Run
+```
+
+The launcher then:
+
+- **auto-detects the single `sim_design*.yaml`** in the folder (if there's more
+  than one, it asks you to pick with `-SimDesignYaml`);
+- **merges the folder's files into the model root** `/IMPACTncd_England` (via
+  symlinks created at container start), so your config and scripts sit alongside
+  `global.R` — referenced with **no subfolder prefix** and no paths to pass. A
+  user file whose name clashes with a model file is skipped with a note (the
+  model's copy wins), so nothing is shadowed;
+- resolves **relative** `output_dir`/`synthpop_dir` (e.g. `./outputs`) against
+  the folder itself, so results land right next to your config on the host;
+- exposes the config path inside as `$SIM_DESIGN_YAML`, so a driver can do
+  `Simulation$new(Sys.getenv("SIM_DESIGN_YAML"))` regardless of the working dir.
+
+Inside the interactive shell your files sit right in the model folder — no prefix:
+```r
+source("global.R")
+IMPACTncd <- Simulation$new("sim_design_testing.yaml")
+IMPACTncd$run(1:10, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)
+# ...or just: source("simulate_testing.R")
+```
+
+With `-Run`, the single `simulate*.R` in the folder is executed via `Rscript`
+and the container exits when it finishes — good for unattended runs. (Your
+driver references its config as just `<name>.yaml`, or via
+`Sys.getenv("SIM_DESIGN_YAML")`.)
 
 Both scripts accept the same parameters. Note that `--UseVolumes` is a double-dash flag in bash but `-UseVolumes` in PowerShell — that's a PowerShell convention, not a typo.
 
@@ -127,7 +182,8 @@ cd docker_setup
 |---|---|---|
 | `-Tag <name>` | `-Tag <name>` | Image tag. Default: `main`. |
 | `-ScenariosDir <path>` | `-ScenariosDir <path>` | Optional. Mounted at `/IMPACTncd_England/scenarios`. |
-| `-SimDesignYaml <path>` | `-SimDesignYaml <path>` | Path to YAML config. Default: `../inputs/sim_design.yaml`. |
+| `-SimDesignYaml <path>` | `-SimDesignYaml <path>` | Path to YAML config. Default: **auto-detect** a single `sim_design*.yaml` next to the script (standalone mode); otherwise the repo's `inputs/sim_design.yaml`. |
+| `-Run` | `-Run` | Standalone mode only. Auto-run the single `simulate*.R` driver in the folder via `Rscript`, then exit (default is an interactive shell). |
 | `-UseVolumes` | `--UseVolumes` | Use Docker volumes instead of bind mounts. |
 
 ### What happens when you run the script
@@ -135,7 +191,9 @@ cd docker_setup
 1. **Pulls the Docker image** from Docker Hub (if not already cached).
 2. **Reads your `sim_design.yaml`** to find `output_dir` and `synthpop_dir`.
 3. **Creates those host directories** if they don't exist.
-4. **Starts an interactive container** with those directories mounted.
+4. **Starts the container** — an interactive shell by default; with `-Run`
+   (standalone mode) it instead runs the single `simulate*.R` in your folder
+   and then exits.
 5. **Runs as your user** (UID/GID auto-detected, including your supplementary
    groups) — not root — so files you create belong to you and group-based
    permissions on shared folders (e.g. a team synthpop cache) work inside the
@@ -150,6 +208,10 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 IMPACTncd$run(1:10, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)
 ```
 
+In **standalone mode** don't use the baked-in config above — point at your own,
+which is merged into the model folder: `Simulation$new("<your-sim_design>.yaml")`
+(or `Simulation$new(Sys.getenv("SIM_DESIGN_YAML"))`).
+
 ---
 
 ## 📁 Mount points
@@ -160,6 +222,7 @@ IMPACTncd$run(1:10, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)
 | `output_dir` from YAML | `/outputs` | Simulation outputs (lifecourse, summaries, etc.). |
 | `synthpop_dir` from YAML | `/synthpop` | Synthetic population cache. |
 | `-ScenariosDir` (optional) | `/IMPACTncd_England/scenarios` | Custom scenario scripts. |
+| working folder (standalone mode) | merged into `/IMPACTncd_England` | Your folder's files are symlinked into the model root (no subfolder); name clashes with model files are skipped. The config is also at `$SIM_DESIGN_YAML`. |
 
 ### Bind mount mode (default)
 Host directories are mounted directly. Real-time visibility, lower overhead. Recommended on Linux.
@@ -186,7 +249,7 @@ not the ~13 GB of Zenodo data baked into it.
 | The running container | Per-user, ephemeral (`--rm`) | Thin writable layer, a few MB |
 | `output_dir` (simulation results) | **Per-user** | Host dir from each user's YAML → `/outputs` |
 | `synthpop_dir` (synthetic population cache) | Per-user by default; **can be shared read-write** (group/ACL access works in-container — the launcher forwards your supplementary groups) | Host dir from YAML → `/synthpop` |
-| Scenario scripts | Per-user | `-ScenariosDir` → `/IMPACTncd_England/scenarios` |
+| Scenario scripts + config | Per-user | Your run folder → merged into `/IMPACTncd_England` (standalone mode); or `-ScenariosDir` → `/IMPACTncd_England/scenarios` |
 
 ### One-time setup (per teammate)
 
@@ -213,38 +276,39 @@ On Linux keep the **default bind-mount mode** — do **not** pass
 `--UseVolumes` (that path is for macOS/Windows and creates an extra
 per-user volume copy).
 
-#### Example — own `sim_design.yaml` + own scenarios folder
+#### Example — own config + scripts in one folder (standalone mode)
 
-Say teammate *alice* keeps a personal config and a folder of scenario scripts:
+Say teammate *alice* keeps a run folder holding the launcher, her config, and
+her scenario script:
 
 ```
-/home/alice/impactncd/
+/home/alice/myrun/
+├── setup_user_docker_env.sh   # the launcher (copied here once)
 ├── my_sim_design.yaml         # output_dir:   /mnt/storage_fast/alice/outputs
 │                              # synthpop_dir: <the team's shared cache folder>
-└── my_scenarios/
-    └── simulate_England.R     # her scenario script(s)
+└── simulate_England.R         # her scenario script(s)
 ```
 
-She launches her own container from the shared image, pointing at both her YAML
-and her scenarios folder:
+She launches her own container from the shared image — from **inside that
+folder**, with **no path arguments**:
 
 ```bash
-cd docker_setup
-./setup_user_docker_env.sh \
-  -Tag main \
-  -SimDesignYaml /home/alice/impactncd/my_sim_design.yaml \
-  -ScenariosDir  /home/alice/impactncd/my_scenarios
+cd /home/alice/myrun
+bash setup_user_docker_env.sh          # interactive; add -Run to auto-run + exit
 ```
 
-This mounts:
-- her `output_dir` → `/outputs` and `synthpop_dir` → `/synthpop` (read from her YAML), and
-- `my_scenarios/` → `/IMPACTncd_England/scenarios`.
-
-Inside the container she runs her scenario:
+The launcher auto-detects `my_sim_design.yaml`, reads its `output_dir` /
+`synthpop_dir` (→ `/outputs` and `/synthpop`), and merges her folder's files
+into the model root `/IMPACTncd_England`. Inside the container she runs her
+scenario — no subfolder prefix:
 ```r
 source("global.R")
-source("scenarios/simulate_England.R")   # the file from her -ScenariosDir folder
+source("simulate_England.R")   # merged into the model folder
 ```
+
+> Prefer explicit flags? `-SimDesignYaml <yaml> -ScenariosDir <dir>` still work
+> (scenarios then mount at `/IMPACTncd_England/scenarios` instead) — handy when
+> config and scripts live in separate folders.
 
 > **Tip — share the synthpop cache to save disk.** If teammates run the *same*
 > synthetic population, point everyone's `synthpop_dir` at **one common folder**
