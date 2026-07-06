@@ -1780,7 +1780,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L253",
       "id": "src_impactncd_sim_simul_meta",
-      "community": 57,
+      "community": 19,
       "norm_label": "simul_meta"
     },
     {
@@ -1789,7 +1789,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L255",
       "id": "src_impactncd_sim_simul_meta_init_year",
-      "community": 57,
+      "community": 19,
       "norm_label": "init_year"
     },
     {
@@ -1798,7 +1798,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L256",
       "id": "src_impactncd_sim_simul_meta_age_low",
-      "community": 57,
+      "community": 19,
       "norm_label": "age_low"
     },
     {
@@ -1807,7 +1807,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L257",
       "id": "src_impactncd_sim_simul_meta_pid",
-      "community": 57,
+      "community": 19,
       "norm_label": "pid"
     },
     {
@@ -1816,7 +1816,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L258",
       "id": "src_impactncd_sim_simul_meta_year",
-      "community": 57,
+      "community": 19,
       "norm_label": "year"
     },
     {
@@ -1825,7 +1825,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L259",
       "id": "src_impactncd_sim_simul_meta_age",
-      "community": 57,
+      "community": 19,
       "norm_label": "age"
     },
     {
@@ -1834,7 +1834,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L260",
       "id": "src_impactncd_sim_simul_meta_sex",
-      "community": 57,
+      "community": 19,
       "norm_label": "sex"
     },
     {
@@ -1843,7 +1843,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L261",
       "id": "src_impactncd_sim_simul_meta_dimd",
-      "community": 57,
+      "community": 19,
       "norm_label": "dimd"
     },
     {
@@ -1852,7 +1852,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L262",
       "id": "src_impactncd_sim_simul_meta_dead",
-      "community": 57,
+      "community": 19,
       "norm_label": "dead"
     },
     {
@@ -1861,7 +1861,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L263",
       "id": "src_impactncd_sim_simul_meta_mm_count",
-      "community": 57,
+      "community": 19,
       "norm_label": "mm_count"
     },
     {
@@ -1870,7 +1870,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L264",
       "id": "src_impactncd_sim_simul_meta_mm_score",
-      "community": 57,
+      "community": 19,
       "norm_label": "mm_score"
     },
     {
@@ -2261,7 +2261,7 @@
       "label": "Get-YamlPathValue()",
       "file_type": "code",
       "source_file": "docker_setup/setup_user_docker_env.ps1",
-      "source_location": "L229",
+      "source_location": "L286",
       "id": "docker_setup_setup_user_docker_env_get_yamlpathvalue",
       "community": 77,
       "norm_label": "get-yamlpathvalue()"
@@ -2270,7 +2270,7 @@
       "label": "Test-AndCreateDirectory()",
       "file_type": "code",
       "source_file": "docker_setup/setup_user_docker_env.ps1",
-      "source_location": "L271",
+      "source_location": "L335",
       "id": "docker_setup_setup_user_docker_env_test_andcreatedirectory",
       "community": 77,
       "norm_label": "test-andcreatedirectory()"
@@ -2279,7 +2279,7 @@
       "label": "Convert-PathToDockerFormat()",
       "file_type": "code",
       "source_file": "docker_setup/setup_user_docker_env.ps1",
-      "source_location": "L337",
+      "source_location": "L401",
       "id": "docker_setup_setup_user_docker_env_convert_pathtodockerformat",
       "community": 77,
       "norm_label": "convert-pathtodockerformat()"
@@ -2310,6 +2310,32 @@
       "id": "docker_setup_update_apt_packages_update_aptpackagesfile",
       "community": 82,
       "norm_label": "update-aptpackagesfile()"
+    },
+    {
+      "label": "setup_user_docker_env.sh",
+      "file_type": "code",
+      "source_file": "docker_setup/setup_user_docker_env.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "id": "docker_setup_setup_user_docker_env_sh",
+      "community": 89,
+      "norm_label": "setup_user_docker_env.sh"
+    },
+    {
+      "label": "setup_user_docker_env.sh script",
+      "file_type": "code",
+      "source_file": "docker_setup/setup_user_docker_env.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "id": "home_ckyprid_my_models_impactncd_engl_docker_setup_setup_user_docker_env_sh__entry",
+      "community": 89,
+      "norm_label": "setup_user_docker_env.sh script"
     },
     {
       "label": "docker_build_push.ps1",
@@ -2354,58 +2380,6 @@
       "id": "home_ckyprid_my_models_impactncd_engl_docker_setup_entrypoint_sh__entry",
       "community": 86,
       "norm_label": "entrypoint.sh script"
-    },
-    {
-      "label": "setup_dev_docker_env.sh",
-      "file_type": "code",
-      "source_file": "docker_setup/setup_dev_docker_env.sh",
-      "source_location": "L1",
-      "metadata": {
-        "language": "bash",
-        "kind": "file"
-      },
-      "id": "docker_setup_setup_dev_docker_env_sh",
-      "community": 88,
-      "norm_label": "setup_dev_docker_env.sh"
-    },
-    {
-      "label": "setup_dev_docker_env.sh script",
-      "file_type": "code",
-      "source_file": "docker_setup/setup_dev_docker_env.sh",
-      "source_location": "L1",
-      "metadata": {
-        "language": "bash",
-        "kind": "bash_entrypoint"
-      },
-      "id": "home_ckyprid_my_models_impactncd_engl_docker_setup_setup_dev_docker_env_sh__entry",
-      "community": 88,
-      "norm_label": "setup_dev_docker_env.sh script"
-    },
-    {
-      "label": "setup_user_docker_env.sh",
-      "file_type": "code",
-      "source_file": "docker_setup/setup_user_docker_env.sh",
-      "source_location": "L1",
-      "metadata": {
-        "language": "bash",
-        "kind": "file"
-      },
-      "id": "docker_setup_setup_user_docker_env_sh",
-      "community": 89,
-      "norm_label": "setup_user_docker_env.sh"
-    },
-    {
-      "label": "setup_user_docker_env.sh script",
-      "file_type": "code",
-      "source_file": "docker_setup/setup_user_docker_env.sh",
-      "source_location": "L1",
-      "metadata": {
-        "language": "bash",
-        "kind": "bash_entrypoint"
-      },
-      "id": "home_ckyprid_my_models_impactncd_engl_docker_setup_setup_user_docker_env_sh__entry",
-      "community": 89,
-      "norm_label": "setup_user_docker_env.sh script"
     },
     {
       "label": "build_model_via_commit.sh",
@@ -2489,7 +2463,7 @@
       "label": "log()",
       "file_type": "code",
       "source_file": "docker_setup/build_push_data.sh",
-      "source_location": "L41",
+      "source_location": "L50",
       "metadata": {
         "language": "bash",
         "kind": "bash_function"
@@ -2606,7 +2580,7 @@
       "label": "log()",
       "file_type": "code",
       "source_file": "docker_setup/docker_build_push.sh",
-      "source_location": "L110",
+      "source_location": "L126",
       "metadata": {
         "language": "bash",
         "kind": "bash_function"
@@ -2614,6 +2588,32 @@
       "id": "docker_setup_docker_build_push_sh_docker_setup_docker_build_push_log",
       "community": 81,
       "norm_label": "log()"
+    },
+    {
+      "label": "setup_dev_docker_env.sh",
+      "file_type": "code",
+      "source_file": "docker_setup/setup_dev_docker_env.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "id": "docker_setup_setup_dev_docker_env_sh",
+      "community": 88,
+      "norm_label": "setup_dev_docker_env.sh"
+    },
+    {
+      "label": "setup_dev_docker_env.sh script",
+      "file_type": "code",
+      "source_file": "docker_setup/setup_dev_docker_env.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "id": "home_ckyprid_my_models_impactncd_engl_docker_setup_setup_dev_docker_env_sh__entry",
+      "community": 88,
+      "norm_label": "setup_dev_docker_env.sh script"
     },
     {
       "label": "parity_vs_main_duration.cpp",
@@ -2754,7 +2754,7 @@
       "label": "Option B \u2014 Native R installation",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L59",
+      "source_location": "L64",
       "id": "impactncd_engl_readme_option_b_native_r_installation",
       "community": 49,
       "norm_label": "option b \u2014 native r installation"
@@ -2763,7 +2763,7 @@
       "label": "code:bash (git clone https://github.com/ChristK/IMPACTncd_Engl.git)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L73",
+      "source_location": "L78",
       "id": "impactncd_engl_readme_codeblock_2",
       "community": 49,
       "norm_label": "code:bash (git clone https://github.com/christk/impactncd_engl.git)"
@@ -2772,7 +2772,7 @@
       "label": "code:r (source(\"global.R\"))",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L81",
+      "source_location": "L86",
       "id": "impactncd_engl_readme_codeblock_3",
       "community": 49,
       "norm_label": "code:r (source(\"global.r\"))"
@@ -2781,7 +2781,7 @@
       "label": "Documentation and tutorials",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L92",
+      "source_location": "L97",
       "id": "impactncd_engl_readme_documentation_and_tutorials",
       "community": 49,
       "norm_label": "documentation and tutorials"
@@ -2790,7 +2790,7 @@
       "label": "code:r (vignette(package = \"IMPACTncdEngland\"))",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L96",
+      "source_location": "L101",
       "id": "impactncd_engl_readme_codeblock_4",
       "community": 49,
       "norm_label": "code:r (vignette(package = \"impactncdengland\"))"
@@ -2799,7 +2799,7 @@
       "label": "Further notes and references",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L117",
+      "source_location": "L122",
       "id": "impactncd_engl_readme_further_notes_and_references",
       "community": 49,
       "norm_label": "further notes and references"
@@ -3143,7 +3143,7 @@
       "source_file": "docker_setup/README.md",
       "source_location": "L1",
       "id": "docker_setup_readme_impactncd_england_docker_setup",
-      "community": 47,
+      "community": 46,
       "norm_label": "impactncd_england docker setup"
     },
     {
@@ -3152,239 +3152,383 @@
       "source_file": "docker_setup/README.md",
       "source_location": "L10",
       "id": "docker_setup_readme_table_of_contents",
-      "community": 47,
+      "community": 46,
       "norm_label": "\ud83d\udccb table of contents"
     },
     {
       "label": "\ud83d\udcbe Prerequisites",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L22",
+      "source_location": "L23",
       "id": "docker_setup_readme_prerequisites",
-      "community": 47,
+      "community": 68,
       "norm_label": "\ud83d\udcbe prerequisites"
     },
     {
       "label": "Install Docker",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L24",
+      "source_location": "L25",
       "id": "docker_setup_readme_install_docker",
-      "community": 47,
+      "community": 68,
       "norm_label": "install docker"
     },
     {
       "label": "Platform-specific requirements",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L30",
+      "source_location": "L31",
       "id": "docker_setup_readme_platform_specific_requirements",
-      "community": 47,
+      "community": 68,
       "norm_label": "platform-specific requirements"
     },
     {
       "label": "code:bash (brew install coreutils   # provides gsha256sum)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L38",
+      "source_location": "L39",
       "id": "docker_setup_readme_codeblock_1",
-      "community": 47,
+      "community": 68,
       "norm_label": "code:bash (brew install coreutils   # provides gsha256sum)"
     },
     {
       "label": "code:bash (sudo usermod -aG docker $USER   # then log out and back in)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L43",
+      "source_location": "L44",
       "id": "docker_setup_readme_codeblock_2",
-      "community": 47,
+      "community": 68,
       "norm_label": "code:bash (sudo usermod -ag docker $user   # then log out and back in)"
     },
     {
       "label": "\ud83d\ude80 Quick Start \u2014 running simulations",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L49",
+      "source_location": "L50",
       "id": "docker_setup_readme_quick_start_running_simulations",
-      "community": 47,
+      "community": 46,
       "norm_label": "\ud83d\ude80 quick start \u2014 running simulations"
+    },
+    {
+      "label": "code:bash (git clone https://github.com/ChristK/IMPACTncd_Engl.git)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L61",
+      "id": "docker_setup_readme_codeblock_3",
+      "community": 46,
+      "norm_label": "code:bash (git clone https://github.com/christk/impactncd_engl.git)"
+    },
+    {
+      "label": "Standalone (\"drop-in folder\") mode \u2014 no clone needed",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L66",
+      "id": "docker_setup_readme_standalone_drop_in_folder_mode_no_clone_needed",
+      "community": 46,
+      "norm_label": "standalone (\"drop-in folder\") mode \u2014 no clone needed"
+    },
+    {
+      "label": "code:text (my_run/)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L73",
+      "id": "docker_setup_readme_codeblock_4",
+      "community": 46,
+      "norm_label": "code:text (my_run/)"
+    },
+    {
+      "label": "code:bash (cd my_run)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L80",
+      "id": "docker_setup_readme_codeblock_5",
+      "community": 46,
+      "norm_label": "code:bash (cd my_run)"
+    },
+    {
+      "label": "code:powershell (cd my_run)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L85",
+      "id": "docker_setup_readme_codeblock_6",
+      "community": 46,
+      "norm_label": "code:powershell (cd my_run)"
+    },
+    {
+      "label": "code:r (source(\"global.R\"))",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L106",
+      "id": "docker_setup_readme_codeblock_7",
+      "community": 46,
+      "norm_label": "code:r (source(\"global.r\"))"
     },
     {
       "label": "Linux / macOS (Bash)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L53",
+      "source_location": "L120",
       "id": "docker_setup_readme_linux_macos_bash",
-      "community": 47,
+      "community": 46,
       "norm_label": "linux / macos (bash)"
     },
     {
       "label": "code:bash (cd docker_setup)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L57",
-      "id": "docker_setup_readme_codeblock_3",
-      "community": 47,
+      "source_location": "L124",
+      "id": "docker_setup_readme_codeblock_8",
+      "community": 46,
       "norm_label": "code:bash (cd docker_setup)"
     },
     {
       "label": "Windows (PowerShell)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L82",
+      "source_location": "L152",
       "id": "docker_setup_readme_windows_powershell",
-      "community": 47,
+      "community": 46,
       "norm_label": "windows (powershell)"
     },
     {
       "label": "code:powershell (cd docker_setup)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L84",
-      "id": "docker_setup_readme_codeblock_4",
-      "community": 47,
+      "source_location": "L154",
+      "id": "docker_setup_readme_codeblock_9",
+      "community": 46,
       "norm_label": "code:powershell (cd docker_setup)"
     },
     {
       "label": "Parameters",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L109",
+      "source_location": "L179",
       "id": "docker_setup_readme_parameters",
-      "community": 47,
+      "community": 46,
       "norm_label": "parameters"
     },
     {
       "label": "What happens when you run the script",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L118",
+      "source_location": "L189",
       "id": "docker_setup_readme_what_happens_when_you_run_the_script",
-      "community": 47,
+      "community": 46,
       "norm_label": "what happens when you run the script"
     },
     {
       "label": "code:r (source(\"global.R\"))",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L127",
-      "id": "docker_setup_readme_codeblock_5",
-      "community": 47,
+      "source_location": "L205",
+      "id": "docker_setup_readme_codeblock_10",
+      "community": 46,
       "norm_label": "code:r (source(\"global.r\"))"
     },
     {
       "label": "\ud83d\udcc1 Mount points",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L135",
+      "source_location": "L217",
       "id": "docker_setup_readme_mount_points",
-      "community": 47,
+      "community": 46,
       "norm_label": "\ud83d\udcc1 mount points"
     },
     {
       "label": "Bind mount mode (default)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L144",
+      "source_location": "L227",
       "id": "docker_setup_readme_bind_mount_mode_default",
-      "community": 47,
+      "community": 46,
       "norm_label": "bind mount mode (default)"
     },
     {
       "label": "Volume mode (`--UseVolumes` / `-UseVolumes`)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L147",
+      "source_location": "L230",
       "id": "docker_setup_readme_volume_mode_usevolumes_usevolumes",
-      "community": 47,
+      "community": 46,
       "norm_label": "volume mode (`--usevolumes` / `-usevolumes`)"
+    },
+    {
+      "label": "\ud83d\udc65 Sharing the image across a team (one server)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L235",
+      "id": "docker_setup_readme_sharing_the_image_across_a_team_one_server",
+      "community": 46,
+      "norm_label": "\ud83d\udc65 sharing the image across a team (one server)"
+    },
+    {
+      "label": "What's shared vs. per-user",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L244",
+      "id": "docker_setup_readme_what_s_shared_vs_per_user",
+      "community": 46,
+      "norm_label": "what's shared vs. per-user"
+    },
+    {
+      "label": "One-time setup (per teammate)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L254",
+      "id": "docker_setup_readme_one_time_setup_per_teammate",
+      "community": 46,
+      "norm_label": "one-time setup (per teammate)"
+    },
+    {
+      "label": "code:bash (sudo usermod -aG docker <username>   # teammate then logs ou)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L258",
+      "id": "docker_setup_readme_codeblock_11",
+      "community": 46,
+      "norm_label": "code:bash (sudo usermod -ag docker <username>   # teammate then logs ou)"
+    },
+    {
+      "label": "Each teammate runs their own container",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L267",
+      "id": "docker_setup_readme_each_teammate_runs_their_own_container",
+      "community": 46,
+      "norm_label": "each teammate runs their own container"
+    },
+    {
+      "label": "Example \u2014 own config + scripts in one folder (standalone mode)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L279",
+      "id": "docker_setup_readme_example_own_config_scripts_in_one_folder_standalone_mode",
+      "community": 46,
+      "norm_label": "example \u2014 own config + scripts in one folder (standalone mode)"
+    },
+    {
+      "label": "code:block12 (/home/alice/myrun/)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L284",
+      "id": "docker_setup_readme_codeblock_12",
+      "community": 46,
+      "norm_label": "code:block12 (/home/alice/myrun/)"
+    },
+    {
+      "label": "code:bash (cd /home/alice/myrun)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L295",
+      "id": "docker_setup_readme_codeblock_13",
+      "community": 46,
+      "norm_label": "code:bash (cd /home/alice/myrun)"
+    },
+    {
+      "label": "code:r (source(\"global.R\"))",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L304",
+      "id": "docker_setup_readme_codeblock_14",
+      "community": 46,
+      "norm_label": "code:r (source(\"global.r\"))"
+    },
+    {
+      "label": "Don't share one literal container",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L318",
+      "id": "docker_setup_readme_don_t_share_one_literal_container",
+      "community": 46,
+      "norm_label": "don't share one literal container"
     },
     {
       "label": "\ud83d\udc33 Docker images",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L152",
+      "source_location": "L328",
       "id": "docker_setup_readme_docker_images",
-      "community": 47,
+      "community": 46,
       "norm_label": "\ud83d\udc33 docker images"
     },
     {
       "label": "Image selection logic",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L154",
+      "source_location": "L330",
       "id": "docker_setup_readme_image_selection_logic",
-      "community": 47,
+      "community": 46,
       "norm_label": "image selection logic"
     },
     {
       "label": "Available remote tags",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L162",
+      "source_location": "L338",
       "id": "docker_setup_readme_available_remote_tags",
-      "community": 47,
+      "community": 46,
       "norm_label": "available remote tags"
     },
     {
       "label": "\u2753 Troubleshooting",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L168",
+      "source_location": "L344",
       "id": "docker_setup_readme_troubleshooting",
-      "community": 47,
+      "community": 46,
       "norm_label": "\u2753 troubleshooting"
     },
     {
       "label": "code:bash (sudo usermod -aG docker $USER   # then log out and back in)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L181",
-      "id": "docker_setup_readme_codeblock_6",
-      "community": 47,
+      "source_location": "L357",
+      "id": "docker_setup_readme_codeblock_15",
+      "community": 46,
       "norm_label": "code:bash (sudo usermod -ag docker $user   # then log out and back in)"
     },
     {
       "label": "code:powershell (Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L187",
-      "id": "docker_setup_readme_codeblock_7",
-      "community": 47,
+      "source_location": "L363",
+      "id": "docker_setup_readme_codeblock_16",
+      "community": 46,
       "norm_label": "code:powershell (set-executionpolicy -scope process -executionpolicy bypass)"
     },
     {
       "label": "\ud83e\uddf9 Cleanup",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L204",
+      "source_location": "L382",
       "id": "docker_setup_readme_cleanup",
-      "community": 47,
+      "community": 46,
       "norm_label": "\ud83e\uddf9 cleanup"
     },
     {
       "label": "code:bash (# User-facing images)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L206",
-      "id": "docker_setup_readme_codeblock_8",
-      "community": 47,
+      "source_location": "L388",
+      "id": "docker_setup_readme_codeblock_17",
+      "community": 46,
       "norm_label": "code:bash (# user-facing images)"
     },
     {
       "label": "\ud83d\udcec Need help?",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L222",
+      "source_location": "L408",
       "id": "docker_setup_readme_need_help",
-      "community": 47,
+      "community": 46,
       "norm_label": "\ud83d\udcec need help?"
     },
     {
       "label": "\ud83d\udd27 Developer documentation",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L230",
+      "source_location": "L416",
       "id": "docker_setup_readme_developer_documentation",
       "community": 46,
       "norm_label": "\ud83d\udd27 developer documentation"
@@ -3393,7 +3537,7 @@
       "label": "\ud83d\udee0 Building images locally",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L236",
+      "source_location": "L422",
       "id": "docker_setup_readme_building_images_locally",
       "community": 46,
       "norm_label": "\ud83d\udee0 building images locally"
@@ -3402,7 +3546,7 @@
       "label": "Developer workflow \u2014 `setup_dev_docker_env.{sh,ps1}`",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L238",
+      "source_location": "L424",
       "id": "docker_setup_readme_developer_workflow_setup_dev_docker_env_sh_ps1",
       "community": 46,
       "norm_label": "developer workflow \u2014 `setup_dev_docker_env.{sh,ps1}`"
@@ -3411,8 +3555,8 @@
       "label": "code:bash (# Linux/macOS)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L242",
-      "id": "docker_setup_readme_codeblock_9",
+      "source_location": "L428",
+      "id": "docker_setup_readme_codeblock_18",
       "community": 46,
       "norm_label": "code:bash (# linux/macos)"
     },
@@ -3420,7 +3564,7 @@
       "label": "Building images with `docker_build_push.{sh,ps1}`",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L256",
+      "source_location": "L442",
       "id": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
       "community": 46,
       "norm_label": "building images with `docker_build_push.{sh,ps1}`"
@@ -3429,8 +3573,8 @@
       "label": "code:bash (cd docker_setup)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L273",
-      "id": "docker_setup_readme_codeblock_10",
+      "source_location": "L467",
+      "id": "docker_setup_readme_codeblock_19",
       "community": 46,
       "norm_label": "code:bash (cd docker_setup)"
     },
@@ -3438,7 +3582,7 @@
       "label": "Parametrized base images (`DATA_IMAGE` / `PREREQ_IMAGE`)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L292",
+      "source_location": "L486",
       "id": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
       "community": 46,
       "norm_label": "parametrized base images (`data_image` / `prereq_image`)"
@@ -3447,8 +3591,8 @@
       "label": "code:bash (docker build --build-arg DATA_IMAGE=chriskypri/data.impactnc)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L301",
-      "id": "docker_setup_readme_codeblock_11",
+      "source_location": "L495",
+      "id": "docker_setup_readme_codeblock_20",
       "community": 46,
       "norm_label": "code:bash (docker build --build-arg data_image=chriskypri/data.impactnc)"
     },
@@ -3456,7 +3600,7 @@
       "label": "Data image: built locally, tagged by Zenodo version \u2014 `build_push_data.sh`",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L306",
+      "source_location": "L500",
       "id": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
       "community": 46,
       "norm_label": "data image: built locally, tagged by zenodo version \u2014 `build_push_data.sh`"
@@ -3465,8 +3609,8 @@
       "label": "code:bash (./build_push_data.sh)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L310",
-      "id": "docker_setup_readme_codeblock_12",
+      "source_location": "L504",
+      "id": "docker_setup_readme_codeblock_21",
       "community": 46,
       "norm_label": "code:bash (./build_push_data.sh)"
     },
@@ -3474,7 +3618,7 @@
       "label": "Model data from Zenodo",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L321",
+      "source_location": "L529",
       "id": "docker_setup_readme_model_data_from_zenodo",
       "community": 46,
       "norm_label": "model data from zenodo"
@@ -3483,8 +3627,8 @@
       "label": "code:bash (# Build a data-less data image (e.g. to download at runtime )",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L327",
-      "id": "docker_setup_readme_codeblock_13",
+      "source_location": "L535",
+      "id": "docker_setup_readme_codeblock_22",
       "community": 46,
       "norm_label": "code:bash (# build a data-less data image (e.g. to download at runtime )"
     },
@@ -3492,8 +3636,8 @@
       "label": "code:r (IMPACTncd <- Simulation$new(\"inputs/sim_design.yaml\"))",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L337",
-      "id": "docker_setup_readme_codeblock_14",
+      "source_location": "L545",
+      "id": "docker_setup_readme_codeblock_23",
       "community": 46,
       "norm_label": "code:r (impactncd <- simulation$new(\"inputs/sim_design.yaml\"))"
     },
@@ -3501,26 +3645,26 @@
       "label": "If the model build fails with `blob ... not found` (containerd GC race)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L345",
+      "source_location": "L553",
       "id": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
       "community": 46,
       "norm_label": "if the model build fails with `blob ... not found` (containerd gc race)"
     },
     {
-      "label": "code:block15 (failed to extract layer sha256:...: blob sha256:... not foun)",
+      "label": "code:block24 (failed to extract layer sha256:...: blob sha256:... not foun)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L349",
-      "id": "docker_setup_readme_codeblock_15",
+      "source_location": "L557",
+      "id": "docker_setup_readme_codeblock_24",
       "community": 46,
-      "norm_label": "code:block15 (failed to extract layer sha256:...: blob sha256:... not foun)"
+      "norm_label": "code:block24 (failed to extract layer sha256:...: blob sha256:... not foun)"
     },
     {
       "label": "code:bash (./build_model_via_commit.sh        # data.impactncdengl:loca)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L357",
-      "id": "docker_setup_readme_codeblock_16",
+      "source_location": "L565",
+      "id": "docker_setup_readme_codeblock_25",
       "community": 46,
       "norm_label": "code:bash (./build_model_via_commit.sh        # data.impactncdengl:loca)"
     },
@@ -3528,34 +3672,34 @@
       "label": "Build script options",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L363",
+      "source_location": "L571",
       "id": "docker_setup_readme_build_script_options",
       "community": 46,
       "norm_label": "build script options"
     },
     {
-      "label": "code:block17 (docker_build_push.sh <Dockerfile> [--image-name <name>] [--i)",
+      "label": "code:block26 (docker_build_push.sh <Dockerfile> [--image-name <name>] [--i)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L365",
-      "id": "docker_setup_readme_codeblock_17",
+      "source_location": "L573",
+      "id": "docker_setup_readme_codeblock_26",
       "community": 46,
-      "norm_label": "code:block17 (docker_build_push.sh <dockerfile> [--image-name <name>] [--i)"
+      "norm_label": "code:block26 (docker_build_push.sh <dockerfile> [--image-name <name>] [--i)"
     },
     {
-      "label": "code:block18 (export DOCKERHUB_USERNAME=yourusername)",
+      "label": "code:block27 (export DOCKERHUB_USERNAME=yourusername)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L378",
-      "id": "docker_setup_readme_codeblock_18",
+      "source_location": "L586",
+      "id": "docker_setup_readme_codeblock_27",
       "community": 46,
-      "norm_label": "code:block18 (export dockerhub_username=yourusername)"
+      "norm_label": "code:block27 (export dockerhub_username=yourusername)"
     },
     {
       "label": "Disk space",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L383",
+      "source_location": "L600",
       "id": "docker_setup_readme_disk_space",
       "community": 46,
       "norm_label": "disk space"
@@ -3564,7 +3708,7 @@
       "label": "Verbose builds (see package version substitutions)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L389",
+      "source_location": "L606",
       "id": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
       "community": 46,
       "norm_label": "verbose builds (see package version substitutions)"
@@ -3573,8 +3717,8 @@
       "label": "code:bash (# Bash)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L391",
-      "id": "docker_setup_readme_codeblock_19",
+      "source_location": "L608",
+      "id": "docker_setup_readme_codeblock_28",
       "community": 46,
       "norm_label": "code:bash (# bash)"
     },
@@ -3582,8 +3726,8 @@
       "label": "code:powershell (# PowerShell)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L397",
-      "id": "docker_setup_readme_codeblock_20",
+      "source_location": "L614",
+      "id": "docker_setup_readme_codeblock_29",
       "community": 46,
       "norm_label": "code:powershell (# powershell)"
     },
@@ -3591,7 +3735,7 @@
       "label": "\ud83d\udce6 Package management",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L405",
+      "source_location": "L622",
       "id": "docker_setup_readme_package_management",
       "community": 46,
       "norm_label": "\ud83d\udce6 package management"
@@ -3600,43 +3744,43 @@
       "label": "System packages \u2014 `apt-packages.txt`",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L407",
+      "source_location": "L624",
       "id": "docker_setup_readme_system_packages_apt_packages_txt",
       "community": 46,
       "norm_label": "system packages \u2014 `apt-packages.txt`"
     },
     {
-      "label": "code:block21 (automake=1:1.16.5-1.3ubuntu1)",
+      "label": "code:block30 (automake=1:1.16.5-1.3ubuntu1)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L410",
-      "id": "docker_setup_readme_codeblock_21",
+      "source_location": "L627",
+      "id": "docker_setup_readme_codeblock_30",
       "community": 46,
-      "norm_label": "code:block21 (automake=1:1.16.5-1.3ubuntu1)"
+      "norm_label": "code:block30 (automake=1:1.16.5-1.3ubuntu1)"
     },
     {
       "label": "R packages \u2014 `r-packages.txt`",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L418",
+      "source_location": "L635",
       "id": "docker_setup_readme_r_packages_r_packages_txt",
       "community": 46,
       "norm_label": "r packages \u2014 `r-packages.txt`"
     },
     {
-      "label": "code:block22 (# CRAN snapshot date: 2026-06-22)",
+      "label": "code:block31 (# CRAN snapshot date: 2026-06-22)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L422",
-      "id": "docker_setup_readme_codeblock_22",
+      "source_location": "L639",
+      "id": "docker_setup_readme_codeblock_31",
       "community": 46,
-      "norm_label": "code:block22 (# cran snapshot date: 2026-06-22)"
+      "norm_label": "code:block31 (# cran snapshot date: 2026-06-22)"
     },
     {
       "label": "Updating pinned package versions",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L429",
+      "source_location": "L646",
       "id": "docker_setup_readme_updating_pinned_package_versions",
       "community": 46,
       "norm_label": "updating pinned package versions"
@@ -3645,8 +3789,8 @@
       "label": "code:bash (# Linux/macOS)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L433",
-      "id": "docker_setup_readme_codeblock_23",
+      "source_location": "L650",
+      "id": "docker_setup_readme_codeblock_32",
       "community": 46,
       "norm_label": "code:bash (# linux/macos)"
     },
@@ -3654,8 +3798,8 @@
       "label": "code:powershell (# Windows)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L441",
-      "id": "docker_setup_readme_codeblock_24",
+      "source_location": "L658",
+      "id": "docker_setup_readme_codeblock_33",
       "community": 46,
       "norm_label": "code:powershell (# windows)"
     },
@@ -3663,7 +3807,7 @@
       "label": "\ud83d\udd04 Development workflow",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L451",
+      "source_location": "L668",
       "id": "docker_setup_readme_development_workflow",
       "community": 46,
       "norm_label": "\ud83d\udd04 development workflow"
@@ -3672,8 +3816,8 @@
       "label": "code:bash (./docker_build_push.sh Dockerfile.IMPACTncdENGL)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L455",
-      "id": "docker_setup_readme_codeblock_25",
+      "source_location": "L672",
+      "id": "docker_setup_readme_codeblock_34",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.impactncdengl)"
     },
@@ -3681,8 +3825,8 @@
       "label": "code:bash (./setup_user_docker_env.sh -Tag local)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L459",
-      "id": "docker_setup_readme_codeblock_26",
+      "source_location": "L676",
+      "id": "docker_setup_readme_codeblock_35",
       "community": 46,
       "norm_label": "code:bash (./setup_user_docker_env.sh -tag local)"
     },
@@ -3690,8 +3834,8 @@
       "label": "code:bash (./docker_build_push.sh Dockerfile.IMPACTncdENGL --push)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L463",
-      "id": "docker_setup_readme_codeblock_27",
+      "source_location": "L680",
+      "id": "docker_setup_readme_codeblock_36",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.impactncdengl --push)"
     },
@@ -3699,17 +3843,26 @@
       "label": "Adding R or system dependencies",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L467",
+      "source_location": "L684",
       "id": "docker_setup_readme_adding_r_or_system_dependencies",
       "community": 46,
       "norm_label": "adding r or system dependencies"
     },
     {
+      "label": "code:bash (docker pull chriskypri/prerequisite.impactncdengl:main)",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L689",
+      "id": "docker_setup_readme_codeblock_37",
+      "community": 46,
+      "norm_label": "code:bash (docker pull chriskypri/prerequisite.impactncdengl:main)"
+    },
+    {
       "label": "code:bash (./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L471",
-      "id": "docker_setup_readme_codeblock_28",
+      "source_location": "L694",
+      "id": "docker_setup_readme_codeblock_38",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.prerequisite.impactncdengl)"
     },
@@ -3717,8 +3870,8 @@
       "label": "code:bash (./docker_build_push.sh Dockerfile.data.IMPACTncdENGL   # loc)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L476",
-      "id": "docker_setup_readme_codeblock_29",
+      "source_location": "L699",
+      "id": "docker_setup_readme_codeblock_39",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.data.impactncdengl   # loc)"
     },
@@ -3726,8 +3879,8 @@
       "label": "code:bash (./docker_build_push.sh Dockerfile.IMPACTncdENGL)",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L481",
-      "id": "docker_setup_readme_codeblock_30",
+      "source_location": "L704",
+      "id": "docker_setup_readme_codeblock_40",
       "community": 46,
       "norm_label": "code:bash (./docker_build_push.sh dockerfile.impactncdengl)"
     },
@@ -3735,10 +3888,397 @@
       "label": "\ud83c\udff7 Project details",
       "file_type": "document",
       "source_file": "docker_setup/README.md",
-      "source_location": "L487",
+      "source_location": "L710",
       "id": "docker_setup_readme_project_details",
       "community": 46,
       "norm_label": "\ud83c\udff7 project details"
+    },
+    {
+      "label": "INSTALLATION_GUIDE.md",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L1",
+      "id": "docker_setup_installation_guide_md",
+      "community": 4,
+      "norm_label": "installation_guide.md"
+    },
+    {
+      "label": "Running IMPACTncd England on your own computer \u2014 a beginner's guide",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L1",
+      "id": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "community": 4,
+      "norm_label": "running impactncd england on your own computer \u2014 a beginner's guide"
+    },
+    {
+      "label": "Contents",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L18",
+      "id": "docker_setup_installation_guide_contents",
+      "community": 4,
+      "norm_label": "contents"
+    },
+    {
+      "label": "1. Before you start \u2014 what you need",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L36",
+      "id": "docker_setup_installation_guide_1_before_you_start_what_you_need",
+      "community": 4,
+      "norm_label": "1. before you start \u2014 what you need"
+    },
+    {
+      "label": "2. Install Docker",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L72",
+      "id": "docker_setup_installation_guide_2_install_docker",
+      "community": 4,
+      "norm_label": "2. install docker"
+    },
+    {
+      "label": "Windows",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L76",
+      "id": "docker_setup_installation_guide_windows",
+      "community": 4,
+      "norm_label": "windows"
+    },
+    {
+      "label": "macOS",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L88",
+      "id": "docker_setup_installation_guide_macos",
+      "community": 4,
+      "norm_label": "macos"
+    },
+    {
+      "label": "code:bash (brew install coreutils)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L97",
+      "id": "docker_setup_installation_guide_codeblock_1",
+      "community": 4,
+      "norm_label": "code:bash (brew install coreutils)"
+    },
+    {
+      "label": "Linux",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L102",
+      "id": "docker_setup_installation_guide_linux",
+      "community": 4,
+      "norm_label": "linux"
+    },
+    {
+      "label": "code:bash (sudo usermod -aG docker $USER)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L113",
+      "id": "docker_setup_installation_guide_codeblock_2",
+      "community": 4,
+      "norm_label": "code:bash (sudo usermod -ag docker $user)"
+    },
+    {
+      "label": "3. Give Docker enough memory and disk",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L121",
+      "id": "docker_setup_installation_guide_3_give_docker_enough_memory_and_disk",
+      "community": 4,
+      "norm_label": "3. give docker enough memory and disk"
+    },
+    {
+      "label": "Windows and macOS (Docker Desktop)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L125",
+      "id": "docker_setup_installation_guide_windows_and_macos_docker_desktop",
+      "community": 4,
+      "norm_label": "windows and macos (docker desktop)"
+    },
+    {
+      "label": "Linux",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L139",
+      "id": "docker_setup_installation_guide_linux_139",
+      "community": 4,
+      "norm_label": "linux"
+    },
+    {
+      "label": "4. Check Docker works",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L147",
+      "id": "docker_setup_installation_guide_4_check_docker_works",
+      "community": 4,
+      "norm_label": "4. check docker works"
+    },
+    {
+      "label": "code:bash (docker info)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L151",
+      "id": "docker_setup_installation_guide_codeblock_3",
+      "community": 4,
+      "norm_label": "code:bash (docker info)"
+    },
+    {
+      "label": "5. Make your project folder and get the launcher",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L164",
+      "id": "docker_setup_installation_guide_5_make_your_project_folder_and_get_the_launcher",
+      "community": 4,
+      "norm_label": "5. make your project folder and get the launcher"
+    },
+    {
+      "label": "Linux / macOS (Terminal)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L174",
+      "id": "docker_setup_installation_guide_linux_macos_terminal",
+      "community": 4,
+      "norm_label": "linux / macos (terminal)"
+    },
+    {
+      "label": "code:bash (mkdir -p ~/impactncd_run)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L176",
+      "id": "docker_setup_installation_guide_codeblock_4",
+      "community": 4,
+      "norm_label": "code:bash (mkdir -p ~/impactncd_run)"
+    },
+    {
+      "label": "Windows (PowerShell)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L183",
+      "id": "docker_setup_installation_guide_windows_powershell",
+      "community": 4,
+      "norm_label": "windows (powershell)"
+    },
+    {
+      "label": "code:powershell (mkdir $HOME\\impactncd_run)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L185",
+      "id": "docker_setup_installation_guide_codeblock_5",
+      "community": 4,
+      "norm_label": "code:powershell (mkdir $home\\impactncd_run)"
+    },
+    {
+      "label": "6. Edit your configuration file",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L202",
+      "id": "docker_setup_installation_guide_6_edit_your_configuration_file",
+      "community": 4,
+      "norm_label": "6. edit your configuration file"
+    },
+    {
+      "label": "code:yaml (output_dir: ./outputs)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L208",
+      "id": "docker_setup_installation_guide_codeblock_6",
+      "community": 4,
+      "norm_label": "code:yaml (output_dir: ./outputs)"
+    },
+    {
+      "label": "7. Write a run script",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L236",
+      "id": "docker_setup_installation_guide_7_write_a_run_script",
+      "community": 4,
+      "norm_label": "7. write a run script"
+    },
+    {
+      "label": "code:r (# simulate.R \u2014 a minimal baseline run)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L241",
+      "id": "docker_setup_installation_guide_codeblock_7",
+      "community": 4,
+      "norm_label": "code:r (# simulate.r \u2014 a minimal baseline run)"
+    },
+    {
+      "label": "code:text (impactncd_run/)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L255",
+      "id": "docker_setup_installation_guide_codeblock_8",
+      "community": 4,
+      "norm_label": "code:text (impactncd_run/)"
+    },
+    {
+      "label": "8. Run the model",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L269",
+      "id": "docker_setup_installation_guide_8_run_the_model",
+      "community": 4,
+      "norm_label": "8. run the model"
+    },
+    {
+      "label": "Linux / macOS",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L275",
+      "id": "docker_setup_installation_guide_linux_macos",
+      "community": 4,
+      "norm_label": "linux / macos"
+    },
+    {
+      "label": "code:bash (cd ~/impactncd_run)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L277",
+      "id": "docker_setup_installation_guide_codeblock_9",
+      "community": 4,
+      "norm_label": "code:bash (cd ~/impactncd_run)"
+    },
+    {
+      "label": "Windows (PowerShell)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L282",
+      "id": "docker_setup_installation_guide_windows_powershell_282",
+      "community": 4,
+      "norm_label": "windows (powershell)"
+    },
+    {
+      "label": "code:powershell (cd $HOME\\impactncd_run)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L284",
+      "id": "docker_setup_installation_guide_codeblock_10",
+      "community": 4,
+      "norm_label": "code:powershell (cd $home\\impactncd_run)"
+    },
+    {
+      "label": "Prefer to work interactively?",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L295",
+      "id": "docker_setup_installation_guide_prefer_to_work_interactively",
+      "community": 4,
+      "norm_label": "prefer to work interactively?"
+    },
+    {
+      "label": "code:r (R                                       # start R)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L304",
+      "id": "docker_setup_installation_guide_codeblock_11",
+      "community": 4,
+      "norm_label": "code:r (r                                       # start r)"
+    },
+    {
+      "label": "9. Find your results",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L324",
+      "id": "docker_setup_installation_guide_9_find_your_results",
+      "community": 4,
+      "norm_label": "9. find your results"
+    },
+    {
+      "label": "code:text (impactncd_run/outputs/)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L329",
+      "id": "docker_setup_installation_guide_codeblock_12",
+      "community": 4,
+      "norm_label": "code:text (impactncd_run/outputs/)"
+    },
+    {
+      "label": "10. Run a policy scenario",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L346",
+      "id": "docker_setup_installation_guide_10_run_a_policy_scenario",
+      "community": 4,
+      "norm_label": "10. run a policy scenario"
+    },
+    {
+      "label": "code:r (# simulate.R \u2014 baseline vs. a BMI policy)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L352",
+      "id": "docker_setup_installation_guide_codeblock_13",
+      "community": 4,
+      "norm_label": "code:r (# simulate.r \u2014 baseline vs. a bmi policy)"
+    },
+    {
+      "label": "11. Troubleshooting",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L377",
+      "id": "docker_setup_installation_guide_11_troubleshooting",
+      "community": 4,
+      "norm_label": "11. troubleshooting"
+    },
+    {
+      "label": "code:powershell (Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L387",
+      "id": "docker_setup_installation_guide_codeblock_14",
+      "community": 4,
+      "norm_label": "code:powershell (set-executionpolicy -scope process -executionpolicy bypass)"
+    },
+    {
+      "label": "12. Updating and cleaning up",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L419",
+      "id": "docker_setup_installation_guide_12_updating_and_cleaning_up",
+      "community": 4,
+      "norm_label": "12. updating and cleaning up"
+    },
+    {
+      "label": "code:bash (docker pull chriskypri/impactncdengl:main)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L423",
+      "id": "docker_setup_installation_guide_codeblock_15",
+      "community": 4,
+      "norm_label": "code:bash (docker pull chriskypri/impactncdengl:main)"
+    },
+    {
+      "label": "code:bash (docker rmi chriskypri/impactncdengl:main)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L431",
+      "id": "docker_setup_installation_guide_codeblock_16",
+      "community": 4,
+      "norm_label": "code:bash (docker rmi chriskypri/impactncdengl:main)"
+    },
+    {
+      "label": "code:bash (docker system prune -a)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L436",
+      "id": "docker_setup_installation_guide_codeblock_17",
+      "community": 4,
+      "norm_label": "code:bash (docker system prune -a)"
+    },
+    {
+      "label": "13. How it works (optional background)",
+      "file_type": "document",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L444",
+      "id": "docker_setup_installation_guide_13_how_it_works_optional_background",
+      "community": 4,
+      "norm_label": "13. how it works (optional background)"
     },
     {
       "label": "installing_rtools_on_windows.md",
@@ -4198,6 +4738,213 @@
       "id": "github_copilot_instructions_common_pitfalls",
       "community": 48,
       "norm_label": "common pitfalls"
+    },
+    {
+      "label": "Example \u2014 own `sim_design.yaml` + own scenarios folder",
+      "file_type": "document",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L216",
+      "community": 46,
+      "norm_label": "example \u2014 own `sim_design.yaml` + own scenarios folder",
+      "id": "docker_setup_readme_example_own_sim_design_yaml_own_scenarios_folder"
+    },
+    {
+      "label": "TEAM_QUICKSTART.md",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L1",
+      "community": 63,
+      "norm_label": "team_quickstart.md",
+      "id": "docker_setup_team_quickstart_md"
+    },
+    {
+      "label": "Running IMPACTncd England on the shared server \u2014 team quick start",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L7",
+      "community": 63,
+      "norm_label": "running impactncd england on the shared server \u2014 team quick start",
+      "id": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start"
+    },
+    {
+      "label": "0. One-time setup (per person)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L15",
+      "community": 63,
+      "norm_label": "0. one-time setup (per person)",
+      "id": "docker_setup_team_quickstart_0_one_time_setup_per_person"
+    },
+    {
+      "label": "code:bash (docker info >/dev/null && echo \"docker OK\")",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L20",
+      "community": 63,
+      "norm_label": "code:bash (docker info >/dev/null && echo \"docker ok\")",
+      "id": "docker_setup_team_quickstart_codeblock_1"
+    },
+    {
+      "label": "1. Download the launcher script (once)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L25",
+      "community": 63,
+      "norm_label": "1. download the launcher script (once)",
+      "id": "docker_setup_team_quickstart_1_download_the_launcher_script_once"
+    },
+    {
+      "label": "code:bash (mkdir -p ~/impactncd && cd ~/impactncd)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L31",
+      "community": 63,
+      "norm_label": "code:bash (mkdir -p ~/impactncd && cd ~/impactncd)",
+      "id": "docker_setup_team_quickstart_codeblock_2"
+    },
+    {
+      "label": "code:bash (curl -O https://raw.githubusercontent.com/ChristK/IMPACTncd_)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L40",
+      "community": 63,
+      "norm_label": "code:bash (curl -o https://raw.githubusercontent.com/christk/impactncd_)",
+      "id": "docker_setup_team_quickstart_codeblock_3"
+    },
+    {
+      "label": "2. Make your own scenario folder",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L44",
+      "community": 63,
+      "norm_label": "2. make your own scenario folder",
+      "id": "docker_setup_team_quickstart_2_make_your_own_scenario_folder"
+    },
+    {
+      "label": "code:block4 (~/my_scenarios/)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L48",
+      "community": 63,
+      "norm_label": "code:block4 (~/my_scenarios/)",
+      "id": "docker_setup_team_quickstart_codeblock_4"
+    },
+    {
+      "label": "code:yaml (output_dir:   /mnt/storage_fast/YOUR-USERNAME/outputs   # <-)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L57",
+      "community": 63,
+      "norm_label": "code:yaml (output_dir:   /mnt/storage_fast/your-username/outputs   # <-)",
+      "id": "docker_setup_team_quickstart_codeblock_5"
+    },
+    {
+      "label": "3. Launch the container",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L65",
+      "community": 63,
+      "norm_label": "3. launch the container",
+      "id": "docker_setup_team_quickstart_3_launch_the_container"
+    },
+    {
+      "label": "code:bash (cd ~/impactncd)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L67",
+      "community": 63,
+      "norm_label": "code:bash (cd ~/impactncd)",
+      "id": "docker_setup_team_quickstart_codeblock_6"
+    },
+    {
+      "label": "4. Run your scenario (inside the container)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L80",
+      "community": 63,
+      "norm_label": "4. run your scenario (inside the container)",
+      "id": "docker_setup_team_quickstart_4_run_your_scenario_inside_the_container"
+    },
+    {
+      "label": "code:bash (R)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L84",
+      "community": 63,
+      "norm_label": "code:bash (r)",
+      "id": "docker_setup_team_quickstart_codeblock_7"
+    },
+    {
+      "label": "code:r (source(\"scenarios/MyTest/simulate_MyTest.R\"))",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L90",
+      "community": 63,
+      "norm_label": "code:r (source(\"scenarios/mytest/simulate_mytest.r\"))",
+      "id": "docker_setup_team_quickstart_codeblock_8"
+    },
+    {
+      "label": "code:bash (Rscript scenarios/MyTest/simulate_MyTest.R)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L96",
+      "community": 63,
+      "norm_label": "code:bash (rscript scenarios/mytest/simulate_mytest.r)",
+      "id": "docker_setup_team_quickstart_codeblock_9"
+    },
+    {
+      "label": "Example A \u2014 a simple baseline run",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L109",
+      "community": 63,
+      "norm_label": "example a \u2014 a simple baseline run",
+      "id": "docker_setup_team_quickstart_example_a_a_simple_baseline_run"
+    },
+    {
+      "label": "code:r (source(\"./global.R\"))",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L113",
+      "community": 63,
+      "norm_label": "code:r (source(\"./global.r\"))",
+      "id": "docker_setup_team_quickstart_codeblock_10"
+    },
+    {
+      "label": "Example B \u2014 your own policy scenario (baseline vs. intervention)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L123",
+      "community": 63,
+      "norm_label": "example b \u2014 your own policy scenario (baseline vs. intervention)",
+      "id": "docker_setup_team_quickstart_example_b_your_own_policy_scenario_baseline_vs_intervention"
+    },
+    {
+      "label": "code:r (source(\"./global.R\"))",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L127",
+      "community": 63,
+      "norm_label": "code:r (source(\"./global.r\"))",
+      "id": "docker_setup_team_quickstart_codeblock_11"
+    },
+    {
+      "label": "code:bash (./setup_user_docker_env.sh -Tag main \\)",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L145",
+      "community": 63,
+      "norm_label": "code:bash (./setup_user_docker_env.sh -tag main \\)",
+      "id": "docker_setup_team_quickstart_codeblock_12"
+    },
+    {
+      "label": "Good to know",
+      "file_type": "document",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L157",
+      "community": 63,
+      "norm_label": "good to know",
+      "id": "docker_setup_team_quickstart_good_to_know"
     },
     {
       "label": "Requirements",
@@ -6456,7 +7203,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 47,
       "norm_label": "distr_best_fit (gamlss helper)",
       "id": "aux_functions_distr_best_fit"
     },
@@ -6625,7 +7372,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 1,
       "norm_label": "simsmok (rcpp export)",
       "id": "simsmok_simsmok"
     },
@@ -6638,7 +7385,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 1,
       "norm_label": "simsmok_sc (rcpp export, scenario)",
       "id": "simsmok_simsmok_sc"
     },
@@ -6651,7 +7398,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 1,
       "norm_label": "simsmok_postcalibration (rcpp export)",
       "id": "simsmok_simsmok_postcalibration"
     },
@@ -6885,7 +7632,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "package: data.table",
       "id": "pkg_data_table"
     },
@@ -6898,7 +7645,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 6,
       "norm_label": "package: yaml",
       "id": "pkg_yaml"
     },
@@ -6911,7 +7658,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 6,
       "norm_label": "package: fst",
       "id": "pkg_fst"
     },
@@ -6924,7 +7671,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "package: arrow",
       "id": "pkg_arrow"
     },
@@ -6937,7 +7684,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 47,
       "norm_label": "package: gamlss",
       "id": "pkg_gamlss"
     },
@@ -6989,7 +7736,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 1,
       "norm_label": "package: rcpp",
       "id": "pkg_rcpp"
     },
@@ -7171,7 +7918,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 56,
       "norm_label": "synthpop$pop dataframe (rcpp dataframe dt)",
       "id": "impactncd_sim_concept_synthpop_pop"
     },
@@ -7405,7 +8152,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 94,
+      "community": 6,
       "norm_label": "*_prvl prevalence outputs",
       "id": "cprd_sim_validation_plots_concept_prvl"
     },
@@ -7444,7 +8191,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 94,
+      "community": 6,
       "norm_label": "cprd_sim_validation_plots_ck.r",
       "id": "cprd_sim_validation_plots_ck"
     },
@@ -7457,7 +8204,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 94,
+      "community": 6,
       "norm_label": "validation_plot()",
       "id": "cprd_sim_validation_plots_ck_validation_plot"
     },
@@ -7704,7 +8451,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "deconstructed_sim.r",
       "id": "deconstructed_sim"
     },
@@ -7717,7 +8464,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 56,
       "norm_label": "mk_scenario_init2()",
       "id": "deconstructed_sim_mk_scenario_init2"
     },
@@ -7730,7 +8477,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "hlpfn()",
       "id": "deconstructed_sim_hlpfn"
     },
@@ -7743,7 +8490,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "export_xps()",
       "id": "deconstructed_sim_export_xps"
     },
@@ -7756,7 +8503,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 92,
+      "community": 56,
       "norm_label": "exp_valplots.r",
       "id": "exp_valplots"
     },
@@ -7769,7 +8516,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 92,
+      "community": 56,
       "norm_label": "alcohol exposure",
       "id": "exp_valplots_concept_alcohol"
     },
@@ -7782,7 +8529,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 92,
+      "community": 56,
       "norm_label": "bmi exposure",
       "id": "exp_valplots_concept_bmi"
     },
@@ -7795,7 +8542,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 92,
+      "community": 56,
       "norm_label": "fruit exposure",
       "id": "exp_valplots_concept_fruit"
     },
@@ -7808,7 +8555,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 92,
+      "community": 56,
       "norm_label": "veg exposure",
       "id": "exp_valplots_concept_veg"
     },
@@ -7821,7 +8568,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 92,
+      "community": 56,
       "norm_label": "tchol exposure",
       "id": "exp_valplots_concept_tchol"
     },
@@ -7834,7 +8581,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 47,
       "norm_label": "fix_stepgaicall.a.r",
       "id": "fix_stepgaicall_a"
     },
@@ -7847,7 +8594,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 57,
       "norm_label": "impact_of_disease_on_exposures.r",
       "id": "impact_of_disease_on_exposures"
     },
@@ -7860,7 +8607,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 57,
       "norm_label": "cvdis (cardiovascular disease)",
       "id": "impact_of_disease_on_exposures_concept_cvdis"
     },
@@ -7873,7 +8620,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 57,
       "norm_label": "diabete2r (diabetes)",
       "id": "impact_of_disease_on_exposures_concept_diabetes"
     },
@@ -7886,7 +8633,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 57,
       "norm_label": "omsysval (sbp)",
       "id": "impact_of_disease_on_exposures_concept_sbp"
     },
@@ -7899,7 +8646,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 57,
       "norm_label": "cholval1 (total cholesterol)",
       "id": "impact_of_disease_on_exposures_concept_chol"
     },
@@ -7912,7 +8659,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 57,
       "norm_label": "bmival (bmi)",
       "id": "impact_of_disease_on_exposures_concept_bmi"
     },
@@ -7925,7 +8672,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 47,
       "norm_label": "pop_proj_by_dimd.r",
       "id": "pop_proj_by_dimd"
     },
@@ -7938,7 +8685,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 47,
       "norm_label": "plot_all_ages()",
       "id": "pop_proj_by_dimd_plot_all_ages"
     },
@@ -7951,7 +8698,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "structural_plots.r",
       "id": "structural_plots"
     },
@@ -7964,7 +8711,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "mod_plot()",
       "id": "structural_plots_mod_plot"
     },
@@ -7977,7 +8724,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "scenario_fn()",
       "id": "structural_plots_scenario_fn"
     },
@@ -8016,7 +8763,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 6,
       "norm_label": "aux_fn.r (disease_burden helpers)",
       "id": "aux_fn"
     },
@@ -8029,7 +8776,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 6,
       "norm_label": "input_path()",
       "id": "aux_fn_input_path"
     },
@@ -8042,7 +8789,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 6,
       "norm_label": "output_path()",
       "id": "aux_fn_output_path"
     },
@@ -8055,7 +8802,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 6,
       "norm_label": "harmonise()",
       "id": "aux_fn_harmonise"
     },
@@ -8068,7 +8815,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 6,
       "norm_label": "validate_plots()",
       "id": "aux_fn_validate_plots"
     },
@@ -8081,7 +8828,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 6,
       "norm_label": "mod_sel()",
       "id": "aux_fn_mod_sel"
     },
@@ -8094,7 +8841,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 6,
       "norm_label": "rrfn()",
       "id": "aux_fn_rrfn"
     },
@@ -8107,7 +8854,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 94,
+      "community": 6,
       "norm_label": "ggplot2",
       "id": "pkg_ggplot2"
     },
@@ -8120,7 +8867,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 92,
+      "community": 56,
       "norm_label": "ggthemes",
       "id": "pkg_ggthemes"
     },
@@ -8133,7 +8880,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "scales",
       "id": "pkg_scales"
     },
@@ -8146,7 +8893,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "rcolorbrewer",
       "id": "pkg_rcolorbrewer"
     },
@@ -8211,7 +8958,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 94,
+      "community": 6,
       "norm_label": "foreach",
       "id": "pkg_foreach"
     },
@@ -8224,7 +8971,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 6,
       "norm_label": "qs",
       "id": "pkg_qs"
     },
@@ -8237,7 +8984,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 68,
+      "community": 47,
       "norm_label": "readxl",
       "id": "pkg_readxl"
     },
@@ -8250,7 +8997,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "jsonlite",
       "id": "pkg_jsonlite"
     },
@@ -8263,7 +9010,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 63,
+      "community": 56,
       "norm_label": "global.r",
       "id": "shared_global_r"
     },
@@ -8276,7 +9023,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 56,
       "norm_label": "synthpop r6 class",
       "id": "shared_synthpop_class"
     },
@@ -8861,7 +9608,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "tmpanna xps template writer",
       "id": "tmpanna_template"
     },
@@ -9004,7 +9751,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "parf outputs visualization",
       "id": "parfoutputs_plots"
     },
@@ -9017,7 +9764,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "parf case numbers visualization",
       "id": "parfoutputs_casenum_plots"
     },
@@ -9030,7 +9777,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "exposure trends visualization",
       "id": "exposure_trends_plots"
     },
@@ -9043,7 +9790,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "hse correlation structure extractor",
       "id": "extract_hse_correlation_structure_script"
     },
@@ -9069,7 +9816,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "health survey for england (hse)",
       "id": "data_source_hse"
     },
@@ -9121,7 +9868,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "parf_final.csv (parf outputs)",
       "id": "data_source_parf_final_csv"
     },
@@ -9134,7 +9881,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "xps20.csv.gz exposure outputs",
       "id": "data_source_xps20_csv"
     },
@@ -9147,7 +9894,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "r package: data.table",
       "id": "rpkg_data_table"
     },
@@ -9160,7 +9907,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "r package: fst",
       "id": "rpkg_fst"
     },
@@ -9225,7 +9972,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
+      "community": 9,
       "norm_label": "r package: ggplot2",
       "id": "rpkg_ggplot2"
     },
@@ -9264,7 +10011,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 9,
+      "community": 3,
       "norm_label": "r package: ckutils",
       "id": "rpkg_ckutils"
     },
@@ -9433,7 +10180,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "fit_hfss_energy_model_england_nonooh_withtotalenergy.r",
       "id": "fit_hfss_energy_model"
     },
@@ -9446,7 +10193,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "fit_hfss_food_weight_gram_model_england_nonooh_withhfssenergy.r",
       "id": "fit_hfss_food_weight_model"
     },
@@ -9459,7 +10206,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "fit_hfss_salt_model_england_nonooh_withtotalsalt.r",
       "id": "fit_hfss_salt_model"
     },
@@ -9485,7 +10232,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 75,
       "norm_label": "fit_alcohol_model.r",
       "id": "fit_alcohol_model"
     },
@@ -9498,7 +10245,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 75,
       "norm_label": "fit_alcohol_model_2024.r",
       "id": "fit_alcohol_model_2024"
     },
@@ -9758,7 +10505,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 75,
       "norm_label": "alcohol exposure",
       "id": "concept_alcohol"
     },
@@ -9875,7 +10622,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "hfss energy intake",
       "id": "concept_hfss_energy"
     },
@@ -9888,7 +10635,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "hfss food weight (g)",
       "id": "concept_hfss_food_weight"
     },
@@ -9901,7 +10648,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "hfss salt intake",
       "id": "concept_hfss_salt"
     },
@@ -9966,7 +10713,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "reldist r package",
       "id": "pkg_reldist"
     },
@@ -9979,7 +10726,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "haven r package",
       "id": "pkg_haven"
     },
@@ -10031,7 +10778,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 75,
       "norm_label": "zinbi distribution family",
       "id": "distr_zinbi"
     },
@@ -10044,7 +10791,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 75,
       "norm_label": "zibnb distribution family",
       "id": "distr_zibnb"
     },
@@ -10070,7 +10817,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "bcto distribution family",
       "id": "distr_bcto"
     },
@@ -10161,7 +10908,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "fit_hdl_model.r",
       "id": "fit_hdl_model"
     },
@@ -10278,7 +11025,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 75,
       "norm_label": "fit_smok_cig_curr_model.r",
       "id": "fit_smok_cig_curr_model"
     },
@@ -10291,7 +11038,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 75,
       "norm_label": "fit_smok_cig_ex_model.r",
       "id": "fit_smok_cig_ex_model"
     },
@@ -10395,7 +11142,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "fit_smok_relapse_model.r",
       "id": "fit_smok_relapse_model"
     },
@@ -10447,7 +11194,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "hdl to total cholesterol ratio",
       "id": "concept_hdl_to_tchol"
     },
@@ -10525,7 +11272,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 75,
       "norm_label": "cigarettes per day (current smokers)",
       "id": "concept_smok_cig_curr"
     },
@@ -10538,7 +11285,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 75,
       "norm_label": "cigarettes per day (ex-smokers)",
       "id": "concept_smok_cig_ex"
     },
@@ -10603,7 +11350,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 47,
       "norm_label": "smoking relapse probability",
       "id": "concept_smok_relapse"
     },
@@ -10668,7 +11415,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "gamlss gb1 distribution",
       "id": "distr_gb1"
     },
@@ -10694,7 +11441,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
+      "community": 75,
       "norm_label": "gamlss bnb distribution",
       "id": "distr_bnb"
     },
@@ -10980,7 +11727,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 0,
       "norm_label": "mrtl_projections.r",
       "id": "mrtl_projections_script"
     },
@@ -10993,7 +11740,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 0,
       "norm_label": "mrtl_projections_coherent.r",
       "id": "mrtl_projections_coherent_script"
     },
@@ -11006,7 +11753,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 0,
       "norm_label": "prepare_calibr_file.r",
       "id": "prepare_calibr_file_script"
     },
@@ -11019,7 +11766,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 0,
       "norm_label": "preprocess_mrtl.r",
       "id": "preprocess_mrtl_script"
     },
@@ -11110,7 +11857,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 0,
       "norm_label": "all-cause mortality projections",
       "id": "concept_all_cause_mortality"
     },
@@ -11149,7 +11896,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 0,
       "norm_label": "mortality calibration",
       "id": "concept_mortality_calibration"
     },
@@ -11175,7 +11922,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 0,
       "norm_label": "ons mortality (deaths by dimd/sex/age)",
       "id": "datasource_ons_mortality"
     },
@@ -11383,7 +12130,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 0,
       "norm_label": "demography (r package)",
       "id": "package_demography"
     },
@@ -15306,6 +16053,16 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "docker_setup/setup_user_docker_env.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_setup_user_docker_env_sh",
+      "target": "home_ckyprid_my_models_impactncd_engl_docker_setup_setup_user_docker_env_sh__entry"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "docker_setup/docker_build_push.ps1",
       "source_location": "L40",
       "weight": 1.0,
@@ -15322,26 +16079,6 @@
       "confidence_score": 1.0,
       "source": "docker_setup_entrypoint_sh",
       "target": "home_ckyprid_my_models_impactncd_engl_docker_setup_entrypoint_sh__entry"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/setup_dev_docker_env.sh",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_setup_dev_docker_env_sh",
-      "target": "home_ckyprid_my_models_impactncd_engl_docker_setup_setup_dev_docker_env_sh__entry"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/setup_user_docker_env.sh",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_setup_user_docker_env_sh",
-      "target": "home_ckyprid_my_models_impactncd_engl_docker_setup_setup_user_docker_env_sh__entry"
     },
     {
       "relation": "defines",
@@ -15528,6 +16265,16 @@
       "confidence_score": 1.0,
       "source": "home_ckyprid_my_models_impactncd_engl_docker_setup_docker_build_push_sh__entry",
       "target": "docker_setup_docker_build_push_sh_docker_setup_docker_build_push_log"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/setup_dev_docker_env.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_setup_dev_docker_env_sh",
+      "target": "home_ckyprid_my_models_impactncd_engl_docker_setup_setup_dev_docker_env_sh__entry"
     },
     {
       "relation": "contains",
@@ -16388,6 +17135,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L153",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_impactncd_england_docker_setup",
+      "target": "docker_setup_readme_sharing_the_image_across_a_team_one_server"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L10",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -16448,6 +17205,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L55",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_quick_start_running_simulations",
+      "target": "docker_setup_readme_codeblock_3"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L53",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -16463,6 +17230,16 @@
       "confidence_score": 1.0,
       "source": "docker_setup_readme_quick_start_running_simulations",
       "target": "docker_setup_readme_parameters"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "docker_setup_readme_quick_start_running_simulations",
+      "target": "docker_setup_readme_standalone_drop_in_folder_mode_no_clone_needed",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -16498,6 +17275,56 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "docker_setup_readme_standalone_drop_in_folder_mode_no_clone_needed",
+      "target": "docker_setup_readme_codeblock_4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L80",
+      "weight": 1.0,
+      "source": "docker_setup_readme_standalone_drop_in_folder_mode_no_clone_needed",
+      "target": "docker_setup_readme_codeblock_5",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L85",
+      "weight": 1.0,
+      "source": "docker_setup_readme_standalone_drop_in_folder_mode_no_clone_needed",
+      "target": "docker_setup_readme_codeblock_6",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L106",
+      "weight": 1.0,
+      "source": "docker_setup_readme_standalone_drop_in_folder_mode_no_clone_needed",
+      "target": "docker_setup_readme_codeblock_7",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L69",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_linux_macos_bash",
+      "target": "docker_setup_readme_codeblock_4"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L84",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -16513,6 +17340,176 @@
       "confidence_score": 1.0,
       "source": "docker_setup_readme_what_happens_when_you_run_the_script",
       "target": "docker_setup_readme_codeblock_5"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L99",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_windows_powershell",
+      "target": "docker_setup_readme_codeblock_5"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L176",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_one_time_setup_per_teammate",
+      "target": "docker_setup_readme_codeblock_6"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L181",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_troubleshooting",
+      "target": "docker_setup_readme_codeblock_6"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L147",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_what_happens_when_you_run_the_script",
+      "target": "docker_setup_readme_codeblock_6"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L196",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_example_own_sim_design_yaml_own_scenarios_folder",
+      "target": "docker_setup_readme_codeblock_7"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L195",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_one_time_setup_per_teammate",
+      "target": "docker_setup_readme_codeblock_7"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L187",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_troubleshooting",
+      "target": "docker_setup_readme_codeblock_7"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "docker_setup_readme_linux_macos_bash",
+      "target": "docker_setup_readme_codeblock_8",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L206",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_cleanup",
+      "target": "docker_setup_readme_codeblock_8"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L207",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_example_own_sim_design_yaml_own_scenarios_folder",
+      "target": "docker_setup_readme_codeblock_8"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L154",
+      "weight": 1.0,
+      "source": "docker_setup_readme_windows_powershell",
+      "target": "docker_setup_readme_codeblock_9",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L242",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_developer_workflow_setup_dev_docker_env_sh_ps1",
+      "target": "docker_setup_readme_codeblock_9"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L220",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_example_own_sim_design_yaml_own_scenarios_folder",
+      "target": "docker_setup_readme_codeblock_9"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L205",
+      "weight": 1.0,
+      "source": "docker_setup_readme_what_happens_when_you_run_the_script",
+      "target": "docker_setup_readme_codeblock_10",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L263",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_codeblock_10"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L244",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_example_own_sim_design_yaml_own_scenarios_folder",
+      "target": "docker_setup_readme_codeblock_10"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L269",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_troubleshooting",
+      "target": "docker_setup_readme_codeblock_10"
     },
     {
       "relation": "contains",
@@ -16538,6 +17535,306 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L230",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_sharing_the_image_across_a_team_one_server",
+      "target": "docker_setup_readme_don_t_share_one_literal_container"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L185",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_sharing_the_image_across_a_team_one_server",
+      "target": "docker_setup_readme_each_teammate_runs_their_own_container"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L172",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_sharing_the_image_across_a_team_one_server",
+      "target": "docker_setup_readme_one_time_setup_per_teammate"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L162",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_sharing_the_image_across_a_team_one_server",
+      "target": "docker_setup_readme_what_s_shared_vs_per_user"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L258",
+      "weight": 1.0,
+      "source": "docker_setup_readme_one_time_setup_per_teammate",
+      "target": "docker_setup_readme_codeblock_11",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L278",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_codeblock_11"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L282",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_11"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L301",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
+      "target": "docker_setup_readme_codeblock_11"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L275",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_troubleshooting",
+      "target": "docker_setup_readme_codeblock_11"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L279",
+      "weight": 1.0,
+      "source": "docker_setup_readme_each_teammate_runs_their_own_container",
+      "target": "docker_setup_readme_example_own_config_scripts_in_one_folder_standalone_mode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L192",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_each_teammate_runs_their_own_container",
+      "target": "docker_setup_readme_example_own_sim_design_yaml_own_scenarios_folder"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L284",
+      "weight": 1.0,
+      "source": "docker_setup_readme_example_own_config_scripts_in_one_folder_standalone_mode",
+      "target": "docker_setup_readme_codeblock_12",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L295",
+      "weight": 1.0,
+      "source": "docker_setup_readme_example_own_config_scripts_in_one_folder_standalone_mode",
+      "target": "docker_setup_readme_codeblock_13",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L304",
+      "weight": 1.0,
+      "source": "docker_setup_readme_example_own_config_scripts_in_one_folder_standalone_mode",
+      "target": "docker_setup_readme_codeblock_14",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L284",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_12"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L294",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_cleanup",
+      "target": "docker_setup_readme_codeblock_12"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L310",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
+      "target": "docker_setup_readme_codeblock_12"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L293",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_12"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L299",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_troubleshooting",
+      "target": "docker_setup_readme_codeblock_12"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L297",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_13"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L324",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_cleanup",
+      "target": "docker_setup_readme_codeblock_13"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L330",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_developer_workflow_setup_dev_docker_env_sh_ps1",
+      "target": "docker_setup_readme_codeblock_13"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L310",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_13"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L301",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_13"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L307",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L361",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L364",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_developer_workflow_setup_dev_docker_env_sh_ps1",
+      "target": "docker_setup_readme_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L318",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L337",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L310",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_14"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L162",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -16558,31 +17855,201 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L181",
+      "source_location": "L357",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docker_setup_readme_troubleshooting",
-      "target": "docker_setup_readme_codeblock_6"
+      "target": "docker_setup_readme_codeblock_15",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L187",
+      "source_location": "L363",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docker_setup_readme_troubleshooting",
-      "target": "docker_setup_readme_codeblock_7"
+      "target": "docker_setup_readme_codeblock_16",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L206",
+      "source_location": "L320",
       "weight": 1.0,
       "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_15"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L403",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_codeblock_15"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L349",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_15"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L389",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
+      "target": "docker_setup_readme_codeblock_15"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L316",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_15"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L339",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_16"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L398",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
+      "target": "docker_setup_readme_codeblock_16"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L357",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_16"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L431",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
+      "target": "docker_setup_readme_codeblock_16"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L329",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_system_packages_apt_packages_txt",
+      "target": "docker_setup_readme_codeblock_16"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L333",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_16"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L388",
+      "weight": 1.0,
       "source": "docker_setup_readme_cleanup",
-      "target": "docker_setup_readme_codeblock_8"
+      "target": "docker_setup_readme_codeblock_17",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L365",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_17"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L440",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
+      "target": "docker_setup_readme_codeblock_17"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L415",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_17"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L341",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_r_packages_r_packages_txt",
+      "target": "docker_setup_readme_codeblock_17"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L353",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_system_packages_apt_packages_txt",
+      "target": "docker_setup_readme_codeblock_17"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L339",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_17"
     },
     {
       "relation": "contains",
@@ -16678,270 +18145,10 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L242",
+      "source_location": "L428",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "docker_setup_readme_developer_workflow_setup_dev_docker_env_sh_ps1",
-      "target": "docker_setup_readme_codeblock_9"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L263",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
-      "target": "docker_setup_readme_codeblock_10"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L278",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
-      "target": "docker_setup_readme_codeblock_11"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L306",
-      "weight": 1.0,
-      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
-      "target": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L306",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
-      "target": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L276",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
-      "target": "docker_setup_readme_model_data_from_zenodo"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L292",
-      "weight": 1.0,
-      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
-      "target": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L301",
-      "weight": 1.0,
-      "source": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
-      "target": "docker_setup_readme_codeblock_11",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L282",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_model_data_from_zenodo",
-      "target": "docker_setup_readme_codeblock_11"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L310",
-      "weight": 1.0,
-      "source": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
-      "target": "docker_setup_readme_codeblock_12",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L284",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_12"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L293",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_model_data_from_zenodo",
-      "target": "docker_setup_readme_codeblock_12"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L301",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_model_data_from_zenodo",
-      "target": "docker_setup_readme_codeblock_13"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L337",
-      "weight": 1.0,
-      "source": "docker_setup_readme_model_data_from_zenodo",
-      "target": "docker_setup_readme_codeblock_14",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L297",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_13"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L310",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
-      "target": "docker_setup_readme_codeblock_13"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L307",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_14"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L318",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
-      "target": "docker_setup_readme_codeblock_14"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L310",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
-      "target": "docker_setup_readme_codeblock_14"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L349",
-      "weight": 1.0,
-      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
-      "target": "docker_setup_readme_codeblock_15",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L357",
-      "weight": 1.0,
-      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
-      "target": "docker_setup_readme_codeblock_16",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L320",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_15"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L316",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
-      "target": "docker_setup_readme_codeblock_15"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L339",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_16"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L329",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_system_packages_apt_packages_txt",
-      "target": "docker_setup_readme_codeblock_16"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L333",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
-      "target": "docker_setup_readme_codeblock_16"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L365",
-      "weight": 1.0,
-      "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_17",
+      "target": "docker_setup_readme_codeblock_18",
       "confidence_score": 1.0
     },
     {
@@ -16950,39 +18157,19 @@
       "source_file": "docker_setup/README.md",
       "source_location": "L378",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docker_setup_readme_build_script_options",
-      "target": "docker_setup_readme_codeblock_18",
-      "confidence_score": 1.0
+      "target": "docker_setup_readme_codeblock_18"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L341",
+      "source_location": "L425",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "docker_setup_readme_r_packages_r_packages_txt",
-      "target": "docker_setup_readme_codeblock_17"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L353",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_system_packages_apt_packages_txt",
-      "target": "docker_setup_readme_codeblock_17"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L339",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
-      "target": "docker_setup_readme_codeblock_17"
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_18"
     },
     {
       "relation": "contains",
@@ -17028,9 +18215,9 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L391",
+      "source_location": "L467",
       "weight": 1.0,
-      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
       "target": "docker_setup_readme_codeblock_19",
       "confidence_score": 1.0
     },
@@ -17038,11 +18225,61 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L397",
+      "source_location": "L306",
       "weight": 1.0,
-      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
-      "target": "docker_setup_readme_codeblock_20",
-      "confidence_score": 1.0
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L306",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L276",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_model_data_from_zenodo"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L292",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_building_images_with_docker_build_push_sh_ps1",
+      "target": "docker_setup_readme_parametrized_base_images_data_image_prereq_image"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L437",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_19"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L481",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_19"
     },
     {
       "relation": "contains",
@@ -17078,10 +18315,40 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L391",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_19"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L495",
+      "weight": 1.0,
+      "source": "docker_setup_readme_parametrized_base_images_data_image_prereq_image",
+      "target": "docker_setup_readme_codeblock_20",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
       "source_location": "L374",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_20"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L445",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
       "target": "docker_setup_readme_codeblock_20"
     },
     {
@@ -17103,6 +18370,456 @@
       "confidence_score": 1.0,
       "source": "docker_setup_readme_updating_pinned_package_versions",
       "target": "docker_setup_readme_codeblock_20"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L397",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_20"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L504",
+      "weight": 1.0,
+      "source": "docker_setup_readme_data_image_built_locally_tagged_by_zenodo_version_build_push_data_sh",
+      "target": "docker_setup_readme_codeblock_21",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L453",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_21"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L378",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_21"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L501",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_21"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L410",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_system_packages_apt_packages_txt",
+      "target": "docker_setup_readme_codeblock_21"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L383",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_21"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L535",
+      "weight": 1.0,
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_22",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L545",
+      "weight": 1.0,
+      "source": "docker_setup_readme_model_data_from_zenodo",
+      "target": "docker_setup_readme_codeblock_23",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L466",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_22"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L382",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_22"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L422",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_r_packages_r_packages_txt",
+      "target": "docker_setup_readme_codeblock_22"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L402",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_22"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L390",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_23"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L522",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_23"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L401",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_23"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L433",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_23"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L479",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_23"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L557",
+      "weight": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_24",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L565",
+      "weight": 1.0,
+      "source": "docker_setup_readme_if_the_model_build_fails_with_blob_not_found_containerd_gc_race",
+      "target": "docker_setup_readme_codeblock_25",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L394",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_24"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L405",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_24"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L441",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_24"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L485",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_24"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L413",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_25"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L424",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_25"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L498",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_system_packages_apt_packages_txt",
+      "target": "docker_setup_readme_codeblock_25"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L550",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_25"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L573",
+      "weight": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_26",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L586",
+      "weight": 1.0,
+      "source": "docker_setup_readme_build_script_options",
+      "target": "docker_setup_readme_codeblock_27",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L417",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_26"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L459",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_26"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L510",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_r_packages_r_packages_txt",
+      "target": "docker_setup_readme_codeblock_26"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L563",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_system_packages_apt_packages_txt",
+      "target": "docker_setup_readme_codeblock_26"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L436",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_27"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L463",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_27"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L575",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_r_packages_r_packages_txt",
+      "target": "docker_setup_readme_codeblock_27"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L521",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_27"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L608",
+      "weight": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_28",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L614",
+      "weight": 1.0,
+      "source": "docker_setup_readme_verbose_builds_see_package_version_substitutions",
+      "target": "docker_setup_readme_codeblock_29",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L471",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_28"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L529",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_28"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L476",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_29"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L543",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_29"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L594",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_updating_pinned_package_versions",
+      "target": "docker_setup_readme_codeblock_29"
     },
     {
       "relation": "contains",
@@ -17138,121 +18855,101 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L410",
+      "source_location": "L627",
       "weight": 1.0,
       "source": "docker_setup_readme_system_packages_apt_packages_txt",
-      "target": "docker_setup_readme_codeblock_21",
+      "target": "docker_setup_readme_codeblock_30",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L378",
+      "source_location": "L481",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_30"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L547",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_21"
+      "target": "docker_setup_readme_codeblock_30"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L383",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_updating_pinned_package_versions",
-      "target": "docker_setup_readme_codeblock_21"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L422",
+      "source_location": "L639",
       "weight": 1.0,
       "source": "docker_setup_readme_r_packages_r_packages_txt",
-      "target": "docker_setup_readme_codeblock_22",
+      "target": "docker_setup_readme_codeblock_31",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L382",
+      "source_location": "L551",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_22"
+      "target": "docker_setup_readme_codeblock_31"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L402",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_updating_pinned_package_versions",
-      "target": "docker_setup_readme_codeblock_22"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L433",
+      "source_location": "L650",
       "weight": 1.0,
       "source": "docker_setup_readme_updating_pinned_package_versions",
-      "target": "docker_setup_readme_codeblock_23",
+      "target": "docker_setup_readme_codeblock_32",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L441",
+      "source_location": "L658",
       "weight": 1.0,
       "source": "docker_setup_readme_updating_pinned_package_versions",
-      "target": "docker_setup_readme_codeblock_24",
+      "target": "docker_setup_readme_codeblock_33",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L390",
+      "source_location": "L559",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_adding_r_or_system_dependencies",
-      "target": "docker_setup_readme_codeblock_23"
+      "target": "docker_setup_readme_codeblock_32"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L401",
+      "source_location": "L616",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_23"
+      "target": "docker_setup_readme_codeblock_32"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L394",
+      "source_location": "L564",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_adding_r_or_system_dependencies",
-      "target": "docker_setup_readme_codeblock_24"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L405",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_24"
+      "target": "docker_setup_readme_codeblock_33"
     },
     {
       "relation": "contains",
@@ -17268,90 +18965,520 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L424",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_25"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L459",
+      "source_location": "L672",
       "weight": 1.0,
       "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_26",
+      "target": "docker_setup_readme_codeblock_34",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L463",
+      "source_location": "L676",
       "weight": 1.0,
       "source": "docker_setup_readme_development_workflow",
-      "target": "docker_setup_readme_codeblock_27",
+      "target": "docker_setup_readme_codeblock_35",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L413",
+      "source_location": "L680",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_adding_r_or_system_dependencies",
-      "target": "docker_setup_readme_codeblock_25"
+      "source": "docker_setup_readme_development_workflow",
+      "target": "docker_setup_readme_codeblock_36",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
-      "source_location": "L417",
+      "source_location": "L569",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "docker_setup_readme_adding_r_or_system_dependencies",
-      "target": "docker_setup_readme_codeblock_26"
+      "target": "docker_setup_readme_codeblock_34"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docker_setup/README.md",
+      "source_location": "L635",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_35"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L640",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_36"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L689",
+      "weight": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_37",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L694",
+      "weight": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_38",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L699",
+      "weight": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_39",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/README.md",
+      "source_location": "L704",
+      "weight": 1.0,
+      "source": "docker_setup_readme_adding_r_or_system_dependencies",
+      "target": "docker_setup_readme_codeblock_40",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_md",
+      "target": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L346",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_10_run_a_policy_scenario",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L377",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_11_troubleshooting",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L419",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_12_updating_and_cleaning_up",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L444",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_13_how_it_works_optional_background",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_1_before_you_start_what_you_need",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_2_install_docker",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L121",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_3_give_docker_enough_memory_and_disk",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L147",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_4_check_docker_works",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L164",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_5_make_your_project_folder_and_get_the_launcher",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L202",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_6_edit_your_configuration_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L236",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_7_write_a_run_script",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L269",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_8_run_the_model",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L324",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_9_find_your_results",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_running_impactncd_england_on_your_own_computer_a_beginner_s_guide",
+      "target": "docker_setup_installation_guide_contents",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_2_install_docker",
+      "target": "docker_setup_installation_guide_linux",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_2_install_docker",
+      "target": "docker_setup_installation_guide_macos",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_2_install_docker",
+      "target": "docker_setup_installation_guide_windows",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_macos",
+      "target": "docker_setup_installation_guide_codeblock_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_linux",
+      "target": "docker_setup_installation_guide_codeblock_2",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_3_give_docker_enough_memory_and_disk",
+      "target": "docker_setup_installation_guide_linux_139",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L125",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_3_give_docker_enough_memory_and_disk",
+      "target": "docker_setup_installation_guide_windows_and_macos_docker_desktop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_4_check_docker_works",
+      "target": "docker_setup_installation_guide_codeblock_3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L174",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_5_make_your_project_folder_and_get_the_launcher",
+      "target": "docker_setup_installation_guide_linux_macos_terminal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L183",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_5_make_your_project_folder_and_get_the_launcher",
+      "target": "docker_setup_installation_guide_windows_powershell",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L176",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_linux_macos_terminal",
+      "target": "docker_setup_installation_guide_codeblock_4",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L185",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_windows_powershell",
+      "target": "docker_setup_installation_guide_codeblock_5",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L208",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_6_edit_your_configuration_file",
+      "target": "docker_setup_installation_guide_codeblock_6",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L241",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_7_write_a_run_script",
+      "target": "docker_setup_installation_guide_codeblock_7",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L255",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_7_write_a_run_script",
+      "target": "docker_setup_installation_guide_codeblock_8",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L275",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_8_run_the_model",
+      "target": "docker_setup_installation_guide_linux_macos",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L295",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_8_run_the_model",
+      "target": "docker_setup_installation_guide_prefer_to_work_interactively",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L282",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_8_run_the_model",
+      "target": "docker_setup_installation_guide_windows_powershell_282",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L277",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_linux_macos",
+      "target": "docker_setup_installation_guide_codeblock_9",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L284",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_windows_powershell_282",
+      "target": "docker_setup_installation_guide_codeblock_10",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L304",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_prefer_to_work_interactively",
+      "target": "docker_setup_installation_guide_codeblock_11",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L329",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_9_find_your_results",
+      "target": "docker_setup_installation_guide_codeblock_12",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L352",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_10_run_a_policy_scenario",
+      "target": "docker_setup_installation_guide_codeblock_13",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L387",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_11_troubleshooting",
+      "target": "docker_setup_installation_guide_codeblock_14",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L423",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_12_updating_and_cleaning_up",
+      "target": "docker_setup_installation_guide_codeblock_15",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
+      "source_location": "L431",
+      "weight": 1.0,
+      "source": "docker_setup_installation_guide_12_updating_and_cleaning_up",
+      "target": "docker_setup_installation_guide_codeblock_16",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L436",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "docker_setup_readme_adding_r_or_system_dependencies",
-      "target": "docker_setup_readme_codeblock_27"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L471",
-      "weight": 1.0,
-      "source": "docker_setup_readme_adding_r_or_system_dependencies",
-      "target": "docker_setup_readme_codeblock_28",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L476",
-      "weight": 1.0,
-      "source": "docker_setup_readme_adding_r_or_system_dependencies",
-      "target": "docker_setup_readme_codeblock_29",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docker_setup/README.md",
-      "source_location": "L481",
-      "weight": 1.0,
-      "source": "docker_setup_readme_adding_r_or_system_dependencies",
-      "target": "docker_setup_readme_codeblock_30",
+      "source": "docker_setup_installation_guide_12_updating_and_cleaning_up",
+      "target": "docker_setup_installation_guide_codeblock_17",
       "confidence_score": 1.0
     },
     {
@@ -17803,6 +19930,246 @@
       "confidence_score": 1.0,
       "source": "github_copilot_instructions_scenario_definition_pattern",
       "target": "github_copilot_instructions_codeblock_3"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_md",
+      "target": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start",
+      "target": "docker_setup_team_quickstart_0_one_time_setup_per_person"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start",
+      "target": "docker_setup_team_quickstart_1_download_the_launcher_script_once"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L44",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start",
+      "target": "docker_setup_team_quickstart_2_make_your_own_scenario_folder"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start",
+      "target": "docker_setup_team_quickstart_3_launch_the_container"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start",
+      "target": "docker_setup_team_quickstart_4_run_your_scenario_inside_the_container"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L90",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start",
+      "target": "docker_setup_team_quickstart_example_a_a_simple_baseline_run"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L104",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start",
+      "target": "docker_setup_team_quickstart_example_b_your_own_policy_scenario_baseline_vs_intervention"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L136",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_running_impactncd_england_on_the_shared_server_team_quick_start",
+      "target": "docker_setup_team_quickstart_good_to_know"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_0_one_time_setup_per_person",
+      "target": "docker_setup_team_quickstart_codeblock_1"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_1_download_the_launcher_script_once",
+      "target": "docker_setup_team_quickstart_codeblock_2"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_1_download_the_launcher_script_once",
+      "target": "docker_setup_team_quickstart_codeblock_3"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_2_make_your_own_scenario_folder",
+      "target": "docker_setup_team_quickstart_codeblock_4"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L57",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_2_make_your_own_scenario_folder",
+      "target": "docker_setup_team_quickstart_codeblock_5"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L67",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_3_launch_the_container",
+      "target": "docker_setup_team_quickstart_codeblock_6"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L81",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_4_run_your_scenario_inside_the_container",
+      "target": "docker_setup_team_quickstart_codeblock_7"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L90",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_4_run_your_scenario_inside_the_container",
+      "target": "docker_setup_team_quickstart_codeblock_8"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L96",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_4_run_your_scenario_inside_the_container",
+      "target": "docker_setup_team_quickstart_codeblock_9"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L94",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_example_a_a_simple_baseline_run",
+      "target": "docker_setup_team_quickstart_codeblock_8"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L108",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_example_b_your_own_policy_scenario_baseline_vs_intervention",
+      "target": "docker_setup_team_quickstart_codeblock_9"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L113",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_example_a_a_simple_baseline_run",
+      "target": "docker_setup_team_quickstart_codeblock_10"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L126",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_example_b_your_own_policy_scenario_baseline_vs_intervention",
+      "target": "docker_setup_team_quickstart_codeblock_10"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L127",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_example_b_your_own_policy_scenario_baseline_vs_intervention",
+      "target": "docker_setup_team_quickstart_codeblock_11"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docker_setup/TEAM_QUICKSTART.md",
+      "source_location": "L145",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "docker_setup_team_quickstart_example_b_your_own_policy_scenario_baseline_vs_intervention",
+      "target": "docker_setup_team_quickstart_codeblock_12"
     },
     {
       "relation": "contains",
@@ -29321,5 +31688,5 @@
       "source_file": "inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model_2024.R"
     }
   ],
-  "built_at_commit": "77b574f55fa51d68bbcc96af572d901e7deefcac"
+  "built_at_commit": "bf7d900555fd1234cf3efc5233118225f773d520"
 }
