@@ -396,17 +396,27 @@ if [ "$RUN_MODE" = true ]; then
 fi
 
 # Container command + TTY flags. In standalone mode the real command (bash, or
-# Rscript for -Run) is wrapped so MERGE_SCRIPT symlinks the user's files into the
-# model root first. The driver name is passed as $0 to avoid quoting/injection.
-if [ "$RUN_MODE" = true ]; then
-  TTY_FLAGS=()                                 # non-interactive (batch)
-  CONTAINER_CMD=( bash -c "$MERGE_SCRIPT"$'\n'"exec Rscript \"\$0\"" "$DRIVER_NAME" )
-  echo "Auto-run mode: will run $DRIVER_NAME via Rscript (merged into the model folder), then exit."
-elif [ -n "$WORKDIR_MOUNT" ]; then
-  TTY_FLAGS=( -it )
-  CONTAINER_CMD=( bash -c "$MERGE_SCRIPT"$'\n'"exec bash" )
+# Rscript for -Run) is wrapped with MERGE_SCRIPT, which symlinks the user's files
+# into the model root first. The whole in-container script is base64-encoded and
+# passed as a single blob, then decoded to a file and exec'd inside. Encoding is
+# essential for cross-shell safety: PowerShell 5.1 corrupts `docker run`
+# arguments that contain embedded quotes/newlines, which mangled the raw script.
+# A base64 blob has none of those characters, so both bash and PowerShell pass it
+# intact. Running the decoded FILE (not a pipe) lets `exec bash` keep the TTY.
+LAUNCH_DECODE='echo $0 | base64 -d > /tmp/impactncd_launch.sh; exec bash /tmp/impactncd_launch.sh'
+if [ -n "$WORKDIR_MOUNT" ]; then
+  if [ "$RUN_MODE" = true ]; then
+    TTY_FLAGS=()                                 # non-interactive (batch)
+    FULL_SCRIPT="$MERGE_SCRIPT"$'\n'"exec Rscript '$DRIVER_NAME'"
+    echo "Auto-run mode: will run $DRIVER_NAME via Rscript (merged into the model folder), then exit."
+  else
+    TTY_FLAGS=( -it )
+    FULL_SCRIPT="$MERGE_SCRIPT"$'\n'"exec bash"
+  fi
+  LAUNCH_B64=$(printf '%s' "$FULL_SCRIPT" | base64 | tr -d '\n')
+  CONTAINER_CMD=( bash -c "$LAUNCH_DECODE" "$LAUNCH_B64" )
 else
-  TTY_FLAGS=( -it )                            # classic mode: nothing to merge
+  TTY_FLAGS=( -it )                              # classic mode: nothing to merge
   CONTAINER_CMD=( bash )
 fi
 

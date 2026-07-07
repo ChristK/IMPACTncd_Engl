@@ -542,15 +542,27 @@ if ($Run) {
     }
 }
 
-if ($Run) {
-    $TtyFlags = @("--rm")                        # non-interactive (batch)
-    # Wrap: merge the user's files into the model root, then exec the driver.
-    # The driver name is passed as $0 to avoid quoting/injection.
-    $ContainerCmd = @("bash", "-c", ($MergeScript + "`nexec Rscript `"`$0`""), $DriverName)
-    Write-Host "Auto-run mode: will run $DriverName via Rscript (merged into the model folder), then exit."
-} elseif ($WorkdirMount) {
-    $TtyFlags = @("-it", "--rm")
-    $ContainerCmd = @("bash", "-c", ($MergeScript + "`nexec bash"))
+# Base64-encode the whole in-container script (merge + exec) and pass it as one
+# blob, decoded and run inside. This is ESSENTIAL on Windows: PowerShell 5.1
+# corrupts native-command arguments that contain embedded quotes/newlines (it
+# truncated the raw multi-line script, so bash reported "unexpected end of file").
+# A base64 blob and the quote-free decoder below survive argument passing intact
+# on every shell. Running the decoded FILE (not a pipe) lets `exec bash` keep the TTY.
+$LaunchDecode = 'echo $0 | base64 -d > /tmp/impactncd_launch.sh; exec bash /tmp/impactncd_launch.sh'
+if ($WorkdirMount) {
+    if ($Run) {
+        $TtyFlags = @("--rm")                    # non-interactive (batch)
+        $execLine = "exec Rscript '$DriverName'"
+        Write-Host "Auto-run mode: will run $DriverName via Rscript (merged into the model folder), then exit."
+    } else {
+        $TtyFlags = @("-it", "--rm")
+        $execLine = "exec bash"
+    }
+    # Normalise to LF (the here-string may be CRLF on Windows) before encoding, or
+    # the decoded shell script would be full of \r characters and fail to parse.
+    $fullScript = ($MergeScript -replace "`r`n", "`n") + "`n" + $execLine
+    $LaunchB64  = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($fullScript))
+    $ContainerCmd = @("bash", "-c", $LaunchDecode, $LaunchB64)
 } else {
     $TtyFlags = @("-it", "--rm")                 # classic mode: nothing to merge
     $ContainerCmd = @("bash")
