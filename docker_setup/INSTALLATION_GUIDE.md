@@ -121,21 +121,46 @@ sudo usermod -aG docker $USER
 
 ## 3. Give Docker enough memory and disk
 
-The model is memory-hungry, so make sure Docker is allowed to use enough.
+The model is memory-hungry — it uses roughly **10 GB of RAM per CPU core**. If
+Docker isn't allowed enough memory, the simulation's workers are killed mid-run
+and you get a confusing downstream error (see the entry in
+[Troubleshooting](#12-troubleshooting)). **How you raise the memory depends on
+your OS — and, on Windows, on which Docker backend you use.**
 
-### Windows and macOS (Docker Desktop)
+**Disk (all platforms):** make sure there is **~40 GB** free for the image plus
+your results.
 
-Open **Docker Desktop → Settings (gear icon) → Resources**:
+### macOS
 
-- **Memory:** set it to at least **12 GB** (more is better) so the container has
-  room for a run using ~10 GB.
-- **Disk image size:** make sure there is **~40 GB** of headroom.
+Docker Desktop → **Settings (gear icon) → Resources → Memory**: set it to at
+least **12 GB** (more if you have it), then **Apply & restart**.
 
-Click **Apply & restart**.
+### Windows
 
-> On Windows the WSL 2 backend manages memory dynamically; the Docker Desktop
-> setting above is the simplest way to cap/raise it. Advanced users can instead
-> edit `C:\Users\<you>\.wslconfig`.
+Windows Docker Desktop has **two backends** with *different* memory controls.
+Check which one you have at **Settings → General →** the *"Use the WSL 2 based
+engine"* checkbox:
+
+- **WSL 2 based engine — ticked (this is the default).** There is **no memory
+  slider** in Docker Desktop; memory is managed by WSL 2, which by default caps
+  itself at only **~50% of your RAM or 8 GB, whichever is smaller**. On a 16 GB
+  laptop that's an 8 GB ceiling — *below* the ~10 GB one core needs, which is the
+  usual reason runs die. Raise it by creating the file
+  `C:\Users\<your-username>\.wslconfig` (Notepad is fine) containing:
+  ```ini
+  [wsl2]
+  memory=12GB
+  ```
+  Then, in PowerShell, apply it and restart Docker Desktop:
+  ```powershell
+  wsl --shutdown
+  ```
+  (Use more than 12 GB if your machine has it, e.g. `memory=24GB`. Leave a few GB
+  for Windows itself.)
+
+- **Hyper-V engine — unticked (legacy).** Here the slider *does* work: Docker
+  Desktop → **Settings → Resources → Memory** → at least **12 GB** →
+  **Apply & restart**.
 
 ### Linux
 
@@ -443,11 +468,23 @@ Check your internet connection and that Docker is running. The image is
 `chriskypri/impactncdengl:main` — you can confirm it exists at
 <https://hub.docker.com/r/chriskypri/impactncdengl/tags>.
 
-**The container runs out of memory / your machine freezes.**
-Lower memory use in `sim_design.yaml`: keep `clusternumber` and
-`clusternumber_export` at `1`. If it still fails, your machine may not have
-enough free RAM for even one core (~10 GB) — close other apps, or try a machine
-with more memory.
+**The run fails with `... did not deliver results` and/or `Invalid Input Error:
+Provided table/dataframe must have at least one column` (on `SELECT DISTINCT mc
+FROM lc_table`) — or your machine simply freezes.**
+The simulation's parallel workers were **killed mid-run, almost always out of
+memory**, so no results were written and the export step then chokes on the
+empty dataset. Fix it in this order:
+1. **Give Docker more memory** — see
+   [section 3](#3-give-docker-enough-memory-and-disk). On Windows/WSL 2 the
+   default cap is often just 8 GB, below the ~10 GB one core needs; raise it via
+   `.wslconfig`.
+2. **Keep `clusternumber` and `clusternumber_export` at `1`** in your YAML — each
+   extra core needs another ~10 GB.
+3. **Pinpoint the cause** by running single-threaded: set `multicore = FALSE` in
+   both your `run(...)` and `export_summaries(...)` calls. That removes the
+   parallel layer, so a real error (if there is one) is printed directly instead
+   of the vague "did not deliver results". If it then succeeds, the problem was
+   memory/cores — go back to steps 1–2.
 
 **The first run takes a very long time.**
 Expected. The first run downloads the image and builds the synthetic population
@@ -462,9 +499,14 @@ tutorials on your own computer instead.
 You have more than one `sim_design*.yaml` in the folder. Remove the extras, or
 add `-SimDesignYaml sim_design.yaml` to the launch command to pick one.
 
-**Windows + WSL: a warning about `wsl.exe` and a `/c/...` path.**
-Your Docker daemon isn't the WSL 2 backend. Either enable WSL 2 integration in
-Docker Desktop, or use forward-slash POSIX-style paths in your YAML.
+**Windows: `WARNING: wsl.exe not found; falling back to ... '/c/...'`.**
+The launcher couldn't run `wsl.exe` to translate your Windows path, so it used
+the legacy `/c/...` form. If you use the **WSL 2 backend** (the default), that
+form may not map to your real folder, so your `outputs/` can end up empty on the
+host *even when the run succeeds*. Make sure WSL is installed and `wsl.exe` is on
+your PATH (it lives at `C:\Windows\System32\wsl.exe` — a normal PowerShell window
+finds it). If you deliberately use the Hyper-V backend, the `/c/...` form is
+correct and this warning is harmless.
 
 ---
 
