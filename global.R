@@ -201,6 +201,32 @@ if (file.exists(pkg_list_file)) {
 # Install the local R package if its source code has changed
 # Uses a snapshot file to track changes
 # Assumes the working directory is the project root
+#
+# Defensive unload BEFORE the reinstall check: if IMPACTncdEngland is already
+# loaded in this session (e.g. when re-sourcing global.R interactively), unload
+# it now, while its on-disk files still match what is in memory. Reinstalling a
+# loaded compiled package and then using it in the same session corrupts the
+# lazy-load database, because R cannot hot-swap a loaded package -- and it is
+# then too late to unload (unloadNamespace() runs .onUnload, which reads the
+# already-replaced .rdb). The clean unload therefore MUST happen before the
+# reinstall, never after. (installLocalPackageIfChanged itself no longer loads
+# the namespace during its check; this guard covers the case where an earlier
+# statement in the session did.)
+if (isNamespaceLoaded("IMPACTncdEngland")) {
+  message("Unloading already-loaded IMPACTncdEngland before reinstall check.")
+  try(
+    detach("package:IMPACTncdEngland", unload = TRUE, character.only = TRUE),
+    silent = TRUE
+  )
+  try(
+    library.dynam.unload(
+      "IMPACTncdEngland",
+      system.file(package = "IMPACTncdEngland")
+    ),
+    silent = TRUE
+  )
+  try(unloadNamespace("IMPACTncdEngland"), silent = TRUE)
+}
 suppressPackageStartupMessages(
   installLocalPackageIfChanged(
     pkg_path = "./Rpackage/IMPACTncd_England_model_pkg/",
