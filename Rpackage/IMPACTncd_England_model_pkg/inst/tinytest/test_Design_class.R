@@ -2,30 +2,38 @@ library(tinytest)
 library(yaml)
 library(IMPACTncdEngland)
 
-design_path <- system.file("config/default_sim_design.yaml", package = "IMPACTncdEngland")
-design_list <- yaml::read_yaml(file_path)
+# Build Designs from a clean working directory so no ./inputs is present: the
+# constructor then stays in "skeleton mode" (no data load), keeping these
+# sim_prm-processing tests hermetic and fast wherever the suite is launched.
+clean_wd <- file.path(tempdir(), "test_design_clean_wd")
+dir.create(clean_wd, showWarnings = FALSE, recursive = TRUE)
+old_wd <- setwd(clean_wd)
 
+# A complete, valid sim_prm list satisfying Design's required_params.
 create_design_list <- function(overrides = list()) {
     base <- list(
-        simulation_files_overwrite = TRUE,
-        sTag = "test",
-        bOverwriteFilesOnDeploy = TRUE,
-        RootDirPath = "path",
-        sToken = "tok",
         locality = "England",
         clusternumber = 1,
+        clusternumber_export = 1,
         logs = FALSE,
-        scenarios = list(sc0 = list()),
         cols_for_output = c("year", "age", "sex"),
         strata_for_output = c("year", "age", "sex"),
-        exposures = list(),
+        exposures_for_output = list("bmi"),
+        exposure_definitions = list(
+            list(
+                name = "bmi", file_name = "bmi", var_name = "bmi",
+                rank_var = "rank_bmi", distribution = "continuous"
+            )
+        ),
         n = 10,
         init_year_long = 2010,
         sim_horizon_max = 2030,
         ageL = 35,
         ageH = 80,
         diseases = list(
-            chd = list(name = "chd", meta = list(incidence = list(influenced_by_disease_name = character(0))))
+            chd = list(name = "chd", meta = list(
+                incidence = list(influenced_by_disease_name = character(0))
+            ))
         ),
         maxlag = 5,
         smoking_relapse_limit = 3,
@@ -34,7 +42,6 @@ create_design_list <- function(overrides = list()) {
         jumpiness = 0.2,
         statin_adherence = 0.85,
         bpmed_adherence = 0.9,
-        decision_aid = FALSE,
         export_xps = TRUE,
         simsmok_calibration = FALSE,
         output_dir = tempdir(),
@@ -46,77 +53,69 @@ create_design_list <- function(overrides = list()) {
     modifyList(base, overrides)
 }
 
-# ---- Initialization checks ----
+# ---- Initialization: derived time fields ----
 dl <- create_design_list()
-design <- Design$new(design_path)
+design <- Design$new(dl)
 
 expect_true("init_year" %in% names(design$sim_prm))
 expect_equal(design$sim_prm$init_year, 10) # 2010 - 2000
 expect_equal(design$sim_prm$sim_horizon_max, 20) # 2030 - 2010
 
-# ---- Test for default values set ----
+# ---- Default values set ----
 expect_true(design$sim_prm$national_qimd)
 expect_equal(design$sim_prm$init_year_fromGUI, 10)
 expect_equal(design$sim_prm$sim_horizon_fromGUI, 20)
 
-# ---- Directory paths normalized ----
+# ---- Directory paths made absolute (or Docker /outputs, /synthpop) ----
 expect_true(grepl("^/", design$sim_prm$output_dir))
 expect_true(grepl("^/", design$sim_prm$synthpop_dir))
 
-# ---- Disease ordering respected ----
-d_order <- names(design$sim_prm$diseases)
-expect_true("chd" %in% d_order)
+# ---- Disease present ----
+expect_true("chd" %in% names(design$sim_prm$diseases))
 
-# ---- Cycle detection with no cycles ----
-cycles <- design$.__enclos_env__$private$detect_cycles(design$sim_prm)
-expect_equal(length(cycles), 0)
+# ---- Topological disease ordering: a dependency precedes its dependent ----
+dep <- create_design_list(list(diseases = list(
+    b = list(name = "b", meta = list(
+        incidence = list(influenced_by_disease_name = "a")
+    )),
+    a = list(name = "a", meta = list(
+        incidence = list(influenced_by_disease_name = character(0))
+    ))
+)))
+dep_design <- Design$new(dep)
+ord <- names(dep_design$sim_prm$diseases)
+expect_true(all(c("a", "b") %in% ord))
+expect_true(which(ord == "a") < which(ord == "b"))
 
-# ---- Cycle detection with artificial loop ----
-looped <- create_design_list()
-looped$diseases <- list(
-    A = list(name = "A", meta = list(incidence = list(influenced_by_disease_name = "B"))),
-    B = list(name = "B", meta = list(incidence = list(influenced_by_disease_name = "A")))
-)
-looped_design <- Design$new(looped)
-looped_cycles <- looped_design$.__enclos_env__$private$detect_cycles(looped_design$sim_prm)
-expect_equal(length(looped_cycles) > 0, TRUE)
-
-# ---- GUI update modifies correct fields ----
-gui_input <- list(
-    national_qimd_checkbox = FALSE,
-    locality_select = "LADs",
-    iteration_n_gui = 99,
-    iteration_n_final_gui = 9,
-    n_gui = 1000,
-    num_chunks_gui = 2,
-    n_primers_gui = 1,
-    cancer_cure_gui = 0.7,
-    jumpiness_gui = 0.3,
-    statin_adherence_gui = 0.95,
-    bpmed_adherence_gui = 0.85,
-    decision_aid_gui = TRUE,
-    logs_gui = TRUE,
-    timeframe_slider = 2010:2030 # fallback for some GUIs
+# ---- xps_table_path falls back to the stock path with no Exposure loaded ----
+# (skeleton mode: self$exposures is empty, so smok_relapse -> stock inputs dir)
+expect_equal(
+    design$xps_table_path("smok_relapse"),
+    file.path("./inputs/exposure_distributions", "smok_relapse")
 )
 
-# patch fromGUI_timeframe() if needed
-fromGUI_timeframe <- function(gui_input) c("init year" = 2015, "horizon" = 10)
-
-design$update_fromGUI(gui_input)
-
-expect_equal(design$sim_prm$national_qimd, FALSE)
-expect_equal(design$sim_prm$locality, "LADs")
-expect_equal(design$sim_prm$iteration_n, 99)
-expect_equal(design$sim_prm$cancer_cure, 0.7)
-expect_equal(design$sim_prm$decision_aid, TRUE)
-
-# ---- Output columns updated for local QIMD ----
-expect_true("nqimd" %in% design$sim_prm$cols_for_output)
-expect_false("lqimd" %in% design$sim_prm$cols_for_output)
+# ---- The shipped default config is valid and loadable from a path ----
+design_path <- system.file(
+    "config/default_sim_design.yaml",
+    package = "IMPACTncdEngland"
+)
+expect_true(nzchar(design_path))
+design_yaml <- Design$new(design_path)
+expect_true(inherits(design_yaml, "Design"))
+# design_dir is captured from the YAML's own directory
+expect_equal(
+    normalizePath(design_yaml$.__enclos_env__$private$design_dir),
+    normalizePath(dirname(design_path))
+)
+# init_year derived from the shipped init_year_long (2013)
+expect_equal(design_yaml$sim_prm$init_year, 13)
 
 # ---- Save to disk round trip ----
 yaml_out <- tempfile(fileext = ".yaml")
 design$save_to_disk(yaml_out)
 roundtrip <- yaml::read_yaml(yaml_out)
-expect_true("sTag" %in% names(roundtrip))
+expect_true("locality" %in% names(roundtrip))
+expect_equal(roundtrip$locality, "England")
 unlink(yaml_out)
+
+setwd(old_wd)

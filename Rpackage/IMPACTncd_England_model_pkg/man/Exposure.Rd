@@ -110,9 +110,10 @@ Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
   \describe{
     \item{\code{name}}{The name of the exposure variable being generated (for logging)}
 
-    \item{\code{file_name}}{The directory name of the partitioned parquet dataset}
+    \item{\code{file_name}}{The identifier of the partitioned parquet dataset
+(bare name, YAML-relative path, or absolute path).}
 
-    \item{\code{file_path}}{Full path to the parquet dataset directory}
+    \item{\code{file_path}}{Full (resolved) path to the parquet dataset directory}
 
     \item{\code{var_name}}{The name of the variable to create in the data.table}
 
@@ -196,7 +197,8 @@ Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
   offset = NULL,
   additional_rank_vars = NULL,
   join_fn = c("lookup_dt", "absorb_dt"),
-  base_path = "./inputs/exposure_distributions/"
+  base_path = "./inputs/exposure_distributions/",
+  file_path = NULL
 )}
     \if{html}{\out{</div>}}
   }
@@ -204,7 +206,12 @@ Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{name}}{Character. Name of the exposure variable (for logging)}
-      \item{\code{file_name}}{Character. Directory name of the partitioned parquet dataset in inputs/exposure_distributions/}
+      \item{\code{file_name}}{Character. Identifier of the partitioned parquet
+dataset. Typically a bare directory name resolved under
+inputs/exposure_distributions/, but may also be a YAML-relative or
+absolute path (see \code{Design}'s "Exposure table resolution" section).
+Retained here mainly for logging/lookup; the concrete location is
+\code{file_path}.}
       \item{\code{var_name}}{Character. Variable name to create in data.table}
       \item{\code{rank_var}}{Character. Name of rank variable}
       \item{\code{distribution}}{Character. Distribution type: "ordinal", "continuous", "binary", or "custom"}
@@ -222,7 +229,14 @@ Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
       \item{\code{offset}}{Numeric. Value to add after transform_fn (e.g., -1 to shift 1:8 to 0:7)}
       \item{\code{additional_rank_vars}}{Character vector. Additional rank vars to remove}
       \item{\code{join_fn}}{Character. Join function: "lookup_dt" or "absorb_dt"}
-      \item{\code{base_path}}{Character. Base path to exposure distributions directory}
+      \item{\code{base_path}}{Character. Base path to exposure distributions
+directory. Only used when \code{file_path} is NULL and \code{file_name} is not
+an absolute path (i.e. the fall-back for direct callers).}
+      \item{\code{file_path}}{Character. Pre-resolved full path to the parquet
+dataset. When supplied (as \code{Design$load_exposures()} does) it is used
+verbatim and takes precedence over \code{base_path}/\code{file_name}, keeping
+path-resolution policy in one place (\code{Design}). Leave NULL to fall
+back to combining \code{base_path} with \code{file_name}.}
     }
     \if{html}{\out{</div>}}
   }

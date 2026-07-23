@@ -737,7 +737,15 @@ exposures_for_output:
 - sbp
 - tchol
 
-# Exposure generation definitions for synthetic population
+# Exposure generation definitions for synthetic population.
+# Each `file_name` points at a partitioned parquet dataset and is resolved as:
+#   * bare name (e.g. `bmi`)        -> stock table in
+#                                      ./inputs/exposure_distributions/<name>
+#   * relative path with `/`        -> resolved against THIS yaml's directory,
+#     (e.g. `tables/bmi_local`)        so you can ship custom tables next to
+#                                      your scenario files (works in Docker too)
+#   * absolute path (`/mnt/.../x`)  -> used as-is
+# See vignette("how_to_run_scenarios") -> "Bring your own exposure tables".
 exposure_definitions:
   - name: education
     file_name: education

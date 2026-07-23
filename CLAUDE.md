@@ -137,6 +137,19 @@ IMPACTncd$run(1:n_runs, multicore = TRUE, "sc1")
 - **Relative paths** for inputs from project root (e.g., `./inputs/`)
 - External storage typically at `/mnt/storage_fast/`
 
+### Exposure table resolution (`exposure_definitions[*].file_name`)
+`file_name` (the parquet dataset backing each exposure) resolves 3 ways, in
+`Design$resolve_exposure_path()`:
+- **bare name** (`bmi`) → stock `./inputs/exposure_distributions/<name>`
+- **relative path with `/`** (`tables/bmi_local`) → resolved against the
+  **sim_design YAML's own directory** (so Docker users can ship custom tables
+  alongside their scenario scripts; the folder is bind-mounted)
+- **absolute path** → used verbatim
+Use `Design$xps_table_path("<file_name>")` for the reads that bypass `Exposure`
+objects (PARF generation in `Disease_class.R`, `smok_relapse` in
+`SynthPop_class.R`) so re-pointed tables stay consistent everywhere. See
+`vignette("how_to_run_scenarios")` → "Bring your own exposure tables".
+
 ## Key YAML Parameters (inputs/sim_design.yaml)
 
 - `n` - Population size per chunk

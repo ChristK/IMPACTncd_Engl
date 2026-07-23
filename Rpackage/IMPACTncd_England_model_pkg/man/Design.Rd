@@ -18,6 +18,26 @@ It performs the following key tasks:
 \item \strong{Dependency Management:} Reorders the list of diseases based on their dependencies (topological sort) to ensure correct initialization order.
 }
 }
+\section{Exposure table resolution}{
+
+Each entry in \code{exposure_definitions} has a \code{file_name} pointing at a
+partitioned parquet dataset. \code{file_name} is resolved to a concrete path
+with three rules (see \code{xps_table_path()}):
+\enumerate{
+\item An \strong{absolute path} (\code{"/mnt/.../bmi"} or \code{"C:/data/bmi"}) is used
+verbatim — an escape hatch for tables on external storage.
+\item A \strong{relative path containing \code{/}} (e.g. \code{"tables/bmi_wales"} or
+\code{"./bmi_wales"}) is resolved against the directory of the sim_design
+YAML. This lets users ship custom exposure distribution tables next to
+their scenario scripts; it works identically on the host and inside the
+Docker image, where the scenario folder is bind-mounted.
+\item A \strong{bare name} with no \code{/} (e.g. \code{"bmi"}, \code{"frtpor"}) refers to a
+stock table shipped in the model inputs at
+\verb{./inputs/exposure_distributions/<name>}. This is the historical
+behaviour and is fully backward compatible.
+}
+}
+
 \examples{
 
 ## ------------------------------------------------
@@ -55,6 +75,7 @@ design$save_to_disk("outputs/saved_sim_design.yaml")
     \item \href{#method-Design-initialize}{\code{Design$new()}}
     \item \href{#method-Design-load_exposure_effects}{\code{Design$load_exposure_effects()}}
     \item \href{#method-Design-load_exposures}{\code{Design$load_exposures()}}
+    \item \href{#method-Design-xps_table_path}{\code{Design$xps_table_path()}}
     \item \href{#method-Design-load_diseases}{\code{Design$load_diseases()}}
     \item \href{#method-Design-has_input_data}{\code{Design$has_input_data()}}
     \item \href{#method-Design-load_data}{\code{Design$load_data()}}
@@ -154,6 +175,45 @@ The parameters must include the following keys:
   }
   \subsection{Returns}{
     The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-xps_table_path"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-xps_table_path}{}}}
+\subsection{\code{Design$xps_table_path()}}{
+  Resolve the on-disk location of an exposure distribution table by the
+exposure's \code{name} (the \verb{name:} key in \code{exposure_definitions}).
+
+This is the single source of truth for "where does table X live?".
+It looks up the loaded \code{Exposure} object with a matching \code{name} and
+returns its (already resolved, possibly user-supplied) \code{file_path}.
+Matching on \code{name} — not \code{file_name} — is deliberate: \code{name} is stable
+when a user re-points an exposure to a custom table (which changes
+\code{file_name}), so the table stays consistent across the synthpop and
+PARF code paths. When no exposure has that name (e.g. \code{smok_relapse},
+which has no \code{Exposure} object) it falls back to the standard path
+resolution rules (see the "Exposure table resolution" section).
+
+Use it for the handful of table reads that bypass the \code{Exposure}
+objects (PARF starting-point generation in \code{Disease}, and
+\code{smok_relapse} in \code{SynthPop}).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$xps_table_path(name)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{name}}{Character. The exposure \code{name} (e.g. \code{"bmi"}, \code{"fruit"}),
+or a bare table identifier for tables with no \code{Exposure} object
+(e.g. \code{"smok_relapse"}).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character. The path passed to \code{read_parquet_dt()}.
   }
 }
 

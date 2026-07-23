@@ -84,10 +84,11 @@ Exposure <-
       #' @field name The name of the exposure variable being generated (for logging)
       name = NULL,
 
-      #' @field file_name The directory name of the partitioned parquet dataset
+      #' @field file_name The identifier of the partitioned parquet dataset
+      #'   (bare name, YAML-relative path, or absolute path).
       file_name = NULL,
 
-      #' @field file_path Full path to the parquet dataset directory
+      #' @field file_path Full (resolved) path to the parquet dataset directory
       file_path = NULL,
 
       #' @field var_name The name of the variable to create in the data.table
@@ -154,7 +155,12 @@ Exposure <-
       #' Initialize a new Exposure generator
       #'
       #' @param name Character. Name of the exposure variable (for logging)
-      #' @param file_name Character. Directory name of the partitioned parquet dataset in inputs/exposure_distributions/
+      #' @param file_name Character. Identifier of the partitioned parquet
+      #'   dataset. Typically a bare directory name resolved under
+      #'   inputs/exposure_distributions/, but may also be a YAML-relative or
+      #'   absolute path (see `Design`'s "Exposure table resolution" section).
+      #'   Retained here mainly for logging/lookup; the concrete location is
+      #'   `file_path`.
       #' @param var_name Character. Variable name to create in data.table
       #' @param rank_var Character. Name of rank variable
       #' @param distribution Character. Distribution type: "ordinal", "continuous", "binary", or "custom"
@@ -172,7 +178,14 @@ Exposure <-
       #' @param offset Numeric. Value to add after transform_fn (e.g., -1 to shift 1:8 to 0:7)
       #' @param additional_rank_vars Character vector. Additional rank vars to remove
       #' @param join_fn Character. Join function: "lookup_dt" or "absorb_dt"
-      #' @param base_path Character. Base path to exposure distributions directory
+      #' @param base_path Character. Base path to exposure distributions
+      #'   directory. Only used when `file_path` is NULL and `file_name` is not
+      #'   an absolute path (i.e. the fall-back for direct callers).
+      #' @param file_path Character. Pre-resolved full path to the parquet
+      #'   dataset. When supplied (as `Design$load_exposures()` does) it is used
+      #'   verbatim and takes precedence over `base_path`/`file_name`, keeping
+      #'   path-resolution policy in one place (`Design`). Leave NULL to fall
+      #'   back to combining `base_path` with `file_name`.
       #'
       #' @return A new Exposure object
       #'
@@ -209,13 +222,18 @@ Exposure <-
         offset = NULL,
         additional_rank_vars = NULL,
         join_fn = c("lookup_dt", "absorb_dt"),
-        base_path = "./inputs/exposure_distributions/"
+        base_path = "./inputs/exposure_distributions/",
+        file_path = NULL
       ) {
         self$name <- name
         self$file_name <- file_name
-        # If file_name is an absolute path (starts with /), use it as is
-        # Otherwise, combine with base_path
-        if (grepl("^/", file_name) || grepl("^[A-Za-z]:", file_name)) {
+        # Path policy lives in Design$resolve_exposure_path(): when it hands us
+        # a pre-resolved file_path, use it verbatim. Otherwise (direct callers,
+        # examples) fall back to the historical rule: absolute file_name as-is,
+        # else combined with base_path.
+        if (!is.null(file_path)) {
+          self$file_path <- file_path
+        } else if (grepl("^/", file_name) || grepl("^[A-Za-z]:", file_name)) {
           self$file_path <- file_name
         } else {
           self$file_path <- file.path(base_path, file_name)

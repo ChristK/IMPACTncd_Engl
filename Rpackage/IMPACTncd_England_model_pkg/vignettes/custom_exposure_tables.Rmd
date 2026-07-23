@@ -1,0 +1,215 @@
+---
+title: "Using your own exposure distribution tables"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using your own exposure distribution tables}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## What this is for
+
+Every risk factor the model generates for the synthetic population is driven by
+a **distribution table** — a partitioned parquet dataset holding the fitted
+distribution parameters (e.g. `mu`, `sigma`, `nu`, `tau` for a continuous
+exposure) by strata (age, sex, deprivation, region, ...). These tables ship with
+the model under `./inputs/exposure_distributions/` and are referenced from the
+`exposure_definitions` block of your `sim_design*.yaml`:
+
+```yaml
+exposure_definitions:
+  - name: bmi
+    file_name: bmi        # -> ./inputs/exposure_distributions/bmi
+    var_name: bmi
+    rank_var: rank_bmi
+    distribution: continuous
+    qfun: fqBCPEo
+    join_fn: lookup_dt
+    min_value: 14
+    max_value: 70
+```
+
+This vignette shows how to point any exposure at **your own** table — for
+example a locality-specific refit, a sensitivity analysis, or a "what if the
+BMI distribution looked like *this*" experiment — **without editing the model's
+source or its bundled inputs**, and in a way that works both on your own
+machine and inside the Docker image.
+
+> **Scope.** This is about *re-pointing* the table behind an exposure the model
+> already knows about. Adding a brand-new exposure *variable* is a larger task
+> (it also touches the correlation structure, the relative-risk files and the
+> C++ engine) and is out of scope here.
+
+## How `file_name` is resolved
+
+`file_name` is resolved with three rules (implemented in
+`Design$resolve_exposure_path()`):
+
+| `file_name` looks like            | Resolved to                                              | Use it for                          |
+|-----------------------------------|----------------------------------------------------------|-------------------------------------|
+| a **bare name**, e.g. `bmi`       | `./inputs/exposure_distributions/bmi` (the stock table)  | the default; unchanged behaviour    |
+| a **relative path with `/`**, e.g. `tables/bmi_local` or `./bmi_local` | resolved **against the directory of your `sim_design*.yaml`** | shipping a custom table with a scenario |
+| an **absolute path**, e.g. `/mnt/data/bmi` | used verbatim                                     | large tables on external storage    |
+
+The middle rule is the recommended one: put your table next to your scenario
+files and reference it with a relative path. Because the path is resolved
+against the **YAML's own directory**, the same config works unchanged on the
+host and inside the container (the setup scripts bind-mount your scenario folder
+at `/IMPACTncd_England/scenarios`, so no path translation is needed).
+
+## Worked example: a custom BMI table
+
+### 1. Lay out a scenario folder
+
+```
+my_scenario/
+├── sim_design_my.yaml
+├── simulate_my.R
+└── tables/
+    └── bmi_local/            # your partitioned parquet dataset
+        ├── year=13/part-0.parquet
+        ├── year=14/part-0.parquet
+        └── ...
+```
+
+### 2. Create the custom table with the right schema
+
+Your table must have the **same columns** as the stock table it replaces: the
+join keys (the strata the model matches on) plus the distribution
+parameters/thresholds. The simplest way to get the schema right is to start from
+the stock table and modify it. For example, to shift the whole BMI distribution
+upwards by 10%:
+
+```{r}
+library(IMPACTncdEngland) # provides read_parquet_dt + fpBCPEo via CKutils
+library(data.table)
+
+bmi <- read_parquet_dt("./inputs/exposure_distributions/bmi")
+names(bmi)
+#> "age" "ethnicity" "qimd" "sex" "sha" "smok_status"
+#> "mu" "sigma" "nu" "tau" "maxq" "minq" "year"
+
+bmi[, mu := mu * 1.10]                       # shift the distribution
+
+# IMPORTANT: recompute minq/maxq for the modified parameters (see note below).
+# fpBCPEo is the model's probability function for this exposure (from qfun
+# fqBCPEo); min_value/max_value (14/70) come from the exposure definition.
+bmi[, minq := fpBCPEo(rep(14, .N), mu, sigma, nu, tau)]
+bmi[, maxq := fpBCPEo(rep(70, .N), mu, sigma, nu, tau)]
+
+arrow::write_dataset(
+  bmi,
+  "my_scenario/tables/bmi_local",
+  format = "parquet",
+  partitioning = "year"
+)
+```
+
+> **`minq`/`maxq` are required for continuous exposures.** They are the cached
+> quantile bounds that map a uniform rank onto the truncated
+> `[min_value, max_value]` range. The synthpop generator will recompute them in
+> memory if they are missing, **but** the PARF / initial-prevalence code reads
+> them straight from the table — so a custom continuous table that omits them
+> (or ships bounds that don't match its parameters) will error or produce
+> inconsistent starting values. Whenever you change a distribution parameter
+> (`mu`, `sigma`, `nu`, `tau`), recompute `minq`/`maxq` as shown above, using the
+> exposure's own probability function (`fpBCPEo` here; in general the `q` in the
+> exposure's `qfun` becomes `p`, e.g. `fqBCT` → `fpBCT`). If you leave the
+> distribution parameters untouched, keep the stock `minq`/`maxq` as they are.
+
+### 3. Point the exposure at your table
+
+In `sim_design_my.yaml`, change only the `file_name`:
+
+```yaml
+  - name: bmi
+    file_name: tables/bmi_local   # <- YAML-relative path to your table
+    var_name: bmi
+    rank_var: rank_bmi
+    distribution: continuous
+    qfun: fqBCPEo
+    join_fn: lookup_dt
+    min_value: 14
+    max_value: 70
+```
+
+### 4. Run as usual
+
+```{r}
+source("./global.R")
+IMPACTncd <- Simulation$new("my_scenario/sim_design_my.yaml")
+
+# Optional: confirm the exposure resolved to your table
+IMPACTncd$design$exposures$bmi$file_path
+#> ".../my_scenario/tables/bmi_local"
+
+IMPACTncd$
+  del_logs()$
+  del_outputs()$
+  run(1:100, multicore = TRUE, "sc0")$
+  export_summaries(multicore = TRUE)
+```
+
+Nothing else changes. Every other exposure keeps reading its stock table.
+
+## Using it from Docker
+
+The user setup script bind-mounts your scenario folder into the container:
+
+```bash
+./docker_setup/setup_user_docker_env.sh -Tag main \
+  -ScenariosDir /path/to/my_scenario \
+  -SimDesignYaml /path/to/my_scenario/sim_design_my.yaml
+```
+
+Because `tables/bmi_local` is resolved relative to the mounted YAML, it points
+at your table inside the container with no further configuration — the same YAML
+that works on your laptop works in the container.
+
+## It stays consistent everywhere
+
+A re-pointed table is used **everywhere** the model reads that exposure — both
+when generating the synthetic population and when generating the PARF
+(Population Attributable Risk Fraction) starting points. Internally the model
+routes those reads through `Design$xps_table_path(<exposure name>)`, which
+returns your table's location. So there is no risk of the synthpop using your
+table while some other stage silently falls back to the stock one.
+
+## Getting the schema right
+
+- **Continuous** exposures (`distribution: continuous`) need the join-key
+  columns plus the parameters your `qfun` expects (commonly `mu`, `sigma`, `nu`,
+  `tau`) **and** the `minq`/`maxq` bounds (see the note in step 2 — required by
+  the PARF/initial-prevalence path, and must match your parameters).
+- **Ordinal** exposures need the join-key columns plus the threshold columns.
+- **Binary** exposures need the join-key columns plus the probability column.
+
+Open the stock table to see exactly what is expected:
+
+```{r}
+str(read_parquet_dt("./inputs/exposure_distributions/bmi"))
+# or, columns only, without reading all the data:
+names(arrow::open_dataset("./inputs/exposure_distributions/bmi"))
+```
+
+Keep the join-key columns and their types identical to the stock table;
+mismatched keys will silently fail to join and produce missing values.
+
+## Quick reference
+
+- Bare name  → stock table (default, backward compatible).
+- `path/with/slash` → relative to the `sim_design*.yaml` directory (recommended
+  for custom tables; Docker-friendly).
+- `/absolute/path` → used as-is.
+- The custom table must match the stock table's schema for that exposure.
+- Re-pointing is honoured in both synthpop and PARF generation.
+
+See also `vignette("how_to_run_scenarios")` for the broader scenario workflow.

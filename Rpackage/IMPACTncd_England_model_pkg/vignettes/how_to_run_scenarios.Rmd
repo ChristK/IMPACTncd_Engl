@@ -290,3 +290,75 @@ vignette("understanding_model_outputs", package = "IMPACTncdEngland")
 vignette("how_to_test_run", package = "IMPACTncdEngland")
 ```
 
+### Bring your own exposure distribution tables
+
+Every risk factor in `exposure_definitions` (in your `sim_design*.yaml`) points
+at a partitioned parquet dataset through its `file_name` key, e.g.:
+
+```yaml
+exposure_definitions:
+  - name: bmi
+    file_name: bmi        # stock table: ./inputs/exposure_distributions/bmi
+    var_name: bmi
+    # ...
+```
+
+You can point any exposure at **your own** table — for example a locality-
+specific refit of BMI — without touching the model inputs. `file_name` is
+resolved with three rules:
+
+1. **Bare name** (no `/`, e.g. `bmi`) — a stock table shipped with the model at
+   `./inputs/exposure_distributions/<name>`. This is the default and is
+   unchanged from previous versions.
+2. **Relative path containing `/`** (e.g. `tables/bmi_wales` or
+   `./bmi_wales`) — resolved **relative to the directory that holds your
+   `sim_design*.yaml`**. Ship the parquet dataset next to your scenario files
+   and reference it with a relative path.
+3. **Absolute path** (`/mnt/.../bmi` or `C:/data/bmi`) — used verbatim. Handy
+   for large tables kept on external storage.
+
+Rule 2 is the recommended way to distribute custom tables, and it is what makes
+this work **inside the Docker image**: the setup scripts bind-mount your
+scenario folder at `/IMPACTncd_England/scenarios`, so a path resolved against
+the YAML's own directory is valid both on the host and in the container — no
+path translation needed. For example, with this layout:
+
+```
+my_scenario/
+├── sim_design_my.yaml
+├── simulate_my.R
+└── tables/
+    └── bmi_local/           # your partitioned parquet dataset
+        └── part-0.parquet
+```
+
+set, in `sim_design_my.yaml`:
+
+```yaml
+  - name: bmi
+    file_name: tables/bmi_local
+    var_name: bmi
+    rank_var: rank_bmi
+    distribution: continuous
+    qfun: fqBCPEo
+    join_fn: lookup_dt
+    min_value: 14
+    max_value: 70
+```
+
+The custom table is then used **everywhere** the model reads that exposure —
+both when generating the synthetic population and when generating the PARF
+starting points — so results stay internally consistent.
+
+Your table must have the same schema (join keys plus the relevant distribution
+parameters/thresholds) as the stock table it replaces. The simplest way to get
+the schema right is to open the stock table (e.g.
+`arrow::open_dataset("./inputs/exposure_distributions/bmi")`) and match its
+columns.
+
+> **Note:** this mechanism lets you *re-point* the table backing an existing
+> exposure. Adding a brand-new exposure *variable* (a new `name`/`var_name` not
+> already modelled) additionally requires wiring into the correlation
+> structure, relative-risk files, and the simulation engine, and is beyond the
+> scope of this vignette.
+
