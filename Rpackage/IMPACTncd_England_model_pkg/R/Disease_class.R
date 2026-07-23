@@ -2595,7 +2595,7 @@ Disease <-
             lag <- 0L
           }
           ff[, year := year - lag]
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/active_days")
+          tbl <- read_parquet_dt(design_$xps_table_path("active_days"))
           nam <- intersect(names(ff), names(tbl))
           ff[
             tbl,
@@ -2643,7 +2643,7 @@ Disease <-
           }
           ff[, year := year - lag]
 
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/frtpor")
+          tbl <- read_parquet_dt(design_$xps_table_path("fruit"))
           col_nam <-
             setdiff(names(tbl), names(ff))
 
@@ -2668,7 +2668,7 @@ Disease <-
           lag <- xps_dep[xps, max(lag)]
           ff[, year := year - lag]
 
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/vegpor")
+          tbl <- read_parquet_dt(design_$xps_table_path("veg"))
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2696,7 +2696,7 @@ Disease <-
           }
 
           ff[, year := year - lag]
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/smok_status")
+          tbl <- read_parquet_dt(design_$xps_table_path("smok_status"))
 
           col_nam <-
             setdiff(names(tbl), names(ff))
@@ -2717,9 +2717,7 @@ Disease <-
           # I could use these estimates for calibration but I need to calculate mortality first
 
           tbl <-
-            read_parquet_dt(
-              "./inputs/exposure_distributions/smok_quit_yrs"
-            )
+            read_parquet_dt(design_$xps_table_path("smok_quit_yrs"))
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2736,7 +2734,7 @@ Disease <-
           ff[, (col_nam) := NULL]
 
           # Assign smok_dur_ex when pid_mrk == true (the first year an individual enters the simulation)
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/smok_dur_ex")
+          tbl <- read_parquet_dt(design_$xps_table_path("smok_dur_ex"))
           setnames(tbl, "smok_status", "smok_status_curr_xps")
           col_nam <-
             setdiff(names(tbl), names(ff))
@@ -2754,7 +2752,7 @@ Disease <-
           ff[, (col_nam) := NULL]
 
           # Assign smok_dur_curr when pid_mrk == true (the first year an individual enters the simulation)
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/smok_dur_curr")
+          tbl <- read_parquet_dt(design_$xps_table_path("smok_dur_curr"))
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2782,7 +2780,7 @@ Disease <-
           ff[, year := year - lag]
           set(ff, NULL, "smok_cig_curr_xps", 0L)
 
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/smok_cig_curr")
+          tbl <- read_parquet_dt(design_$xps_table_path("smok_cig_curr"))
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2800,7 +2798,7 @@ Disease <-
           # Assign smok_cig_ex when pid_mrk == true (the first year an individual enters the simulation)
           # ff[smok_status == 2, smok_cig := 1L]
 
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/smok_cig_ex")
+          tbl <- read_parquet_dt(design_$xps_table_path("smok_cig_ex"))
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2842,7 +2840,7 @@ Disease <-
             lag <- 0L
           }
           ff[, year := year - lag]
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/ets")
+          tbl <- read_parquet_dt(design_$xps_table_path("ets"))
           setnames(tbl, "smok_status", "smok_status_curr_xps")
 
           col_nam <-
@@ -2862,7 +2860,7 @@ Disease <-
             lag <- 0L
           }
           ff[, year := year - lag]
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/alcohol")
+          tbl <- read_parquet_dt(design_$xps_table_path("alcohol"))
           setnames(tbl, "smok_status", "smok_status_curr_xps")
 
           col_nam <-
@@ -2887,7 +2885,7 @@ Disease <-
             lag <- 0L
           }
           ff[, year := year - lag]
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/bmi")
+          tbl <- read_parquet_dt(design_$xps_table_path("bmi"))
           setnames(tbl, "smok_status", "smok_status_curr_xps")
 
           col_nam <-
@@ -2915,7 +2913,7 @@ Disease <-
             lag <- 0L
           }
           ff[, year := year - lag]
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/sbp")
+          tbl <- read_parquet_dt(design_$xps_table_path("sbp"))
           setnames(tbl, "smok_status", "smok_status_curr_xps")
 
           col_nam <-
@@ -2943,7 +2941,7 @@ Disease <-
             lag <- 0L
           }
           ff[, year := year - lag]
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/tchol")
+          tbl <- read_parquet_dt(design_$xps_table_path("tchol"))
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2963,7 +2961,7 @@ Disease <-
 
           # NOTE this very highly correlated with hdl level (~0.76) and
           #  highly to tchol (~-0.47). The latter is captured by the correlated RNs
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/hdl_to_tchol")
+          tbl <- read_parquet_dt(design_$xps_table_path("hdl_to_tchol"))
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2983,7 +2981,7 @@ Disease <-
           ff[, year := year - lag]
 
           ff[, `:=`(tchol = as.integer(round(clamp(tchol_curr_xps, 2, 12), 0)))]
-          tbl <- read_parquet_dt("./inputs/exposure_distributions/statin_px")
+          tbl <- read_parquet_dt(design_$xps_table_path("statin_px"))
 
           col_nam <-
             setdiff(names(tbl), names(ff))

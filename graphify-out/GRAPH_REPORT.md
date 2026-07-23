@@ -1,16 +1,16 @@
-# Graph Report - IMPACTncd_Engl  (2026-07-06)
+# Graph Report - IMPACTncd_Engl  (2026-07-23)
 
 ## Corpus Check
-- 205 files · ~502,068 words
+- 208 files · ~538,968 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1128 nodes · 1740 edges · 92 communities (55 shown, 37 thin omitted)
+- 1143 nodes · 1776 edges · 98 communities (60 shown, 38 thin omitted)
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 162 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `bf7d9005`
+- Built from commit: `50a65b64`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -82,7 +82,6 @@
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
-- [[_COMMUNITY_Community 68|Community 68]]
 - [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
@@ -102,6 +101,13 @@
 - [[_COMMUNITY_Community 90|Community 90]]
 - [[_COMMUNITY_Community 91|Community 91]]
 - [[_COMMUNITY_Community 93|Community 93]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 104|Community 104]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `ZenodoAssetManager (R6 class)` - 43 edges
@@ -109,11 +115,11 @@
 3. `Simulation (R6 class, partial - summaries)` - 25 edges
 4. `lsoa_pop_toR.R - LSOA mid-year population estimates ingestion` - 25 edges
 5. `Auxiliary Functions (aux_fn.R)` - 21 edges
-6. `Adding R or system dependencies` - 18 edges
-7. `HSE_ts.fst (Health Survey England time series)` - 18 edges
-8. `🔄 Development workflow` - 17 edges
-9. `simcpp()` - 16 edges
-10. `simcpp_year_based()` - 16 edges
+6. `Running IMPACTncd England on your own computer — a beginner's guide` - 19 edges
+7. `Adding R or system dependencies` - 18 edges
+8. `HSE_ts.fst (Health Survey England time series)` - 18 edges
+9. `🔄 Development workflow` - 17 edges
+10. `simcpp()` - 16 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `simulation.R runner script` --references--> `SynthPop synthetic population concept`  [INFERRED]
@@ -162,35 +168,35 @@
 - **Mortality projection and calibration pipeline** — preprocess_mrtl_script, mrtl_projections_script, mrtl_projections_coherent_script, prepare_calibr_file_script [INFERRED 0.80]
 - **2024 exposure model refresh (HSE 2003-2019)** — fit_tchol_model_2024_script, fit_veg_model_2024_script, datasource_hse_ts_03_19 [INFERRED 0.75]
 
-## Communities (92 total, 37 thin omitted)
+## Communities (98 total, 38 thin omitted)
 
 ### Community 0 - "Cardiometabolic Risk Fitting (T2DM/HDL/TChol)"
 Cohesion: 0.06
 Nodes (38): All-cause mortality projections, LSOA ethnicity-by-age-sex population, Mortality calibration, Type 2 Diabetes Mellitus (T2DM), T2DM diagnosis (dm_dgn), T2DM duration (dm_dur), Total cholesterol (tchol), Vegetable portions (vegpor) (+30 more)
 
 ### Community 1 - "CPRD Validation & HFSS Energy Models"
-Cohesion: 0.13
-Nodes (16): BMI exposure, ETS environmental tobacco smoke, HDL to total cholesterol ratio, Health Survey for England (HSE), secure_data/HSE_ts_03_19.fst, GAMLSS GB1 distribution, CKutils, package: dqrng (+8 more)
+Cohesion: 0.16
+Nodes (13): BMI exposure, HDL to total cholesterol ratio, GAMLSS GB1 distribution, CKutils, package: dqrng, future, future.apply R package, gamlss.dist R package (+5 more)
 
 ### Community 2 - "Core Architecture & Bootstrap"
 Cohesion: 0.19
 Nodes (14): arrow package, CKutils package dependency, data.table package, DBI/DuckDB package, fst package, gamlss/gamlss.dist package, global.R initialization script, igraph package (+6 more)
 
 ### Community 3 - "Simulation Testing Scripts"
-Cohesion: 0.06
-Nodes (30): Export tables comparison test, Health Survey for England (HSE), Design$new(), Discounting logic for QALYs and costs, prb_af_mrtl1/prb_af_mrtl2 (AF mortality probabilities), HSE Correlation Structure Extractor, global.R (project bootstrap), set_init_prvl init_year-1 buffer (+22 more)
+Cohesion: 0.15
+Nodes (14): prb_af_mrtl1/prb_af_mrtl2 (AF mortality probabilities), global.R (project bootstrap), set_init_prvl init_year-1 buffer, Scenario sc0 (baseline), Scenario sc1: 20% BMI reduction + 20% AF mortality reduction, Scenario sc1_init_year_only (buffer insulation test), Scenario sc1: 10% SBP reduction (year>=25), Scenario sc2_prev_year_only (buffer propagation test) (+6 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.05
-Nodes (42): 10. Run a policy scenario, 11. Troubleshooting, 12. Updating and cleaning up, 13. How it works (optional background), 1. Before you start — what you need, 2. Install Docker, 3. Give Docker enough memory and disk, 4. Check Docker works (+34 more)
+Cohesion: 0.20
+Nodes (10): 11. Troubleshooting, 13. How it works (optional background), 14. How it works (optional background), 1. Before you start — what you need, 9. Find your results, code:powershell (cd $HOME\impactncd_run), code:text (impactncd_run/outputs/), Contents (+2 more)
 
 ### Community 5 - "Sociodemographic Distribution Fits"
-Cohesion: 0.20
-Nodes (10): Smoking cessation event probability, Smoking duration (current smokers), Smoking duration (ex-smokers), Smoking incidence (initiation), Years since smoking cessation, Statin prescription probability, HSE_ts.fst (Health Survey England time series), BI binomial distribution family (+2 more)
+Cohesion: 0.18
+Nodes (12): distr_best_fit (gamlss helper), Smoking cessation event probability, Smoking duration (current smokers), Smoking duration (ex-smokers), Smoking incidence (initiation), Years since smoking cessation, Statin prescription probability, HSE_ts.fst (Health Survey England time series) (+4 more)
 
 ### Community 6 - "Disease Epi Helpers (panel data)"
-Cohesion: 0.10
-Nodes (40): Alcohol Misuse (epi), Anxiety/Depression spell (epi), Asthma spell (epi), Atrial Fibrillation (epi), aux_fn.R (disease_burden helpers), aux_fn.R helper functions, chd disease, Chronic Kidney Disease (epi) (+32 more)
+Cohesion: 0.05
+Nodes (62): Alcohol Misuse (epi), Anxiety/Depression spell (epi), Asthma spell (epi), Atrial Fibrillation (epi), aux_fn.R (disease_burden helpers), aux_fn.R helper functions, chd disease, Chronic Kidney Disease (epi) (+54 more)
 
 ### Community 7 - "Zenodo Asset Management"
 Cohesion: 0.05
@@ -201,8 +207,8 @@ Cohesion: 0.07
 Nodes (44): CCG - Clinical Commissioning Group, DIMD - IMD Decile (1 most deprived to 10 least), IMD - Index of Multiple Deprivation, LAD - Local Authority District, LSOA - Lower Super Output Area (~1500 people), MSOA - Middle Layer Super Output Area, QIMD - IMD Quintile, RGN - Government Office Region (+36 more)
 
 ### Community 9 - "Cancer Epidemiology Modeling"
-Cohesion: 0.10
-Nodes (43): Anxiety/Depression Epi (OLD), Asthma Epi (OLD), Auxiliary Functions (aux_fn.R), CKD Stage 3 Epi (OLD), CKD Stage 4 Epi (OLD), CKD Stage 5 Epi (OLD), CKD Stages 4-5 Epi (OLD), Chronic Liver Disease Epi (OLD) (+35 more)
+Cohesion: 0.15
+Nodes (28): Anxiety/Depression Epi (OLD), Asthma Epi (OLD), Auxiliary Functions (aux_fn.R), CKD Stage 3 Epi (OLD), CKD Stage 4 Epi (OLD), CKD Stage 5 Epi (OLD), CKD Stages 4-5 Epi (OLD), Chronic Liver Disease Epi (OLD) (+20 more)
 
 ### Community 10 - "C++ Simulation Engine (top-level)"
 Cohesion: 0.11
@@ -217,8 +223,8 @@ Cohesion: 0.13
 Nodes (27): Simulation$build_strata_config (private), Simulation$calc_costs (private), Simulation$calc_QALYs (private), Simulation$export_all_cause_mrtl_by_dis_summaries (private), Simulation$export_all_cause_mrtl_tables (private), Simulation$export_cms_summaries (private, CMS), Simulation$export_costs_summaries (private), Simulation$export_dis_char_summaries (private) (+19 more)
 
 ### Community 13 - "C++ Disease Incidence Core"
-Cohesion: 0.11
-Nodes (24): Disease diagnosis simulation, Disease.to_cpp() output (List l), Disease incidence simulation, Disease mortality simulation, DiseaseIncidenceType2, DiseaseIncidenceType3, disease_meta struct, EvalDiagnosis (+16 more)
+Cohesion: 0.05
+Nodes (36): mk_scenario_init2(), alcohol exposure, bmi exposure, fruit exposure, tchol exposure, veg exposure, Disease diagnosis simulation, Disease.to_cpp() output (List l) (+28 more)
 
 ### Community 14 - "Health Economics Generators"
 Cohesion: 0.14
@@ -233,16 +239,16 @@ Cohesion: 0.05
 Nodes (54): advance_disease_duration(), antilogit(), disease_meta, dgns, incd, mrtl, mrtl1flag, seed (+46 more)
 
 ### Community 45 - "Community 45"
-Cohesion: 0.07
-Nodes (33): Architecture, Code Conventions, code:r (source("global.R")  # Initializes environment, installs deps), code:r (IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")), code:r (source("global.R")), code:r (tinytest::test_package("IMPACTncdEngland")), code:r (roxygen2::roxygenise("Rpackage/IMPACTncd_England_model_pkg")), code:bash (./docker_setup/setup_user_docker_env.sh          # Interacti) (+25 more)
+Cohesion: 0.06
+Nodes (34): Architecture, Code Conventions, code:r (source("global.R")  # Initializes environment, installs deps), code:r (IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")), code:r (source("global.R")), code:r (tinytest::test_package("IMPACTncdEngland")), code:r (roxygen2::roxygenise("Rpackage/IMPACTncd_England_model_pkg")), code:bash (./docker_setup/setup_user_docker_env.sh          # Interacti) (+26 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.06
-Nodes (80): Adding R or system dependencies, Available remote tags, Bind mount mode (default), Build script options, 🛠 Building images locally, Building images with `docker_build_push.{sh,ps1}`, 🧹 Cleanup, code:r (source("global.R")) (+72 more)
+Cohesion: 0.05
+Nodes (85): Adding R or system dependencies, Available remote tags, Bind mount mode (default), Build script options, 🛠 Building images locally, Building images with `docker_build_push.{sh,ps1}`, 🧹 Cleanup, code:bash (brew install coreutils   # provides gsha256sum) (+77 more)
 
 ### Community 47 - "Community 47"
-Cohesion: 0.15
-Nodes (11): distr_best_fit (gamlss helper), HFSS energy intake, HFSS food weight (g), HFSS salt intake, Smoking relapse probability, BCTo distribution family, package: data.table, package: gamlss (+3 more)
+Cohesion: 0.21
+Nodes (15): Fatality (_ftlt), Incidence (_incd), Prevalence (_prvl), parf_final.csv (PARF outputs), xps20.csv.gz exposure outputs, Exposure Trends Visualization, PARF Case Numbers Visualization, PARF Outputs Visualization (+7 more)
 
 ### Community 48 - "Community 48"
 Cohesion: 0.08
@@ -253,8 +259,8 @@ Cohesion: 0.13
 Nodes (21): code:bash (cd docker_setup), code:bash (git clone https://github.com/ChristK/IMPACTncd_Engl.git), code:r (source("global.R")), code:r (vignette(package = "IMPACTncdEngland")), code:{r} (vignette("understanding_model_outputs", package = "IMPACTncd), code:{r} (vignette("how_to_test_run", package = "IMPACTncdEngland")), Documentation and tutorials, Download the model input data from Zenodo (required on a fresh clone) (+13 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.18
-Nodes (11): Atrial fibrillation diagnosis, Blood pressure medication, CKD chronic kidney disease, Education, Ethnicity, Family history of CVD, HSE_ts time series dataset, preprocess_HSE.R helper (+3 more)
+Cohesion: 0.24
+Nodes (8): Atrial fibrillation diagnosis, Blood pressure medication, CKD chronic kidney disease, Education, Family history of CVD, HSE_ts time series dataset, preprocess_HSE.R helper, IMPACTncdEnglmisc R package
 
 ### Community 51 - "Community 51"
 Cohesion: 0.18
@@ -265,8 +271,8 @@ Cohesion: 0.15
 Nodes (13): disease_epi, aggregate, can_recur, cure, death_code, dur_forward, flag, influenced_by (+5 more)
 
 ### Community 53 - "Community 53"
-Cohesion: 0.22
-Nodes (10): Physical activity days per week, Income (ordinal), Smoking status (4-level), HSE_ts_03_19.fst (HSE 2003-2019), GAMLSS MN4 multinomial 4-category distribution, MASS polr proportional odds logistic regression, IMPACTncdEngland R package, MASS R package (+2 more)
+Cohesion: 0.32
+Nodes (7): Physical activity days per week, Income (ordinal), MASS polr proportional odds logistic regression, IMPACTncdEngland R package, MASS R package, R package matrixStats, splines R package
 
 ### Community 54 - "Community 54"
 Cohesion: 0.18
@@ -277,12 +283,12 @@ Cohesion: 0.24
 Nodes (11): CLAUDE.md project instructions, Scenario Definition Pattern, chd disease, stroke disease, t2dm disease, bmi_curr_xps exposure, sbp_curr_xps exposure, IMPACTncd_Engl README (+3 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.07
-Nodes (20): breast_ca, *_incd incidence outputs, *_mrtl mortality outputs, prostate_ca, prep(), prep_incd(), prep_prev(), mk_scenario_init2() (+12 more)
+Cohesion: 0.16
+Nodes (12): Export tables comparison test, Health Survey for England (HSE), Design$new(), HSE Correlation Structure Extractor, tbl_smmrs() (summaries-to-tables function), arrow (R package), R package: CKutils, ggthemes (R package) (+4 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.33
-Nodes (5): bmival (BMI), cholval1 (total cholesterol), cvdis (cardiovascular disease), diabete2r (diabetes), omsysval (SBP)
+Cohesion: 0.17
+Nodes (4): Discounting logic for QALYs and costs, New user pipeline (clone + install + zenodo download + run), IMPACTncdEngland (R package), yaml (R package)
 
 ### Community 58 - "Community 58"
 Cohesion: 0.22
@@ -293,8 +299,8 @@ Cohesion: 0.36
 Nodes (6): main_pNBI_scalar(), main_pZANBI_scalar(), main_qNBI_scalar(), main_qZANBI_scalar(), p_main(), q_main()
 
 ### Community 60 - "Community 60"
-Cohesion: 0.32
-Nodes (5): Systolic blood pressure (mmHg), Relative risk of hypertension diagnosis given SBP, GAMLSS BCPEo distribution, GB2 distribution family, R package logisticRR
+Cohesion: 0.28
+Nodes (6): Systolic blood pressure (mmHg), Relative risk of hypertension diagnosis given SBP, HSE_ts_03_19.fst (HSE 2003-2019), GAMLSS BCPEo distribution, GB2 distribution family, R package logisticRR
 
 ### Community 62 - "Community 62"
 Cohesion: 0.25
@@ -319,10 +325,6 @@ Nodes (4): Fruit portions (frtpor), ZAGA distribution family, ZAIG distribution 
 ### Community 67 - "Community 67"
 Cohesion: 0.53
 Nodes (4): main(), update_apt_packages_file(), usage(), update-apt-packages.sh script
-
-### Community 68 - "Community 68"
-Cohesion: 0.40
-Nodes (5): code:bash (brew install coreutils   # provides gsha256sum), code:bash (sudo usermod -aG docker $USER   # then log out and back in), Install Docker, Platform-specific requirements, 💾 Prerequisites
 
 ### Community 70 - "Community 70"
 Cohesion: 0.40
@@ -364,25 +366,49 @@ Nodes (3): Authors : Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya, Ins
 Cohesion: 0.67
 Nodes (3): foreach + doParallel + parallelly, InputsManifest R6 class, .manifest_hash_worker PSOCK worker
 
+### Community 94 - "Community 94"
+Cohesion: 0.25
+Nodes (6): Ethnicity, ETS environmental tobacco smoke, Health Survey for England (HSE), secure_data/HSE_ts_03_19.fst, Multinomial regression (nnet), nnet R package (multinomial)
+
+### Community 98 - "Community 98"
+Cohesion: 0.32
+Nodes (8): 8. Run the model, code:text (impactncd_run/), code:bash (cd ~/impactncd_run), code:r (R                                       # start R), Linux / macOS, Prefer to work interactively?, Windows (PowerShell), Windows (PowerShell)
+
+### Community 99 - "Community 99"
+Cohesion: 0.21
+Nodes (12): 10. Run a policy scenario, 11. Read the built-in tutorials (vignettes), 12. Troubleshooting, 12. Updating and cleaning up, 13. Updating and cleaning up, code:r (# simulate.R — baseline vs. a BMI policy), code:r (vignette(package = "IMPACTncdEngland")), code:r (doc <- system.file("doc", package = "IMPACTncdEngland")) (+4 more)
+
+### Community 100 - "Community 100"
+Cohesion: 0.33
+Nodes (6): 2. Install Docker, code:bash (brew install coreutils), code:bash (sudo usermod -aG docker $USER), Linux, macOS, Windows
+
+### Community 101 - "Community 101"
+Cohesion: 0.25
+Nodes (9): 5. Make your project folder and get the launcher, 6. Edit your configuration file, 7. Write a run script, code:bash (mkdir -p ~/impactncd_run), code:powershell (mkdir $HOME\impactncd_run), code:yaml (output_dir: ./outputs), code:r (# simulate.R — a minimal baseline run), Linux / macOS (Terminal) (+1 more)
+
+### Community 104 - "Community 104"
+Cohesion: 0.18
+Nodes (11): 3. Give Docker enough memory and disk, 4. Check Docker works, code:ini ([wsl2]), code:powershell (wsl --shutdown), code:bash (docker info), Linux, Linux, Linux (+3 more)
+
 ## Knowledge Gaps
-- **426 isolated node(s):** `disease_prvl`, `mltp`, `lag`, `intercept`, `log_age_coef` (+421 more)
+- **419 isolated node(s):** `disease_prvl`, `mltp`, `lag`, `intercept`, `log_age_coef` (+414 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **37 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **38 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `BCT distribution family` connect `Cardiometabolic Risk Fitting (T2DM/HDL/TChol)` to `Community 47`?**
-  _High betweenness centrality (0.071) - this node is a cross-community bridge._
-- **Why does `SynthPop (R6 class)` connect `SynthPop R6 Class Methods` to `Community 56`, `Disease Epi Helpers (panel data)`, `Community 47`?**
+- **Why does `BCT distribution family` connect `Cardiometabolic Risk Fitting (T2DM/HDL/TChol)` to `Disease Epi Helpers (panel data)`?**
   _High betweenness centrality (0.064) - this node is a cross-community bridge._
-- **Why does `R package: data.table` connect `Cancer Epidemiology Modeling` to `Cardiometabolic Risk Fitting (T2DM/HDL/TChol)`, `Simulation Testing Scripts`?**
-  _High betweenness centrality (0.041) - this node is a cross-community bridge._
+- **Why does `SynthPop (R6 class)` connect `SynthPop R6 Class Methods` to `C++ Disease Incidence Core`, `Disease Epi Helpers (panel data)`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Why does `R package: data.table` connect `Community 47` to `Cardiometabolic Risk Fitting (T2DM/HDL/TChol)`, `Simulation Testing Scripts`, `Cancer Epidemiology Modeling`, `Community 56`, `Community 57`?**
+  _High betweenness centrality (0.035) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `ZenodoAssetManager (R6 class)` (e.g. with `package: httr2` and `package: zen4R`) actually correct?**
   _`ZenodoAssetManager (R6 class)` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `SynthPop (R6 class)` (e.g. with `SynthPop$initialize` and `Vignette: How to test run`) actually correct?**
   _`SynthPop (R6 class)` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `disease_prvl`, `mltp`, `lag` to the rest of the system?**
-  _426 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _419 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Cardiometabolic Risk Fitting (T2DM/HDL/TChol)` be split into smaller, more focused modules?**
   _Cohesion score 0.06453634085213032 - nodes in this community are weakly interconnected._

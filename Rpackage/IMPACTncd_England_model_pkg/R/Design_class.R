@@ -35,6 +35,24 @@
 #'   \item **Environment Configuration:** Detects if the simulation is running inside a Docker container and adjusts output directories accordingly.
 #'   \item **Dependency Management:** Reorders the list of diseases based on their dependencies (topological sort) to ensure correct initialization order.
 #' }
+#'
+#' @section Exposure table resolution:
+#' Each entry in `exposure_definitions` has a `file_name` pointing at a
+#' partitioned parquet dataset. `file_name` is resolved to a concrete path
+#' with three rules (see `xps_table_path()`):
+#' \enumerate{
+#'   \item An **absolute path** (`"/mnt/.../bmi"` or `"C:/data/bmi"`) is used
+#'     verbatim — an escape hatch for tables on external storage.
+#'   \item A **relative path containing `/`** (e.g. `"tables/bmi_wales"` or
+#'     `"./bmi_wales"`) is resolved against the directory of the sim_design
+#'     YAML. This lets users ship custom exposure distribution tables next to
+#'     their scenario scripts; it works identically on the host and inside the
+#'     Docker image, where the scenario folder is bind-mounted.
+#'   \item A **bare name** with no `/` (e.g. `"bmi"`, `"frtpor"`) refers to a
+#'     stock table shipped in the model inputs at
+#'     `./inputs/exposure_distributions/<name>`. This is the historical
+#'     behaviour and is fully backward compatible.
+#' }
 #' @export
 Design <-
   R6::R6Class(
@@ -106,12 +124,25 @@ Design <-
       initialize = function(sim_prm) {
         data_type <- typeof(sim_prm)
         if (data_type == "character") {
+          # Remember the directory that holds the sim_design YAML. Exposure
+          # tables whose `file_name` is a YAML-relative path (see
+          # private$resolve_exposure_path()) are resolved against this
+          # directory, so users — including Docker users whose scenario
+          # folder is bind-mounted — can ship custom exposure distribution
+          # tables alongside their scenario scripts.
+          private$design_dir <- dirname(
+            base::normalizePath(sim_prm, mustWork = TRUE)
+          )
           sim_prm <- read_yaml(base::normalizePath(sim_prm, mustWork = TRUE))
         } else if (data_type != "list") {
           stop(
             "You can initialise the object only with an R object of
                      type `list` or a path to a YAML configuration file"
           )
+        } else {
+          # Constructed from an in-memory list (no YAML file on disk):
+          # anchor YAML-relative exposure paths at the working directory.
+          private$design_dir <- getwd()
         }
 
         # Validate simulation parameters
@@ -371,7 +402,7 @@ Design <-
         # may contain only scripts). The first exposure definition's data
         # directory serves as a proxy for all data availability.
         first_exp <- self$sim_prm$exposure_definitions[[1]]
-        first_path <- file.path("./inputs/exposure_distributions", first_exp$file_name)
+        first_path <- private$resolve_exposure_path(first_exp$file_name)
         if (!dir.exists(first_path) && !file.exists(first_path)) {
           warning(
             "Exposure data not found (", first_path, ").\n",
@@ -384,10 +415,14 @@ Design <-
         self$exposures <- lapply(
           self$sim_prm$exposure_definitions,
           function(exp_def) {
-            # Convert YAML configuration to Exposure$new() arguments
+            # Convert YAML configuration to Exposure$new() arguments.
+            # Resolve file_name to a concrete path here (honouring absolute
+            # paths and YAML-relative user tables) and hand Exposure the
+            # final location so it stays agnostic about config-file layout.
             args <- list(
               name = exp_def$name,
               file_name = exp_def$file_name,
+              file_path = private$resolve_exposure_path(exp_def$file_name),
               var_name = exp_def$var_name,
               rank_var = exp_def$rank_var,
               distribution = exp_def$distribution
@@ -459,6 +494,40 @@ Design <-
         self$exposures <- private$reorder_exposures(self$exposures)
 
         invisible(self)
+      },
+
+      #' @description
+      #' Resolve the on-disk location of an exposure distribution table by the
+      #' exposure's `name` (the `name:` key in `exposure_definitions`).
+      #'
+      #' This is the single source of truth for "where does table X live?".
+      #' It looks up the loaded `Exposure` object with a matching `name` and
+      #' returns its (already resolved, possibly user-supplied) `file_path`.
+      #' Matching on `name` — not `file_name` — is deliberate: `name` is stable
+      #' when a user re-points an exposure to a custom table (which changes
+      #' `file_name`), so the table stays consistent across the synthpop and
+      #' PARF code paths. When no exposure has that name (e.g. `smok_relapse`,
+      #' which has no `Exposure` object) it falls back to the standard path
+      #' resolution rules (see the "Exposure table resolution" section).
+      #'
+      #' Use it for the handful of table reads that bypass the `Exposure`
+      #' objects (PARF starting-point generation in `Disease`, and
+      #' `smok_relapse` in `SynthPop`).
+      #'
+      #' @param name Character. The exposure `name` (e.g. `"bmi"`, `"fruit"`),
+      #'   or a bare table identifier for tables with no `Exposure` object
+      #'   (e.g. `"smok_relapse"`).
+      #' @return Character. The path passed to `read_parquet_dt()`.
+      # xps_table_path ----
+      xps_table_path = function(name) {
+        if (!is.null(self$exposures)) {
+          for (e in self$exposures) {
+            if (!is.null(e$name) && identical(e$name, name)) {
+              return(e$file_path)
+            }
+          }
+        }
+        private$resolve_exposure_path(name)
       },
 
       #' @description
@@ -555,6 +624,50 @@ Design <-
     # private ------------------------------------------------------------------
     private = list(
       mc_aggr = NA,
+
+      # Directory holding the sim_design YAML (set in initialize()). Used to
+      # anchor YAML-relative exposure table paths. Defaults to getwd() when
+      # the Design is built from an in-memory list rather than a file.
+      design_dir = NULL,
+
+      # Resolve an exposure table `file_name` to a concrete path.
+      # @description
+      # Three cases, in order:
+      #   1. Absolute path (Unix "/..." or Windows "C:...") -> used verbatim.
+      #      Escape hatch for tables on external storage.
+      #   2. Relative path containing "/" (e.g. "tables/bmi_wales" or
+      #      "./bmi_wales") -> resolved against private$design_dir, i.e. the
+      #      directory of the sim_design YAML. This lets users ship custom
+      #      exposure distribution tables next to their scenario scripts, and
+      #      works identically on the host and inside the Docker image (where
+      #      the scenario folder is bind-mounted).
+      #   3. Bare name, no "/" (e.g. "bmi", "frtpor") -> a stock table shipped
+      #      in the model inputs at ./inputs/exposure_distributions/<name>.
+      #      This is the historical behaviour and is fully backward compatible.
+      # @param file_name Character. The `file_name` from exposure_definitions.
+      # @return Character path suitable for read_parquet_dt()/arrow.
+      # @keywords internal
+      # resolve_exposure_path ----
+      resolve_exposure_path = function(file_name) {
+        if (grepl("^/", file_name) || grepl("^[A-Za-z]:", file_name)) {
+          # Case 1: absolute path — use as-is.
+          return(file_name)
+        }
+        if (grepl("/", file_name)) {
+          # Case 2: YAML-relative path — resolve against the YAML's directory.
+          base <- if (is.null(private$design_dir)) {
+            getwd()
+          } else {
+            private$design_dir
+          }
+          return(normalizePath(
+            file.path(base, file_name),
+            mustWork = FALSE
+          ))
+        }
+        # Case 3: bare name — stock table in the model inputs.
+        file.path("./inputs/exposure_distributions", file_name)
+      },
 
       # Reorder Exposures by Dependency
       # @description

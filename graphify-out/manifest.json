@@ -30,8 +30,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_user_docker_env.ps1": {
-    "mtime": 1783354857.114072,
-    "ast_hash": "9accfcdc9d2169215290a1cb07c7272f",
+    "mtime": 1783435541.6253672,
+    "ast_hash": "f08cbd8ff570446033bb018daa21067a",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/update-apt-packages.ps1": {
@@ -50,8 +50,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/global.R": {
-    "mtime": 1782858321.740792,
-    "ast_hash": "46855e6882bc138f23c3e0efd7c22776",
+    "mtime": 1784815214.6756902,
+    "ast_hash": "cf0562516012009a67a0a9a39ec700c4",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/simulate_mrtl_paper.R": {
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Exposure_class.R": {
-    "mtime": 1777902389.2270365,
-    "ast_hash": "a30432f55dbdcac109f1715e0636bdfe",
+    "mtime": 1784824045.0855334,
+    "ast_hash": "b6aec13a68948490d0a6fdfb83d04b75",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/IMPACTncdEngland.R": {
@@ -225,18 +225,18 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/SynthPop_class.R": {
-    "mtime": 1777902292.5678775,
-    "ast_hash": "d32b42b363404efdf8dbd6c1e80dbe7c",
+    "mtime": 1784824121.7474027,
+    "ast_hash": "b7b4a5a5e9977cb09267afc214c9b4b6",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Design_class.R": {
-    "mtime": 1782744019.1237535,
-    "ast_hash": "bcea25255134d878acf7a331336a79e2",
+    "mtime": 1784824627.5090644,
+    "ast_hash": "29c551e908424c6403d8e424fcc15180",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Disease_class.R": {
-    "mtime": 1782744012.8536725,
-    "ast_hash": "709d05275e408095442519492fe4e8bc",
+    "mtime": 1784824754.6572506,
+    "ast_hash": "c8f7bf58e71df4a8403580dfda33c641",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class.R": {
@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_Design_class.R": {
-    "mtime": 1771525738.519896,
-    "ast_hash": "908572dc5dbfd843b2a4dbda1d43c3f5",
+    "mtime": 1784826314.1739016,
+    "ast_hash": "2538645f8cdea8439ce296630f24acae",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Bradford/simulate_Bradford.R": {
@@ -280,8 +280,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/simulation_ineq.R": {
-    "mtime": 1771525740.0909114,
-    "ast_hash": "441a4f70b3f921f06076c7fdf77e2449",
+    "mtime": 1783637242.6891344,
+    "ast_hash": "2d7954ea73189f2aabd902920dab9717",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/process_out_elasticities.R": {
@@ -940,8 +940,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/CLAUDE.md": {
-    "mtime": 1782857879.288409,
-    "ast_hash": "172c0aee192b063e1b166de0ee014534",
+    "mtime": 1784824223.6675584,
+    "ast_hash": "85a0cf3dde1ec81f3cd4b55e8db3de8c",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/documents/technical_appendix.md": {
@@ -1085,8 +1085,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/setup_user_docker_env.sh": {
-    "mtime": 1783354835.1458545,
-    "ast_hash": "4de73c101a5a60784f8eefa19566baf8",
+    "mtime": 1783435417.1700022,
+    "ast_hash": "0f6946b66a902090e8e2734f2f9f8fbf",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/update-apt-packages.sh": {
@@ -1105,8 +1105,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/config/default_sim_design.yaml": {
-    "mtime": 1780065267.3908334,
-    "ast_hash": "3a383e83a12613d04168437ca54211f3",
+    "mtime": 1784826287.2665966,
+    "ast_hash": "284c7b7da340748f13f3a5c542ee1c24",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/.github/copilot-instructions.md": {
@@ -1135,8 +1135,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/England/sim_design_England.yaml": {
-    "mtime": 1777065346.2500882,
-    "ast_hash": "4a9966d5f989867803fdd0bec56c565e",
+    "mtime": 1784824205.465352,
+    "ast_hash": "cc8fef7a4056b428cdc0649f0dcbefab",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ethnicity/sim_design_ethnicity.yaml": {
@@ -1145,8 +1145,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/sim_design_ineq.yaml": {
-    "mtime": 1777065361.3142276,
-    "ast_hash": "468d79e93aa3b660d20c06bfdbd8b61a",
+    "mtime": 1783637794.103237,
+    "ast_hash": "0cbcc622c080b1100fa0eb942c837300",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/sim_design_elast.yaml": {
@@ -1600,8 +1600,28 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/docker_setup/INSTALLATION_GUIDE.md": {
-    "mtime": 1783357058.5600412,
-    "ast_hash": "2c980526d6344807f0f651b05b153c0b",
+    "mtime": 1783440202.7160306,
+    "ast_hash": "160d757aabed44342827f77ba3aa1d3e",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/simulation_ineq_old.R": {
+    "mtime": 1771525740.0909114,
+    "ast_hash": "441a4f70b3f921f06076c7fdf77e2449",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Wales/simulate_Wales.R": {
+    "mtime": 1784803106.9315736,
+    "ast_hash": "4b7dfd41078c6c9fe03d35c64b4d7a50",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Wales/sim_design_Wales.yaml": {
+    "mtime": 1784806480.949987,
+    "ast_hash": "332b9840939d98370e87b69e92e567ce",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_exposure_path_resolution.R": {
+    "mtime": 1784824480.9874852,
+    "ast_hash": "2197bc23571f40c46eeaac3c6f89c93d",
     "semantic_hash": ""
   }
 }

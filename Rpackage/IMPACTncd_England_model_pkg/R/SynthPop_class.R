@@ -1685,9 +1685,12 @@ SynthPop <-
           }
         }
 
-        # Handle smok_relapse probabilities
+        # Handle smok_relapse probabilities. Routed through xps_table_path()
+        # so a user-supplied table location is honoured consistently, even
+        # though smok_relapse has no Exposure object (it falls back to the
+        # stock ./inputs/exposure_distributions/smok_relapse path).
         tbl <-
-          read_parquet_dt("./inputs/exposure_distributions/smok_relapse")
+          read_parquet_dt(design_$xps_table_path("smok_relapse"))
         tbl <-
           dcast(tbl, sex + qimd ~ smok_quit_yrs, value.var = "pr")
         nam <- tbl[, paste0(sex, " ", qimd)]

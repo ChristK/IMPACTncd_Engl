@@ -1,8 +1,8 @@
 Package: IMPACTncdEngland
 Type: Package
 Title: Simulation Framework for Public Health Impact Modeling in England
-Version: 1.0.0
-Date: 2026-01-10
+Version: 1.1.0
+Date: 2026-07-23
 Authors@R: 
     person("Chris", "Kypridemos", , "christodoulosk@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-0746-9229"))
