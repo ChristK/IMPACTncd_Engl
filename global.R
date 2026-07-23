@@ -85,6 +85,15 @@ rm(user_lib)
 
 cat("Initialising IMPACTncd_England model...\n\n")
 
+# Prefer pre-built binary packages even when a newer source-only version is
+# on CRAN (affects Windows/macOS, where type = "both" is the default).
+# Compiling the newer source of a dependency mixes it with binaries built
+# against the previous ABI, producing packages whose DLLs fail to load
+# (e.g. 2026-07-23: RcppParallel 6.0.0 switched to oneTBB while the
+# stringfish/qs2 binaries were still built against 5.x, which shipped
+# tbb.dll). End users may also lack the build tools for source installs.
+options(install.packages.compile.from.source = "never")
+
 # Ensure 'remotes' is installed
 if (!requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
@@ -130,7 +139,58 @@ if (file.exists(pkg_list_file)) {
     # (>= 3cffe8e) re-checks installed status per package, so it no longer
     # reinstalls a dependency that was loaded as a side effect of an earlier
     # one -- the previous Windows "package in use" warning muffle is gone.
-    CKutils::dependencies(pkg_list, update = FALSE)
+    tryCatch(
+      CKutils::dependencies(pkg_list, update = FALSE),
+      error = function(e) {
+        # During CRAN dependency transitions, pre-built binaries can be ABI
+        # mismatched for a few days (e.g. 2026-07-23: the stringfish/qs2
+        # binaries were built against RcppParallel 5.x, which shipped tbb.dll,
+        # while RcppParallel 6.0.0 switched to oneTBB). The package then
+        # installs fine but its DLL fails to load ("unable to load shared
+        # object"). Recover by recompiling the affected packages from source
+        # so they link against the versions actually installed (requires
+        # Rtools on Windows). Install real sources from a CRAN mirror: Posit
+        # Package Manager serves Linux binaries disguised as source tarballs,
+        # which would reinstall the same broken build despite type = "source".
+        msg <- conditionMessage(e)
+        if (!grepl("unable to load shared object", msg)) {
+          stop(e)
+        }
+        # R quotes names with ASCII or Unicode directional quotes (U+2018/19)
+        # depending on the locale; accept both. The \u escapes keep this file
+        # ASCII-only.
+        lq <- "['\u2018]"
+        rq <- "['\u2019]"
+        nq <- "[^'\u2018\u2019]+" # a run free of quote characters
+        # The package whose shared object failed to load, from its path
+        # (<lib>/<pkg>/libs[/x64]/<dll>) ...
+        dll_dir <- dirname(sub(
+          paste0(".*unable to load shared object ", lq, "(", nq, ")", rq, ".*"),
+          "\\1", msg
+        ))
+        if (basename(dll_dir) %in% c("x64", "i386")) {
+          dll_dir <- dirname(dll_dir)
+        }
+        broken <- basename(dirname(dll_dir))
+        # ... and the package whose namespace failed as a consequence
+        if (grepl("namespace load failed for", msg)) {
+          broken <- unique(c(broken, sub(
+            paste0(".*namespace load failed for ", lq, "(", nq, ")", rq, ".*"),
+            "\\1", msg
+          )))
+        }
+        message(
+          "Binary package(s) failed to load; reinstalling from source: ",
+          paste(broken, collapse = ", ")
+        )
+        install.packages(
+          broken,
+          type = "source",
+          repos = c(CRAN = "https://cloud.r-project.org")
+        )
+        CKutils::dependencies(pkg_list, update = FALSE) # retry once
+      }
+    )
   }
   rm(pkg_list, pkg_list_file) # Clean up
 } else {
