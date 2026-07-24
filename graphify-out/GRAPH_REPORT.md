@@ -1,16 +1,16 @@
-# Graph Report - IMPACTncd_Engl  (2026-07-23)
+# Graph Report - IMPACTncd_Engl  (2026-07-24)
 
 ## Corpus Check
-- 208 files · ~538,968 words
+- 209 files · ~543,351 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1143 nodes · 1776 edges · 98 communities (60 shown, 38 thin omitted)
+- 1143 nodes · 1776 edges · 99 communities (61 shown, 38 thin omitted)
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 162 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `50a65b64`
+- Built from commit: `db26153d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -82,6 +82,7 @@
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
+- [[_COMMUNITY_Community 68|Community 68]]
 - [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
@@ -168,7 +169,7 @@
 - **Mortality projection and calibration pipeline** — preprocess_mrtl_script, mrtl_projections_script, mrtl_projections_coherent_script, prepare_calibr_file_script [INFERRED 0.80]
 - **2024 exposure model refresh (HSE 2003-2019)** — fit_tchol_model_2024_script, fit_veg_model_2024_script, datasource_hse_ts_03_19 [INFERRED 0.75]
 
-## Communities (98 total, 38 thin omitted)
+## Communities (99 total, 38 thin omitted)
 
 ### Community 0 - "Cardiometabolic Risk Fitting (T2DM/HDL/TChol)"
 Cohesion: 0.06
@@ -326,6 +327,10 @@ Nodes (4): Fruit portions (frtpor), ZAGA distribution family, ZAIG distribution 
 Cohesion: 0.53
 Nodes (4): main(), update_apt_packages_file(), usage(), update-apt-packages.sh script
 
+### Community 68 - "Community 68"
+Cohesion: 0.67
+Nodes (3): 6. Edit your configuration file, code:bash (mkdir -p ~/impactncd_run), code:yaml (output_dir: ./outputs)
+
 ### Community 70 - "Community 70"
 Cohesion: 0.40
 Nodes (5): Key YAML Parameters, config: clusternumber, config: locality, config: n (population per chunk), config: num_chunks
@@ -371,8 +376,8 @@ Cohesion: 0.25
 Nodes (6): Ethnicity, ETS environmental tobacco smoke, Health Survey for England (HSE), secure_data/HSE_ts_03_19.fst, Multinomial regression (nnet), nnet R package (multinomial)
 
 ### Community 98 - "Community 98"
-Cohesion: 0.32
-Nodes (8): 8. Run the model, code:text (impactncd_run/), code:bash (cd ~/impactncd_run), code:r (R                                       # start R), Linux / macOS, Prefer to work interactively?, Windows (PowerShell), Windows (PowerShell)
+Cohesion: 0.27
+Nodes (10): 7. Write a run script, 8. Run the model, code:text (impactncd_run/), code:bash (cd ~/impactncd_run), code:r (R                                       # start R), code:r (# simulate.R — a minimal baseline run), Linux / macOS, Prefer to work interactively? (+2 more)
 
 ### Community 99 - "Community 99"
 Cohesion: 0.21
@@ -384,11 +389,11 @@ Nodes (6): 2. Install Docker, code:bash (brew install coreutils), code:bash (sud
 
 ### Community 101 - "Community 101"
 Cohesion: 0.25
-Nodes (9): 5. Make your project folder and get the launcher, 6. Edit your configuration file, 7. Write a run script, code:bash (mkdir -p ~/impactncd_run), code:powershell (mkdir $HOME\impactncd_run), code:yaml (output_dir: ./outputs), code:r (# simulate.R — a minimal baseline run), Linux / macOS (Terminal) (+1 more)
+Nodes (9): 4. Check Docker works, 5. Make your project folder and get the launcher, code:ini ([wsl2]), code:powershell (wsl --shutdown), code:bash (docker info), code:powershell (mkdir $HOME\impactncd_run), Linux / macOS (Terminal), Windows (+1 more)
 
 ### Community 104 - "Community 104"
-Cohesion: 0.18
-Nodes (11): 3. Give Docker enough memory and disk, 4. Check Docker works, code:ini ([wsl2]), code:powershell (wsl --shutdown), code:bash (docker info), Linux, Linux, Linux (+3 more)
+Cohesion: 0.33
+Nodes (6): 3. Give Docker enough memory and disk, Linux, Linux, Linux, macOS, Windows and macOS (Docker Desktop)
 
 ## Knowledge Gaps
 - **419 isolated node(s):** `disease_prvl`, `mltp`, `lag`, `intercept`, `log_age_coef` (+414 more)

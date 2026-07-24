@@ -59,6 +59,17 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 IMPACTncd$del_logs()$del_outputs()$run(1:2, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)
 ```
 
+`export_tables()` turns the summaries into CSVs. Besides the main / mortality /
+disease-characteristics / exposure / cost-effectiveness (`cea = TRUE`) tables, it also
+writes **equity slope-index** tables (`equity = TRUE`, default): absolute (`AEI_total`,
+`AEI_per100k`) and relative (`REI_rel`, `RII_ratio`) analogues of the Slope/Relative Index
+of Inequality for cumulative CPP, CYPP, DPP and net QALYs across DIMD deciles (pro-poor sign
+convention; MC iterations give the uncertainty). The ridit reference population is selectable via
+`equity_ridit_reference` (`"comparator"` default vs `"scenario"` — see the Renard 2019 decision
+support in the vignette). Core math lives in
+`calc_equity_slope_indices()` / `export_equity_tables()` in `Simulation_class_tables.R`; see
+`vignette("understanding_model_outputs")`.
+
 ### Testing
 ```r
 tinytest::test_package("IMPACTncdEngland")
@@ -131,6 +142,14 @@ IMPACTncd$update_primary_prevention_scn(
 )
 IMPACTncd$run(1:n_runs, multicore = TRUE, "sc1")
 ```
+
+**Deprivation-change scenarios**: if a scenario forces a simulant's `dimd`/`qimd`
+(to model a deprivation-reduction policy), those forced values drive the simulation
+(they are live covariates for disease incidence/duration and smoking), but ALL outputs
+(lifecourse, summaries, tables, equity, xps) are stratified by each simulant's **original**
+pre-scenario deprivation. The original is snapshotted before the scenario runs and restored
+after `simcpp()` automatically (in `Simulation_class.R` `run_sim`); scenarios that don't
+touch `dimd`/`qimd` are unaffected.
 
 ### File Paths
 - **Absolute paths required** for `output_dir`, `synthpop_dir` in YAML

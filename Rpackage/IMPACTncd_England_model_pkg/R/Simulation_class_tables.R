@@ -40,6 +40,77 @@ safe_fquantile_byid <- function(x, q, id, rounding = FALSE) {
 }
 
 
+# calc_equity_slope_indices ----
+# Absolute and relative equity slope indices (analogues of the Slope Index of
+# Inequality, SII, and Relative Index of Inequality, RII) for a benefit
+# distributed across ordered socioeconomic groups (DIMD deciles).
+#
+# Statistical framework (following Moreno-Betancur et al. 2015, Epidemiology;
+# Wagstaff et al. 1991; and, for cumulative benefits, Cookson et al. 2026,
+# Pharmacoeconomics): each socioeconomic group is assigned a population-weighted
+# midpoint cumulative rank (a *ridit* score) in [0, 1], ordered from LEAST
+# deprived (r -> 0) to MOST deprived (r -> 1). The absolute equity index is the
+# population-weighted OLS slope of the per-capita benefit on the ridit score,
+# i.e. the predicted per-capita difference between the extreme ends of the
+# distribution (r = 1 minus r = 0) -- exactly the SII. The closed-form weighted
+# slope beta = Sxy / Sxx is identical to
+# `coef(lm(y ~ ridit, weights = N))["ridit"]` but is computed by pure
+# data.table aggregation so it can be evaluated over millions of
+# (mc, scenario, year, ...) groups without a per-group lm() call.
+#
+# Sign convention: all supported metrics (CPP, CYPP, DPP, net QALYs) are
+# "goods", so a POSITIVE index means the most deprived gain more (pro-poor,
+# inequality-reducing); a negative index is pro-rich (inequality-widening).
+#
+# @param d  A data.table with (at least) columns `rank` (integer deprivation
+#   rank, 1 = MOST deprived .. K = LEAST deprived, i.e. `as.integer(dimd)`),
+#   `B` (cumulative benefit for that group) and `N` (reference population for
+#   that group, used both as the regression weight and the ridit denominator),
+#   plus the grouping columns named in `by`.
+# @param by  Character vector of columns identifying one gradient per group
+#   (must include the Monte-Carlo id `mc`; DIMD is NOT in `by` -- it is the
+#   gradient axis consumed into the index).
+# @return A data.table with one row per `by` group and columns AEI_total
+#   (SII rescaled to the whole reference population = modelled total benefit gap
+#   between the extreme ends), AEI_per100k (SII expressed per 100,000 people),
+#   REI_rel (SII / population-weighted mean; NA when the mean is 0) and
+#   RII_ratio (fitted benefit at the most-deprived end / least-deprived end;
+#   NA when the fitted line crosses zero over [0, 1]).
+calc_equity_slope_indices <- function(d, by) {
+  d <- copy(d)
+  # Order least -> most deprived within each group (rank descending) so the
+  # cumulative population share runs from the bottom to the top of the ridit.
+  setorderv(d, c(by, "rank"), order = c(rep(1L, length(by)), -1L))
+  d[, .totN := sum(N), by = by]
+  d[, .csum := cumsum(N), by = by]
+  d[, ridit := (.csum - N / 2) / .totN]
+
+  agg <- d[, .(
+    Sw   = sum(N),
+    Swx  = sum(N * ridit),
+    Swy  = sum(B),
+    Swxx = sum(N * ridit * ridit),
+    Swxy = sum(ridit * B)
+  ), by = by]
+
+  agg[, xbar := Swx / Sw]
+  agg[, ybar := Swy / Sw]                       # population-weighted mean benefit
+  agg[, Sxx := Swxx - Sw * xbar * xbar]
+  agg[, Sxy := Swxy - Sw * xbar * ybar]
+  agg[, beta := fifelse(Sxx > 0, Sxy / Sxx, NA_real_)]
+  agg[, fit0 := ybar - beta * xbar]             # fitted per-capita benefit at r = 0 (least deprived)
+  agg[, fit1 := ybar + beta * (1 - xbar)]       # fitted per-capita benefit at r = 1 (most deprived)
+
+  agg[, AEI_total   := beta * Sw]
+  agg[, AEI_per100k := beta * 1e5]
+  agg[, REI_rel     := fifelse(ybar != 0, beta / ybar, NA_real_)]
+  agg[, RII_ratio   := fifelse(!is.na(beta) & fit0 != 0 & sign(fit0) == sign(fit1),
+                               fit1 / fit0, NA_real_)]
+
+  agg[, .SD, .SDcols = c(by, "AEI_total", "AEI_per100k", "REI_rel", "RII_ratio")]
+}
+
+
 # export_tables ----
 # Exports summary tables from simulation summaries.
 # See main class documentation in Simulation_class.R for details.
@@ -84,10 +155,18 @@ safe_fquantile_byid <- function(x, q, id, rounding = FALSE) {
 #' @description
 #' Export summary tables for policy analysis.
 #'
-#' Builds main, all-cause mortality, disease-characteristics, exposure, and
-#' (optionally) cost-effectiveness tables from the per-summary files produced
-#' by `$export_summaries()`. Outputs are written to `output_dir/tables/`
-#' (or `output_dir/tables2agegrps/` when `two_agegrps = TRUE`).
+#' Builds main, all-cause mortality, disease-characteristics, exposure,
+#' (optionally) cost-effectiveness and (optionally) equity slope-index tables
+#' from the per-summary files produced by `$export_summaries()`. Outputs are
+#' written to `output_dir/tables/` (or `output_dir/tables2agegrps/` when
+#' `two_agegrps = TRUE`).
+#'
+#' When `equity = TRUE`, equity slope-index tables are written as
+#' `equity <metric> slope index by <strata> (not standardised).csv` for each of
+#' CPP, CYPP, DPP and net QALYs. These summarise how each cumulative benefit is
+#' distributed across DIMD deprivation deciles, using absolute and relative
+#' analogues of the Slope Index of Inequality and Relative Index of Inequality
+#' (see the `equity` argument).
 #'
 #' When `cea = TRUE`, cost-effectiveness tables are written as
 #' `cost-effectiveness by <strata> (<perspective>-<scale>) (not standardised).csv`,
@@ -135,6 +214,50 @@ safe_fquantile_byid <- function(x, q, id, rounding = FALSE) {
 #'   always-present `healthcare_cost`). `NULL`/`FALSE` (default) adds none;
 #'   `TRUE` adds all user-defined cost columns. User-defined cost columns are
 #'   always included in the societal perspective regardless of this argument.
+#' @param equity Logical. If `TRUE` (default), also build the equity
+#'   slope-index tables (absolute and relative analogues of the Slope Index of
+#'   Inequality / Relative Index of Inequality) for the cumulative CPP, CYPP,
+#'   DPP and net-QALYs benefits, distributed across DIMD deprivation deciles.
+#'   Written as `equity <metric> slope index by <strata> (not standardised).csv`
+#'   with a `type` column giving four indices: `AEI_total` (absolute equity
+#'   index rescaled to the whole population = modelled total benefit gap between
+#'   the most- and least-deprived ends), `AEI_per100k` (the same slope per
+#'   100,000 people), `REI_rel` (slope divided by the population-weighted mean
+#'   benefit) and `RII_ratio` (fitted benefit at the most-deprived end divided
+#'   by the least-deprived end). By the pro-poor sign convention a positive
+#'   index means the most deprived gain more (inequality-reducing). The
+#'   deprivation gradient is fit per Monte-Carlo iteration and quantiled across
+#'   iterations, following the SII/RII framework (Moreno-Betancur et al. 2015;
+#'   Wagstaff et al. 1991) and, for cumulative benefits, Cookson et al. 2026.
+#'   A gradient requires at least two DIMD deciles, so scenario-years that cover
+#'   only one decile (e.g. interventions targeted at a single decile) have an
+#'   undefined index and are omitted; the omission is reported when `logs` are
+#'   enabled in the design.
+#' @param equity_ridit_reference Character, one of `"comparator"` (default) or
+#'   `"scenario"`. Chooses the population used to build the ridit (deprivation)
+#'   ranks and the population weights for the equity slope-index regression --
+#'   the reference against which each decile's share of the population is
+#'   measured. `"comparator"` uses the comparator scenario's decile populations,
+#'   so the deprivation ranking is *identical* across the scenarios being
+#'   compared and across years; `"scenario"` uses each intervention scenario's
+#'   own decile populations, reflecting the socioeconomic composition that
+#'   scenario actually produces.
+#'
+#'   **Which to choose (Renard et al. 2019).** Renard et al. showed that the SII
+#'   and RII can move purely because the socioeconomic *composition* of the
+#'   population shifts, even when group-specific rates are unchanged -- so a
+#'   changing denominator population can masquerade as a change in inequality.
+#'   For the usual question here -- *how does an intervention redistribute
+#'   benefits across a fixed deprivation structure?* -- keep the default
+#'   `"comparator"`: a common, fixed reference makes between-scenario and
+#'   between-year comparisons clean and attributes differences to the benefits,
+#'   not to composition. Choose `"scenario"` only when the intervention itself is
+#'   expected to change the deprivation composition (e.g. large differential
+#'   survival shifting who is alive in each decile) and you specifically want the
+#'   index to reflect each scenario's own realised population; interpret
+#'   between-scenario differences with the Renard caveat in mind. In this model
+#'   DIMD deciles are structurally near-fixed, so the two options usually differ
+#'   only slightly.
 #' @return The `Simulation` object, invisibly.
 Simulation$set("public", "export_tables", function(
     baseline_year_for_change_outputs = 2019L,
@@ -148,8 +271,12 @@ Simulation$set("public", "export_tables", function(
     qaly_discount_rate = 3.5,
     cost_discount_rate = 3.5,
     discount_from_year = NULL,
-    custom_costs_in_healthcare = NULL
+    custom_costs_in_healthcare = NULL,
+    equity = TRUE,
+    equity_ridit_reference = c("comparator", "scenario")
 ) {
+  equity_ridit_reference <- match.arg(equity_ridit_reference)
+
   # Ensure baseline year is in full format (e.g. 2019, not 19)
   # Data is converted to full year format in export_main_tables()
   if (baseline_year_for_change_outputs <= 100) {
@@ -245,6 +372,22 @@ Simulation$set("public", "export_tables", function(
       discount_from_year = discount_from_year,
       custom_costs_in_healthcare = custom_costs_in_healthcare,
       strata = strata_cfg$ons
+    )
+  }
+
+  # Equity slope-index (SII / RII analogue) tables, built from the prvl / incd /
+  # mrtl / qalys summaries. The deprivation gradient is fit across DIMD deciles.
+  if (equity) {
+    tasks[[length(tasks) + 1L]] <- list(
+      id = 6L,
+      type = "equity",
+      prbl = prbl,
+      summaries_dir = private$output_dir("summaries"),
+      tables_dir = tables_dir,
+      comparator_scenario = comparator_scenario,
+      baseline_year = baseline_year_for_change_outputs,
+      ridit_reference = equity_ridit_reference,
+      strata = strata_cfg$equity
     )
   }
 
@@ -373,6 +516,15 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
       discount_from_year = task$discount_from_year,
       custom_costs_in_healthcare = task$custom_costs_in_healthcare,
       strata = task$strata
+    ),
+    "equity" = private$export_equity_tables(
+      prbl = task$prbl,
+      summaries_dir = task$summaries_dir,
+      tables_dir = task$tables_dir,
+      comparator_scenario = task$comparator_scenario,
+      baseline_year = task$baseline_year,
+      ridit_reference = task$ridit_reference,
+      strata = task$strata
     )
   )
 
@@ -430,6 +582,12 @@ Simulation$set("private", "build_strata_config", function(user_strata, two_agegr
         c("year", "sex"),
         c("year", "qimd"),
         c("year", "sex", "qimd")
+      ),
+      # Equity slope-index output strata. DIMD deciles are always the gradient
+      # axis (consumed into the index), so it never appears here.
+      equity = list(
+        "year",
+        c("year", "sex")
       )
     )
   } else {
@@ -481,6 +639,12 @@ Simulation$set("private", "build_strata_config", function(user_strata, two_agegr
         c("year", "sex"),
         c("year", "qimd"),
         c("year", "sex", "qimd")
+      ),
+      # Equity slope-index output strata. DIMD deciles are always the gradient
+      # axis (consumed into the index), so it never appears here.
+      equity = list(
+        "year",
+        c("year", "sex")
       )
     )
   }
@@ -1480,5 +1644,213 @@ Simulation$set("private", "export_cea_tables", function(
   }
 
   rm(qalys, costs)
+  invisible(NULL)
+})
+
+
+# export_equity_tables ----
+# Generate equity slope-index tables (absolute and relative analogues of the
+# Slope Index of Inequality / Relative Index of Inequality) for the cumulative
+# policy benefits CPP, CYPP, DPP and net QALYs, distributed across DIMD
+# deprivation deciles. See calc_equity_slope_indices() for the statistical
+# framework and sign convention.
+#
+# For each metric and each requested output stratum (e.g. "year" or
+# c("year", "sex")) the deprivation gradient is fit PER Monte-Carlo iteration
+# across the 10 DIMD deciles, and the four indices are then quantiled across the
+# Monte-Carlo iterations (the MC iterations ARE the uncertainty), mirroring
+# every other table. Uses the actual (scaled_up) population only -- "not
+# standardised" -- because age-standardising across deciles would defeat the
+# purpose of describing the real deprivation distribution.
+Simulation$set("private", "export_equity_tables", function(
+    prbl,
+    summaries_dir,
+    tables_dir,
+    comparator_scenario = "sc0",
+    baseline_year = 2019L,
+    ridit_reference = "comparator",
+    strata = NULL
+) {
+  ridit_reference <- match.arg(ridit_reference, c("comparator", "scenario"))
+  if (self$design$sim_prm$logs) {
+    message("Generating equity slope-index tables (ridit reference: ",
+            ridit_reference, ")...")
+  }
+
+  # Canonical DIMD factor levels (repeated across the package, e.g.
+  # ExposureEffect_class.R / Disease_class.R); as.integer() then gives the
+  # deprivation rank 1 = most deprived .. 10 = least deprived.
+  dimd_levels <- c("1 most deprived", as.character(2:9), "10 least deprived")
+
+  # Metric -> source dataset, value-column pattern, suffix to strip for the
+  # disease label, and benefit direction. "prevented" = comparator - intervention
+  # (CPP/CYPP/DPP), "gained" = intervention - comparator (net QALYs).
+  metric_cfg <- list(
+    cpp       = list(source = "incd",  pattern = "_incd$",   strip = "_incd$",  dir = "prevented"),
+    cypp      = list(source = "prvl",  pattern = "_prvl$",   strip = "_prvl$",  dir = "prevented"),
+    dpp       = list(source = "mrtl",  pattern = "_mrtl$",   strip = "_mrtl$",  dir = "prevented"),
+    net_qalys = list(source = "qalys", pattern = "^EQ5D5L$", strip = NA,        dir = "gained")
+  )
+
+  for (metric in names(metric_cfg)) {
+    cfg <- metric_cfg[[metric]]
+
+    tt <- private$read_summary_dataset(cfg$source, "scaled_up")
+    if (is.null(tt)) {
+      if (self$design$sim_prm$logs) {
+        message("  ", metric, ": ", cfg$source, " summary missing; skipping")
+      }
+      next
+    }
+    if (!"dimd" %in% names(tt)) {
+      if (self$design$sim_prm$logs) {
+        message("  ", metric, ": no dimd column; skipping")
+      }
+      rm(tt); next
+    }
+    valcols <- grep(cfg$pattern, names(tt), value = TRUE)
+    if (length(valcols) == 0L) {
+      if (self$design$sim_prm$logs) {
+        message("  ", metric, ": no value columns matching ", cfg$pattern, "; skipping")
+      }
+      rm(tt); next
+    }
+
+    # Promote short year (19) to full (2019) to match baseline_year.
+    tt[, year := year + 2000L]
+
+    # The index is a benefit-vs-comparator contrast, so both the comparator and
+    # at least one intervention scenario must be present.
+    scns <- unique(tt$scenario)
+    if (!comparator_scenario %in% scns) {
+      if (self$design$sim_prm$logs) {
+        message("  ", metric, ": comparator scenario '", comparator_scenario,
+                "' not found; skipping")
+      }
+      rm(tt); next
+    }
+    non_comparator <- setdiff(scns, comparator_scenario)
+    if (length(non_comparator) == 0L) {
+      if (self$design$sim_prm$logs) {
+        message("  ", metric, ": no intervention scenarios (only '",
+                comparator_scenario, "'); skipping")
+      }
+      rm(tt); next
+    }
+
+    for (s in strata) {                       # s always contains "year"
+      has_sex <- "sex" %in% s
+      keep <- c("mc", "scenario", "year", "dimd", if (has_sex) "sex")
+
+      # Collapse agegrp (always) and sex (unless in this stratum); sum the
+      # disease value columns and the decile population.
+      agg <- tt[, c(lapply(.SD, sum), .(popsize = sum(popsize))),
+                .SDcols = valcols, by = keep]
+
+      long <- melt(agg, id.vars = c(keep, "popsize"),
+                   measure.vars = valcols, variable.name = "disease",
+                   value.name = "val")
+      long[, disease := as.character(disease)]
+      if (!is.na(cfg$strip)) long[, disease := gsub(cfg$strip, "", disease)]
+
+      # Benefit versus comparator, from the baseline year onwards.
+      idcols <- setdiff(c(keep, "disease"), "scenario")   # mc, year, [sex], dimd, disease
+      cmp <- long[scenario == comparator_scenario & year >= baseline_year]
+      cmp[, scenario := NULL]
+      setnames(cmp, c("val", "popsize"), c("val_cmp", "pop_cmp"))
+      d <- long[scenario != comparator_scenario & year >= baseline_year]
+      if (nrow(d) == 0L || nrow(cmp) == 0L) next
+
+      if (cfg$dir == "prevented") {
+        d[cmp, on = idcols, `:=`(B_year = i.val_cmp - val, N_cmp = i.pop_cmp)]
+      } else {
+        d[cmp, on = idcols, `:=`(B_year = val - i.val_cmp, N_cmp = i.pop_cmp)]
+      }
+      # Reference population for the ridit ranking, the population weights of the
+      # weighted regression and the per-capita denominator. "comparator" uses
+      # the comparator scenario's population so the deprivation ranking is
+      # IDENTICAL across the compared scenarios and years (recommended for
+      # between-scenario comparison: it prevents intervention-induced shifts in
+      # the socioeconomic composition from being read as changes in inequality,
+      # per Renard et al. 2019). "scenario" uses each intervention scenario's own
+      # population (the composition it actually produces). `popsize` here is the
+      # intervention scenario's own decile population.
+      d[, N := if (ridit_reference == "comparator") N_cmp else popsize]
+      d <- d[is.finite(B_year) & is.finite(N) & N > 0]
+      if (nrow(d) == 0L) next
+
+      # Cumulative benefit over year within (mc, scenario, [sex], dimd, disease).
+      by_cum <- c("mc", "scenario", if (has_sex) "sex", "dimd", "disease")
+      setkeyv(d, c(by_cum, "year"))
+      d[, B := cumsum(B_year), by = by_cum]
+
+      # All-diseases summed row for CPP/CYPP (plain event-count sum; carries
+      # comorbidity multiplicity -- not unique persons). DPP is already
+      # all-cause; net QALYs is already a total. The CMS multimorbidity
+      # indicators (cms1st_cont, cmsmm*, cmscs*) are derived metrics rather than
+      # incident diseases, so they are kept as their own rows but excluded from
+      # the sum.
+      if (metric %in% c("cpp", "cypp")) {
+        by_tot <- c("mc", "scenario", "year", if (has_sex) "sex", "dimd")
+        tot <- d[!grepl("^cms", disease),
+                 .(disease = "all_diseases_sum", B = sum(B),
+                   B_year = sum(B_year), N = N[1L]), by = by_tot]
+        d <- rbind(d, tot, fill = TRUE)
+      }
+
+      d[, rank := as.integer(factor(dimd, levels = dimd_levels))]
+
+      # A deprivation gradient needs at least two DIMD deciles. Scenario-years
+      # covering a single decile (e.g. interventions targeted at one decile, or
+      # a scenario whose later years only touch one decile) have an undefined
+      # slope index and are omitted downstream (the closed-form slope returns
+      # NA and is dropped at the finite-value filter). Report the omission so it
+      # is transparent rather than silent.
+      if (self$design$sim_prm$logs) {
+        cov_grp <- c("scenario", "year", if (has_sex) "sex")
+        ndec <- unique(d[, c(cov_grp, "dimd"), with = FALSE])[, .(nd = .N),
+                                                              by = cov_grp]
+        insuff <- ndec[nd < 2L]
+        if (nrow(insuff) > 0L) {
+          message("  ", metric, " by ", paste(s, collapse = "-"), ": omitting ",
+                  nrow(insuff), " scenario-year group(s) with <2 DIMD deciles ",
+                  "(undefined gradient); scenario(s): ",
+                  paste(sort(unique(insuff$scenario)), collapse = ", "))
+        }
+      }
+
+      by_grp <- c("mc", "scenario", "year", if (has_sex) "sex", "disease")
+      idx <- calc_equity_slope_indices(
+        d[, .SD, .SDcols = c(by_grp, "rank", "B", "N")], by = by_grp)
+
+      m <- melt(idx, id.vars = by_grp,
+                measure.vars = c("AEI_total", "AEI_per100k", "REI_rel", "RII_ratio"),
+                variable.name = "type", value.name = "value")
+      # Quantile over the finite Monte-Carlo draws only (RII_ratio / REI_rel can
+      # be NA for degenerate gradients).
+      m <- m[is.finite(value)]
+      if (nrow(m) == 0L) next
+
+      setkey(m, "type")
+      out <- m[, safe_fquantile_byid(value, prbl, id = as.character(type),
+                                     rounding = FALSE),
+               keyby = eval(setdiff(by_grp, "mc"))]
+      setnames(out, c(setdiff(by_grp, "mc"), "type",
+                      scales::percent(prbl, prefix = "equity_")))
+      setkeyv(out, c(setdiff(by_grp, "mc"), "type"))
+      setcolorder(out, setdiff(by_grp, "mc"))
+
+      suffix <- paste(s, collapse = "-")
+      fwrite(out, file.path(
+        tables_dir,
+        paste0("equity ", metric, " slope index by ", suffix, " (not standardised).csv")
+      ))
+      rm(agg, long, cmp, d, idx, m, out)
+    }
+
+    rm(tt)
+    gc(verbose = FALSE)
+  }
+
   invisible(NULL)
 })

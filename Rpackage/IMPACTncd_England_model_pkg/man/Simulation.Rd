@@ -493,10 +493,18 @@ incidence summaries by single year of age instead of age groups.}
 \subsection{\code{Simulation$export_tables()}}{
   Export summary tables for policy analysis.
 
-Builds main, all-cause mortality, disease-characteristics, exposure, and
-(optionally) cost-effectiveness tables from the per-summary files produced
-by \verb{$export_summaries()}. Outputs are written to \verb{output_dir/tables/}
-(or \verb{output_dir/tables2agegrps/} when \code{two_agegrps = TRUE}).
+Builds main, all-cause mortality, disease-characteristics, exposure,
+(optionally) cost-effectiveness and (optionally) equity slope-index tables
+from the per-summary files produced by \verb{$export_summaries()}. Outputs are
+written to \verb{output_dir/tables/} (or \verb{output_dir/tables2agegrps/} when
+\code{two_agegrps = TRUE}).
+
+When \code{equity = TRUE}, equity slope-index tables are written as
+\verb{equity <metric> slope index by <strata> (not standardised).csv} for each of
+CPP, CYPP, DPP and net QALYs. These summarise how each cumulative benefit is
+distributed across DIMD deprivation deciles, using absolute and relative
+analogues of the Slope Index of Inequality and Relative Index of Inequality
+(see the \code{equity} argument).
 
 When \code{cea = TRUE}, cost-effectiveness tables are written as
 \verb{cost-effectiveness by <strata> (<perspective>-<scale>) (not standardised).csv},
@@ -522,7 +530,9 @@ healthcare perspective as well.
   qaly_discount_rate = 3.5,
   cost_discount_rate = 3.5,
   discount_from_year = NULL,
-  custom_costs_in_healthcare = NULL
+  custom_costs_in_healthcare = NULL,
+  equity = TRUE,
+  equity_ridit_reference = c("comparator", "scenario")
 )}
     \if{html}{\out{</div>}}
   }
@@ -564,6 +574,50 @@ column names to add to the healthcare perspective (in addition to the
 always-present \code{healthcare_cost}). \code{NULL}/\code{FALSE} (default) adds none;
 \code{TRUE} adds all user-defined cost columns. User-defined cost columns are
 always included in the societal perspective regardless of this argument.}
+      \item{\code{equity}}{Logical. If \code{TRUE} (default), also build the equity
+slope-index tables (absolute and relative analogues of the Slope Index of
+Inequality / Relative Index of Inequality) for the cumulative CPP, CYPP,
+DPP and net-QALYs benefits, distributed across DIMD deprivation deciles.
+Written as \verb{equity <metric> slope index by <strata> (not standardised).csv}
+with a \code{type} column giving four indices: \code{AEI_total} (absolute equity
+index rescaled to the whole population = modelled total benefit gap between
+the most- and least-deprived ends), \code{AEI_per100k} (the same slope per
+100,000 people), \code{REI_rel} (slope divided by the population-weighted mean
+benefit) and \code{RII_ratio} (fitted benefit at the most-deprived end divided
+by the least-deprived end). By the pro-poor sign convention a positive
+index means the most deprived gain more (inequality-reducing). The
+deprivation gradient is fit per Monte-Carlo iteration and quantiled across
+iterations, following the SII/RII framework (Moreno-Betancur et al. 2015;
+Wagstaff et al. 1991) and, for cumulative benefits, Cookson et al. 2026.
+A gradient requires at least two DIMD deciles, so scenario-years that cover
+only one decile (e.g. interventions targeted at a single decile) have an
+undefined index and are omitted; the omission is reported when \code{logs} are
+enabled in the design.}
+      \item{\code{equity_ridit_reference}}{Character, one of \code{"comparator"} (default) or
+\code{"scenario"}. Chooses the population used to build the ridit (deprivation)
+ranks and the population weights for the equity slope-index regression --
+the reference against which each decile's share of the population is
+measured. \code{"comparator"} uses the comparator scenario's decile populations,
+so the deprivation ranking is \emph{identical} across the scenarios being
+compared and across years; \code{"scenario"} uses each intervention scenario's
+own decile populations, reflecting the socioeconomic composition that
+scenario actually produces.
+
+\strong{Which to choose (Renard et al. 2019).} Renard et al. showed that the SII
+and RII can move purely because the socioeconomic \emph{composition} of the
+population shifts, even when group-specific rates are unchanged -- so a
+changing denominator population can masquerade as a change in inequality.
+For the usual question here -- \emph{how does an intervention redistribute
+benefits across a fixed deprivation structure?} -- keep the default
+\code{"comparator"}: a common, fixed reference makes between-scenario and
+between-year comparisons clean and attributes differences to the benefits,
+not to composition. Choose \code{"scenario"} only when the intervention itself is
+expected to change the deprivation composition (e.g. large differential
+survival shifting who is alive in each decile) and you specifically want the
+index to reflect each scenario's own realised population; interpret
+between-scenario differences with the Renard caveat in mind. In this model
+DIMD deciles are structurally near-fixed, so the two options usually differ
+only slightly.}
     }
     \if{html}{\out{</div>}}
   }
@@ -610,6 +664,17 @@ always included in the societal perspective regardless of this argument.}
       \item{\code{method}}{a function with synthpop as an argument that models the primary prevention policy.}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    If the scenario function changes a simulant's deprivation
+(\code{dimd}/\code{qimd}) -- e.g. to model a deprivation-reduction policy -- the
+forced values drive the simulation (they are live covariates for
+disease incidence/duration and the smoking model), but every OUTPUT
+(lifecourse, summaries, tables, equity indices and exposure tables) is
+stratified by each simulant's ORIGINAL, pre-scenario deprivation. The
+original is snapshotted before the scenario runs and restored after
+the simulation, automatically; scenarios that do not touch
+\code{dimd}/\code{qimd} are unaffected.
   }
   \subsection{Returns}{
     The invisible self for chaining.

@@ -2943,7 +2943,7 @@
       "label": "Testing",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L62",
+      "source_location": "L73",
       "id": "impactncd_engl_claude_testing",
       "community": 45,
       "norm_label": "testing"
@@ -2952,7 +2952,7 @@
       "label": "code:r (tinytest::test_package(\"IMPACTncdEngland\"))",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L63",
+      "source_location": "L74",
       "id": "impactncd_engl_claude_codeblock_4",
       "community": 45,
       "norm_label": "code:r (tinytest::test_package(\"impactncdengland\"))"
@@ -2961,7 +2961,7 @@
       "label": "Rebuild Documentation",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L67",
+      "source_location": "L78",
       "id": "impactncd_engl_claude_rebuild_documentation",
       "community": 45,
       "norm_label": "rebuild documentation"
@@ -2970,7 +2970,7 @@
       "label": "code:r (roxygen2::roxygenise(\"Rpackage/IMPACTncd_England_model_pkg\"))",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L68",
+      "source_location": "L79",
       "id": "impactncd_engl_claude_codeblock_5",
       "community": 45,
       "norm_label": "code:r (roxygen2::roxygenise(\"rpackage/impactncd_england_model_pkg\"))"
@@ -2979,7 +2979,7 @@
       "label": "Docker Environment",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L72",
+      "source_location": "L83",
       "id": "impactncd_engl_claude_docker_environment",
       "community": 45,
       "norm_label": "docker environment"
@@ -2988,7 +2988,7 @@
       "label": "code:bash (./docker_setup/setup_user_docker_env.sh          # Interacti)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L73",
+      "source_location": "L84",
       "id": "impactncd_engl_claude_codeblock_6",
       "community": 45,
       "norm_label": "code:bash (./docker_setup/setup_user_docker_env.sh          # interacti)"
@@ -2997,7 +2997,7 @@
       "label": "code:bash (./docker_setup/build_push_data.sh   # auto-tags data.impactn)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L83",
+      "source_location": "L94",
       "id": "impactncd_engl_claude_codeblock_7",
       "community": 45,
       "norm_label": "code:bash (./docker_setup/build_push_data.sh   # auto-tags data.impactn)"
@@ -3006,7 +3006,7 @@
       "label": "Code Conventions",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L95",
+      "source_location": "L106",
       "id": "impactncd_engl_claude_code_conventions",
       "community": 45,
       "norm_label": "code conventions"
@@ -3015,7 +3015,7 @@
       "label": "R Code Style",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L97",
+      "source_location": "L108",
       "id": "impactncd_engl_claude_r_code_style",
       "community": 45,
       "norm_label": "r code style"
@@ -3024,7 +3024,7 @@
       "label": "Column Naming",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L102",
+      "source_location": "L113",
       "id": "impactncd_engl_claude_column_naming",
       "community": 45,
       "norm_label": "column naming"
@@ -3033,7 +3033,7 @@
       "label": "Key Exposure Variables (Primary Prevention)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L109",
+      "source_location": "L120",
       "id": "impactncd_engl_claude_key_exposure_variables_primary_prevention",
       "community": 45,
       "norm_label": "key exposure variables (primary prevention)"
@@ -3042,7 +3042,7 @@
       "label": "Key Disease Variables (Secondary Prevention)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L120",
+      "source_location": "L131",
       "id": "impactncd_engl_claude_key_disease_variables_secondary_prevention",
       "community": 45,
       "norm_label": "key disease variables (secondary prevention)"
@@ -3051,7 +3051,7 @@
       "label": "Scenario Definition Pattern",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L125",
+      "source_location": "L136",
       "id": "impactncd_engl_claude_scenario_definition_pattern",
       "community": 45,
       "norm_label": "scenario definition pattern"
@@ -3060,7 +3060,7 @@
       "label": "code:r (IMPACTncd$update_primary_prevention_scn()",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L126",
+      "source_location": "L137",
       "id": "impactncd_engl_claude_codeblock_8",
       "community": 45,
       "norm_label": "code:r (impactncd$update_primary_prevention_scn()"
@@ -3069,7 +3069,7 @@
       "label": "File Paths",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L135",
+      "source_location": "L154",
       "id": "impactncd_engl_claude_file_paths",
       "community": 45,
       "norm_label": "file paths"
@@ -3078,7 +3078,7 @@
       "label": "Exposure table resolution (`exposure_definitions[*].file_name`)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L140",
+      "source_location": "L159",
       "id": "impactncd_engl_claude_exposure_table_resolution_exposure_definitions_file_name",
       "community": 45,
       "norm_label": "exposure table resolution (`exposure_definitions[*].file_name`)"
@@ -3087,7 +3087,7 @@
       "label": "Key YAML Parameters (inputs/sim_design.yaml)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L153",
+      "source_location": "L172",
       "id": "impactncd_engl_claude_key_yaml_parameters_inputs_sim_design_yaml",
       "community": 45,
       "norm_label": "key yaml parameters (inputs/sim_design.yaml)"
@@ -3096,7 +3096,7 @@
       "label": "Key Dependencies",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L164",
+      "source_location": "L183",
       "id": "impactncd_engl_claude_key_dependencies",
       "community": 45,
       "norm_label": "key dependencies"
@@ -3105,7 +3105,7 @@
       "label": "Debugging",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L173",
+      "source_location": "L192",
       "id": "impactncd_engl_claude_debugging",
       "community": 45,
       "norm_label": "debugging"
@@ -3114,7 +3114,7 @@
       "label": "Common Pitfalls",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L180",
+      "source_location": "L199",
       "id": "impactncd_engl_claude_common_pitfalls",
       "community": 45,
       "norm_label": "common pitfalls"
@@ -3123,7 +3123,7 @@
       "label": "Documentation",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L187",
+      "source_location": "L206",
       "id": "impactncd_engl_claude_documentation",
       "community": 45,
       "norm_label": "documentation"
@@ -3132,7 +3132,7 @@
       "label": "graphify",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L198",
+      "source_location": "L217",
       "id": "impactncd_engl_claude_graphify",
       "community": 45,
       "norm_label": "graphify"
@@ -4016,7 +4016,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L138",
       "id": "docker_setup_installation_guide_windows_138",
-      "community": 104,
+      "community": 101,
       "norm_label": "windows"
     },
     {
@@ -4025,7 +4025,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L150",
       "id": "docker_setup_installation_guide_codeblock_3",
-      "community": 104,
+      "community": 101,
       "norm_label": "code:ini ([wsl2])"
     },
     {
@@ -4034,7 +4034,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L155",
       "id": "docker_setup_installation_guide_codeblock_4",
-      "community": 104,
+      "community": 101,
       "norm_label": "code:powershell (wsl --shutdown)"
     },
     {
@@ -4052,7 +4052,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L173",
       "id": "docker_setup_installation_guide_4_check_docker_works",
-      "community": 104,
+      "community": 101,
       "norm_label": "4. check docker works"
     },
     {
@@ -4061,7 +4061,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L177",
       "id": "docker_setup_installation_guide_codeblock_5",
-      "community": 104,
+      "community": 101,
       "norm_label": "code:bash (docker info)"
     },
     {
@@ -4088,7 +4088,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L202",
       "id": "docker_setup_installation_guide_codeblock_6",
-      "community": 101,
+      "community": 68,
       "norm_label": "code:bash (mkdir -p ~/impactncd_run)"
     },
     {
@@ -4115,7 +4115,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L228",
       "id": "docker_setup_installation_guide_6_edit_your_configuration_file",
-      "community": 101,
+      "community": 68,
       "norm_label": "6. edit your configuration file"
     },
     {
@@ -4124,7 +4124,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L234",
       "id": "docker_setup_installation_guide_codeblock_8",
-      "community": 101,
+      "community": 68,
       "norm_label": "code:yaml (output_dir: ./outputs)"
     },
     {
@@ -4133,7 +4133,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L262",
       "id": "docker_setup_installation_guide_7_write_a_run_script",
-      "community": 101,
+      "community": 98,
       "norm_label": "7. write a run script"
     },
     {
@@ -4142,7 +4142,7 @@
       "source_file": "docker_setup/INSTALLATION_GUIDE.md",
       "source_location": "L267",
       "id": "docker_setup_installation_guide_codeblock_9",
-      "community": 101,
+      "community": 98,
       "norm_label": "code:r (# simulate.r \u2014 a minimal baseline run)"
     },
     {
@@ -17132,9 +17132,9 @@
       "source_file": "CLAUDE.md",
       "source_location": "L140",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "impactncd_engl_claude_code_conventions",
-      "target": "impactncd_engl_claude_exposure_table_resolution_exposure_definitions_file_name",
-      "confidence_score": 1.0
+      "target": "impactncd_engl_claude_exposure_table_resolution_exposure_definitions_file_name"
     },
     {
       "relation": "contains",
@@ -32183,5 +32183,5 @@
       "source_file": "inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model_2024.R"
     }
   ],
-  "built_at_commit": "50a65b645ddf261c92ee7c47823d05eebaacba1c"
+  "built_at_commit": "db26153d1738af49db935f418735389ebc145916"
 }
