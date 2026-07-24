@@ -282,6 +282,15 @@ Simulation <-
       # update_primary_prevention_scn ----
       #' @description Updates the primary prevention policy scenario
       #' @param method a function with synthpop as an argument that models the primary prevention policy.
+      #' @details If the scenario function changes a simulant's deprivation
+      #'   (`dimd`/`qimd`) -- e.g. to model a deprivation-reduction policy -- the
+      #'   forced values drive the simulation (they are live covariates for
+      #'   disease incidence/duration and the smoking model), but every OUTPUT
+      #'   (lifecourse, summaries, tables, equity indices and exposure tables) is
+      #'   stratified by each simulant's ORIGINAL, pre-scenario deprivation. The
+      #'   original is snapshotted before the scenario runs and restored after
+      #'   the simulation, automatically; scenarios that do not touch
+      #'   `dimd`/`qimd` are unaffected.
       #' @return The invisible self for chaining.
       update_primary_prevention_scn = function(method) {
         private$primary_prevention_scn <- method
@@ -3464,6 +3473,18 @@ Simulation <-
         }
         # message("Updating weights finished")
 
+        # Snapshot the pre-scenario (ORIGINAL) deprivation. Scenarios may force
+        # dimd/qimd to model deprivation-change policies. Those forced values
+        # must keep driving the simulation -- dimd/qimd are live covariates for
+        # disease incidence/duration (IMPACTncd_sim.cpp) and the smoking model
+        # (simsmok.cpp) -- but ALL outputs are stratified by each simulant's
+        # ORIGINAL deprivation. We therefore save the original dimd here (before
+        # any scenario runs) and restore it after simcpp(), just before export.
+        # Only dimd is stored: qimd is the standard decile->quintile collapse of
+        # dimd, so it is recreated from the restored dimd at that point. This is
+        # a no-op for scenarios that do not touch deprivation.
+        sp$pop[, dimd_orig := dimd]
+
         # Isolate tha rng state for the user defines scenarios
         rs <- .Random.seed
         dqrs <- dqrng_get_state()
@@ -3554,6 +3575,27 @@ Simulation <-
         ]
         setkey(sp$pop, pid, year)
         sp$pop[, pid_mrk := mk_new_simulant_markers(pid)]
+
+        # Restore the ORIGINAL (pre-scenario) deprivation for ALL outputs. The
+        # forced dimd/qimd have already driven the simulation (simcpp above);
+        # from here on every export path -- the ESP weights below, export_xps()
+        # (which reads qimd straight from sp$pop), the lifecourse parquet and
+        # hence every summary / table / equity index -- uses the simulant's
+        # original deprivation. No-op when the scenario did not change dimd/qimd.
+        if ("dimd_orig" %in% names(sp$pop)) {
+          sp$pop[, dimd := dimd_orig][, dimd_orig := NULL]
+          # qimd is the standard decile->quintile collapse of dimd (deciles
+          # 1-2 -> q1, 3-4 -> q2, ..., 9-10 -> q5; the same mapping as the
+          # qimd_lookup in Disease_class.R), so recreate it from the restored
+          # original dimd instead of storing a second snapshot column.
+          if ("qimd" %in% names(sp$pop)) {
+            qimd_lv <- c("1 most deprived", as.character(2:4), "5 least deprived")
+            sp$pop[, qimd := factor(
+              qimd_lv[c(1L, 1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L, 5L)][as.integer(dimd)],
+              levels = qimd_lv
+            )]
+          }
+        }
 
         # apply ESP weights
         to_agegrp(sp$pop, 5, 99)
