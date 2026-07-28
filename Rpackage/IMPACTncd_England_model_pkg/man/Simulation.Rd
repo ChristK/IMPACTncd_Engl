@@ -502,9 +502,10 @@ written to \verb{output_dir/tables/} (or \verb{output_dir/tables2agegrps/} when
 When \code{equity = TRUE}, equity slope-index tables are written as
 \verb{equity <metric> slope index by <strata> (not standardised).csv} for each of
 CPP, CYPP, DPP and net QALYs. These summarise how each cumulative benefit is
-distributed across DIMD deprivation deciles, using absolute and relative
-analogues of the Slope Index of Inequality and Relative Index of Inequality
-(see the \code{equity} argument).
+distributed across deprivation groups -- DIMD deciles by default, or IMD
+quintiles (\code{qimd}) if asked for via \code{strata$equity} -- using absolute and
+relative analogues of the Slope Index of Inequality and Relative Index of
+Inequality (see the \code{equity} argument).
 
 When \code{cea = TRUE}, cost-effectiveness tables are written as
 \verb{cost-effectiveness by <strata> (<perspective>-<scale>) (not standardised).csv},
@@ -552,7 +553,9 @@ comparator when computing differences between scenarios.}
 stratification; otherwise uses the standard age groups.}
       \item{\code{strata}}{Optional named list overriding the default stratification
 configuration. See examples in the file header for shape; passed
-through \code{private$build_strata_config()}.}
+through \code{private$build_strata_config()}. In the \code{equity} element,
+\code{"dimd"}/\code{"qimd"} select the deprivation gradient rather than a
+stratification, and \code{"year"} is required -- see the \code{equity} argument.}
       \item{\code{multicore}}{Logical. If \code{TRUE}, runs table-building tasks in
 parallel with single-threaded workers; otherwise runs sequentially.}
       \item{\code{cea}}{Logical. If \code{TRUE} (default), also build the cost-effectiveness
@@ -577,7 +580,7 @@ always included in the societal perspective regardless of this argument.}
       \item{\code{equity}}{Logical. If \code{TRUE} (default), also build the equity
 slope-index tables (absolute and relative analogues of the Slope Index of
 Inequality / Relative Index of Inequality) for the cumulative CPP, CYPP,
-DPP and net-QALYs benefits, distributed across DIMD deprivation deciles.
+DPP and net-QALYs benefits, distributed across deprivation groups.
 Written as \verb{equity <metric> slope index by <strata> (not standardised).csv}
 with a \code{type} column giving four indices: \code{AEI_total} (absolute equity
 index rescaled to the whole population = modelled total benefit gap between
@@ -589,10 +592,42 @@ index means the most deprived gain more (inequality-reducing). The
 deprivation gradient is fit per Monte-Carlo iteration and quantiled across
 iterations, following the SII/RII framework (Moreno-Betancur et al. 2015;
 Wagstaff et al. 1991) and, for cumulative benefits, Cookson et al. 2026.
-A gradient requires at least two DIMD deciles, so scenario-years that cover
-only one decile (e.g. interventions targeted at a single decile) have an
+A gradient requires at least two deprivation groups, so scenario-years that
+cover only one (e.g. interventions targeted at a single decile) have an
 undefined index and are omitted; the omission is reported when \code{logs} are
-enabled in the design.}
+enabled in the design.
+
+\strong{Output strata (\code{strata$equity}).} Each entry of the list is one output
+table, and any variable the summaries carry (\code{strata_for_output} in the
+sim_design YAML: \code{agegrp}, \code{sex}, \code{ethnicity}, \code{sha}, ...) can be an output
+stratum -- the gradient is then fit \emph{within} each stratum, exactly as
+filtering the summaries to that stratum and fitting without it would. Every
+entry must name \code{"year"}, because the benefit is accumulated over years and
+each row reports the benefit cumulated to that year against that year's
+reference population, so \code{year} defines the rows rather than subsetting
+them. \code{"mc"} and \code{"scenario"} are reserved. Variables the summaries do not
+carry raise a \code{warning()} and that table is skipped.
+
+\strong{Choosing the gradient axis (\code{dimd} vs \code{qimd}).} The gradient is fit over
+DIMD deciles by default. Name \code{"dimd"} and/or \code{"qimd"} in an entry of
+\code{strata$equity} to choose explicitly; unlike every other variable these do
+\emph{not} stratify, because the deprivation axis is consumed into the index. An
+entry naming both writes one table per axis, and an entry naming neither
+falls back to \code{dimd} so the built-in defaults keep producing exactly the
+files they always have. The chosen axis is echoed in a \code{gradient} column in
+every file, and (when the caller wrote it) in the filename suffix:
+\code{list(c("year", "sex", "qimd"))} writes
+\verb{equity cpp slope index by year-sex-qimd (not standardised).csv}. As in
+every other table family, \code{agegrp} is spelled \code{agegroup} in the suffix.
+Quintiles give a coarser, lower-variance gradient with less power to detect
+departures from linearity; deciles are usually preferable when available.
+\code{qimd} does \strong{not} need to be in \code{strata_for_output} -- if the summaries
+carry \code{dimd} it is derived by the standard decile-pair collapse, which is
+exact because event counts and populations are additive. The converse does
+not hold: a \code{dimd} gradient requires \code{dimd} in the summaries. If the
+requested axis is unavailable, or the summaries carry no deprivation column
+at all, a \code{warning()} is raised (not a \code{logs}-gated message) naming the
+tables that were skipped.}
       \item{\code{equity_ridit_reference}}{Character, one of \code{"comparator"} (default) or
 \code{"scenario"}. Chooses the population used to build the ridit (deprivation)
 ranks and the population weights for the equity slope-index regression --
