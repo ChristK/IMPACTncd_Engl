@@ -348,6 +348,25 @@ Standardisation is done using the 2013 European Standardised Population (ESP). F
 
 By default, non-standardised (ONS) tables are stratified by: year; year-sex; year-dimd; year-agegrp; year-agegrp-sex; year-agegrp-sex-dimd. ESP-standardised tables are stratified by: year; year-sex; year-dimd; year-sex-dimd.
 
+#### Deciles or quintiles (`dimd` vs `qimd`)
+
+**Every** table family can be stratified by IMD quintiles (`qimd`) instead of deciles (`dimd`), and `qimd` does **not** have to be listed in `strata_for_output` in the sim_design YAML. Whenever the loaded summaries carry `dimd`, a `qimd` column is derived from it by the standard decile-pair collapse (deciles 1–2 → quintile 1, and so on):
+
+```{r eval=FALSE}
+IMPACTncd$export_tables(strata = list(
+  ons          = list("year", c("year", "qimd"), c("year", "agegrp", "sex", "qimd")),
+  esp          = list("year", c("year", "qimd")),
+  mrtl_ons     = list("year", c("year", "qimd")),
+  mrtl_esp     = list("year", c("year", "qimd")),
+  disease_char = list("year", c("year", "qimd")),
+  equity       = list(c("year", "qimd"))
+))
+```
+
+The derivation is **exact**, not an approximation. Every aggregation groups by the requested strata first and then sums, so summing two deciles reproduces precisely what aggregating by quintile at summary time would have produced; rates follow automatically because they are formed as summed-numerator / summed-denominator *after* the group-by. Adding `qimd` to `strata_for_output` therefore changes nothing about the results — it only makes the summaries slightly larger, since `qimd` is a deterministic function of `dimd` and adds no grouping granularity.
+
+The converse does not hold. Deciles cannot be recovered from quintiles, so a `dimd` stratum genuinely requires `dimd` in `strata_for_output`. `dimd` is also unavailable in the `xps_*` (exposure) tables: `$export_xps()` writes those datasets quintile-based (`agegrp20`, `qimd`) during `$run()`, so they were always quintile-only.
+
 #### Discounting
 
 Discounting is applied **only** to the cost-effectiveness tables; the prevalence, incidence, mortality, QALY, cost and equity tables are reported undiscounted. QALYs and costs are discounted at a user-specified annual rate (default: 3.5%, UK NICE standard) via the present-value formula $PV = FV / (1 + r)^{(year - discount\_from\_year)}$. The discount rates are arguments of `export_tables()` (`qaly_discount_rate`, `cost_discount_rate`, `discount_from_year`) — they are the single source of truth and there is intentionally no `discounting` block in `sim_design.yaml`.
