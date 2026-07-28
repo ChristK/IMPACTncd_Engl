@@ -99,7 +99,7 @@ expect_true(res_pr$AEI_per100k < 0,
 # ===========================================================================
 validate_eq <- IMPACTncdEngland:::validate_equity_strata
 build_plans <- IMPACTncdEngland:::build_equity_plans
-dep_rank    <- IMPACTncdEngland:::equity_dep_rank
+dep_rank    <- IMPACTncdEngland:::deprivation_rank
 
 # --- validate_equity_strata: structural rules only -------------------------
 # Any variable the summaries carry can be an output stratum; whether it really
@@ -153,7 +153,7 @@ expect_equal(vapply(p_both, `[[`, character(1), "suffix"),
 expect_equal(build_plans(list(c("qimd", "year", "dimd"))),
              build_plans(list(c("year", "dimd", "qimd"))))
 
-# --- equity_dep_rank: 1 = most deprived, and no silent mis-mapping ---------
+# --- deprivation_rank: 1 = most deprived, and no silent mis-mapping ---------
 dimd_lv <- c("1 most deprived", as.character(2:9), "10 least deprived")
 qimd_lv <- c("1 most deprived", as.character(2:4), "5 least deprived")
 expect_equal(dep_rank(factor(dimd_lv, levels = dimd_lv), "dimd"), 1:10)

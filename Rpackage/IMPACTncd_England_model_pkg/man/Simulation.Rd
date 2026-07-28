@@ -553,9 +553,25 @@ comparator when computing differences between scenarios.}
 stratification; otherwise uses the standard age groups.}
       \item{\code{strata}}{Optional named list overriding the default stratification
 configuration. See examples in the file header for shape; passed
-through \code{private$build_strata_config()}. In the \code{equity} element,
-\code{"dimd"}/\code{"qimd"} select the deprivation gradient rather than a
-stratification, and \code{"year"} is required -- see the \code{equity} argument.}
+through \code{private$build_strata_config()}.
+
+Any element may be stratified by \code{"qimd"} (IMD quintiles) instead of
+\code{"dimd"} (deciles), and \code{qimd} does \strong{not} need to be listed in
+\code{strata_for_output} in the sim_design YAML: whenever the loaded summaries
+carry \code{dimd}, a \code{qimd} column is derived from it by the standard
+decile-pair collapse (deciles 1-2 -> quintile 1, and so on). That is exact
+rather than approximate, because every aggregation here groups first and
+then sums, so summing two deciles reproduces precisely what aggregating by
+quintile at summary time would have given -- and rates, which are formed as
+summed-numerator / summed-denominator after the group-by, follow
+automatically. The converse is impossible: deciles cannot be recovered from
+quintiles, so a \code{dimd} stratum requires \code{dimd} in the summaries, and is
+unavailable in the \verb{xps_*} elements because \verb{$export_xps()} writes those
+datasets quintile-based already.
+
+In the \code{equity} element only, \code{"dimd"}/\code{"qimd"} select the deprivation
+gradient rather than a stratification, and \code{"year"} is required -- see the
+\code{equity} argument.}
       \item{\code{multicore}}{Logical. If \code{TRUE}, runs table-building tasks in
 parallel with single-threaded workers; otherwise runs sequentially.}
       \item{\code{cea}}{Logical. If \code{TRUE} (default), also build the cost-effectiveness

@@ -111,25 +111,77 @@ calc_equity_slope_indices <- function(d, by) {
 }
 
 
-# Deprivation gradient axes supported by the equity slope-index tables, with
-# their canonical factor levels (repeated across the package, e.g.
-# Simulation_class.R, Disease_class.R, ExposureEffect_class.R). Order matters:
-# as.integer() on these gives the deprivation rank 1 = most deprived ..
-# K = least deprived, which is what the ridit ordering consumes.
-.equity_gradient_vars <- c("dimd", "qimd")
-.equity_gradient_levels <- list(
+# Deprivation axes the model reports on, with their canonical factor levels
+# (repeated across the package, e.g. Simulation_class.R, Disease_class.R,
+# ExposureEffect_class.R). Order matters: as.integer() on these gives the
+# deprivation rank 1 = most deprived .. K = least deprived.
+.deprivation_vars <- c("dimd", "qimd")
+.deprivation_levels <- list(
   dimd = c("1 most deprived", as.character(2:9), "10 least deprived"),
   qimd = c("1 most deprived", as.character(2:4), "5 least deprived")
 )
+
+# Standard decile -> quintile collapse (deciles 1,2 -> quintile 1, and so on),
+# matching `Simulation_class.R` run_sim() and `Disease_class.R`.
+.dimd_to_qimd <- c(1L, 1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L, 5L)
+
+
+# deprivation_rank ----
+# Deprivation rank (1 = most deprived .. K = least deprived) for a `dimd`/`qimd`
+# column. factor() silently returns NA for labels outside `levels`, and callers
+# use the rank only to order or collapse, so an unexpected level set would yield
+# a plausible-but-wrong result rather than any error (decile and quintile labels
+# even share four of five labels). Fail loudly instead.
+deprivation_rank <- function(x, var) {
+  levs <- .deprivation_levels[[var]]
+  r <- as.integer(factor(as.character(x), levels = levs))
+  if (anyNA(r)) {
+    stop(sprintf(
+      paste0("unexpected `%s` level(s) in the summaries: %s. Expected exactly: ",
+             "%s. The deprivation rank drives the ordering and the decile -> ",
+             "quintile collapse, so an unrecognised level would silently ",
+             "produce a wrong result."),
+      var,
+      paste(sQuote(unique(as.character(x)[is.na(r)])), collapse = ", "),
+      paste(sQuote(levs), collapse = ", ")
+    ), call. = FALSE)
+  }
+  r
+}
+
+
+# add_qimd_from_dimd ----
+# Adds a `qimd` (IMD quintile) column derived from `dimd` (IMD decile), in
+# place, so ANY table family can be stratified by quintiles without `qimd`
+# having been named in `strata_for_output`.
+#
+# This is a relabelling only -- the actual collapsing is then done by whatever
+# group-by the caller already performs, which is what makes it exact: summing
+# two deciles' counts (and popsize) reproduces precisely what aggregating by
+# quintile at summary time would have given, and rates built as
+# summed-numerator / summed-denominator follow automatically. The converse is
+# impossible: deciles cannot be recovered from quintiles.
+#
+# No-op (returning FALSE) when `dt` is NULL, already has `qimd`, or has no
+# `dimd` to derive from. Adding the column is harmless when unused: every
+# aggregation in this file selects value columns by anchored pattern, so `qimd`
+# is only ever carried into a result when it is named in the strata.
+add_qimd_from_dimd <- function(dt) {
+  if (is.null(dt) || "qimd" %in% names(dt) || !"dimd" %in% names(dt)) {
+    return(invisible(FALSE))
+  }
+  lv <- .deprivation_levels$qimd
+  dt[, qimd := factor(lv[.dimd_to_qimd][deprivation_rank(dimd, "dimd")],
+                      levels = lv)]
+  invisible(TRUE)
+}
+
+
 # Columns the equity tables manage themselves, so they cannot also be named as
 # an output stratum: `mc` is the Monte-Carlo axis the indices are quantiled
 # over, and `scenario` is always present because every index is a contrast
 # against the comparator.
 .equity_reserved_vars <- c("mc", "scenario")
-
-# Standard decile -> quintile collapse (deciles 1,2 -> quintile 1, and so on),
-# matching `Simulation_class.R` run_sim() and `Disease_class.R`.
-.equity_dimd_to_qimd <- c(1L, 1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L, 5L)
 
 
 # validate_equity_strata ----
@@ -179,8 +231,8 @@ validate_equity_strata <- function(strata) {
 # historical defaults -- and their filenames -- unchanged.
 build_equity_plans <- function(strata) {
   unlist(lapply(strata, function(s) {
-    out_vars <- setdiff(s, .equity_gradient_vars)   # keeps the caller's order
-    grads <- intersect(.equity_gradient_vars, s)    # canonical dimd, qimd order
+    out_vars <- setdiff(s, .deprivation_vars)   # keeps the caller's order
+    grads <- intersect(.deprivation_vars, s)    # canonical dimd, qimd order
     implicit <- length(grads) == 0L
     if (implicit) grads <- "dimd"
     lapply(grads, function(g) list(
@@ -196,30 +248,6 @@ build_equity_plans <- function(strata) {
       )
     ))
   }), recursive = FALSE)
-}
-
-
-# equity_dep_rank ----
-# Deprivation rank (1 = most deprived .. K = least deprived) for a `dimd`/`qimd`
-# column. `rank` is only ever used to ORDER the ridit and factor() silently
-# returns NA for labels outside `levels`, so an unexpected level set would yield
-# a mis-ordered gradient and a plausible-but-wrong index rather than any error
-# (decile and quintile labels even share four of five labels). Fail loudly.
-equity_dep_rank <- function(x, var) {
-  levs <- .equity_gradient_levels[[var]]
-  r <- as.integer(factor(as.character(x), levels = levs))
-  if (anyNA(r)) {
-    stop(sprintf(
-      paste0("equity tables: unexpected `%s` level(s) in the summaries: %s. ",
-             "Expected exactly: %s. The deprivation rank drives the ridit ",
-             "ordering, so an unrecognised level would silently produce a wrong ",
-             "slope index."),
-      var,
-      paste(sQuote(unique(as.character(x)[is.na(r)])), collapse = ", "),
-      paste(sQuote(levs), collapse = ", ")
-    ), call. = FALSE)
-  }
-  r
 }
 
 
@@ -246,8 +274,15 @@ equity_dep_rank <- function(x, var) {
 #   - sex: Sex (men/women)
 #   - agegrp: Age groups (5-year bands)
 #   - dimd: IMD deciles (10 levels: "1 most deprived" to "10 least deprived")
-#   - agegrp20: 20-year age groups (used in xps tables)
-#   - qimd: IMD quintiles (5 levels, used in xps and equity tables)
+#   - agegrp20: 20-year age groups (xps tables only)
+#   - qimd: IMD quintiles (5 levels)
+#
+#   `qimd` works in EVERY table family and does NOT need to be in
+#   `strata_for_output`: whenever the summaries carry `dimd` it is derived by
+#   the standard decile-pair collapse (see add_qimd_from_dimd()), which is
+#   exact. The converse does not hold -- `dimd` must really be in the
+#   summaries, and is unavailable in the xps tables, which are written
+#   quintile-based by export_xps().
 #
 #   For `equity`, any variable the summaries carry can be an output stratum
 #   (the gradient is then fit within it), and `year` is required. The
@@ -274,9 +309,19 @@ equity_dep_rank <- function(x, var) {
 #              c("year", "sex", "dimd"))
 # ))
 #
+# # Every table family by IMD quintiles. `qimd` need not be in
+# # strata_for_output -- it is derived from dimd whenever the summaries carry it
+# sim$export_tables(strata = list(
+#   ons          = list("year", c("year", "qimd"), c("year", "agegrp", "sex", "qimd")),
+#   esp          = list("year", c("year", "qimd")),
+#   mrtl_ons     = list("year", c("year", "qimd")),
+#   mrtl_esp     = list("year", c("year", "qimd")),
+#   disease_char = list("year", c("year", "qimd")),
+#   equity       = list(c("year", "qimd"))
+# ))
+#
 # # Equity indices over IMD quintiles instead of deciles, plus both gradients
-# # by year (qimd is derived from dimd if the summaries do not carry it), and a
-# # gradient fit within each age group
+# # by year, and a gradient fit within each age group
 # sim$export_tables(strata = list(
 #   equity = list(c("year", "dimd", "qimd"), c("year", "sex", "qimd"),
 #                 c("year", "agegrp"))
@@ -326,9 +371,25 @@ equity_dep_rank <- function(x, var) {
 #'   stratification; otherwise uses the standard age groups.
 #' @param strata Optional named list overriding the default stratification
 #'   configuration. See examples in the file header for shape; passed
-#'   through `private$build_strata_config()`. In the `equity` element,
-#'   `"dimd"`/`"qimd"` select the deprivation gradient rather than a
-#'   stratification, and `"year"` is required -- see the `equity` argument.
+#'   through `private$build_strata_config()`.
+#'
+#'   Any element may be stratified by `"qimd"` (IMD quintiles) instead of
+#'   `"dimd"` (deciles), and `qimd` does **not** need to be listed in
+#'   `strata_for_output` in the sim_design YAML: whenever the loaded summaries
+#'   carry `dimd`, a `qimd` column is derived from it by the standard
+#'   decile-pair collapse (deciles 1-2 -> quintile 1, and so on). That is exact
+#'   rather than approximate, because every aggregation here groups first and
+#'   then sums, so summing two deciles reproduces precisely what aggregating by
+#'   quintile at summary time would have given -- and rates, which are formed as
+#'   summed-numerator / summed-denominator after the group-by, follow
+#'   automatically. The converse is impossible: deciles cannot be recovered from
+#'   quintiles, so a `dimd` stratum requires `dimd` in the summaries, and is
+#'   unavailable in the `xps_*` elements because `$export_xps()` writes those
+#'   datasets quintile-based already.
+#'
+#'   In the `equity` element only, `"dimd"`/`"qimd"` select the deprivation
+#'   gradient rather than a stratification, and `"year"` is required -- see the
+#'   `equity` argument.
 #' @param multicore Logical. If `TRUE`, runs table-building tasks in
 #'   parallel with single-threaded workers; otherwise runs sequentially.
 #' @param cea Logical. If `TRUE` (default), also build the cost-effectiveness
@@ -1174,6 +1235,10 @@ Simulation$set("private", "export_main_tables", function(
       if (is.null(tt_base)) next
       # Convert year from short format (19) to full format (2019)
       tt_base[, year := year + 2000L]
+      # Allow `qimd` strata even when the summaries only carry `dimd`. Every
+      # aggregation below selects value columns by anchored pattern, so the
+      # extra column is inert unless it is named in the strata.
+      add_qimd_from_dimd(tt_base)
 
       # Also load prvl for ftlt metrics (case fatality denominator)
       prvl_for_ftlt <- NULL
@@ -1181,6 +1246,7 @@ Simulation$set("private", "export_main_tables", function(
         prvl_for_ftlt <- private$read_summary_dataset("prvl", pop_key)
         if (!is.null(prvl_for_ftlt)) {
           prvl_for_ftlt[, year := year + 2000L]
+          add_qimd_from_dimd(prvl_for_ftlt)
         }
       }
 
@@ -1294,9 +1360,12 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
       # Map agegrp to agegroup in suffix for backwards compatibility
       suffix <- gsub("agegrp", "agegroup", suffix)
       if (standardised) {
-        # Determine what was standardised by (variables NOT in strata)
+        # Determine what was standardised by (variables NOT in strata).
+        # `qimd` retains the deprivation axis just as `dimd` does (coarser),
+        # so a qimd stratum must not be reported as standardised over dimd.
         possible_vars <- c("age", "sex", "dimd")
-        standardised_vars <- setdiff(possible_vars, s)
+        s_axes <- if ("qimd" %in% s) c(s, "dimd") else s
+        standardised_vars <- setdiff(possible_vars, s_axes)
         std_suffix <- paste(standardised_vars, collapse = "-")
         list(strata = outstrata, suffix = suffix, std = std_suffix)
       } else {
@@ -1314,6 +1383,10 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
   if (!is.null(tt_scaled)) tt_scaled[, year := year + 2000L]
   if (!is.null(pp_scaled)) pp_scaled[, year := year + 2000L]
   if (!is.null(tt_esp)) tt_esp[, year := year + 2000L]
+  # Allow `qimd` strata even when the summaries only carry `dimd`
+  add_qimd_from_dimd(tt_scaled)
+  add_qimd_from_dimd(pp_scaled)
+  add_qimd_from_dimd(tt_esp)
 
   # ---- Non-standardised with disease denominator ----
   if (!is.null(tt_scaled)) {
@@ -1414,6 +1487,8 @@ Simulation$set("private", "export_disease_characteristics_tables", function(
 
   # Convert year from short format (19) to full format (2019)
   tt[, year := year + 2000L]
+  # Allow `qimd` strata even when the summaries only carry `dimd`
+  add_qimd_from_dimd(tt)
 
   # Type conversion if needed
   if ("mean_cms_count_cms1st_cont" %in% names(tt)) {
@@ -1677,6 +1752,9 @@ Simulation$set("private", "export_cea_tables", function(
   # baseline-year filtering and discounting use the same scale as the args.
   qalys[, year := year + 2000L]
   costs[, year := year + 2000L]
+  # Allow `qimd` strata even when the summaries only carry `dimd`
+  add_qimd_from_dimd(qalys)
+  add_qimd_from_dimd(costs)
 
   # Need at least one intervention scenario to compare against the comparator
   non_comparator <- setdiff(unique(qalys$scenario), comparator_scenario)
@@ -1880,13 +1958,13 @@ Simulation$set("private", "export_equity_tables", function(
     # A missing deprivation column means NO equity table at all, so say so
     # unconditionally rather than under `logs` -- an otherwise silent no-op is
     # indistinguishable from the feature having run.
-    if (!any(.equity_gradient_vars %in% names(tt))) {
+    if (!any(.deprivation_vars %in% names(tt))) {
       warning(sprintf(
         paste0("equity tables: the `%s` summary has no deprivation column ",
                "(looked for %s), so no equity %s tables were written. Add ",
                "`dimd` to `strata_for_output` in the sim_design YAML and re-run ",
                "$export_summaries()."),
-        cfg$source, paste(.equity_gradient_vars, collapse = "/"), metric),
+        cfg$source, paste(.deprivation_vars, collapse = "/"), metric),
         call. = FALSE, immediate. = TRUE)
       rm(tt); next
     }
@@ -1930,22 +2008,11 @@ Simulation$set("private", "export_equity_tables", function(
       rm(tt); next
     }
 
-    # `qimd` is the standard decile -> quintile collapse of `dimd`, and every
-    # equity input (event counts and popsize) is additive, so summing pairs of
-    # deciles reproduces *exactly* what aggregating by qimd at summary time
-    # would have produced. Derive it on demand rather than forcing the user to
-    # add `qimd` to `strata_for_output` and re-run $export_summaries(). The
-    # reverse is impossible: deciles cannot be recovered from quintiles.
-    if ("qimd" %in% wanted_grads && !"qimd" %in% names(tt) &&
-        "dimd" %in% names(tt)) {
-      qimd_lv <- .equity_gradient_levels$qimd
-      tt[, qimd := factor(
-        qimd_lv[.equity_dimd_to_qimd][equity_dep_rank(dimd, "dimd")],
-        levels = qimd_lv
-      )]
-      if (self$design$sim_prm$logs) {
-        message("  ", metric, ": derived qimd quintiles from dimd deciles")
-      }
+    # Derive `qimd` on demand so a quintile gradient does not require `qimd` in
+    # `strata_for_output` (see add_qimd_from_dimd()).
+    if ("qimd" %in% wanted_grads && add_qimd_from_dimd(tt) &&
+        self$design$sim_prm$logs) {
+      message("  ", metric, ": derived qimd quintiles from dimd deciles")
     }
 
     for (p in plans) {                        # out_vars always contains "year"
@@ -1956,7 +2023,7 @@ Simulation$set("private", "export_equity_tables", function(
                  "summary has no `%s` column and it cannot be derived from the ",
                  "columns present (%s); skipping 'equity %s slope index by %s'."),
           grad, cfg$source, grad,
-          paste(intersect(.equity_gradient_vars, names(tt)), collapse = ", "),
+          paste(intersect(.deprivation_vars, names(tt)), collapse = ", "),
           metric, p$suffix),
           call. = FALSE, immediate. = TRUE)
         next
@@ -2036,7 +2103,7 @@ Simulation$set("private", "export_equity_tables", function(
         d <- rbind(d, tot, fill = TRUE)
       }
 
-      set(d, j = "rank", value = equity_dep_rank(d[[grad]], grad))
+      set(d, j = "rank", value = deprivation_rank(d[[grad]], grad))
 
       # A deprivation gradient needs at least two groups. Scenario-years
       # covering a single group (e.g. interventions targeted at one decile, or

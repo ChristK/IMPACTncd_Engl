@@ -78,6 +78,19 @@ That mapping is **many-to-one**, so listing both sides of a pair used to yield
 `xps_strata_from_output()` (`Simulation_class.R`) now de-duplicates it. Tests:
 `test_xps_strata_from_output.R`.
 
+**Deciles vs quintiles (any table family).** Every `strata` element accepts `qimd`
+instead of `dimd`, and `qimd` need **not** be in `strata_for_output`: whenever a loaded
+summary carries `dimd`, `add_qimd_from_dimd()` (`Simulation_class_tables.R`) relabels it
+into quintiles and the caller's existing group-by does the collapsing. That is **exact** —
+aggregations group-then-sum, so summing two deciles equals aggregating by quintile at
+summary time, and rates follow since they are summed-numerator/summed-denominator *after*
+the group-by. Putting `qimd` in `strata_for_output` changes no result, only file size
+(it adds no grouping granularity). The converse is impossible: `dimd` strata need `dimd`
+in the summaries, and are unavailable in the `xps_*` tables (export_xps writes those
+quintile-based). Shared deprivation helpers: `.deprivation_vars`, `.deprivation_levels`,
+`.dimd_to_qimd`, `deprivation_rank()` (errors on unrecognised labels rather than
+silently mis-mapping). Tests: `test_qimd_derivation.R`.
+
 **Equity strata + gradient axis.** Each entry of `strata$equity` is one table. Any
 column the summaries carry (`strata_for_output`) can be an output stratum — the gradient
 is fit *within* it, identically to filtering to that stratum and fitting without it.
