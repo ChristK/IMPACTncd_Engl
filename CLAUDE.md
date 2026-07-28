@@ -70,6 +70,23 @@ support in the vignette). Core math lives in
 `calc_equity_slope_indices()` / `export_equity_tables()` in `Simulation_class_tables.R`; see
 `vignette("understanding_model_outputs")`.
 
+**Equity strata + gradient axis.** Each entry of `strata$equity` is one table. Any
+column the summaries carry (`strata_for_output`) can be an output stratum — the gradient
+is fit *within* it, identically to filtering to that stratum and fitting without it.
+Exceptions: `dimd`/`qimd` don't stratify, they *select the gradient axis* (deprivation is
+consumed into the index); one token → that axis, both → one table per axis, neither →
+`dimd` so the defaults keep their historical filenames. Enforced: `year` is required
+(rows are cumulative-to-that-year against that year's reference population), `mc`/
+`scenario` are reserved. The axis is echoed in a `gradient` column and (when the caller
+wrote it) in the filename suffix, where `agegrp` is rewritten to `agegroup` as in every
+other table family. `qimd` need not be in `strata_for_output` — it is
+derived from `dimd` by the standard decile-pair collapse, which is **exact** (counts are
+additive and collapsing adjacent groups preserves the ridit midpoint, so a linear
+gradient gives an identical SII); the reverse is impossible. Unavailable
+gradient/stratum columns and a missing comparator scenario raise `warning()`s, not
+`logs`-gated messages, and skip only the affected table. `two_agegrps` collapses `agegrp`
+here too. Tests: `test_equity_slope_index.R`, `test_export_equity_tables.R`.
+
 ### Testing
 ```r
 tinytest::test_package("IMPACTncdEngland")

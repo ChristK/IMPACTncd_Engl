@@ -92,3 +92,98 @@ res_pr <- calc(data.table(rank = rank, N = N, B = y_prorich * N),
                by = character(0))
 expect_true(res_pr$AEI_per100k < 0,
             info = "pro-rich gradient gives a negative absolute index")
+
+
+# ===========================================================================
+# Gradient-axis selection (dimd vs qimd)
+# ===========================================================================
+validate_eq <- IMPACTncdEngland:::validate_equity_strata
+build_plans <- IMPACTncdEngland:::build_equity_plans
+dep_rank    <- IMPACTncdEngland:::equity_dep_rank
+
+# --- validate_equity_strata: structural rules only -------------------------
+# Any variable the summaries carry can be an output stratum; whether it really
+# exists is checked against the data in export_equity_tables(), not here.
+expect_silent(validate_eq(list("year", c("year", "sex"))))
+expect_silent(validate_eq(list(c("year", "dimd"), c("year", "qimd"))))
+expect_silent(validate_eq(list(c("year", "sex", "dimd", "qimd"))))
+expect_silent(validate_eq(list(c("year", "agegrp", "sex", "qimd"))))
+expect_silent(validate_eq(list(c("year", "ethnicity"), c("year", "sha"))))
+
+expect_error(validate_eq(list(c("sex", "dimd"))),
+             pattern = "must include",
+             info = "an equity stratum without year is rejected")
+expect_error(validate_eq(list(c("year", "sex", "sex"))),
+             pattern = "duplicated")
+expect_error(validate_eq(list(c("year", "mc"))), pattern = "reserved column",
+             info = "mc is the Monte-Carlo axis, not a stratum")
+expect_error(validate_eq(list(c("year", "scenario"))),
+             pattern = "reserved column")
+expect_error(validate_eq(list(character(0))), pattern = "non-empty")
+expect_error(validate_eq(list(1:2)), pattern = "non-empty")
+expect_error(validate_eq("year"), pattern = "must be a list")
+
+# --- build_equity_plans: one plan per output table -------------------------
+# No gradient token -> dimd, and the historical filename suffix is preserved.
+p_implicit <- build_plans(list("year", c("year", "sex")))
+expect_equal(length(p_implicit), 2L)
+expect_equal(vapply(p_implicit, `[[`, character(1), "gradient"),
+             c("dimd", "dimd"), info = "no token falls back to dimd")
+expect_equal(vapply(p_implicit, `[[`, character(1), "suffix"),
+             c("year", "year-sex"),
+             info = "implicit dimd keeps the historical filename suffix")
+
+# One token -> that gradient, echoed in the suffix.
+p_q <- build_plans(list(c("year", "qimd"), c("year", "sex", "qimd")))
+expect_equal(vapply(p_q, `[[`, character(1), "gradient"), c("qimd", "qimd"))
+expect_equal(vapply(p_q, `[[`, character(1), "suffix"),
+             c("year-qimd", "year-sex-qimd"))
+expect_equal(p_q[[2L]]$out_vars, c("year", "sex"),
+             info = "the gradient token is not an output stratum")
+
+# Both tokens in one entry -> one table per gradient.
+p_both <- build_plans(list(c("year", "dimd", "qimd")))
+expect_equal(length(p_both), 2L, info = "both tokens -> two tables")
+expect_equal(vapply(p_both, `[[`, character(1), "gradient"), c("dimd", "qimd"))
+expect_equal(vapply(p_both, `[[`, character(1), "suffix"),
+             c("year-dimd", "year-qimd"),
+             info = "the two tables get distinct filenames")
+
+# Token order in the entry does not matter; gradients come out canonical.
+expect_equal(build_plans(list(c("qimd", "year", "dimd"))),
+             build_plans(list(c("year", "dimd", "qimd"))))
+
+# --- equity_dep_rank: 1 = most deprived, and no silent mis-mapping ---------
+dimd_lv <- c("1 most deprived", as.character(2:9), "10 least deprived")
+qimd_lv <- c("1 most deprived", as.character(2:4), "5 least deprived")
+expect_equal(dep_rank(factor(dimd_lv, levels = dimd_lv), "dimd"), 1:10)
+expect_equal(dep_rank(qimd_lv, "qimd"), 1:5)
+expect_equal(dep_rank(rev(dimd_lv), "dimd"), 10:1,
+             info = "rank follows the label, not the row order")
+
+# The trap this guards: quintile labels share 4 of 5 labels with decile labels,
+# so a column named `dimd` holding quintiles maps to 1,2,3,4,NA -- a silently
+# mis-ordered gradient. It must stop, not return a plausible wrong number.
+expect_error(dep_rank(qimd_lv, "dimd"), pattern = "unexpected `dimd` level",
+             info = "quintile labels in a dimd column are rejected")
+expect_error(dep_rank(c("1 most deprived", "banana"), "dimd"),
+             pattern = "unexpected `dimd` level")
+
+# --- The decile -> quintile collapse preserves a linear gradient exactly ---
+# Collapsing adjacent groups keeps the population-weighted ridit midpoint
+# (the algebra cancels for ANY population split), so a benefit that is exactly
+# linear in the ridit yields the IDENTICAL slope index over 5 quintiles as over
+# 10 deciles. This is what makes `qimd` a legitimate coarser gradient, and what
+# makes deriving qimd from dimd by summing exact rather than approximate.
+dimd_to_qimd <- c(1L, 1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L, 5L)
+y_lin <- 2 + 5 * ridit                       # no noise: exactly linear
+dec <- data.table(rank = rank, N = N, B = y_lin * N)
+# Both rank scales run 1 = most deprived, so deciles 1,2 -> quintile 1 directly.
+qui <- dec[, .(N = sum(N), B = sum(B)), keyby = .(rank = dimd_to_qimd[rank])]
+expect_equal(nrow(qui), 5L)
+expect_equal(calc(dec, by = character(0))$AEI_per100k,
+             calc(qui, by = character(0))$AEI_per100k,
+             info = "quintile SII == decile SII for an exactly linear gradient")
+expect_equal(calc(dec, by = character(0))$AEI_total,
+             calc(qui, by = character(0))$AEI_total,
+             info = "quintile AEI_total == decile AEI_total (same reference pop)")

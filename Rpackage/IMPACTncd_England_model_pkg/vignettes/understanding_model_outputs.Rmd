@@ -291,7 +291,7 @@ Generated from the xps output files for both non-standardised (xps20, 20-year ag
 
 Produced when `equity = TRUE` (the default). These summarise how each cumulative policy benefit is distributed across the socioeconomic gradient, using absolute and relative analogues of the **Slope Index of Inequality (SII)** and **Relative Index of Inequality (RII)**. Files are named `equity <metric> slope index by <strata> (not standardised).csv`, one per metric (`cpp`, `cypp`, `dpp`, `net_qalys`) and stratum (`year`, `year-sex`).
 
-For each metric, scenario, year (and sex), and disease, the deprivation gradient is fit **across the ten DIMD deciles per Monte-Carlo iteration** and then quantiled across iterations (so the uncertainty comes from the model's own Monte-Carlo draws — no bootstrap). Each decile is assigned a population-weighted midpoint cumulative rank (a *ridit* score) in \([0, 1]\), ordered from least deprived (\(r \to 0\)) to most deprived (\(r \to 1\)), and the **population-weighted OLS slope** of the per-capita cumulative benefit on the ridit score is the SII. A `type` column gives four indices:
+For each metric, scenario, year (and sex), and disease, the deprivation gradient is fit **across the ten DIMD deciles per Monte-Carlo iteration** and then quantiled across iterations (so the uncertainty comes from the model's own Monte-Carlo draws — no bootstrap). Each decile is assigned a population-weighted midpoint cumulative rank (a *ridit* score) in \([0, 1]\), ordered from least deprived (\(r \to 0\)) to most deprived (\(r \to 1\)), and the **population-weighted OLS slope** of the per-capita cumulative benefit on the ridit score is the SII. A `gradient` column records which deprivation axis was used (see below), and a `type` column gives four indices:
 
 | type | Meaning |
 |:-----|:--------|
@@ -302,7 +302,33 @@ For each metric, scenario, year (and sex), and disease, the deprivation gradient
 
 All four metrics are "goods", so the **sign convention is pro-poor**: a positive index means the most deprived gain more (inequality-reducing); a negative index is pro-rich (inequality-widening). For `cpp`/`cypp` a `disease` value of `all_diseases_sum` gives the index for the sum of disease-specific event counts (which carries comorbidity multiplicity and is not a count of unique people); `dpp` is all-cause and `net_qalys` is a single total. Only the non-standardised (actual population) variant is produced, because age-standardising across deciles would defeat the purpose of describing the real deprivation distribution.
 
-A slope index needs **at least two DIMD deciles**. Scenario-years that cover only one decile — for example an intervention targeted at a single decile, or a scenario whose later years only touch one decile — have no gradient, so those rows are omitted (the omission is reported in the logs). Scenarios that cover only a few deciles still produce an index, but it is a coarser estimate of the gradient than one spanning all ten.
+A slope index needs **at least two deprivation groups**. Scenario-years that cover only one — for example an intervention targeted at a single decile, or a scenario whose later years only touch one decile — have no gradient, so those rows are omitted (the omission is reported in the logs). Scenarios that cover only a few deciles still produce an index, but it is a coarser estimate of the gradient than one spanning all ten.
+
+**Output strata and the gradient axis (`strata$equity`).** Each entry of the `equity` element of `strata` is one output table. Any variable the summaries carry (whatever is in `strata_for_output` in the sim_design YAML — `agegrp`, `sex`, `ethnicity`, `sha`, …) can be an output stratum: the gradient is then fit **within** each stratum, exactly as filtering the summaries down to that stratum and fitting without it would.
+
+The exception is `dimd`/`qimd`. Unlike every other strata list, these do **not** stratify the output — the deprivation axis is consumed into the index — they *select* which axis the index is fit over. Name `"qimd"` to fit over IMD quintiles instead of deciles; name both to get one table per axis:
+
+```{r eval=FALSE}
+IMPACTncd$export_tables(strata = list(
+  equity = list(c("year", "dimd", "qimd"),   # both axes, by year
+                c("year", "sex", "qimd"),    # quintiles, by year and sex
+                c("year", "agegrp"))         # deciles, within each age group
+))
+# -> equity cpp slope index by year-dimd (not standardised).csv
+#    equity cpp slope index by year-qimd (not standardised).csv
+#    equity cpp slope index by year-sex-qimd (not standardised).csv
+#    equity cpp slope index by year-agegroup (not standardised).csv
+```
+
+(As in every other table family, `agegrp` is spelled `agegroup` in the filename.)
+
+Two rules are enforced. Every entry must include `year`: the benefit is accumulated over years and each output row reports the benefit cumulated *to* that year against *that year's* reference population, so `year` defines the rows rather than merely subsetting them. And `mc`/`scenario` are reserved (`mc` is the Monte-Carlo axis the indices are quantiled over; `scenario` is always present, since every index is a contrast against the comparator). A variable the summaries do not carry raises a warning and that table is skipped — it is never silently dropped, which used to produce a mislabelled copy of a coarser table. An entry naming neither `dimd` nor `qimd` falls back to deciles, so the defaults — `list("year", c("year", "sex"))` — keep producing exactly the files they always have.
+
+Note that stratifying makes each gradient sparser: with `c("year", "agegrp")` the ridit ranks and regression weights come from the deprivation distribution *within* that age group, so the result is an age-specific SII. These are legitimate but are **not additive** to the overall SII, and narrow strata give noisier indices.
+
+`qimd` does **not** need to be added to `strata_for_output` in the sim_design YAML: if the summaries carry `dimd`, quintiles are derived by the standard decile-pair collapse (deciles 1–2 → quintile 1, and so on). That derivation is *exact* rather than approximate, because event counts and populations are additive and collapsing adjacent groups preserves the population-weighted ridit midpoint — for a benefit that is exactly linear in the ridit, the quintile SII equals the decile SII identically. The converse does not hold: deciles cannot be recovered from quintiles, so a `dimd` gradient does require `dimd` in the summaries. Quintiles give a coarser, lower-variance gradient with less power to detect departures from linearity, so prefer deciles when they are available; quintiles are mainly useful for comparability with external analyses that report by quintile, or for small localities where decile cells are sparse.
+
+If the summaries carry no deprivation column at all (e.g. `strata_for_output` omits `dimd`), or a requested axis or stratification variable cannot be produced, `export_tables()` raises a **warning** naming the tables it skipped — it is not gated on `logs`, so a run with logging off will not silently produce nothing.
 
 **Choosing the ridit reference population (`equity_ridit_reference`).** The ridit ranks and the regression weights depend on how many people sit in each decile. The `equity_ridit_reference` argument of `export_tables()` controls which population supplies those decile sizes:
 
@@ -332,6 +358,7 @@ Discounting is applied **only** to the cost-effectiveness tables; the prevalence
 - **year**; **agegrp**; **sex**; **dimd** : stratification variables (present depending on strata level)
 - **disease** : disease name (for disease-stratified tables)
 - **type** : characteristic type (for disease characteristics tables, e.g. mean_duration, mean_age_incd; for equity slope-index tables one of AEI_total, AEI_per100k, REI_rel, RII_ratio)
+- **gradient** : (equity slope-index tables only) the deprivation axis the index was fit over — `dimd` (IMD deciles) or `qimd` (IMD quintiles)
 - **scale** : utility scale used (for QALYs tables, currently EQ5D5L)
 - **costs_type** : cost category (for costs tables: healthcare_cost, socialcare_cost, informalcare_cost, economic_output)
 - **parameter_percentile** columns : the parameter value at each uncertainty level (2.5%, 10%, 50%, 90%, 97.5%), with column prefix depending on parameter type (e.g. `prvl_rate_50.0%`, `qalys_50.0%`, `costs_50.0%`)
