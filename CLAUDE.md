@@ -70,6 +70,14 @@ support in the vignette). Core math lives in
 `calc_equity_slope_indices()` / `export_equity_tables()` in `Simulation_class_tables.R`; see
 `vignette("understanding_model_outputs")`.
 
+**`strata_for_output` with both `dimd` and `qimd`.** The xps tables map `agegrp ->
+agegrp20` and `dimd -> qimd` (exposures are reported in 20-year bands and quintiles).
+That mapping is **many-to-one**, so listing both sides of a pair used to yield
+`by = c(..., "qimd", "qimd")` and crash every parallel task of `run()` inside
+`groupingsets()` with "Argument 'by' must have unique column names for grouping".
+`xps_strata_from_output()` (`Simulation_class.R`) now de-duplicates it. Tests:
+`test_xps_strata_from_output.R`.
+
 **Equity strata + gradient axis.** Each entry of `strata$equity` is one table. Any
 column the summaries carry (`strata_for_output`) can be an output stratum — the gradient
 is fit *within* it, identically to filtering to that stratum and fitting without it.

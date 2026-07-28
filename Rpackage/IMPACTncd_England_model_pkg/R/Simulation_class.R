@@ -32,6 +32,30 @@
   FALSE
 }
 
+
+# xps_strata_from_output ----
+# Stratification variables for the exposure (xps) tables, derived from the
+# design's `strata_for_output`. Exposures are reported in 20-year age bands and
+# IMD quintiles, so `agegrp` -> `agegrp20` and `dimd` -> `qimd`; `scenario` and
+# `year` are handled separately by export_xps() and dropped here.
+#
+# The mapping is many-to-one, so a `strata_for_output` naming both sides of a
+# pair -- e.g. BOTH `dimd` and `qimd`, which is a legitimate design because the
+# summaries then carry both -- would otherwise yield the same target twice.
+# `groupingsets()` errors on a duplicated `by` ("Argument 'by' must have unique
+# column names for grouping"), which surfaced as an opaque failure of every
+# parallel task in run(). De-duplicate, keeping first-occurrence order.
+xps_strata_from_output <- function(strata_for_output) {
+  raw <- setdiff(strata_for_output, c("scenario", "year"))
+  var_map <- c("agegrp" = "agegrp20", "dimd" = "qimd")
+  unique(vapply(
+    raw,
+    function(v) if (v %in% names(var_map)) var_map[[v]] else v,
+    character(1),
+    USE.NAMES = FALSE
+  ))
+}
+
 # From
 # https://stackoverflow.com/questions/33424233/how-do-i-tell-an-r6-class-what-to-do-with-square-brackets
 # Allows data.table syntax to the R6class object directly. Assumes it has a
@@ -3869,20 +3893,11 @@ Simulation <-
               )
             ]
 
-            # Build xps stratification variables dynamically from strata_for_output
-            # Mapping: agegrp -> agegrp20 (20-year bands for xps), dimd -> qimd
-            xps_strata_raw <- setdiff(
-              self$design$sim_prm$strata_for_output,
-              c("scenario", "year")
-            )
-            xps20_var_map <- c("agegrp" = "agegrp20", "dimd" = "qimd")
-            xps20_strata <- vapply(
-              xps_strata_raw,
-              function(v) {
-                if (v %in% names(xps20_var_map)) xps20_var_map[[v]] else v
-              },
-              character(1),
-              USE.NAMES = FALSE
+            # Build xps stratification variables dynamically from
+            # strata_for_output (agegrp -> agegrp20, dimd -> qimd, de-duplicated
+            # -- see xps_strata_from_output()).
+            xps20_strata <- xps_strata_from_output(
+              self$design$sim_prm$strata_for_output
             )
             # Generate all subset combinations for groupingsets
             xps20_subsets <- unlist(
