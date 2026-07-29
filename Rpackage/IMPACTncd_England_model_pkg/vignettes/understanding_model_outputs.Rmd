@@ -24,7 +24,7 @@ knitr::include_graphics("img/output_folder.jpg")
 
 -   The main folders to check initially after running a simulation are **tables**; **summaries**; **lifecourse**; and **xps**
 
--   Usually **logs** folder is used for debugging as it logs baseline and other scenarios
+-   Usually **logs** folder is used for debugging as it logs baseline and other scenarios -- see [logs Folder] for what each file in it contains
 
 -   Usually plots remain empty unless we generate plots
 
@@ -85,6 +85,47 @@ knitr::include_graphics("img/output_folder.jpg")
 -   "**copd**" : Chronic Obstructive Pulmonary Disease (COPD)
 -   "**Chd**" : Coronary Heart disease
 -   "**pain**" : chronic pain
+
+### logs Folder
+
+Present only when `logs: yes` in the design YAML. It holds three kinds of file:
+
+-   **`times.txt`** -- one timestamped line per phase boundary and per Monte
+    Carlo iteration (`Start/End mc iteration <n>`, `Start/End of
+    parallelisation`, the export phases). This is the file to read first when a
+    run took longer than expected: it lets you separate compute time from
+    waiting, and recover the realised worker concurrency.
+
+-   **`log<mc>.txt`** -- one file per synthpop iteration, holding that worker's
+    own console output. Workers redirect their own output here, which is why a
+    problem in the parent process does not show up in them.
+
+-   **`console.txt`** -- everything the *parent* process would otherwise have
+    printed to the terminal during `run()`, `export_summaries()` and
+    `export_tables()`, including `foreach`'s `.verbose` task bookkeeping.
+    Phases append, each behind a `===== <phase> at: <timestamp> =====` banner.
+
+`console.txt` exists for two reasons. The obvious one is that terminal
+scrollback is finite and disappears, so without it the record of a run is lost.
+The subtler one is that writing a large burst of output *to a terminal* is
+dangerous for a long job: if that terminal's output has been stopped -- a stray
+`^S` sets this, and it survives detaching a `screen`/`tmux` session -- the
+process blocks in `write()` indefinitely, consuming no CPU, producing no error,
+and looking exactly like a hung simulation. `foreach(.verbose = TRUE)` emits all
+of its per-task bookkeeping in a single burst when the loop returns (~21 KB for
+a 200-iteration run), which is precisely the shape of write that triggers this.
+A regular file has no terminal line discipline and cannot be stopped this way.
+
+Two caveats. This is an **R-level** redirect: it captures `cat`/`print`/
+`message` and Rcpp's `Rcout`, but not writes that a linked C library (arrow,
+libgomp, BLAS) makes straight to file descriptors 1/2. And it is released on
+exit -- including on error -- so a fatal error is still printed to your
+terminal rather than disappearing into the file. For unattended runs, belt and
+braces, also redirect at the shell:
+
+``` bash
+Rscript scenarios/my_scenario.R > /path/to/output/logs/shell.log 2>&1
+```
 
 ### lifecourse Folder
 

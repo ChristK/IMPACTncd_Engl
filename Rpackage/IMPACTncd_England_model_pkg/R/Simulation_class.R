@@ -358,6 +358,17 @@ Simulation <-
       #'   "bmi_reduction_10pc"). Avoid hyphens, spaces, or other special
       #'   characters as these can cause issues in internal SQL queries.
       #'   The baseline scenario must always be named "sc0".
+      #' @details When `logs: yes` in the design YAML, everything this method
+      #'   would print to the console -- including `foreach`'s own `.verbose`
+      #'   task bookkeeping -- is redirected to
+      #'   `<output_dir>/logs/console.txt` for the duration of the run, and
+      #'   restored on exit (including on error, so failures are still shown
+      #'   on the terminal). This keeps a permanent record next to
+      #'   `times.txt`, and keeps a large burst of output off a terminal,
+      #'   where a stopped tty can block the process indefinitely. It is an
+      #'   R-level redirect and does not capture writes a linked C library
+      #'   makes straight to file descriptors 1/2; for unattended runs also
+      #'   redirect at the shell (`Rscript my_scenario.R > run.log 2>&1`).
       #' @return The invisible self for chaining.
       run = function(mc, multicore = TRUE, scenario_nam) {
         if (!private$data_initialized) {
@@ -387,6 +398,23 @@ Simulation <-
             call. = FALSE
           )
         }
+
+        # Sink depth on entry, so the safety cleanup at the end of run() can
+        # unwind what run() leaked without touching sinks the caller owns
+        # (capture.output(), knitr, tinytest's expect_silent(), ...).
+        entry_sink_depth <- sink.number(type = "output")
+
+        # Send console output to logs/console.txt for the whole run, so a
+        # burst of output can never block on a wedged terminal. Registered
+        # before anything that can fail, and unwound by on.exit() so that a
+        # fatal error is still printed to the terminal rather than swallowed
+        # by the sink.
+        private$start_console_log(paste0(
+          "run(",
+          if (missing(scenario_nam)) "" else scenario_nam,
+          ")"
+        ))
+        on.exit(private$stop_console_log(), add = TRUE)
 
         # recombine the chunks of large files
         # TODO logic to delete these files
@@ -491,7 +519,9 @@ Simulation <-
                 setup_strategy = "parallel"
               ) # used for clustering. Windows compatible
 
-            on.exit(if (exists("cl")) stopCluster(cl))
+            # add = TRUE: without it this would discard the console-log
+            # unwind handler registered at the top of run()
+            on.exit(if (exists("cl")) stopCluster(cl), add = TRUE)
 
             xps_dt <- parLapplyLB(
               cl = cl,
@@ -551,13 +581,23 @@ Simulation <-
           }
         }
 
-        # Close any lingering sinks (safety cleanup)
-        # Note: sink.number(type = "message") returns 0 or 2 (not a count),
-        # so we use a single conditional call, not a while loop
-        if (sink.number(type = "message") > 0L) {
+        # Close any lingering sinks left behind by run_sim() (safety cleanup).
+        # This matters for the single-core path, where run_sim() executes in
+        # this process and its sinks would otherwise leak.
+        #
+        # Two corrections over the naive version:
+        #  * sink.number(type = "message") returns the CONNECTION NUMBER in
+        #    use, not a count -- 2 (stderr) when no message sink is active,
+        #    > 2 when one is. Testing it against 0 is always TRUE and pops a
+        #    sink that was never pushed. Message sinks do not stack, so one
+        #    conditional call is correct.
+        #  * unwinding to 0 destroys sinks belonging to the CALLER -- a run()
+        #    inside capture.output() or knitr would silently swallow the rest
+        #    of the caller's output. Unwind to the depth seen on entry instead.
+        if (sink.number(type = "message") > 2L) {
           sink(type = "message")
         }
-        while (sink.number(type = "output") > 0L) {
+        while (sink.number(type = "output") > entry_sink_depth) {
           sink(type = "output")
         }
 
@@ -2990,6 +3030,9 @@ Simulation <-
       inputs_manifest = NULL,
       # Whether data-dependent initialization is complete
       data_initialized = FALSE,
+      # Handle for the redirected console log; NULL when not redirecting.
+      # See start_console_log()/stop_console_log().
+      console_log = NULL,
 
       # complete_data_init ----
       # Performs data-dependent Phase 2 initialization:
@@ -4050,6 +4093,105 @@ Simulation <-
             stop(e)
           }
         )
+      },
+
+      # start_console_log ----
+      # Redirects R console output (stdout *and* messages, which includes
+      # foreach's own `.verbose` bookkeeping) to <output_dir>/logs/console.txt
+      # for the duration of a long phase. No-op unless sim_prm$logs is TRUE.
+      #
+      # Why this exists. With `logs: yes` every foreach call in the package runs
+      # with `.verbose = TRUE`, and foreach's accumulator emits all of its
+      # per-task bookkeeping in a single burst when the loop returns (~21 KB for
+      # a 200-task run). If stdout is a terminal whose output has been stopped --
+      # e.g. a stray ^S in a detached screen window -- that burst blocks in
+      # write() indefinitely: no CPU, no I/O, no error, and detaching does not
+      # clear it. On 2026-07-28 that cost a Wales run 17h29m; all 200 workers
+      # finished at 15:59 and the parent sat blocked until the session was
+      # reattached at 09:28 the next morning, resuming 3 seconds later. A
+      # regular file has no terminal line discipline and cannot be stopped this
+      # way, and is measurably faster to write to than a pty.
+      #
+      # Scope. This is an R-level redirect: it captures cat/print/message and
+      # Rcpp's Rcout, but not writes that a linked C library makes straight to
+      # file descriptors 1/2 (arrow, libgomp and BLAS can do this). For
+      # unattended runs, also redirect at the shell:
+      #   Rscript my_scenario.R > run.log 2>&1
+      #
+      # Forked workers inherit this sink stack, but each one immediately
+      # establishes its own sink to logs/log<mc>.txt in run_sim() and pops only
+      # its own level, so worker output still lands in its own file.
+      start_console_log = function(phase = "") {
+        if (!isTRUE(self$design$sim_prm$logs)) {
+          return(invisible(NULL))
+        }
+        # Never nest: an outer phase already owns the redirect.
+        if (!is.null(private$console_log)) {
+          return(invisible(NULL))
+        }
+
+        path <- private$output_dir("logs/console.txt")
+        dir.create(
+          dirname(path),
+          showWarnings = FALSE,
+          recursive = TRUE
+        )
+        con <- tryCatch(
+          file(path, open = "at"),
+          error = function(e) NULL,
+          warning = function(w) NULL
+        )
+        if (is.null(con)) {
+          warning(
+            "Could not open '", path, "' for the console log; console output ",
+            "stays on the terminal.",
+            call. = FALSE
+          )
+          return(invisible(NULL))
+        }
+
+        cat(
+          paste0("\n===== ", phase, " at: ", Sys.time(), " =====\n"),
+          file = con
+        )
+        # Record the handle *before* sinking so an unwind can always find it.
+        private$console_log <- list(
+          con = con,
+          path = path,
+          out_depth = sink.number(type = "output")
+        )
+        sink(con, type = "output", split = FALSE)
+        sink(con, type = "message")
+        invisible(NULL)
+      },
+
+      # stop_console_log ----
+      # Unwinds start_console_log(). Safe to call when no redirect is active,
+      # and safe to call after something else has already popped the sinks
+      # (run() does a blanket cleanup of its own).
+      #
+      # NOTE sink.number(type = "message") returns a CONNECTION NUMBER, not a
+      # count: it is 2 (stderr) when no message sink is active and > 2 when one
+      # is. Comparing it against 0 is always TRUE and would pop a sink that was
+      # never pushed.
+      stop_console_log = function() {
+        h <- private$console_log
+        if (is.null(h)) {
+          return(invisible(NULL))
+        }
+        private$console_log <- NULL
+
+        if (sink.number(type = "message") > 2L) {
+          try(sink(type = "message"), silent = TRUE)
+        }
+        while (sink.number(type = "output") > h$out_depth) {
+          try(sink(type = "output"), silent = TRUE)
+        }
+        try(
+          if (inherits(h$con, "connection") && isOpen(h$con)) close(h$con),
+          silent = TRUE
+        )
+        invisible(NULL)
       },
 
       # Function for timing log

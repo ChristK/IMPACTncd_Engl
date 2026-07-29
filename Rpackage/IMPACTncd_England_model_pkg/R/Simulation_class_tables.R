@@ -487,6 +487,10 @@ build_equity_plans <- function(strata) {
 #'   between-scenario differences with the Renard caveat in mind. In this model
 #'   DIMD deciles are structurally near-fixed, so the two options usually differ
 #'   only slightly.
+#' @details When `logs: yes` in the design YAML, console output from this
+#'   method (including `foreach`'s `.verbose` bookkeeping) is appended to
+#'   `<output_dir>/logs/console.txt` and restored on exit. See
+#'   `Simulation$run()` for the rationale and the caveats.
 #' @return The `Simulation` object, invisibly.
 Simulation$set("public", "export_tables", function(
     baseline_year_for_change_outputs = 2019L,
@@ -504,6 +508,11 @@ Simulation$set("public", "export_tables", function(
     equity = TRUE,
     equity_ridit_reference = c("comparator", "scenario")
 ) {
+  # Console output -> logs/console.txt while this phase runs (no-op unless
+  # sim_prm$logs). See private$start_console_log() for the rationale.
+  private$start_console_log("export_tables()")
+  on.exit(private$stop_console_log(), add = TRUE)
+
   equity_ridit_reference <- match.arg(equity_ridit_reference)
 
   # Ensure baseline year is in full format (e.g. 2019, not 19)
