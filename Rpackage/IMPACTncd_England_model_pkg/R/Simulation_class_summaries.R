@@ -38,6 +38,10 @@
 #'   `mrtl`, `all_cause_mrtl_by_dis`, `cms`, `qalys`, `costs`).
 #' @param single_year_of_age Logical. If `TRUE`, exports prevalence /
 #'   incidence summaries by single year of age instead of age groups.
+#' @details When `logs: yes` in the design YAML, console output from this
+#'   method (including `foreach`'s `.verbose` bookkeeping) is appended to
+#'   `<output_dir>/logs/console.txt` and restored on exit. See
+#'   `Simulation$run()` for the rationale and the caveats.
 #' @return The `Simulation` object, invisibly.
 Simulation$set("public", "export_summaries", function(
     multicore = TRUE,
@@ -56,6 +60,11 @@ Simulation$set("public", "export_summaries", function(
     ),
     single_year_of_age = FALSE
 ) {
+  # Console output -> logs/console.txt while this phase runs (no-op unless
+  # sim_prm$logs). See private$start_console_log() for the rationale.
+  private$start_console_log("export_summaries()")
+  on.exit(private$stop_console_log(), add = TRUE)
+
   if (multicore) {
     arrow::set_cpu_count(1L)
     data.table::setDTthreads(threads = 1L, restore_after_fork = NULL)

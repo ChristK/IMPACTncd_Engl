@@ -482,6 +482,12 @@ incidence summaries by single year of age instead of age groups.}
     }
     \if{html}{\out{</div>}}
   }
+  \subsection{Details}{
+    When \code{logs: yes} in the design YAML, console output from this
+method (including \code{foreach}'s \code{.verbose} bookkeeping) is appended to
+\verb{<output_dir>/logs/console.txt} and restored on exit. See
+\code{Simulation$run()} for the rationale and the caveats.
+  }
   \subsection{Returns}{
     The \code{Simulation} object, invisibly.
   }
@@ -672,6 +678,12 @@ only slightly.}
     }
     \if{html}{\out{</div>}}
   }
+  \subsection{Details}{
+    When \code{logs: yes} in the design YAML, console output from this
+method (including \code{foreach}'s \code{.verbose} bookkeeping) is appended to
+\verb{<output_dir>/logs/console.txt} and restored on exit. See
+\code{Simulation$run()} for the rationale and the caveats.
+  }
   \subsection{Returns}{
     The \code{Simulation} object, invisibly.
   }
@@ -807,6 +819,19 @@ characters as these can cause issues in internal SQL queries.
 The baseline scenario must always be named "sc0".}
     }
     \if{html}{\out{</div>}}
+  }
+  \subsection{Details}{
+    When \code{logs: yes} in the design YAML, everything this method
+would print to the console -- including \code{foreach}'s own \code{.verbose}
+task bookkeeping -- is redirected to
+\verb{<output_dir>/logs/console.txt} for the duration of the run, and
+restored on exit (including on error, so failures are still shown
+on the terminal). This keeps a permanent record next to
+\code{times.txt}, and keeps a large burst of output off a terminal,
+where a stopped tty can block the process indefinitely. It is an
+R-level redirect and does not capture writes a linked C library
+makes straight to file descriptors 1/2; for unattended runs also
+redirect at the shell (\verb{Rscript my_scenario.R > run.log 2>&1}).
   }
   \subsection{Returns}{
     The invisible self for chaining.

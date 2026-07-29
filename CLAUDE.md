@@ -234,6 +234,42 @@ objects (PARF generation in `Disease_class.R`, `smok_relapse` in
 - Set `dev_mode <- TRUE` in `global.R` for verbose startup logging
 - VS Code: Use `.vscode/debug` task
 
+### Run logs (`logs: yes`)
+
+`<output_dir>/logs/` holds `times.txt` (phase + per-iteration timestamps),
+`log<mc>.txt` (one per worker) and **`console.txt`** — everything the *parent*
+process would have printed during `run()` / `export_summaries()` /
+`export_tables()`, including `foreach`'s `.verbose` bookkeeping. Written by
+`start_console_log()` / `stop_console_log()` (`Simulation_class.R`, next to
+`time_mark()`); phases append behind a `===== <phase> at: <ts> =====` banner.
+Tests: `test_console_log.R`.
+
+**Why it's not just convenience.** `logs: yes` also sets `.verbose = TRUE` on
+every `foreach`, and foreach's accumulator emits *all* per-task bookkeeping in
+one burst when the loop returns (~21 KB for 200 tasks). Writing a burst to a
+**terminal** can block forever: a stray `^S` stops the tty, the stop survives
+detaching a `screen` session, and the process then sleeps in `write()` with no
+CPU, no I/O and no error — indistinguishable from a hung simulation. A Wales run
+lost **17h29m** to exactly this on 2026-07-28 (all 200 workers done at 15:59;
+parent resumed 3 s after the screen was reattached at 09:28 next morning). Files
+have no line discipline and cannot be stopped this way — and are ~20% faster to
+write than a pty.
+
+Caveats: it's an **R-level** redirect (captures `cat`/`print`/`message`/`Rcout`,
+*not* writes a linked C library makes straight to fd 1/2), and it is released
+via `on.exit()` so fatal errors still reach the terminal. For unattended runs
+also redirect at the shell: `Rscript scenario.R > run.log 2>&1`.
+
+Related: `run()`'s end-of-function sink cleanup unwinds only to the depth seen
+on entry (it used to unwind to 0, destroying a caller's `capture.output()` /
+knitr sink), and `sink.number(type = "message")` is a **connection number**
+(2 = none, >2 = active), not a count — comparing it to 0 is always true.
+
+**Diagnosing a slow run:** `auxil/profile_times_log.R <times.txt>` breaks one
+run into phases, per-iteration durations, realised concurrency and any dead
+gaps; `auxil/scan_times_gaps.R <times.txt>...` scans many runs for the tail gap
+between the last worker finishing and `End of parallelisation` (should be ~0 s).
+
 ## Common Pitfalls
 
 1. **Windows .Random.seed error** - `global.R` initializes RNG before Simulation creation
