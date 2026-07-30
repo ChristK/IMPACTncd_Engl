@@ -258,7 +258,19 @@ SynthPop <-
 
           # Fix for missing pop segments when locality is England. Calibrate to
           # latest ONS projections if possible.
-          if (private$design$sim_prm$locality == "England") {
+          #
+          # NOTE `locality` may be a VECTOR (e.g. a list of LAD17NM values), so
+          # this must not be a bare `==`. In R >= 4.2 `if (vec == "England")` is
+          # a hard ERROR ("the condition has length > 1"), not the old warning,
+          # and because update_pop_weights() runs inside run_sim() on a forked
+          # worker, mclapply captures that error and foreach only re-raises it
+          # after ALL tasks have finished -- so a multi-locality run looks merely
+          # slow while every single iteration fails and no lifecourse is ever
+          # written. Only a locality that is exactly England uses the national
+          # projections; a vector falls through to the LAD/region branches below,
+          # which are already vectorised with all(... %in% ...).
+          if (identical(as.character(private$design$sim_prm$locality),
+                        "England")) {
             refpop <- private$get_pop_size(FALSE)[
               age >= private$design$sim_prm$ageL &
                 year >= private$design$sim_prm$init_year
