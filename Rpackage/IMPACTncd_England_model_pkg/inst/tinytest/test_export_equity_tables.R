@@ -36,13 +36,17 @@ make_incd <- function(dep_col = "dimd", levs = dimd_lv) {
 }
 
 # --- Mock harness -----------------------------------------------------------
-run_export <- function(strata, sources = list(incd = make_incd()), logs = FALSE) {
+run_export <- function(strata, sources = list(incd = make_incd()), logs = FALSE,
+                       diseases = NULL) {
   # tempfile() is guaranteed unique within a session; do NOT derive the name
   # from the RNG, or two runs can share a directory and read each other's files.
   dir <- tempfile("eqtest_")
   dir.create(dir, recursive = TRUE)
   env <- new.env(parent = asNamespace("IMPACTncdEngland"))
-  env$self <- list(design = list(sim_prm = list(logs = logs)))
+  # `diseases` defaults to NULL, matching the pre-existing mock: the umbrella
+  # exclusion is then a no-op and every other test is unaffected.
+  env$self <- list(design = list(sim_prm = list(logs = logs,
+                                                diseases = diseases)))
   env$private <- list(
     # the method mutates tt by reference, so hand out a fresh copy each call
     read_summary_dataset = function(summary_type, standardization) {
@@ -80,7 +84,14 @@ expect_equal(names(t1)[1:5],
              c("gradient", "scenario", "year", "disease", "type"),
              info = "gradient leads the column order")
 expect_equal(sort(unique(t1$type)),
-             c("AEI_per100k", "AEI_total", "REI_rel", "RII_ratio"))
+             sort(c("AEI_per100k", "AEI_total", "total_benefit",
+                    "REI_rel", "RII_ratio", "fit_R2")))
+expect_true("n_mc" %in% names(t1),
+            info = "n_mc records how many draws each quantile rests on")
+expect_true(all(t1$n_mc >= 1L & t1$n_mc <= 3L),
+            info = "n_mc never exceeds the 3 MC iterations in the fixture")
+expect_true(all(t1[type == "AEI_total", n_mc] == 3L),
+            info = "the always-defined absolute index keeps every draw")
 expect_true(all(t1[type == "AEI_per100k", `equity_50.0%`] > 0),
             info = "pro-poor fixture gives a positive absolute index")
 expect_false("sex" %in% names(t1))
@@ -229,3 +240,83 @@ expect_error(bsc(list(equity = list(c("year", "dimd"), "sex")), FALSE),
              pattern = "must include")
 expect_error(bsc(list(equity = list(c("year", "mc"))), FALSE),
              pattern = "reserved column")
+
+
+# ===========================================================================
+# 8. all_diseases_sum excludes the design's umbrella conditions
+# ===========================================================================
+# A disease whose incidence is declared `type: 0` is defined as the union of
+# other modelled diseases (stock design: dm, ctdra, cancer). Summing it
+# alongside its own components counts the same event twice -- distinct from the
+# comorbidity multiplicity the summed row legitimately carries.
+make_cancer_incd <- function() {
+  d <- CJ(mc = 1:3, scenario = c("sc0", "sc1"), year = 19:21,
+          dimd = factor(dimd_lv, levels = dimd_lv), sorted = FALSE)
+  K <- length(dimd_lv)
+  d[, dep := (K + 1L - as.integer(dimd))]
+  eff <- function(base) fifelse(d$scenario == "sc0", base,
+                                base * (1 - 0.02 * d$dep))
+  d[, lung_ca_incd   := eff(d$dep * 100 + d$mc)]
+  d[, breast_ca_incd := eff(d$dep *  60 + d$mc)]
+  d[, cancer_incd    := lung_ca_incd + breast_ca_incd]   # the umbrella
+  d[, chd_incd       := eff(d$dep * 200 + d$mc)]
+  d[, popsize := 10000 * d$dep]
+  d[, dep := NULL]
+  d[]
+}
+
+# The design fragment the real Design$new() would hand over.
+cancer_design <- list(
+  list(name = "lung_ca",   meta = list(incidence = list(type = 1L))),
+  list(name = "breast_ca", meta = list(incidence = list(type = 1L))),
+  list(name = "chd",       meta = list(incidence = list(type = 1L))),
+  list(name = "cancer",
+       meta = list(incidence = list(
+         type = 0L,
+         influenced_by_disease_name = c("lung_ca", "breast_ca"))))
+)
+
+read_benefit <- function(dir, dis) {
+  t <- fread(file.path(dir,
+    "equity cpp slope index by year (not standardised).csv"))
+  t[disease == dis & type == "total_benefit" &
+      year == 2021 & scenario == "sc1", `equity_50.0%`]
+}
+read_sum <- function(dir) read_benefit(dir, "all_diseases_sum")
+
+d9a <- run_export(list("year"), sources = list(incd = make_cancer_incd()),
+                  diseases = cancer_design)
+d9b <- run_export(list("year"), sources = list(incd = make_cancer_incd()),
+                  diseases = NULL)   # pre-change behaviour
+
+expect_true(read_sum(d9a) < read_sum(d9b),
+            info = "excluding the umbrella lowers the summed benefit")
+# The umbrella IS the double-counted part, so the amount removed is exactly its
+# own benefit. (Every quantity here is monotone in `mc`, so the same draw is the
+# median of each and the medians add.)
+expect_equal(read_sum(d9b) - read_sum(d9a), read_benefit(d9a, "cancer"),
+             info = "the excluded amount is exactly the umbrella's own benefit")
+# And since cancer == lung_ca + breast_ca in this fixture, the corrected sum is
+# the components plus chd -- the umbrella contributes nothing extra.
+expect_equal(read_sum(d9a),
+             read_benefit(d9a, "lung_ca") + read_benefit(d9a, "breast_ca") +
+               read_benefit(d9a, "chd"),
+             info = "corrected sum == its constituent per-disease rows")
+
+t9 <- fread(file.path(d9a,
+  "equity cpp slope index by year (not standardised).csv"))
+expect_true("cancer" %in% unique(t9$disease),
+            info = "the umbrella keeps its own row; it is only held out of the sum")
+expect_true(all(c("lung_ca", "breast_ca", "chd") %in% unique(t9$disease)),
+            info = "components keep their own rows")
+
+# An umbrella whose components are absent is the only representative of its
+# family, so it must stay IN the sum rather than losing those events entirely.
+expect_equal(
+  IMPACTncdEngland:::umbrella_disease_names(cancer_design, c("cancer", "chd")), character(0),
+  info = "no component present -> not treated as an umbrella")
+expect_equal(
+  IMPACTncdEngland:::umbrella_disease_names(cancer_design, c("cancer", "lung_ca")), "cancer",
+  info = "one component present -> treated as an umbrella")
+expect_equal(IMPACTncdEngland:::umbrella_disease_names(NULL, "cancer"), character(0),
+             info = "absent design -> no exclusions (mock-safe)")
