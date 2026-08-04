@@ -604,20 +604,52 @@ slope-index tables (absolute and relative analogues of the Slope Index of
 Inequality / Relative Index of Inequality) for the cumulative CPP, CYPP,
 DPP and net-QALYs benefits, distributed across deprivation groups.
 Written as \verb{equity <metric> slope index by <strata> (not standardised).csv}
-with a \code{type} column giving four indices: \code{AEI_total} (absolute equity
-index rescaled to the whole population = modelled total benefit gap between
-the most- and least-deprived ends), \code{AEI_per100k} (the same slope per
-100,000 people), \code{REI_rel} (slope divided by the population-weighted mean
-benefit) and \code{RII_ratio} (fitted benefit at the most-deprived end divided
-by the least-deprived end). By the pro-poor sign convention a positive
-index means the most deprived gain more (inequality-reducing). The
-deprivation gradient is fit per Monte-Carlo iteration and quantiled across
-iterations, following the SII/RII framework (Moreno-Betancur et al. 2015;
-Wagstaff et al. 1991) and, for cumulative benefits, Cookson et al. 2026.
-A gradient requires at least two deprivation groups, so scenario-years that
-cover only one (e.g. interventions targeted at a single decile) have an
-undefined index and are omitted; the omission is reported when \code{logs} are
-enabled in the design.
+with a \code{type} column giving:
+\itemize{
+\item \code{AEI_total} -- the SII scaled to the whole reference population
+(\code{SII * n}): the \emph{hypothetical} total benefit difference if every person
+received the fitted most-deprived per-capita benefit instead of the fitted
+least-deprived one. It is \strong{not} the benefit difference between the
+most- and least-deprived deciles themselves, which is roughly an order of
+magnitude smaller. Because it scales with \code{n} it is not comparable across
+localities, strata or years -- use \code{AEI_per100k} or \code{REI_rel} for that.
+\item \code{AEI_per100k} -- the SII per 100,000 people \emph{alive in the reporting year}.
+The regressand is a benefit cumulated from \code{baseline_year}, so this is a
+stock per head, not a rate per 100,000 person-years.
+\item \code{total_benefit} -- the total undiscounted benefit the gradient was fit to.
+Reported because the absolute indices are translation-invariant and so
+cannot distinguish levelling up from levelling down.
+\item \code{REI_rel} -- the SII divided by the population-weighted mean benefit. \code{NA}
+unless that mean is positive, and unstable when it is near zero.
+\item \code{RII_ratio} -- the ratio of fitted benefit at the most- to the
+least-deprived end. \code{NA} unless the fitted benefit is positive at \emph{both}
+ends, which is common rather than exceptional.
+\item \code{fit_R2} -- the population-weighted R-squared of the straight-line fit.
+}
+
+An \code{n_mc} column records how many Monte-Carlo draws each published quantile
+rests on; the finite-value filter is applied per \code{type}, so the relative
+indices can be summarised over a strict subset of the draws the absolute
+ones use. By the pro-poor sign convention a positive index means the most
+deprived gain more (inequality-reducing). The gradient is fit per
+Monte-Carlo iteration and quantiled across iterations. The grouped-data
+weighted least-squares estimator is that of Kakwani, Wagstaff & van
+Doorslaer (1997); the ridit/structured-regression setup follows
+Moreno-Betancur et al. (2015); and applying the index to a cumulative
+modelled benefit follows Cookson et al. (2026). Note \code{RII_ratio} is the
+Kunst-Mackenbach ratio of fitted extremes, which Moreno-Betancur et al.
+call a "previous definition" and criticise -- their own RII is \code{exp(beta)}
+from a log-linear model, which cannot be fit to a signed quantity such as
+net QALYs -- so they are cited here for the framework, not for that ratio.
+\code{REI_rel} is a Pamuk/Wagstaff-type relative SII, not an RII of any kind.
+
+A gradient requires at least two deprivation groups \strong{present in the
+summaries}; where only one is (e.g. a single-decile locality) the index is
+undefined and those rows are omitted, reported when \code{logs} are enabled. An
+intervention \emph{targeted} at one decile is a different case: the untouched
+deciles contribute zero benefit, so all groups are present and a fully
+extrapolated index is produced. Read those with care and see
+\code{vignette("understanding_model_outputs")}.
 
 \strong{Output strata (\code{strata$equity}).} Each entry of the list is one output
 table, and any variable the summaries carry (\code{strata_for_output} in the
@@ -644,9 +676,14 @@ every other table family, \code{agegrp} is spelled \code{agegroup} in the suffix
 Quintiles give a coarser, lower-variance gradient with less power to detect
 departures from linearity; deciles are usually preferable when available.
 \code{qimd} does \strong{not} need to be in \code{strata_for_output} -- if the summaries
-carry \code{dimd} it is derived by the standard decile-pair collapse, which is
-exact because event counts and populations are additive. The converse does
-not hold: a \code{dimd} gradient requires \code{dimd} in the summaries. If the
+carry \code{dimd} it is derived by the standard decile-pair collapse. The derived
+quintile \emph{counts} are exact (event counts and populations are additive, and
+the collapse preserves the population-weighted ridit midpoint exactly), but
+the resulting \emph{index} is invariant only when the per-capita benefit is
+exactly linear in the ridit -- under curvature a weighted fit to five points
+is a different estimand from a fit to ten. Treat the decile and quintile
+tables as two analyses of the same data, not two views of one number. The
+converse does not hold: a \code{dimd} gradient requires \code{dimd} in the summaries. If the
 requested axis is unavailable, or the summaries carry no deprivation column
 at all, a \code{warning()} is raised (not a \code{logs}-gated message) naming the
 tables that were skipped.}
@@ -655,10 +692,19 @@ tables that were skipped.}
 ranks and the population weights for the equity slope-index regression --
 the reference against which each decile's share of the population is
 measured. \code{"comparator"} uses the comparator scenario's decile populations,
-so the deprivation ranking is \emph{identical} across the scenarios being
-compared and across years; \code{"scenario"} uses each intervention scenario's
+so the ridit scores and regression weights are \emph{identical} across the
+scenarios being compared; \code{"scenario"} uses each intervention scenario's
 own decile populations, reflecting the socioeconomic composition that
 scenario actually produces.
+
+They are deliberately \strong{not} pinned across years: \code{N} is the comparator's
+population \emph{of the reporting year}, so the ridit scores and weights are
+re-derived each year (the ordinal decile ordering is of course fixed).
+Pinning \code{N} at \code{baseline_year} was considered and rejected -- it would
+divide a benefit generated by the year-t population by the year-0
+population, so a benefit that is exactly equal per head in year t would
+register a spurious non-zero index purely from differential population
+growth between deciles.
 
 \strong{Which to choose (Renard et al. 2019).} Renard et al. showed that the SII
 and RII can move purely because the socioeconomic \emph{composition} of the
@@ -672,9 +718,19 @@ not to composition. Choose \code{"scenario"} only when the intervention itself i
 expected to change the deprivation composition (e.g. large differential
 survival shifting who is alive in each decile) and you specifically want the
 index to reflect each scenario's own realised population; interpret
-between-scenario differences with the Renard caveat in mind. In this model
-DIMD deciles are structurally near-fixed, so the two options usually differ
-only slightly.}
+between-scenario differences with the Renard caveat in mind.
+
+Formally, \code{"scenario"} violates the precondition Cookson et al. (2026) state
+for their impact SII -- that the comparator and intervention arms have the
+same group sizes -- so treat it as a \strong{sensitivity analysis or diagnostic}
+rather than a co-equal estimator: if it moves the index materially, that is
+evidence the intervention is reshaping the population, not evidence about
+how the benefit was distributed. Under \code{"scenario"} each arm gets its own
+ridit axis and weights, so cross-scenario comparisons are then made on
+different axes. In this model DIMD deciles are structurally near-fixed --
+in the ONS projection input the decile shares of England aged 30-99 move at
+most 0.18 percentage points between 2019 and 2043 -- so the two options
+usually differ only slightly.}
     }
     \if{html}{\out{</div>}}
   }

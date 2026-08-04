@@ -64,9 +64,25 @@ disease-characteristics / exposure / cost-effectiveness (`cea = TRUE`) tables, i
 writes **equity slope-index** tables (`equity = TRUE`, default): absolute (`AEI_total`,
 `AEI_per100k`) and relative (`REI_rel`, `RII_ratio`) analogues of the Slope/Relative Index
 of Inequality for cumulative CPP, CYPP, DPP and net QALYs across DIMD deciles (pro-poor sign
-convention; MC iterations give the uncertainty). The ridit reference population is selectable via
-`equity_ridit_reference` (`"comparator"` default vs `"scenario"` — see the Renard 2019 decision
-support in the vignette). Core math lives in
+convention; MC iterations give the uncertainty), plus `total_benefit` and `fit_R2` and an
+`n_mc` column. The estimator is the grouped-data weighted least squares of Kakwani, Wagstaff
+& van Doorslaer (1997); `RII_ratio` is the Kunst–Mackenbach ratio of fitted extremes, *not*
+Moreno-Betancur's RII (they criticise that formula; theirs is `exp(beta)` from a log-linear
+model, impossible on a signed quantity). Three things bite:
+**(a)** `AEI_total = SII * n` is a *hypothetical* whole-population figure, **not** the gap
+between the extreme deciles (~8x smaller) and not Cookson's published gap (`* (J-1)/J^2`);
+it scales with `n`, so only `AEI_per100k`/`REI_rel` compare across localities.
+**(b)** Both relative indices are `NA` unless the fitted benefit is **positive** — with a
+negative mean they invert, publishing a pro-poor result as pro-rich.
+**(c)** `all_diseases_sum` excludes the design's umbrella conditions (incidence `type: 0`:
+`dm`, `ctdra`, `cancer`) as well as `cms*`, via `umbrella_disease_names()` — summing an
+umbrella beside its own components double-counts ~9.5% of events and distorts the slope.
+The ridit reference population is selectable via
+`equity_ridit_reference` (`"comparator"` default vs `"scenario"` — the latter violates
+Cookson's equal-group-size precondition, so it is a sensitivity analysis; see the Renard 2019
+decision support in the vignette). The ridit is re-derived each **year** (N is the
+comparator's reporting-year population) — deliberately, since pinning it at baseline would
+manufacture a gradient out of differential population growth. Core math lives in
 `calc_equity_slope_indices()` / `export_equity_tables()` in `Simulation_class_tables.R`; see
 `vignette("understanding_model_outputs")`.
 
@@ -101,9 +117,11 @@ consumed into the index); one token → that axis, both → one table per axis, 
 `scenario` are reserved. The axis is echoed in a `gradient` column and (when the caller
 wrote it) in the filename suffix, where `agegrp` is rewritten to `agegroup` as in every
 other table family. `qimd` need not be in `strata_for_output` — it is
-derived from `dimd` by the standard decile-pair collapse, which is **exact** (counts are
-additive and collapsing adjacent groups preserves the ridit midpoint, so a linear
-gradient gives an identical SII); the reverse is impossible. Unavailable
+derived from `dimd` by the standard decile-pair collapse. The derived **counts** are exact
+(counts are additive and the collapse preserves the ridit midpoint), but here — unlike every
+other table family — a *model* is fit, so the **index** is invariant only under an exactly
+linear gradient; under curvature the five-point and ten-point fits are different estimands
+(a step-shaped gradient shifts the SII ~3.5%). The reverse is impossible. Unavailable
 gradient/stratum columns and a missing comparator scenario raise `warning()`s, not
 `logs`-gated messages, and skip only the affected table. `two_agegrps` collapses `agegrp`
 here too. Tests: `test_equity_slope_index.R`, `test_export_equity_tables.R`.

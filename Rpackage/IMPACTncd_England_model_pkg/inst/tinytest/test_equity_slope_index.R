@@ -56,14 +56,57 @@ expect_equal(res$RII_ratio, p1 / p0,
 expect_true(abs(beta_lm - 5) < 0.2,
             info = "recovered slope is close to the true gradient (5)")
 
-# --- Sign-crossing gradient: RII_ratio must be NA, REI_rel stays finite ---
+# --- Sign-crossing gradient: RII_ratio must be NA ---
+# NOTE this fixture is symmetric about r = 1/2, and the population-weighted mean
+# ridit is exactly 1/2, so its weighted mean benefit is exactly zero (to
+# floating point, -2.1e-17). REI_rel is therefore NOT defined here either: the
+# old `ybar != 0` guard let a value that is numerically zero through and
+# published beta/-2.1e-17 ~ -2.9e17 as a "finite" relative index.
 y_cross <- -3 + 6 * ridit           # crosses zero within [0, 1]
 res_cross <- calc(data.table(rank = rank, N = N, B = y_cross * N),
                   by = character(0))
 expect_true(is.na(res_cross$RII_ratio),
             info = "RII_ratio is NA when the fitted line crosses zero")
-expect_true(is.finite(res_cross$REI_rel),
-            info = "REI_rel remains finite when the fit crosses zero")
+expect_true(is.na(res_cross$REI_rel),
+            info = "REI_rel is NA when the weighted mean benefit is zero")
+
+# A line that crosses zero but has a genuinely POSITIVE mean keeps REI_rel:
+# it is the sign of the mean that matters, not the crossing.
+res_cross_pos <- calc(data.table(rank = rank, N = N, B = (-1 + 6 * ridit) * N),
+                      by = character(0))
+expect_true(is.na(res_cross_pos$RII_ratio),
+            info = "RII_ratio still NA when the fitted line crosses zero")
+expect_true(is.finite(res_cross_pos$REI_rel),
+            info = "REI_rel is defined when the weighted mean benefit is > 0")
+
+# --- Net-harm gradient: the relative indices must be WITHHELD, not inverted ---
+# Every group loses, but the most deprived lose LEAST, so the gradient is
+# pro-poor and the absolute index must stay positive. beta/ybar with ybar < 0
+# flips sign, and fit1/fit0 with both ends negative inverts the ordering, so a
+# pro-poor result would be published as pro-rich. Both are therefore NA.
+res_harm <- calc(data.table(rank = rank, N = N, B = (-8 + 6 * ridit) * N),
+                 by = character(0))
+expect_true(res_harm$AEI_per100k > 0,
+            info = "net-harm, most deprived lose least -> absolute index pro-poor")
+expect_true(is.na(res_harm$REI_rel),
+            info = "REI_rel withheld when the mean benefit is negative")
+expect_true(is.na(res_harm$RII_ratio),
+            info = "RII_ratio withheld when both fitted ends are negative")
+
+# --- total_benefit and fit_R2 ---
+expect_equal(res$total_benefit, sum(B),
+             info = "total_benefit == sum of the group benefits")
+expect_equal(res$fit_R2, summary(fit)$r.squared,
+             info = "fit_R2 == weighted lm() R-squared")
+res_curve <- calc(
+  data.table(rank = rank, N = N, B = (2 + 5 * ridit^3) * N), by = character(0))
+expect_true(res_curve$fit_R2 < res$fit_R2,
+            info = "fit_R2 falls when the gradient departs from linearity")
+# calc_equity_slope_indices() has no N > 0 precondition of its own, so a
+# zero-population group must not divide by zero.
+expect_true(is.na(calc(data.table(rank = rank, N = 0, B = 0),
+                       by = character(0))$fit_R2),
+            info = "fit_R2 is NA (not NaN/Inf) when every group has N == 0")
 
 # --- Flat gradient: slope 0, so AEI == 0, REI_rel == 0, RII_ratio == 1 ---
 res_flat <- calc(data.table(rank = rank, N = N, B = 7 * N), by = character(0))
