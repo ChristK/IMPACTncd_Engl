@@ -262,12 +262,23 @@ produced directly by `$export_tables()` when `cea = TRUE` (the default). It
 writes `cost-effectiveness by <strata> (<perspective>-<scale>) (not
 standardised).csv` files containing the cumulative discounted incremental QALYs
 (`dQALYs_cuml`) and costs (`dCosts_cuml`), the `ICER`, and the `NMB` at each
-willingness-to-pay threshold, for the EQ-5D-5L QALY scale and from two
+willingness-to-pay threshold, for the EQ-5D-5L QALY scale and from three cost
 perspectives:
 
 * **societal** — uses `total_cost` (healthcare + social care + informal care,
   net of `economic_output`), plus all custom `_costs` columns;
-* **healthcare** — uses `healthcare_cost` (direct treatment costs only).
+* **healthcare** — uses `healthcare_cost` (direct treatment costs only);
+* **healthcare_socialcare** — uses `healthcare_cost` + `socialcare_cost`. This
+  is NICE's reference case, *NHS and Personal Social Services*: formal social
+  care is included, informal care and lost productivity are not.
+
+For a UK appraisal the `healthcare_socialcare` file is usually the one to quote;
+`healthcare` understates the payer's cost for any condition with a social-care
+burden (dementia, stroke, frailty), and `societal` answers a broader question
+than NICE's reference case asks. A perspective whose required cost columns are
+absent from the summaries is skipped rather than silently falling back to a
+narrower one — so a missing `healthcare_socialcare` file means `socialcare_cost`
+was not in the `costs` summary, not that the perspective made no difference.
 
 Discounting is applied with separate annual rates for costs and QALYs
 (`cost_discount_rate`, `qaly_discount_rate`, default 3.5% each per NICE) and is
@@ -289,10 +300,10 @@ IMPACTncd$export_tables(
 
 **Where do your custom `_costs` columns count?** Custom cost columns are
 **always** added to the **societal** perspective. By default they are *not*
-included in the healthcare perspective (which captures direct treatment costs
-only). If some of your custom costs *are* healthcare costs, pass their column
-names to `custom_costs_in_healthcare` in `export_tables()` and they are added to
-the healthcare perspective as well, e.g.
+included in the healthcare or healthcare_socialcare perspectives (which capture
+payer costs only). If some of your custom costs *are* payer costs, pass their
+column names to `custom_costs_in_healthcare` in `export_tables()` and they are
+added to **both** narrower perspectives, e.g.
 `custom_costs_in_healthcare = c("screening_costs", "drug_costs")`. For example,
 an intervention-delivery cost paid by the health system should be listed here,
 whereas a productivity-loss or out-of-pocket cost should be left in the societal

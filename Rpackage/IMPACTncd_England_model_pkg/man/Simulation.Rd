@@ -518,11 +518,21 @@ When \code{cea = TRUE}, cost-effectiveness tables are written as
 containing the cumulative discounted incremental QALYs (\code{dQALYs_cuml}) and
 costs (\code{dCosts_cuml}), the incremental cost-effectiveness ratio (\code{ICER}), and
 the net monetary benefit (\verb{NMB_at_wtp_<threshold>}) at each willingness-to-pay
-threshold, for each QALY scale (EQ5D5L) and from two perspectives:
-\emph{societal} (uses \code{total_cost}) and \emph{healthcare} (uses
-\code{healthcare_cost}). User-defined \verb{*_costs} columns are always added to the
-societal perspective and, if named in \code{custom_costs_in_healthcare}, to the
-healthcare perspective as well.
+threshold, for each QALY scale (EQ5D5L) and from three cost perspectives:
+\itemize{
+\item \emph{societal} -- \code{total_cost}, which already nets economic output
+out of healthcare + social care + informal care;
+\item \emph{healthcare} -- \code{healthcare_cost}, direct treatment costs only;
+\item \emph{healthcare_socialcare} -- \code{healthcare_cost} +
+\code{socialcare_cost}. This is NICE's reference case, "NHS and Personal
+Social Services": formal social care is included, informal care and lost
+productivity are not.
+}
+User-defined \verb{*_costs} columns are always added to the societal perspective
+and, if named in \code{custom_costs_in_healthcare}, to the healthcare and
+healthcare_socialcare perspectives as well. A perspective whose required
+built-in columns are absent from the costs summary is skipped rather than
+silently falling back to a narrower one.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Simulation$export_tables(
@@ -633,10 +643,14 @@ mortality, QALY and cost tables are reported undiscounted.}
 discounted. When \code{NULL} (default) it defaults to
 \code{baseline_year_for_change_outputs}.}
       \item{\code{custom_costs_in_healthcare}}{Character vector of user-defined \verb{*_costs}
-column names to add to the healthcare perspective (in addition to the
-always-present \code{healthcare_cost}). \code{NULL}/\code{FALSE} (default) adds none;
-\code{TRUE} adds all user-defined cost columns. User-defined cost columns are
-always included in the societal perspective regardless of this argument.}
+column names to add to the healthcare \strong{and} healthcare_socialcare
+perspectives (in addition to the built-in cost columns those perspectives
+already carry). \code{NULL}/\code{FALSE} (default) adds none; \code{TRUE} adds all
+user-defined cost columns. User-defined cost columns are always included in
+the societal perspective regardless of this argument. The two narrower
+perspectives share this setting deliberately: a programme cost belongs to
+the payer in both, so letting them diverge would make the pair
+incomparable.}
       \item{\code{equity}}{Logical. If \code{TRUE} (default), also build the equity
 slope-index tables (absolute and relative analogues of the Slope Index of
 Inequality / Relative Index of Inequality) for the cumulative CPP, CYPP,

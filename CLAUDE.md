@@ -76,6 +76,16 @@ the parent. Gotcha: at all five join sites `cmp` must come from the FULL table, 
 `as.character(scenario)`: a factor uses level codes and mis-maps silently.
 Tests: `test_comparator_map.R`.
 
+**CEA cost perspectives** (`cea = TRUE`), one file each: `societal`
+(`total_cost`, already net of economic output), `healthcare` (`healthcare_cost`)
+and `healthcare_socialcare` (`healthcare_cost + socialcare_cost` — NICE's NHS+PSS
+reference case, and usually the one to quote for a UK appraisal). Custom `*_costs`
+always join societal, and join BOTH narrower perspectives when named in
+`custom_costs_in_healthcare`. A perspective whose required built-in columns are
+missing is **skipped**, never silently degraded — otherwise a run without
+`socialcare_cost` would publish `healthcare_socialcare` tables identical to the
+`healthcare` ones. Tests: `test_cea_perspectives.R`.
+
 `export_tables()` turns the summaries into CSVs. Besides the main / mortality /
 disease-characteristics / exposure / cost-effectiveness (`cea = TRUE`) tables, it also
 writes **equity slope-index** tables (`equity = TRUE`, default): absolute (`AEI_total`,
