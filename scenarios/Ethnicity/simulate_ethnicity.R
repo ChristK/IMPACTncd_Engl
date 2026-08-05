@@ -6,19 +6,21 @@
 source("./global.R")
 IMPACTncd <- Simulation$new("scenarios/Ethnicity/sim_design_ethnicity.yaml")
 
-IMPACTncd$
-  del_logs()$
-  del_outputs()$
-  # del_synthpops()$
-  # del_parfs()$
-  run(1:100, multicore = TRUE, "sc0")
+# IMPACTncd$
+#   del_logs()$
+#   del_outputs()$
+#   # del_synthpops()$
+#   # del_parfs()$
+#   run(1:100, multicore = TRUE, "sc0")
 
-IMPACTncd$export_summaries(multicore = TRUE)
+# IMPACTncd$export_summaries(multicore = TRUE)
 
 IMPACTncd$export_tables(
   baseline_year_for_change_outputs = 2026L,
   two_agegrps = FALSE,
   multicore = TRUE,
+  cea = FALSE, # sc0 only — nothing to contrast
+  equity = FALSE, # ditto
   strata = list(
     ons = list(
       "year",
@@ -74,6 +76,8 @@ IMPACTncd$export_tables(
   baseline_year_for_change_outputs = 2026L,
   two_agegrps = TRUE,
   multicore = TRUE,
+  cea = FALSE, # sc0 only — nothing to contrast
+  equity = FALSE, # ditto
   strata = list(
     ons = list(
       c("year", "agegrp"),
