@@ -2969,7 +2969,7 @@
       "label": "Testing",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L179",
+      "source_location": "L240",
       "id": "impactncd_engl_claude_testing",
       "community": 45,
       "norm_label": "testing"
@@ -2978,7 +2978,7 @@
       "label": "code:r (tinytest::test_package(\"IMPACTncdEngland\"))",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L180",
+      "source_location": "L241",
       "id": "impactncd_engl_claude_codeblock_4",
       "community": 45,
       "norm_label": "code:r (tinytest::test_package(\"impactncdengland\"))"
@@ -2987,7 +2987,7 @@
       "label": "Rebuild Documentation",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L184",
+      "source_location": "L245",
       "id": "impactncd_engl_claude_rebuild_documentation",
       "community": 45,
       "norm_label": "rebuild documentation"
@@ -2996,7 +2996,7 @@
       "label": "code:r (roxygen2::roxygenise(\"Rpackage/IMPACTncd_England_model_pkg\"))",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L185",
+      "source_location": "L246",
       "id": "impactncd_engl_claude_codeblock_5",
       "community": 45,
       "norm_label": "code:r (roxygen2::roxygenise(\"rpackage/impactncd_england_model_pkg\"))"
@@ -3005,7 +3005,7 @@
       "label": "Docker Environment",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L189",
+      "source_location": "L250",
       "id": "impactncd_engl_claude_docker_environment",
       "community": 45,
       "norm_label": "docker environment"
@@ -3014,7 +3014,7 @@
       "label": "code:bash (./docker_setup/setup_user_docker_env.sh          # Interacti)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L190",
+      "source_location": "L251",
       "id": "impactncd_engl_claude_codeblock_6",
       "community": 45,
       "norm_label": "code:bash (./docker_setup/setup_user_docker_env.sh          # interacti)"
@@ -3023,7 +3023,7 @@
       "label": "code:bash (./docker_setup/build_push_data.sh   # auto-tags data.impactn)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L200",
+      "source_location": "L261",
       "id": "impactncd_engl_claude_codeblock_7",
       "community": 45,
       "norm_label": "code:bash (./docker_setup/build_push_data.sh   # auto-tags data.impactn)"
@@ -3032,7 +3032,7 @@
       "label": "Code Conventions",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L212",
+      "source_location": "L273",
       "id": "impactncd_engl_claude_code_conventions",
       "community": 45,
       "norm_label": "code conventions"
@@ -3041,7 +3041,7 @@
       "label": "R Code Style",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L214",
+      "source_location": "L275",
       "id": "impactncd_engl_claude_r_code_style",
       "community": 45,
       "norm_label": "r code style"
@@ -3050,7 +3050,7 @@
       "label": "Column Naming",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L219",
+      "source_location": "L280",
       "id": "impactncd_engl_claude_column_naming",
       "community": 45,
       "norm_label": "column naming"
@@ -3059,7 +3059,7 @@
       "label": "Key Exposure Variables (Primary Prevention)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L226",
+      "source_location": "L287",
       "id": "impactncd_engl_claude_key_exposure_variables_primary_prevention",
       "community": 45,
       "norm_label": "key exposure variables (primary prevention)"
@@ -3068,7 +3068,7 @@
       "label": "Key Disease Variables (Secondary Prevention)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L237",
+      "source_location": "L298",
       "id": "impactncd_engl_claude_key_disease_variables_secondary_prevention",
       "community": 45,
       "norm_label": "key disease variables (secondary prevention)"
@@ -3077,7 +3077,7 @@
       "label": "Scenario Definition Pattern",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L242",
+      "source_location": "L303",
       "id": "impactncd_engl_claude_scenario_definition_pattern",
       "community": 45,
       "norm_label": "scenario definition pattern"
@@ -3086,7 +3086,7 @@
       "label": "code:r (IMPACTncd$update_primary_prevention_scn()",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L243",
+      "source_location": "L304",
       "id": "impactncd_engl_claude_codeblock_8",
       "community": 45,
       "norm_label": "code:r (impactncd$update_primary_prevention_scn()"
@@ -3095,7 +3095,7 @@
       "label": "File Paths",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L260",
+      "source_location": "L321",
       "id": "impactncd_engl_claude_file_paths",
       "community": 45,
       "norm_label": "file paths"
@@ -3104,7 +3104,7 @@
       "label": "Exposure table resolution (`exposure_definitions[*].file_name`)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L265",
+      "source_location": "L326",
       "id": "impactncd_engl_claude_exposure_table_resolution_exposure_definitions_file_name",
       "community": 45,
       "norm_label": "exposure table resolution (`exposure_definitions[*].file_name`)"
@@ -3113,7 +3113,7 @@
       "label": "Key YAML Parameters (inputs/sim_design.yaml)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L278",
+      "source_location": "L339",
       "id": "impactncd_engl_claude_key_yaml_parameters_inputs_sim_design_yaml",
       "community": 45,
       "norm_label": "key yaml parameters (inputs/sim_design.yaml)"
@@ -3122,7 +3122,7 @@
       "label": "Key Dependencies",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L289",
+      "source_location": "L350",
       "id": "impactncd_engl_claude_key_dependencies",
       "community": 45,
       "norm_label": "key dependencies"
@@ -3131,7 +3131,7 @@
       "label": "Debugging",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L298",
+      "source_location": "L359",
       "id": "impactncd_engl_claude_debugging",
       "community": 45,
       "norm_label": "debugging"
@@ -3140,7 +3140,7 @@
       "label": "Run logs (`logs: yes`)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L305",
+      "source_location": "L366",
       "id": "impactncd_engl_claude_run_logs_logs_yes",
       "community": 45,
       "norm_label": "run logs (`logs: yes`)"
@@ -3149,7 +3149,7 @@
       "label": "Common Pitfalls",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L341",
+      "source_location": "L402",
       "id": "impactncd_engl_claude_common_pitfalls",
       "community": 45,
       "norm_label": "common pitfalls"
@@ -3158,7 +3158,7 @@
       "label": "Documentation",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L348",
+      "source_location": "L409",
       "id": "impactncd_engl_claude_documentation",
       "community": 45,
       "norm_label": "documentation"
@@ -3167,7 +3167,7 @@
       "label": "graphify",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L359",
+      "source_location": "L420",
       "id": "impactncd_engl_claude_graphify",
       "community": 45,
       "norm_label": "graphify"
@@ -32238,5 +32238,5 @@
       "source_file": "inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model_2024.R"
     }
   ],
-  "built_at_commit": "16ddc463c3ad269dca010549cf9b9c8a5451f172"
+  "built_at_commit": "6454e66976b399de608d7fcaecf4bf7e2bdedb57"
 }

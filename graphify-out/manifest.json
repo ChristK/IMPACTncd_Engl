@@ -15,7 +15,7 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp": {
-    "mtime": 1785936216.250654,
+    "mtime": 1785945864.9858475,
     "ast_hash": "fd0e604c4500f4571c9d887a37d85f30",
     "semantic_hash": ""
   },
@@ -145,7 +145,7 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_testing.R": {
-    "mtime": 1785935343.844302,
+    "mtime": 1785945864.9898474,
     "ast_hash": "225c98ac9bbd660195ff693f7876e8e0",
     "semantic_hash": ""
   },
@@ -220,12 +220,12 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_tables.R": {
-    "mtime": 1785945531.0465572,
-    "ast_hash": "176dd865d3cc23211628d69b1841693a",
+    "mtime": 1785945804.4250698,
+    "ast_hash": "06538fd1099e0520d555b4585c3911cb",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/SynthPop_class.R": {
-    "mtime": 1785935343.8393018,
+    "mtime": 1785945864.9848473,
     "ast_hash": "49993a0a67ded3570b54c3bf24659659",
     "semantic_hash": ""
   },
@@ -250,7 +250,7 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/RcppExports.R": {
-    "mtime": 1785936216.250654,
+    "mtime": 1785945864.9848473,
     "ast_hash": "6e8aa8b17fd68491bc4147271d099b81",
     "semantic_hash": ""
   },
@@ -275,8 +275,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ethnicity/simulate_ethnicity.R": {
-    "mtime": 1785945531.0505571,
-    "ast_hash": "35c263666e970cdb68de10216bc1fc73",
+    "mtime": 1785945804.4430702,
+    "ast_hash": "c02a758645701cb88901cc2d63e65c38",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/simulation_ineq.R": {
@@ -940,8 +940,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/CLAUDE.md": {
-    "mtime": 1785945531.045557,
-    "ast_hash": "c8effb8f7921fd558e4239df1252d456",
+    "mtime": 1785945864.9838474,
+    "ast_hash": "de75c916ec4a136430109854b6bba3ad",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/documents/technical_appendix.md": {
@@ -1670,7 +1670,7 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/polygenic/genvasc_las_reexport_tables.R": {
-    "mtime": 1785935343.844302,
+    "mtime": 1785945864.9898474,
     "ast_hash": "5aa2a1f5d67013ace0d4bd7728a6cc86",
     "semantic_hash": ""
   },
@@ -1687,6 +1687,46 @@
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_tbl_col_prefixes.R": {
     "mtime": 1785935251.0750303,
     "ast_hash": "ea465a64543b9e23850af12a02dcfa72",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/diagnose_export_tables_memory.R": {
+    "mtime": 1785945804.42607,
+    "ast_hash": "0bf952b2f988dd6e484b8e2ee564c47f",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/diagnose_skipped_workers.R": {
+    "mtime": 1785945804.42607,
+    "ast_hash": "7d455cd8e33221038d548da7cfc6db08",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/verify_two_agegrps_on_real_output.R": {
+    "mtime": 1785945804.42607,
+    "ast_hash": "1b80cd1b77bd68af88f8f08a4174fbfe",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/diagnose_export_tables_peak.R": {
+    "mtime": 1785945804.42607,
+    "ast_hash": "5a4d3d370af92bc2fccffd600c13fb6d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/diagnose_two_agegrps_tables.R": {
+    "mtime": 1785945804.42607,
+    "ast_hash": "25bad7f5fab5643e0a0d39172699550d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_export_main_tables_working_copy.R": {
+    "mtime": 1785945804.4250698,
+    "ast_hash": "373f0ece5490978055e42f2a0624f00b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_integer_measure_promotion.R": {
+    "mtime": 1785945804.4250698,
+    "ast_hash": "235f32429337c10757523d131a2736cc",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_two_agegrps.R": {
+    "mtime": 1785945804.4250698,
+    "ast_hash": "47a331d4dee99e3e2d4ec388d9344172",
     "semantic_hash": ""
   }
 }
