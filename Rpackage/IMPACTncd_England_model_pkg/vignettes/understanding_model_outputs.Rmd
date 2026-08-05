@@ -393,6 +393,28 @@ Note that stratifying makes each gradient sparser: with `c("year", "agegrp")` th
 
 If the summaries carry no deprivation column at all (e.g. `strata_for_output` omits `dimd`), or a requested axis or stratification variable cannot be produced, `export_tables()` raises a **warning** naming the tables it skipped — it is not gated on `logs`, so a run with logging off will not silently produce nothing.
 
+### Per-scenario comparators
+
+By default every scenario is contrasted against one reference, `sc0`. Some designs need more than that. A GENVASC-style run has arms `sc0`, `<variant>_qrisk` and `<variant>_prs`, and the decision-relevant question is the *within-variant* increment — what does adding a polygenic score buy on top of a Health Check that is already running? — alongside each `_qrisk` arm versus doing nothing. That is three comparator relationships, which a single scenario name cannot express.
+
+`comparator_scenario` therefore also accepts a **named character vector** mapping intervention → comparator, with at most one *unnamed* element acting as the default for everything not named:
+
+```{r eval=FALSE}
+IMPACTncd$export_tables(comparator_scenario = c(
+  "sc0",                                  # default: the _qrisk arms vs sc0
+  mult_base_prs    = "mult_base_qrisk",   # the within-variant increment
+  mult_lowzero_prs = "mult_lowzero_qrisk"
+))
+```
+
+A scenario may be **both** an intervention and somebody else's comparator: above, `mult_base_qrisk` is contrasted against `sc0` *and* is `mult_base_prs`'s reference. Chains are legal; cycles are rejected. Omit the unnamed element to build only the pairs you list — the scenarios left without a comparator are named in a warning rather than silently dropped.
+
+There is exactly **one comparator per scenario**. That keeps `scenario` a unique row key, so nothing downstream that is keyed on `(scenario, year, type)` changes behaviour. The cost is that a scenario cannot carry two references in the same file; if you want `prs` against both `qrisk` and `sc0`, run the export twice.
+
+In map mode the contrast tables — `cpp`, `cypp`, `dpp`, `net_qalys`, `net_costs`, the cost-effectiveness tables and the equity slope-index tables — gain a `comparator` column immediately after `scenario`, and a `comparators.csv` manifest of the resolved map is written to the tables directory. The non-contrast tables (prevalence, incidence, mortality, exposures, …) are untouched, because they do not reference a comparator. **A bare `comparator_scenario = "sc0"` produces byte-identical output to before: no extra column, no manifest, no filename change.**
+
+Two things this does *not* let you do. It cannot be reproduced by post-processing tables built against a single comparator — \((a-c)-(b-c) = a-b\) holds per Monte-Carlo draw, but the published tables are already quantiled, and neither a median nor an ICER commutes with differencing. And under a map the equity tables' ridit axis is per contrast: an `AEI_total` referenced to `mult_base_qrisk` and one referenced to `sc0` are ranked against different populations, so they sit in the same file but are not additively decomposable across contrasts. The `comparator` column is what keeps that legible.
+
 **Choosing the ridit reference population (`equity_ridit_reference`).** The ridit ranks and the regression weights depend on how many people sit in each decile. The `equity_ridit_reference` argument of `export_tables()` controls which population supplies those decile sizes:
 
 - `"comparator"` (default) — use the comparator scenario's decile populations, so the ridit scores and regression weights are **identical across the scenarios being compared**.
