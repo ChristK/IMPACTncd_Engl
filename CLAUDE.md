@@ -91,11 +91,22 @@ one entry per metric, applied to every quantile column. The convention: a level 
 takes `<family>_rate_`/`_mean_`, and BOTH of its change variants take a prefix distinct
 from the level and from each other, always containing `change` — that is what makes
 `grep("change", names(dt))` a safe way to pick change columns downstream.
-`ftlt_change_relative` used to map to `ftlt_rate_`, the *level* prefix: it published a
+Every **relative** prefix is additionally unique across families. Two entries were
+corrected on 2026-08-05, both publishing a name the values did not support:
+**(a)** `ftlt_change_relative` mapped to `ftlt_rate_`, the *level* prefix — a
 ratio-to-baseline (0.72 = 72% of the baseline year) under a name claiming to be a rate,
-and hid those six case-fatality tables from any name-pattern selection. Now
-`ftlt_change_relative_`. ⚠️ **Breaking for downstream readers** of `case fatality relative
-change by *.csv` written before 2026-08-05 — values are unchanged, only the column name.
+which also hid those six case-fatality tables from any name-pattern selection. Now
+`ftlt_change_relative_`.
+**(b)** `prvl_change_relative` and `incd_change_relative` both mapped to
+`prct_change_relative_`, asserting a *percentage* where the value is a **ratio**
+(`value / value[baseline_year]`: 1.0 = no change, 0.9 = a 10% fall). Taken literally that
+understates every effect 100-fold while looking entirely plausible. Now
+`prvl_change_relative_` / `incd_change_relative_`.
+`abs_change_` is deliberately **not** renamed — an absolute change is exactly what that
+name claims, so it is merely generic (shared by `prvl`/`incd`, disambiguated by the
+filename), not wrong; the uniqueness test therefore covers relative only.
+⚠️ **Breaking for downstream readers** of `*relative change by *.csv` written before
+2026-08-05 — values are unchanged, only the column name.
 Tests: `test_tbl_col_prefixes.R`.
 
 `export_tables()` turns the summaries into CSVs. Besides the main / mortality /

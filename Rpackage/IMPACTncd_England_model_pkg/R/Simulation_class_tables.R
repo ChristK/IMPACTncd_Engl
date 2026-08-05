@@ -1403,18 +1403,36 @@ Simulation$set("private", "build_strata_config", function(user_strata, two_agegr
 #
 # Convention: the level metric takes `<family>_rate_` (or `_mean_`), and BOTH
 # of its change variants take a prefix distinct from the level and from each
-# other. `prvl`/`incd` share the generic `prct_change_relative_` / `abs_change_`
-# pair for historical reasons; every other family namespaces its own.
+# other, always containing "change" so that a downstream
+# `grep("change", names(dt))` is a safe way to select change columns. Every
+# RELATIVE prefix is additionally unique across families.
 #
-# `ftlt_change_relative` used to map to `ftlt_rate_` -- the same prefix as the
-# `ftlt` LEVEL table. That published a ratio (0.72 = 72% of the baseline year)
-# under a name claiming to be a rate, and, because the name contains neither
-# "change" nor "rel", hid those six tables from any downstream code selecting
-# change columns by pattern. Tests: test_tbl_col_prefixes.R.
+# Two entries have been corrected, both of which published a column whose name
+# asserted something the values did not support:
+#
+#  * `ftlt_change_relative` mapped to `ftlt_rate_` -- the same prefix as the
+#    `ftlt` LEVEL table. It published a ratio (0.72 = 72% of the baseline year)
+#    under a name claiming to be a rate, and, containing neither "change" nor
+#    "rel", hid those six tables from any name-pattern selection.
+#
+#  * `prvl_change_relative` / `incd_change_relative` both mapped to
+#    `prct_change_relative_`. The relative change is computed as
+#    `value / i.value` (see the `_change_relative$` branch of tbl_smmrs_core),
+#    so the quantity is a RATIO to the baseline year -- 1.0 at baseline, 0.9 for
+#    a 10% reduction. It is not a percentage and never was: a reader taking
+#    `prct_` at face value misreads a 10% fall as a 0.9% fall, an order-of-
+#    magnitude error that looks entirely plausible. The shared prefix also left
+#    the column unable to say which family it came from.
+#
+# `abs_change_` is deliberately NOT renamed alongside them: an absolute change
+# is exactly what that name claims, so it is merely generic (shared by `prvl`
+# and `incd`), not wrong. Renaming it would break consumers for no correctness
+# gain. Hence the uniqueness assertion in the tests covers relative only.
+# Tests: test_tbl_col_prefixes.R.
 .tbl_col_prefixes <- function() {
   c(
-    "prvl" = "prvl_rate_", "prvl_change_relative" = "prct_change_relative_", "prvl_change_absolute" = "abs_change_",
-    "incd" = "incd_rate_", "incd_change_relative" = "prct_change_relative_", "incd_change_absolute" = "abs_change_",
+    "prvl" = "prvl_rate_", "prvl_change_relative" = "prvl_change_relative_", "prvl_change_absolute" = "abs_change_",
+    "incd" = "incd_rate_", "incd_change_relative" = "incd_change_relative_", "incd_change_absolute" = "abs_change_",
     "ftlt" = "ftlt_rate_", "ftlt_change_relative" = "ftlt_change_relative_", "ftlt_change_absolute" = "ftlt_abs_change_",
     "mrtl" = "mrtl_rate_", "mrtl_change_relative" = "mrtl_change_relative_", "mrtl_change_absolute" = "mrtl_abs_change_",
     "dis_mrtl" = "disease_mrtl_rate_", "dis_mrtl_change_relative" = "disease_mrtl_change_relative_", "dis_mrtl_change_absolute" = "disease_mrtl_abs_change_",

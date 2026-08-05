@@ -284,10 +284,10 @@ The following parameters are generated for both non-standardised (scaled up to O
 | Parameter | Shortform | Column prefix | Description |
 |:----------|:----------|:--------------|:------------|
 | Prevalence | prvl | prvl_rate_ | Rate of prevalent cases per population |
-| Prevalence relative change | prvl_change_relative | prct_change_relative_ | Relative change in prevalence from baseline year |
+| Prevalence relative change | prvl_change_relative | prvl_change_relative_ | Relative change in prevalence from baseline year |
 | Prevalence absolute change | prvl_change_absolute | abs_change_ | Absolute change in prevalence from baseline year |
 | Incidence | incd | incd_rate_ | Rate of incident cases per population |
-| Incidence relative change | incd_change_relative | prct_change_relative_ | Relative change in incidence from baseline year |
+| Incidence relative change | incd_change_relative | incd_change_relative_ | Relative change in incidence from baseline year |
 | Incidence absolute change | incd_change_absolute | abs_change_ | Absolute change in incidence from baseline year |
 | Case fatality | ftlt | ftlt_rate_ | Deaths per prevalent cases |
 | Case fatality relative change | ftlt_change_relative | ftlt_change_relative_ | Relative change in case fatality from baseline year |
@@ -308,6 +308,10 @@ The following parameters are generated for both non-standardised (scaled up to O
 | Deaths prevented or postponed | dpp | dpp_ | Difference in deaths between baseline and intervention (annual and cumulative) |
 
 Note: comparison metrics (net QALYs, net costs, cpp, cypp, dpp) are only generated when intervention scenarios are present alongside the baseline scenario.
+
+Note: every **relative change** column is a **ratio to the baseline year**, not a percentage — it is computed as `value / value[baseline_year]`. So `1.0` means no change, `0.9` a 10% reduction and `1.15` a 15% increase, and the column equals exactly `1.0` in the baseline year itself. Subtract 1 to obtain a fractional change. The `prvl`/`incd` prefixes were `prct_change_relative_` before 2026-08-05, which wrongly implied a percentage; the values have never changed.
+
+Note: an **absolute change** column is `value - value[baseline_year]`, in the units of the underlying metric, and equals exactly `0` in the baseline year. `prvl` and `incd` share the generic `abs_change_` prefix; the file name distinguishes them.
 
 ##### All-cause mortality by disease tables
 
