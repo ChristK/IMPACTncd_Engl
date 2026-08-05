@@ -1084,4 +1084,5 @@ IMPACTncd$run(1:n_runs, multicore = TRUE, "future_full_scn")
 
 IMPACTncd$export_summaries(multicore = TRUE)
 
-IMPACTncd$export_tables(multicore = TRUE)
+IMPACTncd$export_tables(baseline_year_for_change_outputs = 2026L,
+                        multicore = TRUE)
