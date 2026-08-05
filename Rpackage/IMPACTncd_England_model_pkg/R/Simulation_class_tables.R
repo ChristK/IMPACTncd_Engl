@@ -1395,6 +1395,38 @@ Simulation$set("private", "build_strata_config", function(user_strata, two_agegr
 })
 
 
+# .tbl_col_prefixes ----
+# Prefix applied to each quantile column of an output table, keyed by metric
+# (`what`). Lifted out of tbl_smmrs_core() so the naming convention is
+# testable -- it is pure data, and the bug it guards against is invisible at
+# the call site.
+#
+# Convention: the level metric takes `<family>_rate_` (or `_mean_`), and BOTH
+# of its change variants take a prefix distinct from the level and from each
+# other. `prvl`/`incd` share the generic `prct_change_relative_` / `abs_change_`
+# pair for historical reasons; every other family namespaces its own.
+#
+# `ftlt_change_relative` used to map to `ftlt_rate_` -- the same prefix as the
+# `ftlt` LEVEL table. That published a ratio (0.72 = 72% of the baseline year)
+# under a name claiming to be a rate, and, because the name contains neither
+# "change" nor "rel", hid those six tables from any downstream code selecting
+# change columns by pattern. Tests: test_tbl_col_prefixes.R.
+.tbl_col_prefixes <- function() {
+  c(
+    "prvl" = "prvl_rate_", "prvl_change_relative" = "prct_change_relative_", "prvl_change_absolute" = "abs_change_",
+    "incd" = "incd_rate_", "incd_change_relative" = "prct_change_relative_", "incd_change_absolute" = "abs_change_",
+    "ftlt" = "ftlt_rate_", "ftlt_change_relative" = "ftlt_change_relative_", "ftlt_change_absolute" = "ftlt_abs_change_",
+    "mrtl" = "mrtl_rate_", "mrtl_change_relative" = "mrtl_change_relative_", "mrtl_change_absolute" = "mrtl_abs_change_",
+    "dis_mrtl" = "disease_mrtl_rate_", "dis_mrtl_change_relative" = "disease_mrtl_change_relative_", "dis_mrtl_change_absolute" = "disease_mrtl_abs_change_",
+    "qalys" = "qalys_", "net_qalys" = "net_qalys_",
+    "costs" = "costs_", "net_costs" = "net_costs_",
+    "contd" = "contd_mean_", "contd_change_relative" = "contd_change_relative_", "contd_change_absolute" = "contd_abs_change_",
+    "cypp" = "cypp_", "cpp" = "cpp_", "dpp" = "dpp_",
+    "pop" = "pop_size_"
+  )
+}
+
+
 # tbl_smmrs_core ----
 # Core table summary logic adapted from process_out_Bradford.R tbl_smmrs()
 # Handles aggregation, rate calculation, and quantile computation
@@ -1442,19 +1474,8 @@ Simulation$set("private", "tbl_smmrs_core", function(
     "pop" = "^popsize$"
   )
 
-  # Output column name prefixes
-  str3 <- c(
-    "prvl" = "prvl_rate_", "prvl_change_relative" = "prct_change_relative_", "prvl_change_absolute" = "abs_change_",
-    "incd" = "incd_rate_", "incd_change_relative" = "prct_change_relative_", "incd_change_absolute" = "abs_change_",
-    "ftlt" = "ftlt_rate_", "ftlt_change_relative" = "ftlt_rate_", "ftlt_change_absolute" = "ftlt_abs_change_",
-    "mrtl" = "mrtl_rate_", "mrtl_change_relative" = "mrtl_change_relative_", "mrtl_change_absolute" = "mrtl_abs_change_",
-    "dis_mrtl" = "disease_mrtl_rate_", "dis_mrtl_change_relative" = "disease_mrtl_change_relative_", "dis_mrtl_change_absolute" = "disease_mrtl_abs_change_",
-    "qalys" = "qalys_", "net_qalys" = "net_qalys_",
-    "costs" = "costs_", "net_costs" = "net_costs_",
-    "contd" = "contd_mean_", "contd_change_relative" = "contd_change_relative_", "contd_change_absolute" = "contd_abs_change_",
-    "cypp" = "cypp_", "cpp" = "cpp_", "dpp" = "dpp_",
-    "pop" = "pop_size_"
-  )
+  # Output column name prefixes (see .tbl_col_prefixes above)
+  str3 <- .tbl_col_prefixes()
 
   # Output file descriptions
   str4 <- c(

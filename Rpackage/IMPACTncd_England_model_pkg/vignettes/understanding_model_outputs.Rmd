@@ -290,8 +290,14 @@ The following parameters are generated for both non-standardised (scaled up to O
 | Incidence relative change | incd_change_relative | prct_change_relative_ | Relative change in incidence from baseline year |
 | Incidence absolute change | incd_change_absolute | abs_change_ | Absolute change in incidence from baseline year |
 | Case fatality | ftlt | ftlt_rate_ | Deaths per prevalent cases |
+| Case fatality relative change | ftlt_change_relative | ftlt_change_relative_ | Relative change in case fatality from baseline year |
+| Case fatality absolute change | ftlt_change_absolute | ftlt_abs_change_ | Absolute change in case fatality from baseline year |
 | All-cause mortality | mrtl | mrtl_rate_ | All-cause mortality rate per population |
+| All-cause mortality relative change | mrtl_change_relative | mrtl_change_relative_ | Relative change in all-cause mortality from baseline year |
+| All-cause mortality absolute change | mrtl_change_absolute | mrtl_abs_change_ | Absolute change in all-cause mortality from baseline year |
 | Disease-specific mortality | dis_mrtl | disease_mrtl_rate_ | Disease-specific mortality rate per population |
+| Disease-specific mortality relative change | dis_mrtl_change_relative | disease_mrtl_change_relative_ | Relative change in disease-specific mortality from baseline year |
+| Disease-specific mortality absolute change | dis_mrtl_change_absolute | disease_mrtl_abs_change_ | Absolute change in disease-specific mortality from baseline year |
 | Pop size | pop | pop_size_ | Total population size (non-standardised only) |
 | QALYs | qalys | qalys_ | Quality-Adjusted Life Years (based on EQ-5D-5L). Includes both annual and cumulative values. Optionally discounted |
 | Net QALYs | net_qalys | net_qalys_ | Difference in QALYs between intervention and baseline scenarios. Includes both annual and cumulative values |
