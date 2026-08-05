@@ -540,6 +540,7 @@ silently falling back to a narrower one.
   prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),
   comparator_scenario = "sc0",
   two_agegrps = FALSE,
+  two_agegrps_split_age = 65L,
   strata = NULL,
   multicore = TRUE,
   cea = TRUE,
@@ -603,8 +604,39 @@ draws, and neither a median nor an ICER commutes with differencing.
 
 Scenario names are validated against the summaries up front, so a typo
 fails immediately rather than hours into the export.}
-      \item{\code{two_agegrps}}{Logical. If \code{TRUE}, uses a coarser two-age-group
-stratification; otherwise uses the standard age groups.}
+      \item{\code{two_agegrps}}{Logical. If \code{TRUE}, \code{agegrp} is reported as TWO coarse
+groups instead of the design's 5-year bands, and the tables are written to
+\verb{tables2agegrps/} instead of \verb{tables/}. The split age is
+\code{two_agegrps_split_age}.
+
+It is a pure \strong{relabelling} applied before each family's own group-by, so
+for counts and for rates built as summed-numerator / summed-denominator it
+is exactly equivalent to having banded at summary time. The one exception
+is \code{equity}, which fits a \emph{model}: the index is invariant only under an
+exactly linear gradient, so a two-group and a 5-year-band fit are different
+estimands (see \code{export_equity_tables()}).
+
+Applies to every family whose summaries carry \code{agegrp}: the main tables,
+all-cause mortality by disease, the CEA tables and the equity tables.
+\verb{disease characteristics} has no \code{agegrp} column, and the exposure (\code{xps})
+tables use \code{agegrp20} (20-year bands, plus \verb{90+} and \code{All}) which is a
+different variable and is deliberately left untouched.}
+      \item{\code{two_agegrps_split_age}}{Integer, default \code{65L}. The first year of the
+UPPER age group when \code{two_agegrps = TRUE}, i.e. the default reproduces the
+historical \code{30-64} / \code{65-99} split. Ignored when \code{two_agegrps = FALSE}.
+
+It must fall \emph{between} two age bands rather than inside one: a split of
+\code{62} would have to cut \code{60-64} in half and is refused. It need not start a
+band that is actually present -- a locality whose data happen to have an
+empty band at the split is still splittable there. A split that would leave
+one of the two groups empty is also refused, since that is not two groups.
+Both the structural check and the band-alignment check run in the parent
+process before any task is dispatched, so a typo fails in seconds rather
+than from inside a forked worker minutes later.
+
+The group labels are derived from the data: \code{30-64} / \code{65-99} for the stock
+England design, but a run reporting ages 20-89 gets \code{20-64} / \code{65-89}, and
+an open-ended top band gives \verb{65+}.}
       \item{\code{strata}}{Optional named list overriding the default stratification
 configuration. See examples in the file header for shape; passed
 through \code{private$build_strata_config()}.
@@ -629,7 +661,12 @@ gradient rather than a stratification, and \code{"year"} is required -- see the
       \item{\code{multicore}}{Logical. If \code{TRUE}, runs table-building tasks in
 parallel with single-threaded workers; otherwise runs sequentially.}
       \item{\code{cea}}{Logical. If \code{TRUE} (default), also build the cost-effectiveness
-(ICER / NMB) tables from the \code{qalys} and \code{costs} summaries.}
+(ICER / NMB) tables from the \code{qalys} and \code{costs} summaries.
+On a run with no intervention arm (only the comparator scenario present)
+there is nothing to contrast, so no CEA table is written -- but the worker
+still READS \code{qalys} and \code{costs} before it can discover that, since the
+scenario list is a property of the data. Pass \code{cea = FALSE} explicitly on a
+baseline-only run to skip the read and free one of the parallel task slots.}
       \item{\code{wtp}}{Numeric vector of willingness-to-pay thresholds (currency per
 QALY) at which the net monetary benefit is computed. Default
 \code{c(25000, 35000)} (GBP/QALY). NICE's standard reference range is
@@ -658,6 +695,10 @@ incomparable.}
 slope-index tables (absolute and relative analogues of the Slope Index of
 Inequality / Relative Index of Inequality) for the cumulative CPP, CYPP,
 DPP and net-QALYs benefits, distributed across deprivation groups.
+Every index is a benefit-vs-comparator contrast, so as with \code{cea} a
+baseline-only run writes no equity table -- yet still reads the \code{incd},
+\code{prvl}, \code{mrtl} and \code{qalys} summaries in turn before finding that out. Pass
+\code{equity = FALSE} explicitly when there is no intervention arm.
 Written as \verb{equity <metric> slope index by <strata> (not standardised).csv}
 with a \code{type} column giving:
 \itemize{

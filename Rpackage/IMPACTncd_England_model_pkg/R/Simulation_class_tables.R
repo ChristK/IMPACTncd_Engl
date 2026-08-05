@@ -270,6 +270,165 @@ add_qimd_from_dimd <- function(dt) {
 }
 
 
+# =============================================================================
+# Two-age-group collapse (`two_agegrps`)
+# -----------------------------------------------------------------------------
+# `export_tables(two_agegrps = TRUE)` reports `agegrp` as TWO coarse groups
+# instead of the design's 5-year bands, writing to `tables2agegrps/`. The split
+# is configurable via `two_agegrps_split_age` (default 65L, the historical
+# 30-64 / 65-99).
+#
+# This is a RELABELLING only -- exactly like add_qimd_from_dimd() -- so the
+# actual collapsing is done by whatever group-by the caller already performs.
+# That is what makes it exact for counts: summing the constituent bands
+# reproduces what banding at summary time would have given, and rates built as
+# summed-numerator / summed-denominator follow. (The equity family is the one
+# exception: it FITS A MODEL, so see export_equity_tables().)
+#
+# The band bounds are read from the DATA, never hard-coded to 30..99: `ageL` /
+# `ageH` are design parameters, and a run reporting 20-89 must not be
+# relabelled "30-64" / "65-99".
+# =============================================================================
+
+# .agegrp_bounds ----
+# Numeric bounds of age-band labels ("30-34" -> lo 30, hi 34; an open-ended
+# "90+" -> lo 90, hi NA). Fails loudly on anything unparseable rather than
+# returning NA and dropping those rows into neither group -- same reasoning as
+# deprivation_rank().
+.agegrp_bounds <- function(labs, col = "agegrp") {
+  labs <- as.character(labs)
+  open <- grepl("^[0-9]+\\+$", labs)
+  lo <- suppressWarnings(as.integer(sub("^([0-9]+).*$", "\\1", labs)))
+  hi <- suppressWarnings(as.integer(sub("^[0-9]+-([0-9]+)$", "\\1", labs)))
+  hi[open] <- NA_integer_
+  bad <- is.na(lo) | (is.na(hi) & !open)
+  if (any(bad)) {
+    stop(sprintf(paste0(
+      "unparseable `%s` level(s): %s. Expected labels like '30-34', or an ",
+      "open-ended '95+'. The two-age-group collapse splits on these bounds, so ",
+      "an unrecognised label would silently land in the wrong group."),
+      col, paste(sQuote(unique(labs[bad])), collapse = ", ")), call. = FALSE)
+  }
+  list(lo = lo, hi = hi, open = open)
+}
+
+
+# two_agegrp_map ----
+# Map every age-band label to one of two coarse groups, split at `split_age` --
+# which becomes the FIRST year of the UPPER group. Returns a named character
+# vector (label -> coarse label) carrying the ordered coarse levels in the
+# "levels_ordered" attribute.
+two_agegrp_map <- function(labs, split_age = 65L, col = "agegrp") {
+  labs <- unique(as.character(labs[!is.na(labs)]))
+  b <- .agegrp_bounds(labs, col)
+  # The split must fall BETWEEN bands, never inside one. Test CONTAINMENT
+  # rather than "is it a band start?": a small locality can easily have an
+  # empty 5-year band, and a run whose data happen not to contain the band
+  # beginning exactly at `split_age` is still perfectly splittable there.
+  cut <- b$lo < split_age & (is.na(b$hi) | split_age <= b$hi)
+  if (any(cut)) {
+    stop(sprintf(paste0(
+      "`two_agegrps_split_age` = %s falls INSIDE the `%s` band(s) %s, which the ",
+      "collapse would have to cut in half. Choose an age that starts a band -- ",
+      "those present start at: %s."),
+      split_age, col, paste(sQuote(labs[cut]), collapse = ", "),
+      paste(sort(unique(b$lo)), collapse = ", ")), call. = FALSE)
+  }
+  lower <- b$lo < split_age
+  # A split outside the range gives ONE group, not two. That is always a
+  # mistake under an argument called `two_agegrps`, and it would also make the
+  # empty group's label undefined (max() over nothing).
+  if (!any(lower) || all(lower)) {
+    stop(sprintf(paste0(
+      "`two_agegrps_split_age` = %s leaves one of the two age groups EMPTY: ",
+      "every `%s` band present falls %s it. The bands run %s-%s."),
+      split_age, col, if (all(lower)) "below" else "at or above", min(b$lo),
+      if (any(b$open)) paste0(max(b$lo), "+") else max(b$hi)), call. = FALSE)
+  }
+  lo_lab <- paste0(min(b$lo), "-", split_age - 1L)
+  hi_lab <- if (any(b$open[!lower])) {
+    paste0(split_age, "+")
+  } else {
+    paste0(split_age, "-", max(b$hi[!lower]))
+  }
+  res <- fifelse(lower, lo_lab, hi_lab)
+  names(res) <- labs
+  attr(res, "levels_ordered") <- c(lo_lab, hi_lab)
+  res
+}
+
+
+# collapse_two_agegrps ----
+# Relabel `col` IN PLACE into the two coarse groups. A no-op returning FALSE
+# when `dt` is NULL or has no such column, so callers need no guard of their
+# own -- `dis_characteristics` carries no `agegrp` at all, and the xps family
+# uses `agegrp20` (20-year bands) which this deliberately does not touch.
+#
+# Idempotent: re-running it on already-collapsed labels reproduces them, which
+# matters because export_main_tables() applies it per METRIC to copies of one
+# shared base table.
+collapse_two_agegrps <- function(dt, split_age = 65L, col = "agegrp") {
+  if (is.null(dt) || !col %chin% names(dt)) return(invisible(FALSE))
+  v <- dt[[col]]
+  m <- two_agegrp_map(if (is.factor(v)) levels(v) else v, split_age, col)
+  new <- unname(m[as.character(v)])
+  if (is.factor(v)) {
+    new <- factor(new, levels = intersect(attr(m, "levels_ordered"), new))
+  }
+  data.table::set(dt, j = col, value = new)
+  invisible(TRUE)
+}
+
+
+# .promote_integer_measures ----
+# Promote the INTEGER measure columns of an aggregated table to double, leaving
+# the key columns alone.
+#
+# Not cosmetic, and the hazard is narrower than it looks. Every consumer below
+# divides one summed column by another and writes the quotient back, but the
+# form of the assignment decides whether that is safe:
+#
+#   d[, value := value / denom]        replaces the WHOLE column ("plonk"), so
+#                                      it is promoted to double. Harmless.
+#   d[cases, on = ..., value := ...]   a JOIN-UPDATE writes into a SUBSET of
+#                                      the existing column and must coerce to
+#                                      that column's type -- an integer column
+#                                      TRUNCATES, turning a case-fatality rate
+#                                      of 0.034 into 0.
+#
+# Every division site in tbl_smmrs_core() and export_all_cause_mrtl_tables() is
+# the second form. data.table warns, but a whole table of zeros is
+# publishable-looking output and the warning is one of thousands in a run. The
+# stock summaries store these counts as double so nothing truncates today --
+# but that is a property of whoever wrote the parquet, not a guarantee of this
+# code.
+.promote_integer_measures <- function(dt, keys) {
+  meas <- setdiff(names(dt), keys)
+  if (length(meas) == 0L) return(invisible(FALSE))
+  int <- meas[vapply(meas, function(n) is.integer(dt[[n]]), logical(1))]
+  if (length(int) == 0L) return(invisible(FALSE))
+  dt[, (int) := lapply(.SD, as.numeric), .SDcols = int]
+  invisible(TRUE)
+}
+
+
+# validate_two_agegrps_split_age ----
+# STRUCTURAL, data-free check, run in the PARENT next to
+# validate_comparator_scenario(): a bad argument must not surface hours later
+# from inside a forked worker. The band-alignment check needs the data and so
+# lives in two_agegrp_map(), with export_tables() probing the summaries up front
+# to raise it in the parent too.
+validate_two_agegrps_split_age <- function(x) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x) || !is.finite(x) ||
+      x != as.integer(x) || x <= 0) {
+    stop("`two_agegrps_split_age` must be a single positive whole number (the ",
+         "first year of the upper age group), not ",
+         paste(deparse(x), collapse = " "), ".", call. = FALSE)
+  }
+  invisible(as.integer(x))
+}
+
+
 # Columns the equity tables manage themselves, so they cannot also be named as
 # an output stratum: `mc` is the Monte-Carlo axis the indices are quantiled
 # over, and `scenario` is always present because every index is a contrast
@@ -660,8 +819,39 @@ build_equity_plans <- function(strata) {
 #'
 #'   Scenario names are validated against the summaries up front, so a typo
 #'   fails immediately rather than hours into the export.
-#' @param two_agegrps Logical. If `TRUE`, uses a coarser two-age-group
-#'   stratification; otherwise uses the standard age groups.
+#' @param two_agegrps Logical. If `TRUE`, `agegrp` is reported as TWO coarse
+#'   groups instead of the design's 5-year bands, and the tables are written to
+#'   `tables2agegrps/` instead of `tables/`. The split age is
+#'   `two_agegrps_split_age`.
+#'
+#'   It is a pure **relabelling** applied before each family's own group-by, so
+#'   for counts and for rates built as summed-numerator / summed-denominator it
+#'   is exactly equivalent to having banded at summary time. The one exception
+#'   is `equity`, which fits a *model*: the index is invariant only under an
+#'   exactly linear gradient, so a two-group and a 5-year-band fit are different
+#'   estimands (see `export_equity_tables()`).
+#'
+#'   Applies to every family whose summaries carry `agegrp`: the main tables,
+#'   all-cause mortality by disease, the CEA tables and the equity tables.
+#'   `disease characteristics` has no `agegrp` column, and the exposure (`xps`)
+#'   tables use `agegrp20` (20-year bands, plus `90+` and `All`) which is a
+#'   different variable and is deliberately left untouched.
+#' @param two_agegrps_split_age Integer, default `65L`. The first year of the
+#'   UPPER age group when `two_agegrps = TRUE`, i.e. the default reproduces the
+#'   historical `30-64` / `65-99` split. Ignored when `two_agegrps = FALSE`.
+#'
+#'   It must fall *between* two age bands rather than inside one: a split of
+#'   `62` would have to cut `60-64` in half and is refused. It need not start a
+#'   band that is actually present -- a locality whose data happen to have an
+#'   empty band at the split is still splittable there. A split that would leave
+#'   one of the two groups empty is also refused, since that is not two groups.
+#'   Both the structural check and the band-alignment check run in the parent
+#'   process before any task is dispatched, so a typo fails in seconds rather
+#'   than from inside a forked worker minutes later.
+#'
+#'   The group labels are derived from the data: `30-64` / `65-99` for the stock
+#'   England design, but a run reporting ages 20-89 gets `20-64` / `65-89`, and
+#'   an open-ended top band gives `65+`.
 #' @param strata Optional named list overriding the default stratification
 #'   configuration. See examples in the file header for shape; passed
 #'   through `private$build_strata_config()`.
@@ -687,6 +877,11 @@ build_equity_plans <- function(strata) {
 #'   parallel with single-threaded workers; otherwise runs sequentially.
 #' @param cea Logical. If `TRUE` (default), also build the cost-effectiveness
 #'   (ICER / NMB) tables from the `qalys` and `costs` summaries.
+#'   On a run with no intervention arm (only the comparator scenario present)
+#'   there is nothing to contrast, so no CEA table is written -- but the worker
+#'   still READS `qalys` and `costs` before it can discover that, since the
+#'   scenario list is a property of the data. Pass `cea = FALSE` explicitly on a
+#'   baseline-only run to skip the read and free one of the parallel task slots.
 #' @param wtp Numeric vector of willingness-to-pay thresholds (currency per
 #'   QALY) at which the net monetary benefit is computed. Default
 #'   `c(25000, 35000)` (GBP/QALY). NICE's standard reference range is
@@ -715,6 +910,10 @@ build_equity_plans <- function(strata) {
 #'   slope-index tables (absolute and relative analogues of the Slope Index of
 #'   Inequality / Relative Index of Inequality) for the cumulative CPP, CYPP,
 #'   DPP and net-QALYs benefits, distributed across deprivation groups.
+#'   Every index is a benefit-vs-comparator contrast, so as with `cea` a
+#'   baseline-only run writes no equity table -- yet still reads the `incd`,
+#'   `prvl`, `mrtl` and `qalys` summaries in turn before finding that out. Pass
+#'   `equity = FALSE` explicitly when there is no intervention arm.
 #'   Written as `equity <metric> slope index by <strata> (not standardised).csv`
 #'   with a `type` column giving:
 #'   * `AEI_total` -- the SII scaled to the whole reference population
@@ -851,6 +1050,7 @@ Simulation$set("public", "export_tables", function(
     prbl = c(0.5, 0.025, 0.975, 0.1, 0.9),
     comparator_scenario = "sc0",
     two_agegrps = FALSE,
+    two_agegrps_split_age = 65L,
     strata = NULL,
     multicore = TRUE,
     cea = TRUE,
@@ -873,6 +1073,12 @@ Simulation$set("public", "export_tables", function(
   # parent -- same slot and same reason as validate_equity_strata(): a bad
   # argument must not surface hours later from inside a parallel worker.
   validate_comparator_scenario(comparator_scenario)
+
+  # Same slot, same reason, for the two-age-group split. The structural check is
+  # free; the band-alignment one reads a single column and runs ONLY under
+  # two_agegrps, so the default path is unaffected.
+  two_agegrps_split_age <- validate_two_agegrps_split_age(two_agegrps_split_age)
+  if (two_agegrps) private$check_two_agegrps_split_age(two_agegrps_split_age)
 
   # Ensure baseline year is in full format (e.g. 2019, not 19)
   # Data is converted to full year format in export_main_tables()
@@ -949,6 +1155,7 @@ Simulation$set("public", "export_tables", function(
       tables_dir = tables_dir,
       comparator_scenario = comparator_scenario,
       two_agegrps = two_agegrps,
+      two_agegrps_split_age = two_agegrps_split_age,
       strata_ons = strata_cfg$ons,
       strata_esp = strata_cfg$esp
     ),
@@ -958,6 +1165,8 @@ Simulation$set("public", "export_tables", function(
       prbl = prbl,
       summaries_dir = private$output_dir("summaries"),
       tables_dir = tables_dir,
+      two_agegrps = two_agegrps,
+      two_agegrps_split_age = two_agegrps_split_age,
       strata_ons = strata_cfg$mrtl_ons,
       strata_esp = strata_cfg$mrtl_esp
     ),
@@ -995,6 +1204,8 @@ Simulation$set("public", "export_tables", function(
       cost_discount_rate = cost_discount_rate,
       discount_from_year = discount_from_year,
       custom_costs_in_healthcare = custom_costs_in_healthcare,
+      two_agegrps = two_agegrps,
+      two_agegrps_split_age = two_agegrps_split_age,
       strata = strata_cfg$ons
     )
   }
@@ -1012,7 +1223,8 @@ Simulation$set("public", "export_tables", function(
       baseline_year = baseline_year_for_change_outputs,
       ridit_reference = equity_ridit_reference,
       strata = strata_cfg$equity,
-      two_agegrps = two_agegrps
+      two_agegrps = two_agegrps,
+      two_agegrps_split_age = two_agegrps_split_age
     )
   }
 
@@ -1106,6 +1318,7 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
       tables_dir = task$tables_dir,
       comparator_scenario = task$comparator_scenario,
       two_agegrps = task$two_agegrps,
+      two_agegrps_split_age = task$two_agegrps_split_age,
       strata_ons = task$strata_ons,
       strata_esp = task$strata_esp
     ),
@@ -1113,6 +1326,8 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
       prbl = task$prbl,
       summaries_dir = task$summaries_dir,
       tables_dir = task$tables_dir,
+      two_agegrps = task$two_agegrps,
+      two_agegrps_split_age = task$two_agegrps_split_age,
       strata_ons = task$strata_ons,
       strata_esp = task$strata_esp
     ),
@@ -1140,6 +1355,8 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
       cost_discount_rate = task$cost_discount_rate,
       discount_from_year = task$discount_from_year,
       custom_costs_in_healthcare = task$custom_costs_in_healthcare,
+      two_agegrps = task$two_agegrps,
+      two_agegrps_split_age = task$two_agegrps_split_age,
       strata = task$strata
     ),
     "equity" = private$export_equity_tables(
@@ -1150,7 +1367,8 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
       baseline_year = task$baseline_year,
       ridit_reference = task$ridit_reference,
       strata = task$strata,
-      two_agegrps = task$two_agegrps
+      two_agegrps = task$two_agegrps,
+      two_agegrps_split_age = task$two_agegrps_split_age
     )
   )
 
@@ -1182,6 +1400,32 @@ Simulation$set("private", "probe_summary_scenarios", function() {
     scns <- union(scns, as.character(as.data.frame(tb)$scenario))
   }
   list(scenarios = sort(scns), columns = cols)
+})
+
+
+# check_two_agegrps_split_age ----
+# Up-front, DATA-DEPENDENT validation of `two_agegrps_split_age`, run in the
+# PARENT for the same reason as check_comparator_map(): a split age that does
+# not start an age band is a typo, and the user should learn that in a second
+# rather than from a forked worker several minutes in. TWO_AGEGRPS MODE ONLY,
+# so the default path pays nothing.
+#
+# Reads one summary's `agegrp` column via a projected arrow scan (an aggregate,
+# never a join -- see probe_summary_scenarios). Silently does nothing if no
+# summary carries `agegrp`: there is then nothing for the collapse to act on,
+# and collapse_two_agegrps() is a no-op everywhere.
+Simulation$set("private", "check_two_agegrps_split_age", function(split_age) {
+  for (s in c("prvl", "incd", "mrtl", "all_cause_mrtl_by_dis", "qalys", "costs")) {
+    p <- private$output_dir(paste0("summaries/", s, "_scaled_up"))
+    if (!dir.exists(p)) next
+    ds <- tryCatch(arrow::open_dataset(p), error = function(e) NULL)
+    if (is.null(ds) || !"agegrp" %chin% names(ds)) next
+    tb <- arrow::Scanner$create(ds, projection = "agegrp")$ToTable()
+    labs <- unique(as.character(as.data.frame(tb)$agegrp))
+    two_agegrp_map(labs, split_age, "agegrp")   # errors if it splits no band
+    return(invisible(TRUE))
+  }
+  invisible(FALSE)
 })
 
 
@@ -1647,12 +1891,10 @@ Simulation$set("private", "tbl_smmrs_core", function(
       # All other metrics (prvl, incd, mrtl, dis_mrtl, ftlt, pop, cypp, cpp, dpp)
       d <- tt[, lapply(.SD, sum), .SDcols = patterns(str2[[what]]), keyby = x]
 
-      # Convert integer columns to numeric
-      is_int <- sapply(d[, .SD, .SDcols = -x], is.integer)
-      is_int <- names(is_int[is_int])
-      if (length(is_int) > 0) {
-        d[, (is_int) := lapply(.SD, as.numeric), .SDcols = is_int]
-      }
+      # Convert integer columns to numeric. Same guard, same reason, as the one
+      # export_all_cause_mrtl_tables() applies -- shared so the two cannot
+      # drift apart.
+      .promote_integer_measures(d, x)
 
       if (grepl("^ftlt", what)) {
         # Case fatality: deaths / prevalence
@@ -1794,6 +2036,7 @@ Simulation$set("private", "export_main_tables", function(
     tables_dir,
     comparator_scenario = "sc0",
     two_agegrps = FALSE,
+    two_agegrps_split_age = 65L,
     strata_ons = NULL,
     strata_esp = NULL
 ) {
@@ -1873,13 +2116,16 @@ Simulation$set("private", "export_main_tables", function(
           message(paste0("  ", what, "-", pop_name))
         }
 
-        # Get a copy of the base dataset
-        tt <- copy(tt_base)
-
-        # Check if comparison metrics can be computed
+        # Check if comparison metrics can be computed. This guard runs BEFORE
+        # the copy() below, deliberately: on a single-scenario run EVERY
+        # comparison metric is skipped, and copying `tt_base` first only to
+        # rm() it again allocated a full duplicate of the summary for nothing --
+        # ten times per call (five metrics x two populations), 0.6-2.2 GB each
+        # on a production run. Reading the scenario list off `tt_base` is
+        # equivalent: `tt` was a verbatim copy and nothing had touched it yet.
         comparison_metrics <- c("cypp", "cpp", "dpp", "net_qalys", "net_costs")
         if (what %in% comparison_metrics) {
-          available_scenarios <- unique(tt$scenario)
+          available_scenarios <- unique(tt_base$scenario)
           if (.comparator_is_map(comparator_scenario)) {
             cm <- .resolve_comparators(comparator_scenario, available_scenarios)
             drops <- attr(cm, "dropped")
@@ -1892,7 +2138,6 @@ Simulation$set("private", "export_main_tables", function(
                 call. = FALSE, immediate. = TRUE)
             }
             if (length(cm) == 0L) {
-              rm(tt)
               next
             }
           } else {
@@ -1909,38 +2154,35 @@ Simulation$set("private", "export_main_tables", function(
                 comparator_scenario, paste(available_scenarios, collapse = ", "),
                 what), call. = FALSE, immediate. = TRUE)
             }
-            ## ---- ORIGINAL, VERBATIM ------------------------------------
+            ## ---- ORIGINAL, VERBATIM, bar the dropped `rm(tt)` -----------
             non_comparator_scenarios <- setdiff(available_scenarios, comparator_scenario)
             if (length(non_comparator_scenarios) == 0) {
               if (self$design$sim_prm$logs) {
                 message("    Skipping ", what, " - no intervention scenarios (only '",
                         comparator_scenario, "' found)")
               }
-              rm(tt)
               next
             }
             ## -------------------------------------------------------------
           }
         }
 
-        # Handle two_agegrps transformation
-        if (two_agegrps && "agegrp" %in% names(tt)) {
-          tt[agegrp %in% c("30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64"),
-             agegrp := "30-64"]
-          tt[agegrp %in% c("65-69", "70-74", "75-79", "80-84", "85-89", "90-94", "95-99"),
-             agegrp := "65-99"]
-        }
+        # Working copy, taken only once the metric is known to be buildable.
+        # It MUST be a copy: the two_agegrps relabel below, the absorb_dt() in
+        # the ftlt branch and tbl_smmrs_core() all mutate `tt` BY REFERENCE,
+        # while `tt_base` is reused by every later metric in this source group.
+        tt <- copy(tt_base)
 
-        # For case fatality, add prevalence denominator
+        # Handle two_agegrps transformation
+        if (two_agegrps) collapse_two_agegrps(tt, two_agegrps_split_age)
+
+        # For case fatality, add prevalence denominator. The denominator MUST be
+        # collapsed on the same split, or absorb_dt()'s natural join on `agegrp`
+        # would match nothing and every case-fatality row would be dropped.
         if (grepl("^ftlt", what) && !is.null(prvl_for_ftlt)) {
           t1 <- copy(prvl_for_ftlt)
           setnames(t1, "popsize", "nonmodelled_prvl")
-          if (two_agegrps && "agegrp" %in% names(t1)) {
-            t1[agegrp %in% c("30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64"),
-               agegrp := "30-64"]
-            t1[agegrp %in% c("65-69", "70-74", "75-79", "80-84", "85-89", "90-94", "95-99"),
-               agegrp := "65-99"]
-          }
+          if (two_agegrps) collapse_two_agegrps(t1, two_agegrps_split_age)
           absorb_dt(tt, t1)
           tt <- tt[nonmodelled_prvl > 0]
           rm(t1)
@@ -1983,6 +2225,8 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
     prbl,
     summaries_dir,
     tables_dir,
+    two_agegrps = FALSE,
+    two_agegrps_split_age = 65L,
     strata_ons = NULL,
     strata_esp = NULL
 ) {
@@ -2025,6 +2269,14 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
   add_qimd_from_dimd(tt_scaled)
   add_qimd_from_dimd(pp_scaled)
   add_qimd_from_dimd(tt_esp)
+  # Match export_main_tables(): under two_agegrps, `agegrp` means the coarse
+  # split. `pp_scaled` is the population denominator and is joined to
+  # `tt_scaled` on the strata, so it MUST be collapsed on the same split.
+  if (two_agegrps) {
+    collapse_two_agegrps(tt_scaled, two_agegrps_split_age)
+    collapse_two_agegrps(pp_scaled, two_agegrps_split_age)
+    collapse_two_agegrps(tt_esp, two_agegrps_split_age)
+  }
 
   # ---- Non-standardised with disease denominator ----
   if (!is.null(tt_scaled)) {
@@ -2033,6 +2285,9 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
       d <- tt_scaled[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"), keyby = eval(outstrata)]
+      # Before the melt, so `value` is born numeric and the division below is
+      # not truncated in place. See .promote_integer_measures().
+      .promote_integer_measures(d, outstrata)
       d <- melt(d, id.vars = outstrata)
       cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
       d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
@@ -2058,6 +2313,8 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
       outstrata <- cfg$strata
       cases <- pp_scaled[, lapply(.SD, sum), .SDcols = patterns("^popsize$"), keyby = eval(outstrata)]
       d <- tt_scaled[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"), keyby = eval(outstrata)]
+      .promote_integer_measures(cases, outstrata)
+      .promote_integer_measures(d, outstrata)
       d <- melt(d, id.vars = outstrata)
       d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
       d[cases, on = outstrata, value := value / popsize]
@@ -2085,6 +2342,7 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
       d <- tt_esp[, lapply(.SD, sum), .SDcols = patterns("^deaths_|^cases_"), keyby = eval(outstrata)]
+      .promote_integer_measures(d, outstrata)
       d <- melt(d, id.vars = outstrata)
       cases <- d[grep("^cases_", variable)][, variable := gsub("^cases_", "", variable)]
       d <- d[grep("^deaths_", variable)][, variable := gsub("^deaths_", "", variable)]
@@ -2379,6 +2637,8 @@ Simulation$set("private", "export_cea_tables", function(
     cost_discount_rate = 3.5,
     discount_from_year = NULL,
     custom_costs_in_healthcare = NULL,
+    two_agegrps = FALSE,
+    two_agegrps_split_age = 65L,
     strata = NULL
 ) {
   if (self$design$sim_prm$logs) {
@@ -2403,6 +2663,13 @@ Simulation$set("private", "export_cea_tables", function(
   # Allow `qimd` strata even when the summaries only carry `dimd`
   add_qimd_from_dimd(qalys)
   add_qimd_from_dimd(costs)
+  # Match export_main_tables(): the CEA strata default to the `ons` list, which
+  # may carry `agegrp`. Both frames are aggregated on the same strata and then
+  # joined, so both must be collapsed on the same split.
+  if (two_agegrps) {
+    collapse_two_agegrps(qalys, two_agegrps_split_age)
+    collapse_two_agegrps(costs, two_agegrps_split_age)
+  }
 
   # Derived, not passed as a formal (see tbl_smmrs_core for why).
   comparator_is_map <- .comparator_is_map(comparator_scenario)
@@ -2634,7 +2901,8 @@ Simulation$set("private", "export_equity_tables", function(
     baseline_year = 2019L,
     ridit_reference = "comparator",
     strata = NULL,
-    two_agegrps = FALSE
+    two_agegrps = FALSE,
+    two_agegrps_split_age = 65L
 ) {
   ridit_reference <- match.arg(ridit_reference, c("comparator", "scenario"))
   # Derived, not passed as a formal (see tbl_smmrs_core for why).
@@ -2696,13 +2964,8 @@ Simulation$set("private", "export_equity_tables", function(
     tt[, year := year + 2000L]
 
     # Match export_main_tables(): under two_agegrps, `agegrp` means the coarse
-    # 30-64 / 65-99 split. Relevant now that agegrp can be an equity stratum.
-    if (two_agegrps && "agegrp" %in% names(tt)) {
-      tt[agegrp %in% c("30-34", "35-39", "40-44", "45-49", "50-54", "55-59",
-                       "60-64"), agegrp := "30-64"]
-      tt[agegrp %in% c("65-69", "70-74", "75-79", "80-84", "85-89", "90-94",
-                       "95-99"), agegrp := "65-99"]
-    }
+    # split. Relevant now that agegrp can be an equity stratum.
+    if (two_agegrps) collapse_two_agegrps(tt, two_agegrps_split_age)
 
     # The index is a benefit-vs-comparator contrast, so both the comparator and
     # at least one intervention scenario must be present.

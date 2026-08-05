@@ -86,6 +86,67 @@ missing is **skipped**, never silently degraded — otherwise a run without
 `socialcare_cost` would publish `healthcare_socialcare` tables identical to the
 `healthcare` ones. Tests: `test_cea_perspectives.R`.
 
+**Integer summaries silently truncate rates — `.promote_integer_measures()`.** Every
+rate in `Simulation_class_tables.R` is one summed column divided by another, written
+back with `:=`. The form decides whether that is safe: `d[, v := v/n]` replaces the
+whole column and **promotes** it to double (harmless), but a **join-update**
+`d[cases, on = ..., v := v/i.v]` writes into a *subset* of the existing column and must
+coerce to its type — so an **integer** column truncates, turning a case-fatality rate of
+0.034 into `0`. data.table only warns, and a table of zeros looks like a result.
+Every division site in `tbl_smmrs_core()` and `export_all_cause_mrtl_tables()` is the
+join-update form. `tbl_smmrs_core()` had always guarded; `export_all_cause_mrtl_tables()`
+had not, and was protected only by the stock summaries happening to store counts as
+`double` — a property of whoever wrote the parquet, not of this code. Both now call the
+shared `.promote_integer_measures(dt, keys)`. Tests:
+`test_integer_measure_promotion.R` (incl. the plain-vs-join `:=` distinction, and an
+integer fixture that must equal a double one end to end).
+
+**`two_agegrps` + `two_agegrps_split_age`.** `two_agegrps = TRUE` reports `agegrp`
+as two coarse groups and writes to `tables2agegrps/`. The split is now an argument:
+`two_agegrps_split_age` (default `65L` = the historical `30-64` / `65-99`). The group
+labels are derived from the **data**, not hard-coded 30..99, so a run reporting ages
+20-89 gets `20-64` / `65-89` and an open-ended top band gives `65+`. Core helpers:
+`two_agegrp_map()` / `collapse_two_agegrps()` (`Simulation_class_tables.R`, next to
+`add_qimd_from_dimd()` — it is the same kind of pure relabel-before-the-group-by, and
+therefore exact for counts and for summed-numerator/summed-denominator rates; `equity`
+is the exception, since it fits a *model*).
+Until 2026-08-05 the flag was plumbed into only the **main** and **equity** tasks, so
+`export_all_cause_mrtl_tables()` silently ignored it and published 5-year bands inside
+`tables2agegrps/` — files **md5-identical** to their `tables/` namesakes. A silent
+no-op, not an error. It now reaches every family whose summaries carry `agegrp`: main,
+all-cause-mortality-by-disease, CEA and equity. Out of scope by construction:
+`dis_characteristics` has no `agegrp` column, and the `xps` family uses `agegrp20`
+(`30-49`/`50-69`/`70-89`/`90+`/`All`) — a different variable that 65 would cut in half.
+⚠️ **Breaking for downstream readers** of `tables2agegrps/all-cause mortality given
+disease-*agegroup*.csv` written before 2026-08-05: those were 5-year-band tables.
+The split must fall *between* bands, never inside one — `62` is refused because it
+would cut `60-64` — and must leave both groups non-empty; it need **not** start a band
+that is actually present, so a locality with an empty band at the split still works.
+Both checks run in the **parent** (`validate_two_agegrps_split_age()` structurally,
+`check_two_agegrps_split_age()` against a projected arrow scan of `agegrp`), so a typo
+fails in seconds rather than from inside a forked worker.
+Tests: `test_two_agegrps.R`; production verification:
+`auxil/verify_two_agegrps_on_real_output.R` (pins the 18 main-family files
+byte-identical to what the old code published).
+
+**Baseline-only runs: turn off `cea` and `equity` explicitly.** Every contrast
+(`cypp`/`cpp`/`dpp`/`net_qalys`/`net_costs`, all CEA tables, all equity indices)
+needs an intervention arm, so with only `sc0` in the summaries none of those files
+is written. The tasks are still *dispatched*, and — because the scenario list is a
+property of the data, not of the arguments — each reads its summaries **before** it
+can discover there is nothing to contrast: CEA loads `qalys` + `costs` (~3 GB), the
+equity worker loads `incd`, `prvl`, `mrtl`, `qalys` in turn (~7 GB peak). Passing
+`cea = FALSE, equity = FALSE` skips both reads and drops `length(tasks)` from 6 to
+4, which also lowers the `min(length(tasks), clusternumber_export)` fork count.
+Output is unchanged: those files never existed. In `export_main_tables()` the
+per-metric working copy `tt <- copy(tt_base)` is taken **below** the same guard, so
+a skipped comparison metric no longer duplicates the summary (it used to, ten times
+per call). The copy must stay above the `two_agegrps` relabel and the ftlt
+`absorb_dt()` — both mutate `tt` by reference, and dropping it makes the second
+`ftlt` metric fail outright. Tests: `test_export_main_tables_working_copy.R`.
+Memory profile: `auxil/diagnose_export_tables_memory.R`, `..._peak.R`,
+`auxil/diagnose_skipped_workers.R`.
+
 **Output column prefixes** come from `.tbl_col_prefixes()` (`Simulation_class_tables.R`),
 one entry per metric, applied to every quantile column. The convention: a level metric
 takes `<family>_rate_`/`_mean_`, and BOTH of its change variants take a prefix distinct
