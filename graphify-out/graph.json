@@ -1217,6 +1217,32 @@
       "norm_label": "get_aggregated_memory()"
     },
     {
+      "label": "set_system_screen_scrollback.sh",
+      "file_type": "code",
+      "source_file": "auxil/set_system_screen_scrollback.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "id": "auxil_set_system_screen_scrollback_sh",
+      "community": 84,
+      "norm_label": "set_system_screen_scrollback.sh"
+    },
+    {
+      "label": "set_system_screen_scrollback.sh script",
+      "file_type": "code",
+      "source_file": "auxil/set_system_screen_scrollback.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "id": "home_ckyprid_my_models_impactncd_engl_auxil_set_system_screen_scrollback_sh__entry",
+      "community": 84,
+      "norm_label": "set_system_screen_scrollback.sh script"
+    },
+    {
       "label": "simsmok.cpp",
       "file_type": "code",
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/simsmok.cpp",
@@ -1323,132 +1349,6 @@
       "id": "rpackage_impactncd_england_model_pkg_src_undef_fortify_h",
       "community": 27,
       "norm_label": "undef_fortify.h"
-    },
-    {
-      "label": "RcppExports.cpp",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L1",
-      "id": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "community": 10,
-      "norm_label": "rcppexports.cpp"
-    },
-    {
-      "label": "_IMPACTncdEngland_simcpp()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L15",
-      "id": "src_rcppexports_impactncdengland_simcpp",
-      "community": 10,
-      "norm_label": "_impactncdengland_simcpp()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simcpp_year_based()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L27",
-      "id": "src_rcppexports_impactncdengland_simcpp_year_based",
-      "community": 10,
-      "norm_label": "_impactncdengland_simcpp_year_based()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L39",
-      "id": "src_rcppexports_impactncdengland_simsmok",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_sc()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L51",
-      "id": "src_rcppexports_impactncdengland_simsmok_sc",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_sc()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_postcalibration()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L64",
-      "id": "src_rcppexports_impactncdengland_simsmok_postcalibration",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_postcalibration()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_cig()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L74",
-      "id": "src_rcppexports_impactncdengland_simsmok_cig",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_cig()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_cig_sc()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L84",
-      "id": "src_rcppexports_impactncdengland_simsmok_cig_sc",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_cig_sc()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_complete_cessation_cig()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L95",
-      "id": "src_rcppexports_impactncdengland_simsmok_complete_cessation_cig",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_complete_cessation_cig()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_cessation()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L105",
-      "id": "src_rcppexports_impactncdengland_simsmok_cessation",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_cessation()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_complete_cessation()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L125",
-      "id": "src_rcppexports_impactncdengland_simsmok_complete_cessation",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_complete_cessation()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_policy_impact_incr()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L141",
-      "id": "src_rcppexports_impactncdengland_simsmok_policy_impact_incr",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_policy_impact_incr()"
-    },
-    {
-      "label": "_IMPACTncdEngland_simsmok_policy_impact_decr()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L156",
-      "id": "src_rcppexports_impactncdengland_simsmok_policy_impact_decr",
-      "community": 10,
-      "norm_label": "_impactncdengland_simsmok_policy_impact_decr()"
-    },
-    {
-      "label": "R_init_IMPACTncdEngland()",
-      "file_type": "code",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L187",
-      "id": "src_rcppexports_r_init_impactncdengland",
-      "community": 10,
-      "norm_label": "r_init_impactncdengland()"
     },
     {
       "label": "IMPACTncd_sim.cpp",
@@ -1780,7 +1680,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L253",
       "id": "src_impactncd_sim_simul_meta",
-      "community": 19,
+      "community": 56,
       "norm_label": "simul_meta"
     },
     {
@@ -1789,7 +1689,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L255",
       "id": "src_impactncd_sim_simul_meta_init_year",
-      "community": 19,
+      "community": 56,
       "norm_label": "init_year"
     },
     {
@@ -1798,7 +1698,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L256",
       "id": "src_impactncd_sim_simul_meta_age_low",
-      "community": 19,
+      "community": 56,
       "norm_label": "age_low"
     },
     {
@@ -1807,7 +1707,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L257",
       "id": "src_impactncd_sim_simul_meta_pid",
-      "community": 19,
+      "community": 56,
       "norm_label": "pid"
     },
     {
@@ -1816,7 +1716,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L258",
       "id": "src_impactncd_sim_simul_meta_year",
-      "community": 19,
+      "community": 56,
       "norm_label": "year"
     },
     {
@@ -1825,7 +1725,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L259",
       "id": "src_impactncd_sim_simul_meta_age",
-      "community": 19,
+      "community": 56,
       "norm_label": "age"
     },
     {
@@ -1834,7 +1734,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L260",
       "id": "src_impactncd_sim_simul_meta_sex",
-      "community": 19,
+      "community": 56,
       "norm_label": "sex"
     },
     {
@@ -1843,7 +1743,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L261",
       "id": "src_impactncd_sim_simul_meta_dimd",
-      "community": 19,
+      "community": 56,
       "norm_label": "dimd"
     },
     {
@@ -1852,7 +1752,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L262",
       "id": "src_impactncd_sim_simul_meta_dead",
-      "community": 19,
+      "community": 56,
       "norm_label": "dead"
     },
     {
@@ -1861,7 +1761,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L263",
       "id": "src_impactncd_sim_simul_meta_mm_count",
-      "community": 19,
+      "community": 56,
       "norm_label": "mm_count"
     },
     {
@@ -1870,7 +1770,7 @@
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/IMPACTncd_sim.cpp",
       "source_location": "L264",
       "id": "src_impactncd_sim_simul_meta_mm_score",
-      "community": 19,
+      "community": 56,
       "norm_label": "mm_score"
     },
     {
@@ -2133,6 +2033,132 @@
       "id": "src_impactncd_sim_simcpp_year_based",
       "community": 19,
       "norm_label": "simcpp_year_based()"
+    },
+    {
+      "label": "RcppExports.cpp",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L1",
+      "id": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "community": 10,
+      "norm_label": "rcppexports.cpp"
+    },
+    {
+      "label": "_IMPACTncdEngland_simcpp()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L15",
+      "id": "src_rcppexports_impactncdengland_simcpp",
+      "community": 10,
+      "norm_label": "_impactncdengland_simcpp()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simcpp_year_based()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L27",
+      "id": "src_rcppexports_impactncdengland_simcpp_year_based",
+      "community": 10,
+      "norm_label": "_impactncdengland_simcpp_year_based()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L39",
+      "id": "src_rcppexports_impactncdengland_simsmok",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_sc()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L51",
+      "id": "src_rcppexports_impactncdengland_simsmok_sc",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_sc()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_postcalibration()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L64",
+      "id": "src_rcppexports_impactncdengland_simsmok_postcalibration",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_postcalibration()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_cig()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L74",
+      "id": "src_rcppexports_impactncdengland_simsmok_cig",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_cig()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_cig_sc()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L84",
+      "id": "src_rcppexports_impactncdengland_simsmok_cig_sc",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_cig_sc()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_complete_cessation_cig()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L95",
+      "id": "src_rcppexports_impactncdengland_simsmok_complete_cessation_cig",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_complete_cessation_cig()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_cessation()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L105",
+      "id": "src_rcppexports_impactncdengland_simsmok_cessation",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_cessation()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_complete_cessation()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L125",
+      "id": "src_rcppexports_impactncdengland_simsmok_complete_cessation",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_complete_cessation()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_policy_impact_incr()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L141",
+      "id": "src_rcppexports_impactncdengland_simsmok_policy_impact_incr",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_policy_impact_incr()"
+    },
+    {
+      "label": "_IMPACTncdEngland_simsmok_policy_impact_decr()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L156",
+      "id": "src_rcppexports_impactncdengland_simsmok_policy_impact_decr",
+      "community": 10,
+      "norm_label": "_impactncdengland_simsmok_policy_impact_decr()"
+    },
+    {
+      "label": "R_init_IMPACTncdEngland()",
+      "file_type": "code",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L187",
+      "id": "src_rcppexports_r_init_impactncdengland",
+      "community": 10,
+      "norm_label": "r_init_impactncdengland()"
     },
     {
       "label": "build_vignettes.sh",
@@ -2943,7 +2969,7 @@
       "label": "Testing",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L73",
+      "source_location": "L156",
       "id": "impactncd_engl_claude_testing",
       "community": 45,
       "norm_label": "testing"
@@ -2952,7 +2978,7 @@
       "label": "code:r (tinytest::test_package(\"IMPACTncdEngland\"))",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L74",
+      "source_location": "L157",
       "id": "impactncd_engl_claude_codeblock_4",
       "community": 45,
       "norm_label": "code:r (tinytest::test_package(\"impactncdengland\"))"
@@ -2961,7 +2987,7 @@
       "label": "Rebuild Documentation",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L78",
+      "source_location": "L161",
       "id": "impactncd_engl_claude_rebuild_documentation",
       "community": 45,
       "norm_label": "rebuild documentation"
@@ -2970,7 +2996,7 @@
       "label": "code:r (roxygen2::roxygenise(\"Rpackage/IMPACTncd_England_model_pkg\"))",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L79",
+      "source_location": "L162",
       "id": "impactncd_engl_claude_codeblock_5",
       "community": 45,
       "norm_label": "code:r (roxygen2::roxygenise(\"rpackage/impactncd_england_model_pkg\"))"
@@ -2979,7 +3005,7 @@
       "label": "Docker Environment",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L83",
+      "source_location": "L166",
       "id": "impactncd_engl_claude_docker_environment",
       "community": 45,
       "norm_label": "docker environment"
@@ -2988,7 +3014,7 @@
       "label": "code:bash (./docker_setup/setup_user_docker_env.sh          # Interacti)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L84",
+      "source_location": "L167",
       "id": "impactncd_engl_claude_codeblock_6",
       "community": 45,
       "norm_label": "code:bash (./docker_setup/setup_user_docker_env.sh          # interacti)"
@@ -2997,7 +3023,7 @@
       "label": "code:bash (./docker_setup/build_push_data.sh   # auto-tags data.impactn)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L94",
+      "source_location": "L177",
       "id": "impactncd_engl_claude_codeblock_7",
       "community": 45,
       "norm_label": "code:bash (./docker_setup/build_push_data.sh   # auto-tags data.impactn)"
@@ -3006,7 +3032,7 @@
       "label": "Code Conventions",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L106",
+      "source_location": "L189",
       "id": "impactncd_engl_claude_code_conventions",
       "community": 45,
       "norm_label": "code conventions"
@@ -3015,7 +3041,7 @@
       "label": "R Code Style",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L108",
+      "source_location": "L191",
       "id": "impactncd_engl_claude_r_code_style",
       "community": 45,
       "norm_label": "r code style"
@@ -3024,7 +3050,7 @@
       "label": "Column Naming",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L113",
+      "source_location": "L196",
       "id": "impactncd_engl_claude_column_naming",
       "community": 45,
       "norm_label": "column naming"
@@ -3033,7 +3059,7 @@
       "label": "Key Exposure Variables (Primary Prevention)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L120",
+      "source_location": "L203",
       "id": "impactncd_engl_claude_key_exposure_variables_primary_prevention",
       "community": 45,
       "norm_label": "key exposure variables (primary prevention)"
@@ -3042,7 +3068,7 @@
       "label": "Key Disease Variables (Secondary Prevention)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L131",
+      "source_location": "L214",
       "id": "impactncd_engl_claude_key_disease_variables_secondary_prevention",
       "community": 45,
       "norm_label": "key disease variables (secondary prevention)"
@@ -3051,7 +3077,7 @@
       "label": "Scenario Definition Pattern",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L136",
+      "source_location": "L219",
       "id": "impactncd_engl_claude_scenario_definition_pattern",
       "community": 45,
       "norm_label": "scenario definition pattern"
@@ -3060,7 +3086,7 @@
       "label": "code:r (IMPACTncd$update_primary_prevention_scn()",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L137",
+      "source_location": "L220",
       "id": "impactncd_engl_claude_codeblock_8",
       "community": 45,
       "norm_label": "code:r (impactncd$update_primary_prevention_scn()"
@@ -3069,7 +3095,7 @@
       "label": "File Paths",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L154",
+      "source_location": "L237",
       "id": "impactncd_engl_claude_file_paths",
       "community": 45,
       "norm_label": "file paths"
@@ -3078,7 +3104,7 @@
       "label": "Exposure table resolution (`exposure_definitions[*].file_name`)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L159",
+      "source_location": "L242",
       "id": "impactncd_engl_claude_exposure_table_resolution_exposure_definitions_file_name",
       "community": 45,
       "norm_label": "exposure table resolution (`exposure_definitions[*].file_name`)"
@@ -3087,7 +3113,7 @@
       "label": "Key YAML Parameters (inputs/sim_design.yaml)",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L172",
+      "source_location": "L255",
       "id": "impactncd_engl_claude_key_yaml_parameters_inputs_sim_design_yaml",
       "community": 45,
       "norm_label": "key yaml parameters (inputs/sim_design.yaml)"
@@ -3096,7 +3122,7 @@
       "label": "Key Dependencies",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L183",
+      "source_location": "L266",
       "id": "impactncd_engl_claude_key_dependencies",
       "community": 45,
       "norm_label": "key dependencies"
@@ -3105,16 +3131,25 @@
       "label": "Debugging",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L192",
+      "source_location": "L275",
       "id": "impactncd_engl_claude_debugging",
       "community": 45,
       "norm_label": "debugging"
     },
     {
+      "label": "Run logs (`logs: yes`)",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "L282",
+      "id": "impactncd_engl_claude_run_logs_logs_yes",
+      "community": 45,
+      "norm_label": "run logs (`logs: yes`)"
+    },
+    {
       "label": "Common Pitfalls",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L199",
+      "source_location": "L318",
       "id": "impactncd_engl_claude_common_pitfalls",
       "community": 45,
       "norm_label": "common pitfalls"
@@ -3123,7 +3158,7 @@
       "label": "Documentation",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L206",
+      "source_location": "L325",
       "id": "impactncd_engl_claude_documentation",
       "community": 45,
       "norm_label": "documentation"
@@ -3132,7 +3167,7 @@
       "label": "graphify",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L217",
+      "source_location": "L336",
       "id": "impactncd_engl_claude_graphify",
       "community": 45,
       "norm_label": "graphify"
@@ -7806,7 +7841,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "package: arrow",
       "id": "pkg_arrow"
     },
@@ -8053,7 +8088,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "synthpop$pop dataframe (rcpp dataframe dt)",
       "id": "impactncd_sim_concept_synthpop_pop"
     },
@@ -8183,7 +8218,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "cprd_sim_validation_plots.r",
       "id": "cprd_sim_validation_plots"
     },
@@ -8196,7 +8231,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "prep()",
       "id": "cprd_sim_validation_plots_prep"
     },
@@ -8209,7 +8244,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "prep_prev()",
       "id": "cprd_sim_validation_plots_prep_prev"
     },
@@ -8222,7 +8257,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "prep_incd()",
       "id": "cprd_sim_validation_plots_prep_incd"
     },
@@ -8235,7 +8270,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "prep_cftlt()",
       "id": "cprd_sim_validation_plots_prep_cftlt"
     },
@@ -8248,7 +8283,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "prep_mrtl()",
       "id": "cprd_sim_validation_plots_prep_mrtl"
     },
@@ -8261,7 +8296,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "breast_ca",
       "id": "cprd_sim_validation_plots_concept_breast_ca"
     },
@@ -8274,7 +8309,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "prostate_ca",
       "id": "cprd_sim_validation_plots_concept_prostate_ca"
     },
@@ -8300,7 +8335,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "*_incd incidence outputs",
       "id": "cprd_sim_validation_plots_concept_incd"
     },
@@ -8313,7 +8348,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "*_mrtl mortality outputs",
       "id": "cprd_sim_validation_plots_concept_mrtl"
     },
@@ -8586,7 +8621,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "deconstructed_sim.r",
       "id": "deconstructed_sim"
     },
@@ -8599,7 +8634,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "mk_scenario_init2()",
       "id": "deconstructed_sim_mk_scenario_init2"
     },
@@ -8612,7 +8647,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "hlpfn()",
       "id": "deconstructed_sim_hlpfn"
     },
@@ -8625,7 +8660,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "export_xps()",
       "id": "deconstructed_sim_export_xps"
     },
@@ -8638,7 +8673,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "exp_valplots.r",
       "id": "exp_valplots"
     },
@@ -8651,7 +8686,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "alcohol exposure",
       "id": "exp_valplots_concept_alcohol"
     },
@@ -8664,7 +8699,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "bmi exposure",
       "id": "exp_valplots_concept_bmi"
     },
@@ -8677,7 +8712,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "fruit exposure",
       "id": "exp_valplots_concept_fruit"
     },
@@ -8690,7 +8725,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "veg exposure",
       "id": "exp_valplots_concept_veg"
     },
@@ -8703,7 +8738,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "tchol exposure",
       "id": "exp_valplots_concept_tchol"
     },
@@ -8833,7 +8868,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "structural_plots.r",
       "id": "structural_plots"
     },
@@ -8846,7 +8881,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "mod_plot()",
       "id": "structural_plots_mod_plot"
     },
@@ -8859,7 +8894,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "scenario_fn()",
       "id": "structural_plots_scenario_fn"
     },
@@ -9002,7 +9037,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "ggthemes",
       "id": "pkg_ggthemes"
     },
@@ -9015,7 +9050,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 53,
       "norm_label": "scales",
       "id": "pkg_scales"
     },
@@ -9028,7 +9063,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "rcolorbrewer",
       "id": "pkg_rcolorbrewer"
     },
@@ -9041,7 +9076,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 6,
+      "community": 47,
       "norm_label": "viridis",
       "id": "pkg_viridis"
     },
@@ -9132,7 +9167,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "jsonlite",
       "id": "pkg_jsonlite"
     },
@@ -9145,7 +9180,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "global.r",
       "id": "shared_global_r"
     },
@@ -9158,7 +9193,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 13,
+      "community": 47,
       "norm_label": "synthpop r6 class",
       "id": "shared_synthpop_class"
     },
@@ -9652,7 +9687,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "colorectal cancer epi (colorect_ca)",
       "id": "primary_malignancy_colorectal_epi_disease"
     },
@@ -9665,7 +9700,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "lung cancer epi (lung_ca)",
       "id": "primary_malignancy_lung_epi_disease"
     },
@@ -9678,7 +9713,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "prostate cancer epi (prostate_ca)",
       "id": "primary_malignancy_prostate_epi_disease"
     },
@@ -9743,7 +9778,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "tmpanna xps template writer",
       "id": "tmpanna_template"
     },
@@ -9886,7 +9921,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "parf outputs visualization",
       "id": "parfoutputs_plots"
     },
@@ -9899,7 +9934,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "parf case numbers visualization",
       "id": "parfoutputs_casenum_plots"
     },
@@ -9912,7 +9947,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "exposure trends visualization",
       "id": "exposure_trends_plots"
     },
@@ -9925,7 +9960,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "hse correlation structure extractor",
       "id": "extract_hse_correlation_structure_script"
     },
@@ -9951,7 +9986,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "health survey for england (hse)",
       "id": "data_source_hse"
     },
@@ -10003,7 +10038,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "parf_final.csv (parf outputs)",
       "id": "data_source_parf_final_csv"
     },
@@ -10016,7 +10051,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "xps20.csv.gz exposure outputs",
       "id": "data_source_xps20_csv"
     },
@@ -10029,7 +10064,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "r package: data.table",
       "id": "rpkg_data_table"
     },
@@ -10042,7 +10077,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "r package: fst",
       "id": "rpkg_fst"
     },
@@ -10068,7 +10103,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "r package: qs",
       "id": "rpkg_qs"
     },
@@ -10107,7 +10142,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "r package: ggplot2",
       "id": "rpkg_ggplot2"
     },
@@ -10146,7 +10181,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "r package: ckutils",
       "id": "rpkg_ckutils"
     },
@@ -10211,7 +10246,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "incidence (_incd)",
       "id": "concept_incd"
     },
@@ -10224,7 +10259,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "prevalence (_prvl)",
       "id": "concept_prvl"
     },
@@ -10237,7 +10272,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 47,
+      "community": 9,
       "norm_label": "fatality (_ftlt)",
       "id": "concept_ftlt"
     },
@@ -11160,7 +11195,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 5,
       "norm_label": "fit_smok_cig_curr_model.r",
       "id": "fit_smok_cig_curr_model"
     },
@@ -11173,7 +11208,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 5,
       "norm_label": "fit_smok_cig_ex_model.r",
       "id": "fit_smok_cig_ex_model"
     },
@@ -11407,7 +11442,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 5,
       "norm_label": "cigarettes per day (current smokers)",
       "id": "concept_smok_cig_curr"
     },
@@ -11420,7 +11455,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 5,
       "norm_label": "cigarettes per day (ex-smokers)",
       "id": "concept_smok_cig_ex"
     },
@@ -11576,7 +11611,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 75,
+      "community": 5,
       "norm_label": "gamlss bnb distribution",
       "id": "distr_bnb"
     },
@@ -11862,7 +11897,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 57,
       "norm_label": "mrtl_projections.r",
       "id": "mrtl_projections_script"
     },
@@ -11875,7 +11910,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 57,
       "norm_label": "mrtl_projections_coherent.r",
       "id": "mrtl_projections_coherent_script"
     },
@@ -11888,7 +11923,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 57,
       "norm_label": "prepare_calibr_file.r",
       "id": "prepare_calibr_file_script"
     },
@@ -11901,7 +11936,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 57,
       "norm_label": "preprocess_mrtl.r",
       "id": "preprocess_mrtl_script"
     },
@@ -11992,7 +12027,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 57,
       "norm_label": "all-cause mortality projections",
       "id": "concept_all_cause_mortality"
     },
@@ -12031,7 +12066,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 57,
       "norm_label": "mortality calibration",
       "id": "concept_mortality_calibration"
     },
@@ -12057,7 +12092,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 57,
       "norm_label": "ons mortality (deaths by dimd/sex/age)",
       "id": "datasource_ons_mortality"
     },
@@ -12265,7 +12300,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 57,
       "norm_label": "demography (r package)",
       "id": "package_demography"
     },
@@ -12993,7 +13028,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "compare_export_tables.r",
       "id": "compare_export_tables_script"
     },
@@ -13006,7 +13041,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "export tables comparison test",
       "id": "compare_export_tables_concept"
     },
@@ -13032,7 +13067,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "design$new()",
       "id": "design_class_new"
     },
@@ -13058,7 +13093,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "simulation$export_tables()",
       "id": "simulation_export_tables"
     },
@@ -13188,7 +13223,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "simulation$zenodo_download_all()",
       "id": "simulation_zenodo_download_all"
     },
@@ -13201,7 +13236,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "testing/sim_design_testing.yaml",
       "id": "sim_design_testing_yaml"
     },
@@ -13214,7 +13249,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "process_out.r",
       "id": "process_out_script"
     },
@@ -13227,7 +13262,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "tbl_smmrs() (summaries-to-tables function)",
       "id": "process_out_tbl_smmrs"
     },
@@ -13240,7 +13275,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "yaml (r package)",
       "id": "rpkg_yaml"
     },
@@ -13253,7 +13288,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "ggthemes (r package)",
       "id": "rpkg_ggthemes"
     },
@@ -13266,7 +13301,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "scales (r package)",
       "id": "rpkg_scales"
     },
@@ -13279,7 +13314,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 56,
+      "community": 3,
       "norm_label": "arrow (r package)",
       "id": "rpkg_arrow"
     },
@@ -13292,7 +13327,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "impactncdengland (r package)",
       "id": "rpkg_impactncdengland"
     },
@@ -13435,7 +13470,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "test_discounting.r",
       "id": "test_discounting_script"
     },
@@ -13448,7 +13483,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "discounting logic for qalys and costs",
       "id": "discounting_logic_concept"
     },
@@ -13461,7 +13496,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "test_discounting_integration.r",
       "id": "test_discounting_integration_script"
     },
@@ -13474,7 +13509,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "aux_functions.r",
       "id": "aux_functions_r"
     },
@@ -13487,7 +13522,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "design_class.r",
       "id": "design_class_r"
     },
@@ -13500,7 +13535,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "simulation_class.r",
       "id": "simulation_class_r"
     },
@@ -13513,7 +13548,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "simulation_class_tables.r",
       "id": "simulation_class_tables_r"
     },
@@ -13526,7 +13561,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "test_new_user_pipeline.r",
       "id": "test_new_user_pipeline_script"
     },
@@ -13539,7 +13574,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 57,
+      "community": 3,
       "norm_label": "new user pipeline (clone + install + zenodo download + run)",
       "id": "new_user_pipeline_concept"
     },
@@ -14475,6 +14510,16 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "auxil/set_system_screen_scrollback.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "auxil_set_system_screen_scrollback_sh",
+      "target": "home_ckyprid_my_models_impactncd_engl_auxil_set_system_screen_scrollback_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/simsmok.cpp",
       "source_location": "L67",
       "weight": 1.0,
@@ -14681,157 +14726,6 @@
       "weight": 1.0,
       "source": "src_simsmok_simsmok_policy_impact_decr",
       "target": "src_rcppexports_impactncdengland_simsmok_policy_impact_decr"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simcpp"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simcpp_year_based"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L39",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L105",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_cessation"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L74",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_cig"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L84",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_cig_sc"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L125",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_complete_cessation"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L95",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_complete_cessation_cig"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L156",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_policy_impact_decr"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L141",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_policy_impact_incr"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L64",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_postcalibration"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L51",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_impactncdengland_simsmok_sc"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L187",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
-      "target": "src_rcppexports_r_init_impactncdengland"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L21",
-      "weight": 1.0,
-      "source": "src_rcppexports_impactncdengland_simcpp",
-      "target": "src_impactncd_sim_simcpp"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
-      "source_location": "L33",
-      "weight": 1.0,
-      "source": "src_rcppexports_impactncdengland_simcpp_year_based",
-      "target": "src_impactncd_sim_simcpp_year_based"
     },
     {
       "relation": "contains",
@@ -16076,6 +15970,157 @@
       "target": "src_impactncd_sim_evalmortality"
     },
     {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "src_rcppexports_impactncdengland_simcpp",
+      "target": "src_impactncd_sim_simcpp"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "src_rcppexports_impactncdengland_simcpp_year_based",
+      "target": "src_impactncd_sim_simcpp_year_based"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simcpp"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simcpp_year_based"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L39",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L105",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_cessation"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L74",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_cig"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L84",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_cig_sc"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L125",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_complete_cessation"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L95",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_complete_cessation_cig"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L156",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_policy_impact_decr"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L141",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_policy_impact_incr"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L64",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_postcalibration"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L51",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_impactncdengland_simsmok_sc"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp",
+      "source_location": "L187",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "rpackage_impactncd_england_model_pkg_src_rcppexports_cpp",
+      "target": "src_rcppexports_r_init_impactncdengland"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "Rpackage/IMPACTncd_England_model_pkg/vignettes/build_vignettes.sh",
@@ -17195,6 +17240,16 @@
       "confidence_score": 1.0,
       "source": "impactncd_engl_claude_scenario_definition_pattern",
       "target": "impactncd_engl_claude_codeblock_8"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "CLAUDE.md",
+      "source_location": "L282",
+      "weight": 1.0,
+      "source": "impactncd_engl_claude_debugging",
+      "target": "impactncd_engl_claude_run_logs_logs_yes",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -32183,5 +32238,5 @@
       "source_file": "inputs/exposure_distributions/0-scripts/preparatory_work/fit_tchol_model_2024.R"
     }
   ],
-  "built_at_commit": "db26153d1738af49db935f418735389ebc145916"
+  "built_at_commit": "b0efe4ba4479f30c7e1a3470f9bce1a83f839c67"
 }

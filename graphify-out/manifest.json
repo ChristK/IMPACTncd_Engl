@@ -15,7 +15,7 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/src/RcppExports.cpp": {
-    "mtime": 1782744711.4946935,
+    "mtime": 1785926271.9104342,
     "ast_hash": "fd0e604c4500f4571c9d887a37d85f30",
     "semantic_hash": ""
   },
@@ -100,7 +100,7 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/deconstructed_sim.R": {
-    "mtime": 1776801390.727566,
+    "mtime": 1785530631.7615638,
     "ast_hash": "11d39f2573179b726b6965105cefeab5",
     "semantic_hash": ""
   },
@@ -145,7 +145,7 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/simulate_testing.R": {
-    "mtime": 1771525740.143912,
+    "mtime": 1785926271.9134343,
     "ast_hash": "225c98ac9bbd660195ff693f7876e8e0",
     "semantic_hash": ""
   },
@@ -215,18 +215,18 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_summaries.R": {
-    "mtime": 1780062968.2755315,
-    "ast_hash": "79507cf1dc0b9f710a39097082b94eab",
+    "mtime": 1785331109.0489597,
+    "ast_hash": "a7ef6b8cc5c82fb3287c31e8d3400d2a",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class_tables.R": {
-    "mtime": 1784851376.3794315,
-    "ast_hash": "18679b37bcde0510ebf38689ece485b4",
+    "mtime": 1785892087.983565,
+    "ast_hash": "6cb88f07903c82dc1879474e7b8eef2e",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/SynthPop_class.R": {
-    "mtime": 1784824121.7474027,
-    "ast_hash": "b7b4a5a5e9977cb09267afc214c9b4b6",
+    "mtime": 1785926271.9094343,
+    "ast_hash": "49993a0a67ded3570b54c3bf24659659",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Design_class.R": {
@@ -240,8 +240,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/Simulation_class.R": {
-    "mtime": 1784853120.4669945,
-    "ast_hash": "e779bf8213161671252d91d079ac512d",
+    "mtime": 1785331109.0479598,
+    "ast_hash": "6a254147bceccaad7c9963d8e6a90d02",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R": {
@@ -250,7 +250,7 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/R/RcppExports.R": {
-    "mtime": 1782744711.4946935,
+    "mtime": 1785926271.9094343,
     "ast_hash": "6e8aa8b17fd68491bc4147271d099b81",
     "semantic_hash": ""
   },
@@ -280,8 +280,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/simulation_ineq.R": {
-    "mtime": 1783637242.6891344,
-    "ast_hash": "2d7954ea73189f2aabd902920dab9717",
+    "mtime": 1785530631.7645638,
+    "ast_hash": "441a4f70b3f921f06076c7fdf77e2449",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/process_out_elasticities.R": {
@@ -940,8 +940,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/CLAUDE.md": {
-    "mtime": 1784852916.9776113,
-    "ast_hash": "e0abfbd6ed714ac0f053aa6e07b03432",
+    "mtime": 1785926271.9094343,
+    "ast_hash": "87d8d9169601a7c0e20fa045b4c5f37d",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/documents/technical_appendix.md": {
@@ -1145,8 +1145,8 @@
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/sim_design_ineq.yaml": {
-    "mtime": 1783637794.103237,
-    "ast_hash": "0cbcc622c080b1100fa0eb942c837300",
+    "mtime": 1785587443.1180496,
+    "ast_hash": "468d79e93aa3b660d20c06bfdbd8b61a",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Elasticities/sim_design_elast.yaml": {
@@ -1604,29 +1604,84 @@
     "ast_hash": "160d757aabed44342827f77ba3aa1d3e",
     "semantic_hash": ""
   },
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Ineq/simulation_ineq_old.R": {
-    "mtime": 1771525740.0909114,
-    "ast_hash": "441a4f70b3f921f06076c7fdf77e2449",
-    "semantic_hash": ""
-  },
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Wales/simulate_Wales.R": {
-    "mtime": 1784803106.9315736,
-    "ast_hash": "4b7dfd41078c6c9fe03d35c64b4d7a50",
-    "semantic_hash": ""
-  },
-  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/Wales/sim_design_Wales.yaml": {
-    "mtime": 1784806480.949987,
-    "ast_hash": "332b9840939d98370e87b69e92e567ce",
-    "semantic_hash": ""
-  },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_exposure_path_resolution.R": {
     "mtime": 1784824480.9874852,
     "ast_hash": "2197bc23571f40c46eeaac3c6f89c93d",
     "semantic_hash": ""
   },
   "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_equity_slope_index.R": {
-    "mtime": 1784848470.4088464,
-    "ast_hash": "49868d4647f96577bfcd8cbb780cfc2d",
+    "mtime": 1785874132.4860702,
+    "ast_hash": "8486a66c3fdd86ee02f38c916855d1f4",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/scan_times_gaps.R": {
+    "mtime": 1785331109.04996,
+    "ast_hash": "838bc137f2dd7f463b05055f34227067",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/profile_times_log.R": {
+    "mtime": 1785494039.308007,
+    "ast_hash": "6b3506c33274b1f63bdb1b0db72a88c3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/auxil/set_system_screen_scrollback.sh": {
+    "mtime": 1785331109.04996,
+    "ast_hash": "54300161f0d09bf6a97cb33e7937e282",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_xps_strata_from_output.R": {
+    "mtime": 1785257746.000154,
+    "ast_hash": "02d552b315f26443652fcd7f31a3cb85",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_qimd_derivation.R": {
+    "mtime": 1785258884.6013145,
+    "ast_hash": "a4aef3860b4cfe8d84c37073b7b7cfe3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_console_log.R": {
+    "mtime": 1785331109.0489597,
+    "ast_hash": "a50f969570de02656ea56a90f28a3492",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_export_equity_tables.R": {
+    "mtime": 1785874132.4860702,
+    "ast_hash": "5a81664f291082327ea3bdba03ab977d",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_cea_perspectives.R": {
+    "mtime": 1785892087.983565,
+    "ast_hash": "636334f5dbbcb962cfdd16d54ddebba6",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/Rpackage/IMPACTncd_England_model_pkg/inst/tinytest/test_comparator_map.R": {
+    "mtime": 1785892087.983565,
+    "ast_hash": "bb2567e539620d2ffd9e5da07950f7f8",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/polygenic/genvasc_las_scalar_identity_check.R": {
+    "mtime": 1785888641.3508863,
+    "ast_hash": "717624158963f07e5d5af042231fdcca",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/polygenic/genvasc_las_cea_via_package.R": {
+    "mtime": 1785892087.984565,
+    "ast_hash": "071bedbca8100a9301d45a8de8efd7b3",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/scenarios/polygenic/genvasc_las_reexport_tables.R": {
+    "mtime": 1785926271.9134343,
+    "ast_hash": "5aa2a1f5d67013ace0d4bd7728a6cc86",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/comparator_map_smoke_test.R": {
+    "mtime": 1785888641.3508863,
+    "ast_hash": "7fd57dbbe84c87d0d2e45073ec13721b",
+    "semantic_hash": ""
+  },
+  "/home/ckyprid/My_Models/IMPACTncd_Engl/testing/diagnose_unmatched_comparator_cells.R": {
+    "mtime": 1785888641.3508863,
+    "ast_hash": "f85125a7763b6a2ea96b9f1b81d1d2b7",
     "semantic_hash": ""
   }
 }
