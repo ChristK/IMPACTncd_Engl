@@ -596,11 +596,21 @@ build_equity_plans <- function(strata) {
 #' containing the cumulative discounted incremental QALYs (`dQALYs_cuml`) and
 #' costs (`dCosts_cuml`), the incremental cost-effectiveness ratio (`ICER`), and
 #' the net monetary benefit (`NMB_at_wtp_<threshold>`) at each willingness-to-pay
-#' threshold, for each QALY scale (EQ5D5L) and from two perspectives:
-#' \emph{societal} (uses `total_cost`) and \emph{healthcare} (uses
-#' `healthcare_cost`). User-defined `*_costs` columns are always added to the
-#' societal perspective and, if named in `custom_costs_in_healthcare`, to the
-#' healthcare perspective as well.
+#' threshold, for each QALY scale (EQ5D5L) and from three cost perspectives:
+#' \itemize{
+#'   \item \emph{societal} -- `total_cost`, which already nets economic output
+#'     out of healthcare + social care + informal care;
+#'   \item \emph{healthcare} -- `healthcare_cost`, direct treatment costs only;
+#'   \item \emph{healthcare_socialcare} -- `healthcare_cost` +
+#'     `socialcare_cost`. This is NICE's reference case, "NHS and Personal
+#'     Social Services": formal social care is included, informal care and lost
+#'     productivity are not.
+#' }
+#' User-defined `*_costs` columns are always added to the societal perspective
+#' and, if named in `custom_costs_in_healthcare`, to the healthcare and
+#' healthcare_socialcare perspectives as well. A perspective whose required
+#' built-in columns are absent from the costs summary is skipped rather than
+#' silently falling back to a narrower one.
 #'
 #' @param baseline_year_for_change_outputs Integer. Reference year used for
 #'   computing change-from-baseline columns and the start year for the
@@ -690,10 +700,14 @@ build_equity_plans <- function(strata) {
 #'   discounted. When `NULL` (default) it defaults to
 #'   `baseline_year_for_change_outputs`.
 #' @param custom_costs_in_healthcare Character vector of user-defined `*_costs`
-#'   column names to add to the healthcare perspective (in addition to the
-#'   always-present `healthcare_cost`). `NULL`/`FALSE` (default) adds none;
-#'   `TRUE` adds all user-defined cost columns. User-defined cost columns are
-#'   always included in the societal perspective regardless of this argument.
+#'   column names to add to the healthcare **and** healthcare_socialcare
+#'   perspectives (in addition to the built-in cost columns those perspectives
+#'   already carry). `NULL`/`FALSE` (default) adds none; `TRUE` adds all
+#'   user-defined cost columns. User-defined cost columns are always included in
+#'   the societal perspective regardless of this argument. The two narrower
+#'   perspectives share this setting deliberately: a programme cost belongs to
+#'   the payer in both, so letting them diverge would make the pair
+#'   incomparable.
 #' @param equity Logical. If `TRUE` (default), also build the equity
 #'   slope-index tables (absolute and relative analogues of the Slope Index of
 #'   Inequality / Relative Index of Inequality) for the cumulative CPP, CYPP,
@@ -2247,18 +2261,28 @@ Simulation$set("private", "export_xps_tables", function(
 
 # export_cea_tables ----
 # Generate cost-effectiveness (ICER / NMB) tables from the qalys and costs
-# summaries. For each stratum, perspective (societal / healthcare) and QALY
-# scale (EQ5D5L; HUI3 if present) it computes, per Monte-Carlo iteration, the
-# cumulative discounted incremental QALYs and costs versus the comparator
-# scenario, then the ICER and the net monetary benefit (NMB) at each
-# willingness-to-pay threshold, and quantiles those across iterations.
+# summaries. For each stratum, perspective and QALY scale (EQ5D5L; HUI3 if
+# present) it computes, per Monte-Carlo iteration, the cumulative discounted
+# incremental QALYs and costs versus the comparator scenario, then the ICER and
+# the net monetary benefit (NMB) at each willingness-to-pay threshold, and
+# quantiles those across iterations.
 #
-# Cost perspectives:
-#   societal   = total_cost      (+ all user *_costs columns)
-#                total_cost already nets economic_output out of
-#                healthcare + socialcare + informalcare costs.
-#   healthcare = healthcare_cost (+ the user *_costs columns named in
-#                custom_costs_in_healthcare) -- direct treatment costs only.
+# Cost perspectives (one file each, named in the filename):
+#   societal              = total_cost (+ ALL user *_costs columns).
+#                           total_cost already nets economic_output out of
+#                           healthcare + socialcare + informalcare costs.
+#   healthcare            = healthcare_cost (+ the user *_costs columns named in
+#                           custom_costs_in_healthcare) -- direct treatment
+#                           costs only.
+#   healthcare_socialcare = healthcare_cost + socialcare_cost (+ the same user
+#                           columns). This is NICE's reference case, "NHS and
+#                           Personal Social Services": formal social care is in,
+#                           informal care and lost productivity are not (they
+#                           belong to the societal perspective).
+#
+# A perspective whose REQUIRED built-in columns are absent is skipped, not
+# silently degraded -- otherwise a run without socialcare_cost would publish
+# healthcare_socialcare tables identical to the healthcare ones.
 #
 # Discounting: PV = FV / (1 + rate/100)^max(0, year - discount_from_year),
 # with separate rates for QALYs and costs. Actual (scaled_up) population only.
@@ -2360,9 +2384,26 @@ Simulation$set("private", "export_cea_tables", function(
     }
   }
 
-  perspective_cols <- list(
-    societal = c("total_cost", custom_cost_cols),
-    healthcare = c("healthcare_cost", healthcare_custom_cols)
+  # Cost perspectives, each with the BUILT-IN columns it requires. The required
+  # set is checked per perspective rather than by the old
+  # "is total_cost or healthcare_cost present" test, because a perspective whose
+  # distinguishing column is missing must be SKIPPED, not silently degraded:
+  # without the check, a run lacking `socialcare_cost` would publish
+  # `healthcare_socialcare` tables byte-identical to the `healthcare` ones under
+  # a name claiming to include social care.
+  perspective_cfg <- list(
+    societal = list(
+      cols     = c("total_cost", custom_cost_cols),
+      required = "total_cost"),
+    healthcare = list(
+      cols     = c("healthcare_cost", healthcare_custom_cols),
+      required = "healthcare_cost"),
+    # NICE's reference case is NHS and Personal Social Services, i.e. direct
+    # treatment costs plus formal social care -- but NOT informal care or lost
+    # productivity, which sit in the societal perspective only.
+    healthcare_socialcare = list(
+      cols     = c("healthcare_cost", "socialcare_cost", healthcare_custom_cols),
+      required = c("healthcare_cost", "socialcare_cost"))
   )
 
   # WTP -> NMB column-name labels (plain integer form, e.g. 20000)
@@ -2379,14 +2420,16 @@ Simulation$set("private", "export_cea_tables", function(
   for (s in strata) {
     x <- c("mc", "scenario", s) # s always contains "year"
 
-    for (persp in names(perspective_cols)) {
-      pcols <- intersect(perspective_cols[[persp]], names(costs))
-      if (!any(grepl("^(total_cost|healthcare_cost)$", pcols))) {
+    for (persp in names(perspective_cfg)) {
+      missing_req <- setdiff(perspective_cfg[[persp]]$required, names(costs))
+      if (length(missing_req) > 0L) {
         if (self$design$sim_prm$logs) {
-          message("  ", persp, ": required cost column missing; skipping")
+          message("  ", persp, ": required cost column(s) ",
+                  paste(missing_req, collapse = ", "), " missing; skipping")
         }
         next
       }
+      pcols <- intersect(perspective_cfg[[persp]]$cols, names(costs))
 
       # Aggregate (discounted) costs for this perspective, once per stratum
       cc <- copy(costs)
