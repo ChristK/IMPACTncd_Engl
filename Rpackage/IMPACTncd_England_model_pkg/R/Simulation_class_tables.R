@@ -689,7 +689,10 @@ build_equity_plans <- function(strata) {
 #'   (ICER / NMB) tables from the `qalys` and `costs` summaries.
 #' @param wtp Numeric vector of willingness-to-pay thresholds (currency per
 #'   QALY) at which the net monetary benefit is computed. Default
-#'   `c(20000, 30000)` (the NICE thresholds, GBP/QALY).
+#'   `c(25000, 35000)` (GBP/QALY). NICE's standard reference range is
+#'   £20,000-£30,000 per QALY; pass `wtp = c(20000, 30000)` for that. Note the
+#'   thresholds appear in the output **column names**
+#'   (`NMB_at_wtp_25000`, ...), so changing them changes the CEA table schema.
 #' @param qaly_discount_rate,cost_discount_rate Numeric. Annual discount rates
 #'   (percent) applied to QALYs and costs. Default `3.5` each (UK NICE
 #'   guidance). These arguments are the single source of truth for discounting;
@@ -851,7 +854,7 @@ Simulation$set("public", "export_tables", function(
     strata = NULL,
     multicore = TRUE,
     cea = TRUE,
-    wtp = c(20000, 30000),
+    wtp = c(25000, 35000),
     qaly_discount_rate = 3.5,
     cost_discount_rate = 3.5,
     discount_from_year = NULL,
@@ -921,7 +924,18 @@ Simulation$set("public", "export_tables", function(
     # otherwise survive and mislead. Removing our own stale artifact is part of
     # writing this directory; nothing else is touched.
     stale <- file.path(tables_dir, "comparators.csv")
-    if (file.exists(stale)) unlink(stale)
+    if (file.exists(stale)) {
+      unlink(stale)
+      # Say so: with cea = FALSE / equity = FALSE this call does NOT rewrite the
+      # CEA and equity tables, so the manifest it removes still described THOSE
+      # correctly even though it no longer describes the main contrast tables
+      # this call has just rewritten against a single comparator.
+      if (self$design$sim_prm$logs) {
+        message("Removed a stale comparators.csv left by an earlier ",
+                "comparator-map run; the tables rewritten now use the single ",
+                "comparator '", comparator_scenario[[1L]], "'.")
+      }
+    }
   }
 
   # Build task list for parallel execution
@@ -1199,10 +1213,20 @@ Simulation$set("private", "check_comparator_map", function(cs, tables_dir) {
   if (is.null(nm)) nm <- rep("", length(cs))
   unknown <- setdiff(unique(c(nm[nzchar(nm)], unname(cs))), avail)
   if (length(unknown) > 0L) {
+    # A NAMED vector is a map, so a name that is not a scenario is an error --
+    # including the easy slip of naming a single element for readability
+    # (c(baseline = "sc0")), which used to be ignored and is now significant.
+    hint <- if (length(cs) == 1L && nzchar(nm[1L])) {
+      paste0(" Note a NAMED element is read as <intervention> = <comparator>; ",
+             "for the historical behaviour (every other scenario against it) ",
+             "pass the bare name, i.e. \"", unname(cs[1L]), "\".")
+    } else {
+      ""
+    }
     stop("`comparator_scenario`: scenario(s) ",
          paste(sQuote(unknown), collapse = ", "),
          " are not present in any summary. Available: ",
-         paste(sQuote(avail), collapse = ", "), ".", call. = FALSE)
+         paste(sQuote(avail), collapse = ", "), ".", hint, call. = FALSE)
   }
 
   cmap <- .resolve_comparators(cs, avail)
@@ -1631,12 +1655,18 @@ Simulation$set("private", "tbl_smmrs_core", function(
         # This is the ONLY contrast site whose update TARGET is `value` itself.
         # data.table's x[i, :=] touches only MATCHED rows, so an intervention
         # cell with no comparator counterpart would silently keep its raw LEVEL
-        # -- a prevalence or incidence count -- and be published in a file
-        # called "cases prevented or postponed". Mark those NA instead: a
-        # contrast with no comparator has no value. NA then propagates through
-        # the cumsum() below and is dropped at the finite-value filter, which is
-        # exactly how net_qalys/net_costs already behave (they write a NEW
-        # column, so they get NA for free).
+        # -- a prevalence or incidence count published, with the WRONG SIGN, in
+        # a file called "cases prevented or postponed".
+        #
+        # The fix is to treat the missing cell as ZERO, because that is what
+        # absence MEANS here: `d` is a sum aggregation keyed by the strata, so a
+        # combination with no row is a combination with no events, not one with
+        # an unknown count. The contrast is therefore 0 - value = -value: the
+        # intervention arm has cases the comparator arm does not, i.e. cases
+        # CAUSED. That is a real quantity and must not be erased -- NA-ing these
+        # rows would drop the draw from that cell's quantiles for this year and,
+        # via the cumsum() below, every later year of the same series, turning a
+        # genuine harm into an apparently certain null.
         #
         # Cell coverage differs between arms only in SPARSE runs -- small `n`,
         # few Monte-Carlo draws, fine strata -- where differential survival
@@ -1646,11 +1676,11 @@ Simulation$set("private", "tbl_smmrs_core", function(
         miss_idx <- d[!p$cmp, on = p$on, which = TRUE]
         d[p$cmp, on = p$on, value := i.value - value]
         if (length(miss_idx) > 0L) {
-          set(d, miss_idx, "value", NA_real_)
+          set(d, miss_idx, "value", -d$value[miss_idx])
           if (self$design$sim_prm$logs) {
             message("    ", what, ": ", length(miss_idx), " of ", nrow(d),
-                    " row(s) have no comparator cell (set NA, dropped at the ",
-                    "quantile step)")
+                    " row(s) have no comparator cell; treated as a comparator ",
+                    "count of zero (contrast = -intervention)")
           }
         }
         set(d, j = ".cmp__", value = NULL)   # MUST precede the melt() below
@@ -1827,6 +1857,19 @@ Simulation$set("private", "export_main_tables", function(
               next
             }
           } else {
+            # A comparator absent from this summary leaves every contrast row
+            # unmatched, so the file comes out empty. That used to be silent --
+            # and before the join was corrected it was worse than silent, since
+            # the unmatched rows were written out with blank values for BOTH
+            # arms. Say it plainly; the equity family already does.
+            if (!comparator_scenario %chin% available_scenarios) {
+              warning(sprintf(paste0(
+                "main tables: comparator scenario '%s' is not in this summary ",
+                "(found: %s), so '%s' has no rows to contrast and its file will ",
+                "be empty."),
+                comparator_scenario, paste(available_scenarios, collapse = ", "),
+                what), call. = FALSE, immediate. = TRUE)
+            }
             ## ---- ORIGINAL, VERBATIM ------------------------------------
             non_comparator_scenarios <- setdiff(available_scenarios, comparator_scenario)
             if (length(non_comparator_scenarios) == 0) {
@@ -2292,7 +2335,7 @@ Simulation$set("private", "export_cea_tables", function(
     tables_dir,
     comparator_scenario = "sc0",
     baseline_year = 2019L,
-    wtp = c(20000, 30000),
+    wtp = c(25000, 35000),
     qaly_discount_rate = 3.5,
     cost_discount_rate = 3.5,
     discount_from_year = NULL,

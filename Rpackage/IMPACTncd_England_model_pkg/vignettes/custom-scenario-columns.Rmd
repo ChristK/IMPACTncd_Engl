@@ -287,12 +287,15 @@ controlled **only** by these `export_tables()` arguments — there is no
 cost-effectiveness tables; the prevalence, incidence, mortality, QALY and cost
 tables are reported undiscounted. `discount_from_year` defaults to the baseline
 (reference) year. The willingness-to-pay thresholds are set with the `wtp`
-argument (default `c(20000, 30000)` GBP/QALY, the NICE thresholds):
+argument (default `c(25000, 35000)` GBP/QALY; NICE's standard reference range is
+£20,000–£30,000, so pass `wtp = c(20000, 30000)` for that). The thresholds appear
+in the output **column names** (`NMB_at_wtp_25000`, …), so changing them changes
+the CEA table schema:
 
 ```{r}
 IMPACTncd$export_tables(
   cea = TRUE,
-  wtp = c(20000, 30000),       # GBP per QALY
+  wtp = c(25000, 35000),       # GBP per QALY (the default)
   qaly_discount_rate = 3.5,    # discounting lives only in the CEA tables
   cost_discount_rate = 3.5
 )

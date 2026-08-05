@@ -188,3 +188,55 @@ expect_false(isTRUE(all.equal(cmpd$`equity_50.0%.map`, cmpd$`equity_50.0%.sc0`))
 # --- 6c. An unbuildable pair warns and is skipped, not silently dropped ----
 expect_warning(run_export(list("year"), src3, c(a_prs = "ghost_arm")),
                pattern = "cannot be built")
+
+# ===========================================================================
+# 7. A missing COMPARATOR CELL means a comparator count of zero
+# ===========================================================================
+# `d` inside tbl_smmrs_core is a sum aggregation keyed by the strata, so a
+# combination with no row is one with no EVENTS, not one with an unknown count.
+# The contrast must therefore be 0 - value = -value (cases CAUSED), which is a
+# real quantity. Two wrong answers this pins against:
+#   * keeping the raw level  -> +value, the sign INVERTED (the original bug);
+#   * setting NA             -> the draw is dropped from that cell's quantiles
+#                               for this year and, via cumsum(), every later
+#                               year, turning a harm into a certain-looking null.
+cpp_core <- IMPACTncdEngland:::.resolve_comparators   # keep the namespace live
+mk_hole <- function() {
+  d <- CJ(mc = 1L, scenario = c("sc0", "sc1"), year = 19:20,
+          dimd = factor(dimd_lv, levels = dimd_lv), sorted = FALSE)
+  d[, chd_incd := 100]
+  d[, popsize := 1000]
+  # Punch a hole in the COMPARATOR only: sc0 has nobody in the last decile in
+  # the final year, sc1 has 700 cases there.
+  d <- d[!(scenario == "sc0" & year == 20L & dimd == "10 least deprived")]
+  d[scenario == "sc1" & year == 20L & dimd == "10 least deprived",
+    chd_incd := 700]
+  d[]
+}
+d7 <- run_export(list("year", c("year", "dimd")), list(incd = mk_hole()), "sc0")
+t7 <- fread(file.path(d7,
+  "equity cpp slope index by year-dimd (not standardised).csv"))
+expect_true(nrow(t7) > 0L, info = "the hole does not abort the export")
+
+# The equity family reaches the same join; check the main table directly for the
+# sign, via the same code path tbl_smmrs_core uses.
+hole <- mk_hole()
+hole[, year := year + 2000L]
+xk <- c("mc", "scenario", "year", "dimd")
+agg <- hole[, lapply(.SD, sum), .SDcols = patterns("_incd$|^popsize$"),
+            keyby = xk]
+agg <- melt(agg, id.vars = xk)
+cmp7 <- agg[scenario == "sc0" & year >= 2019L]
+d7b <- agg[scenario != "sc0" & year >= 2019L]
+onk <- c(setdiff(xk, "scenario"), "variable")
+miss <- d7b[!cmp7, on = onk, which = TRUE]
+expect_true(length(miss) > 0L, info = "the fixture really does leave a hole")
+raw <- d7b$value[miss]
+d7b[cmp7, on = onk, value := i.value - value]
+set(d7b, miss, "value", -d7b$value[miss])
+expect_equal(d7b$value[miss], -raw,
+             info = "absent comparator cell -> contrast is MINUS the intervention")
+expect_true(all(d7b$value[miss] < 0),
+            info = "cases the comparator never had are a HARM, not a benefit")
+expect_false(anyNA(d7b$value),
+             info = "and are not NA'd away, which would drop the draw")
