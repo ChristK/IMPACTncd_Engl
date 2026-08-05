@@ -86,6 +86,18 @@ missing is **skipped**, never silently degraded — otherwise a run without
 `socialcare_cost` would publish `healthcare_socialcare` tables identical to the
 `healthcare` ones. Tests: `test_cea_perspectives.R`.
 
+**Output column prefixes** come from `.tbl_col_prefixes()` (`Simulation_class_tables.R`),
+one entry per metric, applied to every quantile column. The convention: a level metric
+takes `<family>_rate_`/`_mean_`, and BOTH of its change variants take a prefix distinct
+from the level and from each other, always containing `change` — that is what makes
+`grep("change", names(dt))` a safe way to pick change columns downstream.
+`ftlt_change_relative` used to map to `ftlt_rate_`, the *level* prefix: it published a
+ratio-to-baseline (0.72 = 72% of the baseline year) under a name claiming to be a rate,
+and hid those six case-fatality tables from any name-pattern selection. Now
+`ftlt_change_relative_`. ⚠️ **Breaking for downstream readers** of `case fatality relative
+change by *.csv` written before 2026-08-05 — values are unchanged, only the column name.
+Tests: `test_tbl_col_prefixes.R`.
+
 `export_tables()` turns the summaries into CSVs. Besides the main / mortality /
 disease-characteristics / exposure / cost-effectiveness (`cea = TRUE`) tables, it also
 writes **equity slope-index** tables (`equity = TRUE`, default): absolute (`AEI_total`,
