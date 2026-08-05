@@ -543,7 +543,7 @@ silently falling back to a narrower one.
   strata = NULL,
   multicore = TRUE,
   cea = TRUE,
-  wtp = c(20000, 30000),
+  wtp = c(25000, 35000),
   qaly_discount_rate = 3.5,
   cost_discount_rate = 3.5,
   discount_from_year = NULL,
@@ -632,7 +632,10 @@ parallel with single-threaded workers; otherwise runs sequentially.}
 (ICER / NMB) tables from the \code{qalys} and \code{costs} summaries.}
       \item{\code{wtp}}{Numeric vector of willingness-to-pay thresholds (currency per
 QALY) at which the net monetary benefit is computed. Default
-\code{c(20000, 30000)} (the NICE thresholds, GBP/QALY).}
+\code{c(25000, 35000)} (GBP/QALY). NICE's standard reference range is
+£20,000-£30,000 per QALY; pass \code{wtp = c(20000, 30000)} for that. Note the
+thresholds appear in the output \strong{column names}
+(\code{NMB_at_wtp_25000}, ...), so changing them changes the CEA table schema.}
       \item{\code{qaly_discount_rate, cost_discount_rate}}{Numeric. Annual discount rates
 (percent) applied to QALYs and costs. Default \code{3.5} each (UK NICE
 guidance). These arguments are the single source of truth for discounting;

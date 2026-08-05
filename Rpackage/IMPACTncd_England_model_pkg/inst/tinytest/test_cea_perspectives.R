@@ -67,6 +67,18 @@ persp_of <- function(dir) {
 }
 
 # ===========================================================================
+# 0. The willingness-to-pay default is pinned
+# ===========================================================================
+# The thresholds appear in the OUTPUT COLUMN NAMES (NMB_at_wtp_25000), so the
+# default is part of the published schema and must not drift unnoticed.
+expect_equal(eval(formals(Simulation$public_methods$export_tables)$wtp),
+             c(25000, 35000),
+             info = "export_tables() default WTP thresholds")
+expect_equal(eval(formals(Simulation$private_methods$export_cea_tables)$wtp),
+             c(25000, 35000),
+             info = "export_cea_tables() default agrees with its caller")
+
+# ===========================================================================
 # 1. All three perspectives are written
 # ===========================================================================
 d1 <- run_cea(list(costs = make_costs(), qalys = make_qalys()))
