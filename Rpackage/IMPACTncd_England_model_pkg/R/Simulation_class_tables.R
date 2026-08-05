@@ -273,8 +273,159 @@ add_qimd_from_dimd <- function(dt) {
 # Columns the equity tables manage themselves, so they cannot also be named as
 # an output stratum: `mc` is the Monte-Carlo axis the indices are quantiled
 # over, and `scenario` is always present because every index is a contrast
-# against the comparator.
+# against *its* comparator.
 .equity_reserved_vars <- c("mc", "scenario")
+
+
+# =============================================================================
+# Per-scenario comparator map
+# -----------------------------------------------------------------------------
+# `comparator_scenario` is either
+#   * a bare scenario name -- the historical scalar form, in which every OTHER
+#     scenario is contrasted against it; or
+#   * a NAMED character vector mapping intervention -> comparator, with at most
+#     one UNNAMED element acting as the default for every scenario not named.
+#
+# There is always EXACTLY ONE comparator per scenario. That is the load-bearing
+# invariant: it makes `comparator` a FUNCTION of `scenario`, which is why it can
+# be attached as a cosmetic column *after* quantiling rather than entering the
+# key vector `x` -- and therefore never touching a group-by, one of the many
+# positional setnames() calls, or a filename. It also keeps `scenario` a unique
+# row key, so downstream code keyed on (scenario, year, type) is unaffected.
+#
+# Chains (prs -> qrisk -> sc0) are legal; cycles are not.
+# =============================================================================
+
+# Columns the comparator machinery owns; a summary must not already carry them.
+.comparator_reserved_cols <- c("comparator", ".cmp__")
+
+
+# .comparator_is_map ----
+# TRUE iff the caller asked for a map. Deliberately SYNTACTIC -- never derived
+# from the data -- so the output schema cannot vary between summary families,
+# between localities or between reruns, and a bare "sc0" stays byte-identical
+# to every table published to date.
+.comparator_is_map <- function(cs) {
+  !is.null(names(cs)) && any(nzchar(names(cs)), na.rm = TRUE)
+}
+
+
+# .resolve_comparators ----
+# Concretise the argument against the scenarios a given summary ACTUALLY
+# carries (families can legitimately differ). Returns a named character vector,
+# names = intervention, values = comparator, with an attribute "dropped"
+# listing requested pairs this summary cannot build.
+#
+# The scalar case is the identity: .resolve_comparators("sc0", scns) is
+# setNames(rep("sc0", n), setdiff(scns, "sc0")) -- precisely the set the old
+# `scenario != comparator_scenario` predicate selected.
+.resolve_comparators <- function(comparator_scenario, scenarios) {
+  cs <- comparator_scenario
+  scenarios <- as.character(scenarios)
+  nm <- names(cs)
+  if (is.null(nm)) nm <- rep("", length(cs))
+  nm[is.na(nm)] <- ""
+  default  <- unname(cs[!nzchar(nm)])      # length 0 or 1 (validated up front)
+  explicit <- cs[nzchar(nm)]
+
+  # Requested pairs whose INTERVENTION this summary does not carry.
+  dropped <- character(0)
+  gone_i <- setdiff(names(explicit), scenarios)
+  if (length(gone_i)) {
+    dropped <- paste0(gone_i, " -> ", unname(explicit[gone_i]))
+  }
+
+  keys <- intersect(scenarios, names(explicit))   # keeps `scenarios` order
+  out  <- stats::setNames(unname(explicit[keys]), keys)
+  if (length(default)) {
+    rest <- setdiff(scenarios, c(names(out), default))
+    out  <- c(out, stats::setNames(rep(default, length(rest)), rest))
+  }
+
+  # ... and pairs whose COMPARATOR it does not carry. Dropping them is what
+  # stops the cpp/cypp/dpp join leaving a raw LEVEL in a column published as
+  # "cases prevented" (see the anti-join guard at that site).
+  keep <- out %chin% scenarios
+  if (any(!keep)) {
+    dropped <- c(dropped, paste0(names(out)[!keep], " -> ", unname(out)[!keep]))
+  }
+  out <- out[keep]
+  attr(out, "dropped") <- dropped          # set AFTER subsetting: `[` drops it
+  out
+}
+
+
+# .comparator_cycles ----
+# The map is a functional graph (out-degree 1), so a cycle is found by walking
+# forward from each node. Chains terminate at a scenario that is not itself an
+# intervention (sc0), which is the normal shape.
+.comparator_cycles <- function(m) {
+  bad <- character(0)
+  for (s in names(m)) {
+    seen <- s
+    cur <- s
+    repeat {
+      nxt <- unname(m[cur])
+      if (is.na(nxt)) break
+      if (nxt %chin% seen) { bad <- c(bad, s); break }
+      seen <- c(seen, nxt)
+      cur <- nxt
+      if (!cur %chin% names(m)) break
+    }
+  }
+  unique(bad)
+}
+
+
+# validate_comparator_scenario ----
+# STRUCTURAL, data-free rules. Called from export_tables() next to
+# build_strata_config(), i.e. in the PARENT process before any task is
+# dispatched -- the same slot and the same reason as validate_equity_strata().
+validate_comparator_scenario <- function(cs, arg = "comparator_scenario") {
+  if (!is.character(cs) || length(cs) == 0L) {
+    stop("`", arg, "` must be a character vector of length >= 1; got ",
+         class(cs)[1L], " of length ", length(cs),
+         ". Use a bare scenario name, or a named vector mapping intervention ",
+         "-> comparator, e.g. c(\"sc0\", sc2 = \"sc1\").", call. = FALSE)
+  }
+  if (anyNA(cs) || !all(nzchar(cs))) {
+    stop("`", arg, "` must not contain NA or empty scenario names.",
+         call. = FALSE)
+  }
+  nm <- names(cs)
+  if (is.null(nm)) nm <- rep("", length(cs))
+  if (anyNA(nm)) {
+    stop("`", arg, "` has an NA name. An NA name is a typo, not an unnamed ",
+         "default element.", call. = FALSE)
+  }
+  n_default <- sum(!nzchar(nm))
+  if (n_default > 1L) {
+    stop("`", arg, "` may have AT MOST ONE unnamed element (the default ",
+         "comparator); got ", n_default, ": ",
+         paste(sQuote(unname(cs[!nzchar(nm)])), collapse = ", "),
+         ". Name each intervention explicitly, e.g. c(sc1 = \"sc0\"). Note a ",
+         "two-element unnamed vector is NOT read positionally as ",
+         "(intervention, comparator): position would decide the SIGN of every ",
+         "reported benefit.", call. = FALSE)
+  }
+  named <- nm[nzchar(nm)]
+  if (anyDuplicated(named)) {
+    dup <- unique(named[duplicated(named)])
+    stop("`", arg, "` names intervention scenario(s) ",
+         paste(sQuote(dup), collapse = ", "),
+         " more than once (comparators: ",
+         paste(sQuote(unname(cs[nm %chin% dup])), collapse = ", "),
+         "). Each scenario has exactly one comparator.", call. = FALSE)
+  }
+  self <- nzchar(nm) & nm == unname(cs)
+  if (any(self)) {
+    stop("`", arg, "`: a scenario cannot be its own comparator (",
+         paste(sQuote(nm[self]), collapse = ", "),
+         "). The contrast would be identically zero and would be published as ",
+         "a table of zeros rather than failing.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
 
 
 # validate_equity_strata ----
@@ -458,8 +609,47 @@ build_equity_plans <- function(strata) {
 #' @param prbl Numeric vector of probability levels for output quantiles
 #'   (median plus uncertainty bounds). Default
 #'   `c(0.5, 0.025, 0.975, 0.1, 0.9)`.
-#' @param comparator_scenario Character. Name of the scenario used as the
-#'   comparator when computing differences between scenarios.
+#' @param comparator_scenario Character. The scenario(s) each intervention is
+#'   contrasted against. Two forms are accepted.
+#'
+#'   **A bare scenario name** (the default, `"sc0"`) is the historical
+#'   behaviour: every *other* scenario is contrasted against it. Output is
+#'   unchanged in every respect -- no extra column, no filename change.
+#'
+#'   **A named character vector** maps intervention -> comparator, with at most
+#'   one *unnamed* element acting as the default for every scenario not named:
+#'
+#'   ```r
+#'   export_tables(comparator_scenario = c(
+#'     "sc0",                                  # default: other arms vs sc0
+#'     mult_base_prs    = "mult_base_qrisk",   # the within-variant increment
+#'     mult_lowzero_prs = "mult_lowzero_qrisk"
+#'   ))
+#'   ```
+#'
+#'   A scenario may be both an intervention and somebody else's comparator --
+#'   above, `mult_base_qrisk` is contrasted against `sc0` *and* serves as
+#'   `mult_base_prs`'s reference. Chains are legal; cycles are rejected.
+#'   Omitting the unnamed element builds only the pairs you list, and the
+#'   scenarios left out are named in a `warning()`.
+#'
+#'   There is exactly **one comparator per scenario**, so `scenario` remains a
+#'   unique row key and no row multiplication occurs. In map mode the contrast
+#'   tables (`cpp`, `cypp`, `dpp`, `net_qalys`, `net_costs`, the
+#'   cost-effectiveness tables and the equity slope-index tables) carry an extra
+#'   `comparator` column immediately after `scenario`, and a `comparators.csv`
+#'   manifest of the resolved map is written to the tables directory. Sign
+#'   conventions are unchanged: `cpp`/`cypp`/`dpp` are comparator minus
+#'   intervention; `net_qalys`/`net_costs` and the CEA increments are
+#'   intervention minus comparator.
+#'
+#'   Note this cannot be reproduced after the fact by post-processing tables
+#'   built against a single comparator: `(a - c) - (b - c) = a - b` holds per
+#'   Monte-Carlo draw, but the published tables are already quantiled across
+#'   draws, and neither a median nor an ICER commutes with differencing.
+#'
+#'   Scenario names are validated against the summaries up front, so a typo
+#'   fails immediately rather than hours into the export.
 #' @param two_agegrps Logical. If `TRUE`, uses a coarser two-age-group
 #'   stratification; otherwise uses the standard age groups.
 #' @param strata Optional named list overriding the default stratification
@@ -662,6 +852,11 @@ Simulation$set("public", "export_tables", function(
 
   equity_ridit_reference <- match.arg(equity_ridit_reference)
 
+  # Structural (data-free) rules for `comparator_scenario`, checked HERE in the
+  # parent -- same slot and same reason as validate_equity_strata(): a bad
+  # argument must not surface hours later from inside a parallel worker.
+  validate_comparator_scenario(comparator_scenario)
+
   # Ensure baseline year is in full format (e.g. 2019, not 19)
   # Data is converted to full year format in export_main_tables()
   if (baseline_year_for_change_outputs <= 100) {
@@ -698,6 +893,22 @@ Simulation$set("public", "export_tables", function(
   tables_subdir <- if (two_agegrps) "tables2agegrps" else "tables"
   tables_dir <- private$output_dir(tables_subdir)
   private$create_new_folder(tables_dir)
+
+  # Data-dependent checks for a comparator MAP (unknown scenario names, cycles,
+  # orphans, reserved-column collisions) plus the `comparators.csv` manifest.
+  # Map mode only: a bare `comparator_scenario` reaches none of this, so no
+  # call that works today can start failing and no new file appears in an
+  # existing output tree.
+  if (.comparator_is_map(comparator_scenario)) {
+    private$check_comparator_map(comparator_scenario, tables_dir)
+  } else {
+    # A manifest left by an earlier map run would describe contrasts these
+    # tables were NOT built with. Tables are rewritten in place, so it would
+    # otherwise survive and mislead. Removing our own stale artifact is part of
+    # writing this directory; nothing else is touched.
+    stale <- file.path(tables_dir, "comparators.csv")
+    if (file.exists(stale)) unlink(stale)
+  }
 
   # Build task list for parallel execution
   tasks <- list(
@@ -920,6 +1131,97 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
 })
 
 
+# probe_summary_scenarios ----
+# The scenario names and column names present in the summaries that carry a
+# comparator contrast. A projected one-column arrow scan, materialised via
+# as.data.frame(): this is a pure aggregate, never a join, so it is outside the
+# arrow-collect join-corruption hazard documented in CLAUDE.md -- and
+# materialising means the result is a plain character vector regardless.
+# Costs ~1 s per summary, and runs in MAP MODE ONLY, so the scalar path (every
+# table published to date) pays nothing.
+Simulation$set("private", "probe_summary_scenarios", function() {
+  srcs <- c("incd", "prvl", "mrtl", "qalys", "costs")
+  scns <- character(0)
+  cols <- character(0)
+  for (s in srcs) {
+    p <- private$output_dir(paste0("summaries/", s, "_scaled_up"))
+    if (!dir.exists(p)) next
+    ds <- tryCatch(arrow::open_dataset(p), error = function(e) NULL)
+    if (is.null(ds)) next
+    cols <- union(cols, names(ds))
+    if (!"scenario" %chin% names(ds)) next
+    tb <- arrow::Scanner$create(ds, projection = "scenario")$ToTable()
+    scns <- union(scns, as.character(as.data.frame(tb)$scenario))
+  }
+  list(scenarios = sort(scns), columns = cols)
+})
+
+
+# check_comparator_map ----
+# Up-front, DATA-DEPENDENT validation of a comparator map. Hard errors are
+# raised in the PARENT, before any task is dispatched, so nothing new can throw
+# inside a forked/PSOCK worker where a message may not surface reliably.
+# MAP MODE ONLY -- the scalar path keeps its historical warn-and-skip behaviour.
+Simulation$set("private", "check_comparator_map", function(cs, tables_dir) {
+  probe <- private$probe_summary_scenarios()
+  avail <- probe$scenarios
+
+  clash <- intersect(.comparator_reserved_cols, probe$columns)
+  if (length(clash) > 0L) {
+    stop("`comparator_scenario`: the summaries already carry column(s) ",
+         paste(sQuote(clash), collapse = ", "),
+         ", which the comparator map needs. Rename them in ",
+         "`strata_for_output` and re-run $export_summaries().", call. = FALSE)
+  }
+
+  if (length(avail) == 0L) {
+    warning("`comparator_scenario`: no summaries found to validate the map ",
+            "against; the per-family checks remain the backstop.",
+            call. = FALSE, immediate. = TRUE)
+    return(invisible(NULL))
+  }
+
+  nm <- names(cs)
+  if (is.null(nm)) nm <- rep("", length(cs))
+  unknown <- setdiff(unique(c(nm[nzchar(nm)], unname(cs))), avail)
+  if (length(unknown) > 0L) {
+    stop("`comparator_scenario`: scenario(s) ",
+         paste(sQuote(unknown), collapse = ", "),
+         " are not present in any summary. Available: ",
+         paste(sQuote(avail), collapse = ", "), ".", call. = FALSE)
+  }
+
+  cmap <- .resolve_comparators(cs, avail)
+
+  cyc <- .comparator_cycles(cmap)
+  if (length(cyc) > 0L) {
+    stop("`comparator_scenario`: comparator cycle through ",
+         paste(sQuote(cyc), collapse = ", "),
+         ". Every contrast must terminate; chains such as ",
+         "prs -> qrisk -> sc0 are fine.", call. = FALSE)
+  }
+
+  # The design's one real footgun: with no unnamed default, unlisted scenarios
+  # silently get no contrast at all. Warn here, in the parent, naming them --
+  # so it lands at the TOP of logs/console.txt rather than buried.
+  orphans <- setdiff(setdiff(avail, names(cmap)), unname(cmap))
+  if (length(orphans) > 0L) {
+    warning("`comparator_scenario`: scenario(s) ",
+            paste(sQuote(orphans), collapse = ", "),
+            " have no comparator and will produce NO comparison rows. Add an ",
+            "unnamed default element (e.g. c(\"sc0\", ...)) to contrast them ",
+            "too.", call. = FALSE, immediate. = TRUE)
+  }
+
+  # Machine-readable record of what was requested, written BEFORE any task so
+  # it exists even if a family later fails. Map mode only, so it cannot appear
+  # in an existing published output tree.
+  fwrite(data.table(scenario = names(cmap), comparator = unname(cmap)),
+         file.path(tables_dir, "comparators.csv"))
+  invisible(cmap)
+})
+
+
 # build_strata_config ----
 # Builds the strata configuration by merging user-provided strata with defaults.
 # Defaults match the stratification from process_out_for_NotinghamLA.R
@@ -1136,6 +1438,31 @@ Simulation$set("private", "tbl_smmrs_core", function(
     "pop" = "pop size by "
   )
 
+  # Derived, not passed as a formal: it can never desynchronise from the
+  # argument it describes, and the tinytest harnesses that re-parent and call
+  # these private methods directly keep working with no edit.
+  comparator_is_map <- .comparator_is_map(comparator_scenario)
+
+  # Per-scenario comparator map. A bare `comparator_scenario` resolves to the
+  # historical {every other scenario -> it}. Resolved from `tt` once: every `d`
+  # below is an aggregation of `tt`, so it carries the same scenarios.
+  cmap <- .resolve_comparators(comparator_scenario, unique(tt$scenario))
+
+  # Split a table into intervention rows and comparator rows. These are NO
+  # LONGER complementary: under a map a scenario can be BOTH (an intervention
+  # against sc0 AND the comparator for another arm), so `cmp` must be taken
+  # from the FULL table rather than from the complement of `d`.
+  split_cmp <- function(d, x, extra_on) {
+    cmp <- d[scenario %chin% unique(unname(cmap)) &
+               year >= comparison_starting_year]
+    dd  <- d[scenario %chin% names(cmap) & year >= comparison_starting_year]
+    # as.character() is MANDATORY: indexing a named vector with a FACTOR uses
+    # the LEVEL CODES and mis-maps silently.
+    dd[, .cmp__ := unname(cmap[as.character(scenario)])]
+    list(d = dd, cmp = cmp,
+         on = c(".cmp__" = "scenario", setdiff(x, "scenario"), extra_on))
+  }
+
   # Add mc and scenario to strata
   strata <- lapply(strata, function(x) c("mc", "scenario", x))
 
@@ -1160,10 +1487,12 @@ Simulation$set("private", "tbl_smmrs_core", function(
       # Net QALYs (intervention - baseline, EQ5D5L only - HUI3 not implemented)
       d <- tt[, .("EQ5D5L" = sum(EQ5D5L)), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "scale", value.name = "QALYs")
-      d_sc0 <- d[scenario == comparator_scenario & year >= comparison_starting_year][, scenario := NULL]
-      d <- d[scenario != comparator_scenario & year >= comparison_starting_year][
-        d_sc0, on = c(setdiff(x, "scenario"), "scale"), net_QALYs := QALYs - i.QALYs]
-      d[, QALYs := NULL]
+      p <- split_cmp(d, x, "scale")
+      d <- p$d[p$cmp, on = p$on, net_QALYs := QALYs - i.QALYs]
+      # `.cmp__` MUST go before the melt() below: that melt names id.vars but
+      # not measure.vars, so a stray helper column is absorbed as a measure
+      # variable, doubling the rows and coercing `value` to character.
+      d[, c("QALYs", ".cmp__") := NULL]
       setkeyv(d, c(x[x != "year"], "scale", "year"))
       d[, cumulative := cumsum(net_QALYs), keyby = c(setdiff(x, "year"), "scale")]
       d <- melt(d, id.vars = c(x, "scale"), variable.name = "type")
@@ -1194,10 +1523,9 @@ Simulation$set("private", "tbl_smmrs_core", function(
       # Net costs (intervention - baseline)
       d <- tt[, lapply(.SD, sum), .SDcols = patterns("_cost$|_costs$|^economic_output$"), keyby = eval(x)]
       d <- melt(d, id.vars = x, variable.name = "costs_type", value.name = "value")
-      d_sc0 <- d[scenario == comparator_scenario & year >= comparison_starting_year][, scenario := NULL]
-      d <- d[scenario != comparator_scenario & year >= comparison_starting_year][
-        d_sc0, on = c(setdiff(x, "scenario"), "costs_type"), net_costs := value - i.value]
-      d[, value := NULL]
+      p <- split_cmp(d, x, "costs_type")
+      d <- p$d[p$cmp, on = p$on, net_costs := value - i.value]
+      d[, c("value", ".cmp__") := NULL]
       setkeyv(d, c(x[x != "year"], "costs_type", "year"))
       d[, cumulative := cumsum(net_costs), keyby = c(setdiff(x, "year"), "costs_type")]
       d <- melt(d, id.vars = c(x, "costs_type"), variable.name = "type")
@@ -1284,9 +1612,34 @@ Simulation$set("private", "tbl_smmrs_core", function(
 
       if (grepl("^cypp$|^cpp$|^dpp$", what)) {
         # Comparison metrics: baseline - intervention
-        d_sc0 <- d[scenario == comparator_scenario & year >= comparison_starting_year][, scenario := NULL]
-        d <- d[scenario != comparator_scenario & year >= comparison_starting_year][
-          d_sc0, on = c(setdiff(x, "scenario"), "variable"), value := i.value - value]
+        p <- split_cmp(d, x, "variable")
+        d <- p$d
+        # This is the ONLY contrast site whose update TARGET is `value` itself.
+        # data.table's x[i, :=] touches only MATCHED rows, so an intervention
+        # cell with no comparator counterpart would silently keep its raw LEVEL
+        # -- a prevalence or incidence count -- and be published in a file
+        # called "cases prevented or postponed". Mark those NA instead: a
+        # contrast with no comparator has no value. NA then propagates through
+        # the cumsum() below and is dropped at the finite-value filter, which is
+        # exactly how net_qalys/net_costs already behave (they write a NEW
+        # column, so they get NA for free).
+        #
+        # Cell coverage differs between arms only in SPARSE runs -- small `n`,
+        # few Monte-Carlo draws, fine strata -- where differential survival
+        # leaves a (year, agegrp, sex, dimd) cell occupied in one arm and empty
+        # in the other. Measured as exactly zero across 131M rows of a
+        # 100-iteration production run, so this changes no production output.
+        miss_idx <- d[!p$cmp, on = p$on, which = TRUE]
+        d[p$cmp, on = p$on, value := i.value - value]
+        if (length(miss_idx) > 0L) {
+          set(d, miss_idx, "value", NA_real_)
+          if (self$design$sim_prm$logs) {
+            message("    ", what, ": ", length(miss_idx), " of ", nrow(d),
+                    " row(s) have no comparator cell (set NA, dropped at the ",
+                    "quantile step)")
+          }
+        }
+        set(d, j = ".cmp__", value = NULL)   # MUST precede the melt() below
         d[, variable := gsub(paste0("_", str0[[what]]), "", variable)]
         setkeyv(d, c(x[x != "year"], "variable", "year"))
         d[, cumulative := cumsum(value), keyby = c(setdiff(x, "year"), "variable")]
@@ -1323,9 +1676,23 @@ Simulation$set("private", "tbl_smmrs_core", function(
     )
     str6 <- paste0(
       str4[[what]],
-      paste(setdiff(x, c("mc", "scenario", "type", "scale", "costs_type")), collapse = "-"),
+      paste(setdiff(x, c("mc", "scenario", "comparator", "type", "scale",
+                         "costs_type")), collapse = "-"),
       str5[[population]]
     )
+
+    # `comparator` is a self-describing column, exactly like `gradient` in the
+    # equity tables, and is written ONLY in map mode so the scalar output stays
+    # byte-identical. Attached HERE, after quantiling, because one comparator
+    # per scenario makes it a FUNCTION of `scenario` -- so it never enters `x`
+    # and therefore never touches a group-by, one of the positional setnames()
+    # calls, or a filename.
+    if (comparator_is_map &&
+        what %chin% c("cypp", "cpp", "dpp", "net_qalys", "net_costs")) {
+      d[, comparator := unname(cmap[as.character(scenario)])]
+      nms <- setdiff(names(d), "comparator")
+      setcolorder(d, append(nms, "comparator", after = match("scenario", nms)))
+    }
 
     fwrite(d, file.path(tables_dir, str6))
   })
@@ -1430,14 +1797,33 @@ Simulation$set("private", "export_main_tables", function(
         comparison_metrics <- c("cypp", "cpp", "dpp", "net_qalys", "net_costs")
         if (what %in% comparison_metrics) {
           available_scenarios <- unique(tt$scenario)
-          non_comparator_scenarios <- setdiff(available_scenarios, comparator_scenario)
-          if (length(non_comparator_scenarios) == 0) {
-            if (self$design$sim_prm$logs) {
-              message("    Skipping ", what, " - no intervention scenarios (only '",
-                      comparator_scenario, "' found)")
+          if (.comparator_is_map(comparator_scenario)) {
+            cm <- .resolve_comparators(comparator_scenario, available_scenarios)
+            drops <- attr(cm, "dropped")
+            if (length(drops) > 0L) {
+              warning(sprintf(paste0(
+                "main tables: comparator pair(s) %s cannot be built from this ",
+                "summary (found: %s); those contrasts were skipped for %s."),
+                paste(sQuote(drops), collapse = ", "),
+                paste(available_scenarios, collapse = ", "), what),
+                call. = FALSE, immediate. = TRUE)
             }
-            rm(tt)
-            next
+            if (length(cm) == 0L) {
+              rm(tt)
+              next
+            }
+          } else {
+            ## ---- ORIGINAL, VERBATIM ------------------------------------
+            non_comparator_scenarios <- setdiff(available_scenarios, comparator_scenario)
+            if (length(non_comparator_scenarios) == 0) {
+              if (self$design$sim_prm$logs) {
+                message("    Skipping ", what, " - no intervention scenarios (only '",
+                        comparator_scenario, "' found)")
+              }
+              rm(tt)
+              next
+            }
+            ## -------------------------------------------------------------
           }
         }
 
@@ -1912,14 +2298,31 @@ Simulation$set("private", "export_cea_tables", function(
   add_qimd_from_dimd(qalys)
   add_qimd_from_dimd(costs)
 
-  # Need at least one intervention scenario to compare against the comparator
-  non_comparator <- setdiff(unique(qalys$scenario), comparator_scenario)
-  if (length(non_comparator) == 0L) {
-    if (self$design$sim_prm$logs) {
-      message("  no intervention scenarios (only '", comparator_scenario,
-              "' found); skipping CEA tables")
+  # Derived, not passed as a formal (see tbl_smmrs_core for why).
+  comparator_is_map <- .comparator_is_map(comparator_scenario)
+
+  # Need at least one complete (intervention, comparator) pair
+  if (comparator_is_map) {
+    if (length(.resolve_comparators(comparator_scenario,
+                                    unique(qalys$scenario))) == 0L) {
+      warning("CEA tables: no complete (intervention, comparator) pair in the ",
+              "`qalys` summary (found: ",
+              paste(unique(qalys$scenario), collapse = ", "),
+              "); skipping cost-effectiveness tables.",
+              call. = FALSE, immediate. = TRUE)
+      return(invisible(NULL))
     }
-    return(invisible(NULL))
+  } else {
+    ## ---- ORIGINAL, VERBATIM ------------------------------------------------
+    non_comparator <- setdiff(unique(qalys$scenario), comparator_scenario)
+    if (length(non_comparator) == 0L) {
+      if (self$design$sim_prm$logs) {
+        message("  no intervention scenarios (only '", comparator_scenario,
+                "' found); skipping CEA tables")
+      }
+      return(invisible(NULL))
+    }
+    ## -------------------------------------------------------------------------
   }
 
   # QALY scales actually present in the summary (England: EQ5D5L only, but
@@ -1999,12 +2402,20 @@ Simulation$set("private", "export_cea_tables", function(
         d <- merge(qq, cc, by = x, all = TRUE)
         d[is.na(Q), Q := 0][is.na(C), C := 0]
 
-        # Incremental vs comparator (intervention - comparator), from baseline
-        cmp <- d[scenario == comparator_scenario & year >= baseline_year][
-          , scenario := NULL]
-        d <- d[scenario != comparator_scenario & year >= baseline_year]
+        # Incremental vs comparator (intervention - comparator), from baseline.
+        # Resolved from `d` -- the MERGED qalys+costs table -- not from `qalys`
+        # alone: `costs` can carry a scenario `qalys` lacks, which the old
+        # `scenario != comparator_scenario` predicate kept (with Q = 0).
+        # `cmp` KEEPS its `scenario` column: it is now the join key, and under a
+        # map `d` and `cmp` overlap rather than partitioning.
+        cmap <- .resolve_comparators(comparator_scenario, unique(d$scenario))
+        cmp <- d[scenario %chin% unique(unname(cmap)) & year >= baseline_year]
+        d   <- d[scenario %chin% names(cmap) & year >= baseline_year]
         if (nrow(d) == 0L || nrow(cmp) == 0L) next
-        d[cmp, on = setdiff(x, "scenario"), `:=`(dQ = Q - i.Q, dC = C - i.C)]
+        d[, .cmp__ := unname(cmap[as.character(scenario)])]
+        d[cmp, on = c(".cmp__" = "scenario", setdiff(x, "scenario")),
+          `:=`(dQ = Q - i.Q, dC = C - i.C)]
+        set(d, j = ".cmp__", value = NULL)
         d <- d[!is.na(dQ) & !is.na(dC)]
         if (nrow(d) == 0L) next
 
@@ -2037,7 +2448,14 @@ Simulation$set("private", "export_cea_tables", function(
         setkeyv(out, c("type", setdiff(x, "mc")))
         setcolorder(out, setdiff(x, "mc"))
 
-        suffix <- paste(setdiff(x, c("mc", "scenario")), collapse = "-")
+        if (comparator_is_map) {
+          out[, comparator := unname(cmap[as.character(scenario)])]
+          nms <- setdiff(names(out), "comparator")
+          setcolorder(out, append(nms, "comparator",
+                                  after = match("scenario", nms)))
+        }
+        suffix <- paste(setdiff(x, c("mc", "scenario", "comparator")),
+                        collapse = "-")
         fwrite(out, file.path(
           tables_dir,
           paste0("cost-effectiveness by ", suffix,
@@ -2094,6 +2512,8 @@ Simulation$set("private", "export_equity_tables", function(
     two_agegrps = FALSE
 ) {
   ridit_reference <- match.arg(ridit_reference, c("comparator", "scenario"))
+  # Derived, not passed as a formal (see tbl_smmrs_core for why).
+  comparator_is_map <- .comparator_is_map(comparator_scenario)
   if (self$design$sim_prm$logs) {
     message("Generating equity slope-index tables (ridit reference: ",
             ridit_reference, ")...")
@@ -2162,21 +2582,38 @@ Simulation$set("private", "export_equity_tables", function(
     # The index is a benefit-vs-comparator contrast, so both the comparator and
     # at least one intervention scenario must be present.
     scns <- unique(tt$scenario)
-    if (!comparator_scenario %in% scns) {
-      warning(sprintf(
-        paste0("equity tables: comparator scenario '%s' is not in the `%s` ",
-               "summary (found: %s), so no equity %s tables were written."),
-        comparator_scenario, cfg$source, paste(scns, collapse = ", "), metric),
-        call. = FALSE, immediate. = TRUE)
-      rm(tt); next
-    }
-    non_comparator <- setdiff(scns, comparator_scenario)
-    if (length(non_comparator) == 0L) {
-      if (self$design$sim_prm$logs) {
-        message("  ", metric, ": no intervention scenarios (only '",
-                comparator_scenario, "'); skipping")
+    cmap <- .resolve_comparators(comparator_scenario, scns)
+    if (comparator_is_map) {
+      drops <- attr(cmap, "dropped")
+      if (length(drops) > 0L) {
+        warning(sprintf(paste0(
+          "equity tables: comparator pair(s) %s cannot be built from the `%s` ",
+          "summary (found: %s); those %s contrasts were skipped."),
+          paste(sQuote(drops), collapse = ", "), cfg$source,
+          paste(scns, collapse = ", "), metric),
+          call. = FALSE, immediate. = TRUE)
       }
-      rm(tt); next
+      if (length(cmap) == 0L) { rm(tt); next }
+    } else {
+      ## ---- ORIGINAL, VERBATIM (the warning text is pinned by
+      ## ---- inst/tinytest/test_export_equity_tables.R) ---------------------
+      if (!comparator_scenario %in% scns) {
+        warning(sprintf(
+          paste0("equity tables: comparator scenario '%s' is not in the `%s` ",
+                 "summary (found: %s), so no equity %s tables were written."),
+          comparator_scenario, cfg$source, paste(scns, collapse = ", "), metric),
+          call. = FALSE, immediate. = TRUE)
+        rm(tt); next
+      }
+      non_comparator <- setdiff(scns, comparator_scenario)
+      if (length(non_comparator) == 0L) {
+        if (self$design$sim_prm$logs) {
+          message("  ", metric, ": no intervention scenarios (only '",
+                  comparator_scenario, "'); skipping")
+        }
+        rm(tt); next
+      }
+      ## ---------------------------------------------------------------------
     }
 
     # Derive `qimd` on demand so a quintile gradient does not require `qimd` in
@@ -2230,17 +2667,23 @@ Simulation$set("private", "export_equity_tables", function(
 
       # Benefit versus comparator, from the baseline year onwards.
       idcols <- setdiff(c(keep, "disease"), "scenario")   # mc, <out_vars>, <grad>, disease
-      cmp <- long[scenario == comparator_scenario & year >= baseline_year]
-      cmp[, scenario := NULL]
+      # `cmp` now KEEPS `scenario` -- it is the join key. It is taken from the
+      # FULL `long`, so a scenario that is both an intervention and somebody
+      # else's comparator appears in BOTH `d` and `cmp` (`[` copies, so
+      # mutating one cannot corrupt the other).
+      cmp <- long[scenario %chin% unique(unname(cmap)) & year >= baseline_year]
       setnames(cmp, c("val", "popsize"), c("val_cmp", "pop_cmp"))
-      d <- long[scenario != comparator_scenario & year >= baseline_year]
+      d <- long[scenario %chin% names(cmap) & year >= baseline_year]
       if (nrow(d) == 0L || nrow(cmp) == 0L) next
+      d[, .cmp__ := unname(cmap[as.character(scenario)])]
+      on_cmp <- c(".cmp__" = "scenario", idcols)
 
       if (cfg$dir == "prevented") {
-        d[cmp, on = idcols, `:=`(B_year = i.val_cmp - val, N_cmp = i.pop_cmp)]
+        d[cmp, on = on_cmp, `:=`(B_year = i.val_cmp - val, N_cmp = i.pop_cmp)]
       } else {
-        d[cmp, on = idcols, `:=`(B_year = val - i.val_cmp, N_cmp = i.pop_cmp)]
+        d[cmp, on = on_cmp, `:=`(B_year = val - i.val_cmp, N_cmp = i.pop_cmp)]
       }
+      set(d, j = ".cmp__", value = NULL)
       # Reference population for the ridit ranking, the population weights of the
       # weighted regression and the per-capita denominator. "comparator" uses
       # the comparator scenario's population so the ridit scores and weights are
@@ -2360,7 +2803,15 @@ Simulation$set("private", "export_equity_tables", function(
       # it means "gradient over"; the `gradient` column makes each file
       # self-describing regardless of how it was named.
       out[, gradient := grad]
-      setcolorder(out, c("gradient", setdiff(by_grp, "mc"), "type"))
+      if (comparator_is_map) {
+        # Sits next to `gradient` -- the same design move for the same reason:
+        # the file must be self-describing about which contrast each row is.
+        out[, comparator := unname(cmap[as.character(scenario)])]
+        setcolorder(out, c("gradient", "scenario", "comparator",
+                           setdiff(by_grp, c("mc", "scenario")), "type"))
+      } else {
+        setcolorder(out, c("gradient", setdiff(by_grp, "mc"), "type"))
+      }
 
       fwrite(out, file.path(
         tables_dir,

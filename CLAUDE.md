@@ -59,6 +59,23 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 IMPACTncd$del_logs()$del_outputs()$run(1:2, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)
 ```
 
+**Per-scenario comparators.** `comparator_scenario` accepts either a bare name
+(historical: everything else vs it — byte-identical output) or a **named vector**
+mapping intervention -> comparator, with at most one *unnamed* element as the
+default: `c("sc0", mult_base_prs = "mult_base_qrisk")`. A scenario can be both an
+intervention and someone else's comparator; chains are legal, cycles rejected.
+Exactly **one comparator per scenario**, which is what keeps `scenario` a unique
+row key and lets `comparator` be attached *after* quantiling — so it never enters
+the key vector `x`, a group-by, one of the ~9 positional `setnames()` calls, or a
+filename. The map gate `.comparator_is_map()` is **syntactic**, never data-derived,
+so the schema can't vary between families or reruns. In map mode the contrast
+tables gain a `comparator` column and `comparators.csv` is written; validation
+(unknown names, cycles, orphans, `comparator`/`.cmp__` collisions) runs up front in
+the parent. Gotcha: at all five join sites `cmp` must come from the FULL table, not
+`d`'s complement — under a map the two sets overlap. Index the map with
+`as.character(scenario)`: a factor uses level codes and mis-maps silently.
+Tests: `test_comparator_map.R`.
+
 `export_tables()` turns the summaries into CSVs. Besides the main / mortality /
 disease-characteristics / exposure / cost-effectiveness (`cea = TRUE`) tables, it also
 writes **equity slope-index** tables (`equity = TRUE`, default): absolute (`AEI_total`,

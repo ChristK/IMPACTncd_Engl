@@ -553,8 +553,46 @@ are auto-promoted to four-digit (\code{2019}).}
       \item{\code{prbl}}{Numeric vector of probability levels for output quantiles
 (median plus uncertainty bounds). Default
 \code{c(0.5, 0.025, 0.975, 0.1, 0.9)}.}
-      \item{\code{comparator_scenario}}{Character. Name of the scenario used as the
-comparator when computing differences between scenarios.}
+      \item{\code{comparator_scenario}}{Character. The scenario(s) each intervention is
+contrasted against. Two forms are accepted.
+
+\strong{A bare scenario name} (the default, \code{"sc0"}) is the historical
+behaviour: every \emph{other} scenario is contrasted against it. Output is
+unchanged in every respect -- no extra column, no filename change.
+
+\strong{A named character vector} maps intervention -> comparator, with at most
+one \emph{unnamed} element acting as the default for every scenario not named:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{export_tables(comparator_scenario = c(
+  "sc0",                                  # default: other arms vs sc0
+  mult_base_prs    = "mult_base_qrisk",   # the within-variant increment
+  mult_lowzero_prs = "mult_lowzero_qrisk"
+))
+}\if{html}{\out{</div>}}
+
+A scenario may be both an intervention and somebody else's comparator --
+above, \code{mult_base_qrisk} is contrasted against \code{sc0} \emph{and} serves as
+\code{mult_base_prs}'s reference. Chains are legal; cycles are rejected.
+Omitting the unnamed element builds only the pairs you list, and the
+scenarios left out are named in a \code{warning()}.
+
+There is exactly \strong{one comparator per scenario}, so \code{scenario} remains a
+unique row key and no row multiplication occurs. In map mode the contrast
+tables (\code{cpp}, \code{cypp}, \code{dpp}, \code{net_qalys}, \code{net_costs}, the
+cost-effectiveness tables and the equity slope-index tables) carry an extra
+\code{comparator} column immediately after \code{scenario}, and a \code{comparators.csv}
+manifest of the resolved map is written to the tables directory. Sign
+conventions are unchanged: \code{cpp}/\code{cypp}/\code{dpp} are comparator minus
+intervention; \code{net_qalys}/\code{net_costs} and the CEA increments are
+intervention minus comparator.
+
+Note this cannot be reproduced after the fact by post-processing tables
+built against a single comparator: \code{(a - c) - (b - c) = a - b} holds per
+Monte-Carlo draw, but the published tables are already quantiled across
+draws, and neither a median nor an ICER commutes with differencing.
+
+Scenario names are validated against the summaries up front, so a typo
+fails immediately rather than hours into the export.}
       \item{\code{two_agegrps}}{Logical. If \code{TRUE}, uses a coarser two-age-group
 stratification; otherwise uses the standard age groups.}
       \item{\code{strata}}{Optional named list overriding the default stratification
