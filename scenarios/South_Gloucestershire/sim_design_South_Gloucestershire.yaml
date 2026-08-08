@@ -28,12 +28,9 @@ iteration_n_max: 1000
 output_dir: /mnt/storage_fast/South_Gloucestershire/output
 synthpop_dir: /mnt/storage_fast/South_Gloucestershire/synthpop
 
-# Discounting settings for QALYs and costs
-# Standard UK NICE guidance recommends 3.5% for both
-discounting:
-  qaly_discount_rate: 3.5 # annual discount rate for QALYs (%)
-  cost_discount_rate: 3.5 # annual discount rate for costs (%)
-  discount_from_year: 2019 # the first year from which discounting starts (reference year)
+# Discounting (QALYs/costs) and willingness-to-pay are arguments of
+# $export_tables(), not YAML settings. qaly_discount_rate / cost_discount_rate
+# take vectors: each level is reported side by side in a `discount` column.
 
 
 uncertainty: # Note that uncertainties are independent

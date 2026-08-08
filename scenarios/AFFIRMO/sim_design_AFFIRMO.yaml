@@ -905,10 +905,10 @@ exposure_definitions:
 clusternumber_export: 10 # NEW: number of clusters for export_summaries
 keep_simulants_rn: no # keep the random numbers used in synthpop for scenarios
 calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population projections if no. Calibrate to population projections by Local Authority District if yes. For smaller than national localities, it is forced to yes and the user setting is ignored
-discounting:
-  qaly_discount_rate: 3.5 # annual discount rate for QALYs (%)
-  cost_discount_rate: 3.5 # annual discount rate for costs (%)
-  discount_from_year: 2019 # the first year from which discounting starts (reference year)
+
+# Discounting (QALYs/costs) and willingness-to-pay are arguments of
+# $export_tables(), not YAML settings. qaly_discount_rate / cost_discount_rate
+# take vectors: each level is reported side by side in a `discount` column.
 
 
 uncertainty: # Note that uncertainties are independent

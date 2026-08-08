@@ -917,9 +917,9 @@ exposure_definitions:
 
 # --- runtime params added to match current schema (from scenarios/England) ---
 keep_simulants_rn: no # keep the random numbers used in synthpop for scenarios
-discounting:
-  qaly_discount_rate: 3.5 # annual discount rate for QALYs (%)
-  cost_discount_rate: 3.5 # annual discount rate for costs (%)
-  discount_from_year: 2019 # the first year from which discounting starts (reference year)
+
+# Discounting (QALYs/costs) and willingness-to-pay are arguments of
+# $export_tables(), not YAML settings. qaly_discount_rate / cost_discount_rate
+# take vectors: each level is reported side by side in a `discount` column.
 
 
