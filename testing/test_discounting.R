@@ -1,8 +1,13 @@
-## Test script for the discounting logic used in the cost-effectiveness
-## (ICER/NMB) tables. Discounting is applied ONLY in export_cea_tables(); the
-## main QALY/cost/net tables are reported undiscounted. These are unit tests of
-## the discount formula PV = FV / (1 + r)^max(0, year - discount_from_year),
-## which is exactly the formula used by export_cea_tables()'s internal disc().
+## Test script for the discounting logic used across the table exports. These
+## are unit tests of the discount formula
+## PV = FV / (1 + r)^max(0, year - discount_from_year), which is exactly the
+## formula implemented by the package's internal discount_factor().
+##
+## That formula now drives the qalys / net_qalys / costs / net_costs tables as
+## well as the cost-effectiveness ones: each reports every requested discount
+## level side by side, tagged in a `discount` column. See
+## Rpackage/.../inst/tinytest/test_discount_levels.R for the tests that drive
+## the real export code paths; this file pins the arithmetic alone.
 ##
 ## Run with: Rscript testing/test_discounting.R
 ## Or source in R: source("testing/test_discounting.R")

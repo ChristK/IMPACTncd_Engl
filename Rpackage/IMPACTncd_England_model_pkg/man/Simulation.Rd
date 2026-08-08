@@ -545,8 +545,8 @@ silently falling back to a narrower one.
   multicore = TRUE,
   cea = TRUE,
   wtp = c(25000, 35000),
-  qaly_discount_rate = 3.5,
-  cost_discount_rate = 3.5,
+  qaly_discount_rate = c(0, 3.5),
+  cost_discount_rate = c(0, 3.5),
   discount_from_year = NULL,
   custom_costs_in_healthcare = NULL,
   equity = TRUE,
@@ -672,16 +672,52 @@ QALY) at which the net monetary benefit is computed. Default
 \code{c(25000, 35000)} (GBP/QALY). NICE's standard reference range is
 £20,000-£30,000 per QALY; pass \code{wtp = c(20000, 30000)} for that. Note the
 thresholds appear in the output \strong{column names}
-(\code{NMB_at_wtp_25000}, ...), so changing them changes the CEA table schema.}
-      \item{\code{qaly_discount_rate, cost_discount_rate}}{Numeric. Annual discount rates
-(percent) applied to QALYs and costs. Default \code{3.5} each (UK NICE
-guidance). These arguments are the single source of truth for discounting;
-there is no \code{discounting} block in \code{sim_design.yaml}. Discounting is applied
-\strong{only} to the cost-effectiveness tables - the prevalence, incidence,
-mortality, QALY and cost tables are reported undiscounted.}
+(\code{NMB_at_wtp_25000}, ...), so changing them changes the CEA table schema.
+
+\code{wtp} and the discount levels are \strong{crossed}: every threshold is evaluated
+at every discount level, so a CEA table holds \code{length(wtp)} x (number of
+discount levels) NMB rows per stratum cell. (Contrast the two discount-rate
+vectors, which are \emph{paired} with each other - see \code{qaly_discount_rate}.)
+Filter on both \code{discount} and \code{type} to isolate one series.
+
+A threshold is a ratio of present values (currency per QALY), so it is
+\emph{not} itself discounted: it multiplies the already-discounted
+\code{dQALYs_cuml}, making \code{NMB = wtp * dQALYs_cuml - dCosts_cuml} a present
+value at that level's rates. \code{ICER} does not depend on \code{wtp} at all
+(it is \code{dCosts_cuml / dQALYs_cuml}), so it appears once per discount level
+rather than once per threshold, and its rows are absent wherever
+\code{dQALYs_cuml} is 0 and the ratio is undefined.}
+      \item{\code{qaly_discount_rate, cost_discount_rate}}{Numeric \emph{vectors}. Annual
+discount rates (percent) applied to QALYs and costs. Default \code{c(0, 3.5)}
+each, i.e. undiscounted and UK NICE's 3.5\%. These arguments are the single
+source of truth for discounting; there is no \code{discounting} block in
+\code{sim_design.yaml}.
+
+The two vectors are paired \strong{element-wise} into discount \emph{levels} (a
+length-1 rate is recycled against a longer one), so the defaults give two
+levels: undiscounted, and 3.5\% on QALYs and costs alike. Differential rates
+are set by passing equal-length vectors, e.g.
+\code{qaly_discount_rate = c(0, 1.5)} with \code{cost_discount_rate = c(0, 3.5)}.
+
+Every level appears in the \code{qalys}, \code{net_qalys}, \code{costs}, \code{net_costs} \strong{and}
+cost-effectiveness tables - not just the cost-effectiveness ones. The file
+set is unchanged: each of those tables gains a \code{discount} column and carries
+one block of rows per level, labelled \code{"0\%"}, \code{"3.5\%"}, or
+\code{"QALYs 1.5\%/costs 3.5\%"} when a level's two rates differ. The \verb{0\%} level
+reproduces the undiscounted figures, so nothing is lost by adding
+discounted ones. Filter on \code{discount} to pick a level.
+
+The prevalence, incidence, mortality and exposure tables carry no
+\code{discount} column: they are rates and counts, not monetary or QALY flows,
+so a present value is not defined for them. The equity slope-index tables
+are likewise not expanded - their metric set mixes QALYs with plain event
+counts (CPP / CYPP / DPP), which a single \code{discount} column could not
+describe.}
       \item{\code{discount_from_year}}{Integer. First year from which present values are
-discounted. When \code{NULL} (default) it defaults to
-\code{baseline_year_for_change_outputs}.}
+discounted (\code{PV = FV / (1 + rate/100)^max(0, year - base)}), applied to each
+year's flow \emph{before} the cumulative columns are accumulated, so the \verb{_cuml}
+columns are sums of present values. When \code{NULL} (default) it defaults to
+\code{baseline_year_for_change_outputs}. Years at or before it are undiscounted.}
       \item{\code{custom_costs_in_healthcare}}{Character vector of user-defined \verb{*_costs}
 column names to add to the healthcare \strong{and} healthcare_socialcare
 perspectives (in addition to the built-in cost columns those perspectives

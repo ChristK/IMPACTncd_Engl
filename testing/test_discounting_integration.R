@@ -1,11 +1,15 @@
 ## Integration test for discounting in the export_tables() method.
 ##
 ## Design (current): discounting is controlled SOLELY by export_tables()
-## arguments (qaly_discount_rate / cost_discount_rate default 3.5%,
-## discount_from_year defaults to the baseline year, wtp default c(20000,30000)).
-## There is intentionally NO `discounting` block in the sim_design YAMLs, and
-## discounting is applied ONLY in the cost-effectiveness (ICER/NMB) tables -
-## the main QALY / cost / net tables are reported undiscounted.
+## arguments. `qaly_discount_rate` / `cost_discount_rate` are VECTORS (default
+## c(0, 3.5)) paired element-wise into discount levels; `discount_from_year`
+## defaults to the baseline year; `wtp` defaults to c(25000, 35000). There is
+## intentionally NO `discounting` block in the sim_design YAMLs.
+##
+## Discounting reaches the main QALY / cost / net tables AS WELL AS the
+## cost-effectiveness ones: each reports every level side by side, tagged in a
+## `discount` column, the `0%` level being the undiscounted figures. The equity
+## tables are deliberately left undiscounted (they mix QALYs with event counts).
 ##
 ## Run with: Rscript testing/test_discounting_integration.R
 ## Or source in R: source("testing/test_discounting_integration.R")
@@ -89,14 +93,14 @@ if (!is.null(et_formals)) {
     run_test(sprintf("export_tables() has argument `%s`", arg),
              arg %in% names(et_formals))
   }
-  run_test("default qaly_discount_rate == 3.5",
-           identical(eval(et_formals$qaly_discount_rate), 3.5))
-  run_test("default cost_discount_rate == 3.5",
-           identical(eval(et_formals$cost_discount_rate), 3.5))
+  run_test("default qaly_discount_rate == c(0, 3.5)",
+           isTRUE(all.equal(eval(et_formals$qaly_discount_rate), c(0, 3.5))))
+  run_test("default cost_discount_rate == c(0, 3.5)",
+           isTRUE(all.equal(eval(et_formals$cost_discount_rate), c(0, 3.5))))
   run_test("default discount_from_year is NULL (resolves to baseline year)",
            is.null(et_formals$discount_from_year))
-  run_test("default wtp == c(20000, 30000)",
-           isTRUE(all.equal(eval(et_formals$wtp), c(20000, 30000))))
+  run_test("default wtp == c(25000, 35000)",
+           isTRUE(all.equal(eval(et_formals$wtp), c(25000, 35000))))
 }
 
 # -----------------------------------------------------------------------------
@@ -139,9 +143,9 @@ run_test("Zero rate leaves QALYs/costs unchanged",
            all(abs(res0$costs$C - 100000) < 1e-9))
 
 # -----------------------------------------------------------------------------
-# Test 4: The MAIN qalys/costs tables are UNDISCOUNTED (mimics tbl_smmrs_core)
+# Test 4: The MAIN qalys/costs tables carry EVERY discount level
 # -----------------------------------------------------------------------------
-cat("\n--- Test 4: Main tables are undiscounted ---\n")
+cat("\n--- Test 4: Main tables are discounted per level ---\n")
 
 mock_qalys <- data.table(
   mc = rep(1:2, each = 6),
@@ -150,16 +154,30 @@ mock_qalys <- data.table(
   EQ5D5L = rep(10000, 12)
 )
 x <- c("mc", "scenario", "year")
-# tbl_smmrs_core QALYs branch, post-refactor: aggregate + cumsum, NO discounting
+# tbl_smmrs_core QALYs branch: aggregate, expand across discount levels, cumsum.
+# Discounting the annual flow BEFORE the cumsum is what makes the cumulative
+# column a sum of present values.
+lv <- IMPACTncdEngland:::build_discount_levels(c(0, 3.5), c(0, 3.5))
 d <- mock_qalys[, .(EQ5D5L = sum(EQ5D5L)), keyby = eval(x)]
 d <- melt(d, id.vars = x, variable.name = "scale", value.name = "QALYs")
-setkeyv(d, c(x[x != "year"], "scale", "year"))
-d[, cumulative := cumsum(QALYs), keyby = c(setdiff(x, "year"), "scale")]
+d <- IMPACTncdEngland:::expand_discount_levels(d, "QALYs", lv, 2019L, "qaly")
+xd <- c(x, "scale", "discount")
+setkeyv(d, c(setdiff(xd, "year"), "year"))
+d[, cumulative := cumsum(QALYs), keyby = setdiff(xd, "year")]
 
-run_test("Main QALY values are NOT discounted (all == 10000)",
-         all(abs(d$QALYs - 10000) < 1e-9))
-run_test("Main QALY cumulative at 2023 == 6 * 10000 (no discounting)",
-         abs(d[mc == 1 & year == 2023, cumulative] - 60000) < 1e-6)
+run_test("Main QALY tables carry both discount levels",
+         setequal(unique(d$discount), c("0%", "3.5%")))
+run_test("The 0% level is undiscounted (all == 10000)",
+         all(abs(d[discount == "0%", QALYs] - 10000) < 1e-9))
+run_test("0% cumulative at 2023 == 6 * 10000",
+         abs(d[mc == 1 & year == 2023 & discount == "0%", cumulative] - 60000) < 1e-6)
+# 2018 precedes discount_from_year (2019) so it is undiscounted at every level;
+# 2019..2023 are discounted by 0..4 years.
+run_test("The 3.5% level discounts from 2019, leaving earlier years alone",
+         abs(d[mc == 1 & year == 2018 & discount == "3.5%", QALYs] - 10000) < 1e-9)
+run_test("3.5% cumulative at 2023 == 10000 * (1 + sum 1/1.035^0:4)",
+         abs(d[mc == 1 & year == 2023 & discount == "3.5%", cumulative] -
+               10000 * (1 + sum(1 / 1.035^(0:4)))) < 1e-6)
 
 # Costs main branch picks up both built-in `_cost` and custom `_costs` columns
 mock_costs <- data.table(
@@ -192,10 +210,11 @@ if (tests_failed == 0) {
   cat("\n[SUCCESS] All integration tests passed!\n")
   cat("\nThe discounting design correctly:\n")
   cat("- Keeps discount rates / wtp as export_tables() arguments only (no YAML)\n")
-  cat("- Defaults to 3.5% QALY/cost rates and wtp c(20000, 30000)\n")
+  cat("- Defaults to c(0, 3.5) QALY/cost rates and wtp c(25000, 35000)\n")
   cat("- Defaults discount_from_year to the baseline year\n")
-  cat("- Applies discounting only in the cost-effectiveness tables\n")
-  cat("- Reports the main QALY/cost tables undiscounted\n")
+  cat("- Reports every discount level in the main QALY/cost tables AND the\n")
+  cat("  cost-effectiveness tables, tagged in a `discount` column\n")
+  cat("- Leaves the 0% level equal to the undiscounted figures\n")
   cat("- Picks up custom `_costs` columns in the cost tables without double-counting\n\n")
 } else {
   cat("\n[WARNING] Some integration tests failed.\n\n")

@@ -55,7 +55,9 @@ run_cea <- function(sources, custom_in_hc = NULL, logs = FALSE) {
   environment(f) <- env
   f(prbl = c(0.5, 0.025, 0.975, 0.1, 0.9), summaries_dir = dir, tables_dir = dir,
     comparator_scenario = "sc0", baseline_year = 2019L,
-    wtp = c(20000, 30000), qaly_discount_rate = 3.5, cost_discount_rate = 3.5,
+    wtp = c(20000, 30000),
+    discount_levels = IMPACTncdEngland:::build_discount_levels(c(0, 3.5),
+                                                               c(0, 3.5)),
     discount_from_year = NULL, custom_costs_in_healthcare = custom_in_hc,
     strata = list("year"))
   dir
@@ -78,6 +80,19 @@ expect_equal(eval(formals(Simulation$private_methods$export_cea_tables)$wtp),
              c(25000, 35000),
              info = "export_cea_tables() default agrees with its caller")
 
+# The discount levels are published too: they appear as VALUES of the `discount`
+# column that every money/QALY table now carries, so the default set is part of
+# the schema for the same reason the WTP thresholds are.
+expect_equal(eval(formals(Simulation$public_methods$export_tables)$qaly_discount_rate),
+             c(0, 3.5),
+             info = "export_tables() default QALY discount rates")
+expect_equal(eval(formals(Simulation$public_methods$export_tables)$cost_discount_rate),
+             c(0, 3.5),
+             info = "export_tables() default cost discount rates")
+expect_equal(IMPACTncdEngland:::build_discount_levels(c(0, 3.5), c(0, 3.5))$label,
+             c("0%", "3.5%"),
+             info = "the default rates label as 0% / 3.5%")
+
 # ===========================================================================
 # 1. All three perspectives are written
 # ===========================================================================
@@ -98,9 +113,28 @@ expect_equal(names(hcs), names(hc),
              info = "the new perspective has the same schema as the others")
 
 # ===========================================================================
+# 1b. Every table carries both discount levels
+# ===========================================================================
+expect_true("discount" %in% names(hc),
+            info = "CEA tables carry a `discount` column")
+expect_equal(sort(unique(hc$discount)), c("0%", "3.5%"),
+             info = "both default discount levels are written")
+# Discounting must actually bite, and only after the base year (2019 = the
+# first year here, so it is undiscounted at every level).
+w <- dcast(hc[type == "dQALYs_cuml"], year ~ discount, value.var = "value_50.0%")
+expect_equal(w[year == 2019L][["0%"]], w[year == 2019L][["3.5%"]],
+             info = "the base year itself is undiscounted at every level")
+expect_true(all(abs(w[year > 2019L][["3.5%"]]) < abs(w[year > 2019L][["0%"]])),
+            info = "later years are discounted below the undiscounted level")
+
+# ===========================================================================
 # 2. It is a genuinely THIRD quantity
 # ===========================================================================
-dc <- function(t) t[type == "dCosts_cuml"][order(year), `value_50.0%`]
+# Pinned to one discount level: without the filter these comparisons would run
+# over both levels interleaved.
+dc <- function(t, lvl = "3.5%") {
+  t[type == "dCosts_cuml" & discount == lvl][order(year), `value_50.0%`]
+}
 expect_false(isTRUE(all.equal(dc(hcs), dc(hc))),
              info = "healthcare_socialcare != healthcare")
 expect_false(isTRUE(all.equal(dc(hcs), dc(soc))),
