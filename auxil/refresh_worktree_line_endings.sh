@@ -13,8 +13,11 @@
 #   cure: a stray \r in a YAML value breaks `docker run --mount`, and a CRLF
 #   shebang fails as `bad interpreter: ...^M`.
 #
-#   `git checkout -- .` will NOT fix it either, because git considers those files
-#   unchanged and skips them. `git checkout-index -f -a` forces the rewrite.
+#   `git checkout -- .` will NOT fix it, because git considers those files
+#   unchanged and skips them. Nor will `git checkout-index -f -a`, which exits 0
+#   and silently leaves existing files alone (measured: a LICENSE with 674 CRs
+#   still had 674 after `checkout-index -f`). The only reliable move is to DELETE
+#   the file and check it out again, which is what this script does.
 #
 # Refuses to run on a dirty worktree, because forcing a rewrite from the index
 # would discard uncommitted work.
@@ -40,20 +43,26 @@ for WT in "${WTS[@]}"; do
     continue
   fi
 
-  before=0
+  stale=()
   while IFS= read -r -d '' f; do
     [ -f "$WT/$f" ] || continue
     case "$f" in *.jpg|*.jpeg|*.png|*.pdf|*.docx|*.xlsx|*.zip|*.gz) continue;; esac
     n=$(crcount "$WT/$f")
-    [ "$n" -gt 0 ] && before=$(( before + 1 ))
+    [ "$n" -gt 0 ] && stale+=("$f")
   done < <(git -C "$WT" ls-files -z)
 
+  before=${#stale[@]}
   if [ "$before" -eq 0 ]; then
     echo "  already LF on disk; nothing to do"
     continue
   fi
 
-  ( cd "$WT" && git checkout-index -f -a )
+  # Delete then re-check-out. See the header: checkout / checkout-index both
+  # no-op here because git already considers the file unchanged.
+  for f in "${stale[@]}"; do
+    rm -f "$WT/$f"
+    git -C "$WT" checkout -- "$f"
+  done
 
   after=0
   while IFS= read -r -d '' f; do
