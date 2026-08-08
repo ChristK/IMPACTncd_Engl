@@ -1,16 +1,65 @@
-# Line-ending normalization.
+# Line endings: LF, everywhere, for every text file.
 #
-# Shell scripts and YAML configs must stay LF on every OS. A YAML saved with
-# Windows/CRLF line endings injects a stray carriage return (\r) into the
-# values that docker_setup/*.sh parse for `output_dir` / `synthpop_dir`, which
-# makes `docker run --mount` fail with "value should not have whitespace".
-# (The scripts also strip \r defensively, but keeping tracked files LF avoids
-# the problem at the source.)
-*.sh   text eol=lf
-*.yaml text eol=lf
-*.yml  text eol=lf
-*.R    text eol=lf
-# PowerShell runs fine with LF (PowerShell 5.1+ and pwsh); the repo stores these
-# LF already, so keep them LF to avoid CRLF churn and the very mixed-ending
-# problems this file exists to prevent.
-*.ps1  text eol=lf
+# This repo is developed on Linux and runs in Linux containers, so LF is the
+# only ending that is correct at the point of use. CRLF has already cost us
+# real bugs here:
+#
+#   * A YAML saved with CRLF injects a stray carriage return into the values
+#     that docker_setup/*.sh parse for `output_dir` / `synthpop_dir`, which
+#     makes `docker run --mount` fail with "value should not have whitespace".
+#     (The scripts also strip \r defensively, but keeping tracked files LF
+#     avoids the problem at the source.)
+#   * A shell script with CRLF has a shebang of `#!/usr/bin/env bash\r`, which
+#     fails as `bad interpreter: ... ^M`.
+#   * A Dockerfile with CRLF can break RUN line continuations.
+#   * Worst of all, a blob committed WITH CRLF while an attribute claims
+#     eol=lf is permanently unstageable-clean: eol=lf governs only checkout, so
+#     the CRs survive it, while the clean filter strips them on staging. git
+#     then reports the file as modified in every worktree forever, including a
+#     pristine checkout -- which makes `git rebase` and `git merge` refuse to
+#     run, and mid-rebase presents as commits mysteriously "becoming empty".
+#
+# `text=auto` lets git decide text-vs-binary by its own NUL-byte heuristic and
+# normalise only what is text; `eol=lf` then checks text out as LF on every
+# platform, including Windows. Modern Windows editors (VS Code, RStudio,
+# Notepad since 2018) all handle LF, so this costs Windows users nothing.
+#
+# This is deliberately a wildcard rather than the extension whitelist it
+# replaces: the whitelist covered *.sh/*.yaml/*.yml/*.R/*.ps1 and therefore
+# silently ignored LICENSE, docker_setup/Dockerfile.*, *.csv, and every file
+# type nobody had thought of yet.
+#
+# Audit with: auxil/audit_line_endings.py   (inspects blobs, not the worktree)
+
+* text=auto eol=lf
+
+# Binary: never normalise. `text=auto` already classifies these correctly by
+# content, but naming them is free insurance against a file that happens to
+# start with 8000 NUL-free bytes.
+*.docx binary
+*.jpeg binary
+*.jpg  binary
+*.png  binary
+*.gif  binary
+*.pdf  binary
+*.xlsx binary
+*.xls  binary
+*.zip  binary
+*.gz   binary
+*.bz2  binary
+*.7z   binary
+*.so   binary
+*.o    binary
+*.dll  binary
+*.dylib binary
+
+# Model data formats. Not tracked today -- they are gitignored and come from
+# Zenodo -- but named so that accidentally `git add`ing one cannot corrupt it.
+*.fst     binary
+*.parquet binary
+*.rds     binary
+*.RData   binary
+*.rda     binary
+*.qs      binary
+*.feather binary
+*.arrow   binary
