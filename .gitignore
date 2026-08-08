@@ -88,9 +88,23 @@ inputs/**/*.pdf
 inputs/**/*.html
 inputs/**/*.txt
 
-# graphify knowledge graph: keep the human/AI-readable outputs under version
-# control (GRAPH_REPORT.md, graph.json, graph.html, manifest.json, cost.json),
-# but ignore the regenerable AST cache and the dated backup snapshots — git
-# history already serves as the backup.
-graphify-out/cache/
-graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+# graphify knowledge graph: ENTIRELY ignored, outputs included.
+#
+# These files used to be tracked, on the reasoning that the human/AI-readable
+# outputs were worth versioning. In practice that made them a constant source
+# of spurious diffs: the graphify hook regenerates GRAPH_REPORT.md, graph.json,
+# graph.html and manifest.json on every commit AND on every branch switch, so
+# the working tree was dirty again the instant any git operation finished. A
+# brand-new `git worktree add` came up with four modified files and a ~10,000
+# line diff in graph.json.
+#
+# That is not cosmetic. `git rebase` and `git merge` both refuse to start on a
+# dirty tree, so a regenerated artefact blocked them outright, and mid-rebase it
+# conflicted on nearly every replayed commit (graph.json alone produced 206
+# conflict hunks) — for a file whose "resolution" is always just to regenerate
+# it. Together with the CRLF problem this is what made the repo unrebasable.
+#
+# Nothing is lost: the graph is a pure function of the source, rebuilt by
+# `graphify update .` (AST-only, no API cost), and the hook rebuilds it
+# automatically anyway. Regenerate rather than retrieve.
+graphify-out/
