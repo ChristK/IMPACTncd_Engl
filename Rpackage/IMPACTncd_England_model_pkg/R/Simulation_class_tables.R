@@ -74,7 +74,16 @@ build_discount_levels <- function(qaly_discount_rate, cost_discount_rate) {
   if (length(cst) == 0L) cst <- 0
 
   n <- max(length(q), length(cst))
-  if (n %% length(q) != 0L || n %% length(cst) != 0L) {
+  # The contract is EQUAL lengths, or one length-1 rate recycled against the
+  # other -- exactly what the error below states. A divisibility test
+  # (`n %% length(q) != 0L`) is NOT that contract: it also admits 4-vs-2 and
+  # 6-vs-3, where rep_len() then invents pairings the caller never asked for.
+  # `build_discount_levels(c(0, 1.5, 3.5, 5), c(0, 3.5))` recycled the costs to
+  # c(0, 3.5, 0, 3.5) and published levels "QALYs 3.5%/costs 0%" and
+  # "QALYs 5%/costs 3.5%" -- discounting health but not money, which is not a
+  # coherent economic analysis. It also made rejection non-monotonic in the
+  # input: 4-vs-2 was accepted while 3-vs-2 errored.
+  if (length(q) != length(cst) && length(q) != 1L && length(cst) != 1L) {
     stop("qaly_discount_rate (length ", length(q), ") and cost_discount_rate ",
          "(length ", length(cst), ") must be the same length, or one of them ",
          "must be a single rate to recycle.", call. = FALSE)

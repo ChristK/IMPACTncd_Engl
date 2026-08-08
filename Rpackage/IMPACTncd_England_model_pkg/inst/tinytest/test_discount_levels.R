@@ -51,6 +51,23 @@ expect_error(bdl(c(0, 2, 4), c(0, 2)), info = "incompatible lengths are an error
 expect_error(bdl(-100, 0), info = "a rate of -100% or below is an error")
 expect_error(bdl(NA_real_, 0), info = "a non-finite rate is an error")
 
+# The contract is EQUAL lengths or one length-1 rate -- NOT "any divisor length".
+# The guard used to be `n %% length(q) != 0L`, which accepted 4-vs-2 and 6-vs-3
+# and let rep_len() invent pairings nobody asked for: c(0,1.5,3.5,5) against
+# c(0,3.5) recycled the costs to c(0,3.5,0,3.5) and published
+# "QALYs 3.5%/costs 0%" and "QALYs 5%/costs 3.5%" -- discounting health but not
+# money. It also made rejection non-monotonic: 4-vs-2 passed while 3-vs-2 failed.
+expect_error(bdl(c(0, 1.5, 3.5, 5), c(0, 3.5)),
+             info = "a divisor length is NOT recycling: 4-vs-2 is an error")
+expect_error(bdl(c(0, 1.5, 3, 3.5, 5, 7), c(0, 3.5, 5)),
+             info = "6-vs-3 is an error too")
+expect_error(bdl(c(0, 3.5), c(0, 1.5, 3.5, 5)),
+             info = "the same holds with the longer vector on the cost side")
+expect_silent(bdl(c(0, 1.5, 3.5, 5), 3.5))
+expect_silent(bdl(3.5, c(0, 1.5, 3.5, 5)))
+expect_equal(nrow(bdl(c(0, 1.5, 3.5, 5), 3.5)), 4L,
+             info = "a genuine length-1 rate still recycles against any length")
+
 # ===========================================================================
 # 2. discount_factor() / expand_discount_levels()
 # ===========================================================================

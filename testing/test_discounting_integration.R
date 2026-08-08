@@ -62,18 +62,33 @@ run_test <- function(name, expr) {
 # -----------------------------------------------------------------------------
 cat("\n--- Test 1: No `discounting` block in the config YAMLs ---\n")
 
-yaml_files <- c(
+# The scenario designs are GLOBBED, not listed. The three named files below were
+# the only ones this test ever checked, but they are not where the problem lived:
+# the eleven scenarios/*/sim_design_*.yaml files kept a live `discounting:` block
+# long after it stopped being read, and this test passed green throughout.
+# `Design_class.R` never references `discount` and does not reject unknown keys,
+# so a re-added block is silently accepted and silently ignored -- there is no
+# other guard. Globbing means a NEW scenario directory is covered automatically.
+yaml_files <- unique(c(
   "Rpackage/IMPACTncd_England_model_pkg/inst/config/default_sim_design.yaml",
   "inputs/sim_design.yaml",
-  "testing/sim_design_testing.yaml"
-)
+  "testing/sim_design_testing.yaml",
+  Sys.glob("scenarios/*/sim_design*.yaml"),
+  Sys.glob("inputs/sim_design*.yaml")
+))
+checked <- 0L
 for (yf in yaml_files) {
   if (file.exists(yf)) {
+    checked <- checked + 1L
     parsed <- yaml::read_yaml(yf)
-    run_test(sprintf("no `discounting` key in %s", basename(yf)),
+    run_test(sprintf("no `discounting` key in %s", yf),
              is.null(parsed$discounting))
   }
 }
+# A glob that matches nothing would make every assertion above vacuous, so assert
+# the sweep actually found the scenario designs.
+run_test("the YAML sweep found the scenario designs (glob is not empty)",
+         checked >= 12L)
 
 # -----------------------------------------------------------------------------
 # Test 2: export_tables() exposes the discounting / CEA arguments with the
