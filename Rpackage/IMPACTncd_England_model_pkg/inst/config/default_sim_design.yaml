@@ -45,8 +45,8 @@ uncertainty: # Note that uncertainties are independent
     lower: -0.05 # i.e. mrtl * ( 1 - 0.02)
 
 # Discounting (QALYs/costs) and willingness-to-pay are arguments of
-# $export_tables(), not YAML settings. Discounting is applied only to the
-# cost-effectiveness (ICER/NMB) tables; all other tables are undiscounted.
+# $export_tables(), not YAML settings. qaly_discount_rate / cost_discount_rate
+# take vectors: each level is reported side by side in a `discount` column.
 
 diseases:
 - name: obesity

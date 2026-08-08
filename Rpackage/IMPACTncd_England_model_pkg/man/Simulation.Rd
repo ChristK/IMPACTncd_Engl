@@ -717,7 +717,9 @@ describe.}
 discounted (\code{PV = FV / (1 + rate/100)^max(0, year - base)}), applied to each
 year's flow \emph{before} the cumulative columns are accumulated, so the \verb{_cuml}
 columns are sums of present values. When \code{NULL} (default) it defaults to
-\code{baseline_year_for_change_outputs}. Years at or before it are undiscounted.}
+\code{baseline_year_for_change_outputs}. Years at or before it are undiscounted.
+Accepts the same two-digit shorthand as \code{baseline_year_for_change_outputs}:
+a value \verb{<= 100} is promoted by 2000, so \code{19} means 2019.}
       \item{\code{custom_costs_in_healthcare}}{Character vector of user-defined \verb{*_costs}
 column names to add to the healthcare \strong{and} healthcare_socialcare
 perspectives (in addition to the built-in cost columns those perspectives

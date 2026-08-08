@@ -228,3 +228,31 @@ expect_true(all(wide[[NMB[1]]] <= wide[[NMB[2]]] + 1e-6),
 tw <- dcast(cea[type == NMB[2]], year ~ discount, value.var = VCOL)
 expect_false(isTRUE(all.equal(tw[year > BASE][["0%"]], tw[year > BASE][["3.5%"]])),
              info = "NMB at a given wtp differs between discount levels")
+
+
+# ---- Two-digit year shorthand -------------------------------------------
+# The summaries store short years, so callers naturally pass `19` for 2019.
+# `baseline_year_for_change_outputs` had always been promoted; when multi-level
+# discounting landed, `discount_from_year` was not. Both now go through
+# promote_short_year(), so the promotion cannot be added to one and forgotten
+# for the other.
+psy <- IMPACTncdEngland:::promote_short_year
+
+expect_equal(psy(19), 2019, info = "two-digit year is promoted by 2000")
+expect_equal(psy(BASE), BASE, info = "a full year is left alone")
+expect_equal(psy(100), 2100, info = "100 is shorthand (boundary is inclusive)")
+expect_equal(psy(101), 101, info = "101 is not shorthand (boundary is exclusive)")
+expect_equal(psy(0), 2000, info = "0 is shorthand for 2000")
+expect_true(is.null(psy(NULL)), info = "NULL passes through for the is.null branch")
+expect_equal(psy(NA_integer_), NA_integer_, info = "NA is not silently promoted")
+expect_equal(psy(c(19, 20)), c(19, 20), info = "only a scalar is promoted")
+
+# Why it matters: an unpromoted 19 is read as the year 19 AD, so the exponent
+# becomes ~2000 and the discount factor underflows. Nothing errors -- the tables
+# are simply published as zeros, which is why this is a test and not a comment.
+expect_true(dfac(2043L, 3.5, 19) < 1e-30,
+            info = "unpromoted shorthand collapses the discount factor to ~0")
+expect_equal(dfac(2043L, 3.5, psy(19)), 1 / 1.035^24,
+             info = "promoted shorthand gives the correct present value")
+expect_equal(dfac(2043L, 3.5, psy(19)), dfac(2043L, 3.5, BASE),
+             info = "19 and 2019 are equivalent once promoted")

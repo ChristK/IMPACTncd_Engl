@@ -98,6 +98,25 @@ build_discount_levels <- function(qaly_discount_rate, cost_discount_rate) {
 }
 
 
+# promote_short_year ----
+# Year ARGUMENTS accept a two-digit shorthand, because the summaries store short
+# years (19 rather than 2019) and callers naturally pass what they see. A value
+# <= 100 is promoted by 2000; anything else is returned untouched, so a real
+# year, a NULL or a non-numeric passes through unchanged.
+#
+# This exists as a helper because the promotion has to happen for EVERY year
+# argument or not at all. `discount_from_year` was missed when multi-level
+# discounting landed, and the failure is silent rather than loud: an unpromoted
+# 19 makes the discount exponent `year - 19` ~ 2000, 1/1.035^2000 underflows to
+# 0, and every discounted figure is published as zero with no error.
+promote_short_year <- function(year) {
+  if (is.numeric(year) && length(year) == 1L && !is.na(year) && year <= 100) {
+    return(year + 2000L)
+  }
+  year
+}
+
+
 # discount_factor ----
 # Present-value factor: PV = FV * discount_factor(year, rate, from_year), i.e.
 # 1 / (1 + rate/100)^max(0, year - from_year). Years at or before `from_year`
@@ -1041,6 +1060,8 @@ build_equity_plans <- function(strata) {
 #'   year's flow *before* the cumulative columns are accumulated, so the `_cuml`
 #'   columns are sums of present values. When `NULL` (default) it defaults to
 #'   `baseline_year_for_change_outputs`. Years at or before it are undiscounted.
+#'   Accepts the same two-digit shorthand as `baseline_year_for_change_outputs`:
+#'   a value `<= 100` is promoted by 2000, so `19` means 2019.
 #' @param custom_costs_in_healthcare Character vector of user-defined `*_costs`
 #'   column names to add to the healthcare **and** healthcare_socialcare
 #'   perspectives (in addition to the built-in cost columns those perspectives
@@ -1226,9 +1247,8 @@ Simulation$set("public", "export_tables", function(
 
   # Ensure baseline year is in full format (e.g. 2019, not 19)
   # Data is converted to full year format in export_main_tables()
-  if (baseline_year_for_change_outputs <= 100) {
-    baseline_year_for_change_outputs <- baseline_year_for_change_outputs + 2000L
-  }
+  baseline_year_for_change_outputs <-
+    promote_short_year(baseline_year_for_change_outputs)
 
   # Discounting is controlled solely by the arguments below (there is
   # intentionally no `discounting` block in sim_design.yaml). It reaches the
@@ -1237,8 +1257,17 @@ Simulation$set("public", "export_tables", function(
   # `discount` column. Prevalence / incidence / mortality / exposure tables are
   # rates and counts rather than flows, so they carry no discount column; the
   # equity tables are left alone because they mix QALYs with event counts.
-  if (is.null(discount_from_year)) {
-    discount_from_year <- baseline_year_for_change_outputs
+  # `discount_from_year` takes the SAME two-digit shorthand as
+  # `baseline_year_for_change_outputs` above, and must be promoted the same way.
+  # Without this, `discount_from_year = 19` is treated as the year 19 AD: the
+  # exponent becomes `year - 19` ~ 2000, so 1/1.035^2000 underflows to 0 and
+  # every discounted figure is silently published as zero. There is no error and
+  # no warning -- a table of zeros looks like a result -- which is exactly the
+  # failure mode `.promote_integer_measures()` guards against elsewhere.
+  discount_from_year <- if (is.null(discount_from_year)) {
+    baseline_year_for_change_outputs
+  } else {
+    promote_short_year(discount_from_year)
   }
 
   # One row per discount level, shared by the main (qalys/costs) and the CEA
@@ -2378,8 +2407,11 @@ Simulation$set("private", "export_main_tables", function(
           rm(t1)
         }
 
-        # Generate tables. Main tables are reported UNDISCOUNTED; discounting is
-        # applied only in the cost-effectiveness tables (export_cea_tables).
+        # Generate tables. The qalys / net_qalys / costs / net_costs metrics are
+        # expanded to one block of rows per discount level, tagged in a
+        # `discount` column; the other metrics here are rates and counts and are
+        # left untouched. (Discounting stopped being CEA-only when multi-level
+        # discounting landed -- `discount_levels` is passed straight below.)
         private$tbl_smmrs_core(
           tt = tt,
           what = what,

@@ -30,9 +30,12 @@ synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 
 # Discounting (for QALYs/costs) and willingness-to-pay are NOT configured here.
 # They are arguments of $export_tables(): qaly_discount_rate / cost_discount_rate
-# (default 3.5%, NICE), discount_from_year (defaults to the baseline year), and
-# wtp (default c(20000, 30000) GBP/QALY). Discounting is applied only to the
-# cost-effectiveness (ICER/NMB) tables; all other tables are undiscounted.
+# take VECTORS of annual rates (default c(0, 3.5), i.e. undiscounted and the
+# NICE 3.5% reported side by side), discount_from_year (defaults to the baseline
+# year), and wtp (default c(25000, 35000) GBP/QALY). Every level appears in the
+# qalys / net_qalys / costs / net_costs and cost-effectiveness tables, tagged in
+# a `discount` column; prevalence, incidence, mortality, exposure and equity
+# tables carry no discount column.
 
 uncertainty: # Note that uncertainties are independent
   incidence:

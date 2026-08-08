@@ -86,6 +86,46 @@ missing is **skipped**, never silently degraded — otherwise a run without
 `socialcare_cost` would publish `healthcare_socialcare` tables identical to the
 `healthcare` ones. Tests: `test_cea_perspectives.R`.
 
+**Multi-level discounting (`export_tables()`).** `qaly_discount_rate` /
+`cost_discount_rate` take **vectors** (default `c(0, 3.5)`) paired element-wise
+into discount *levels*; a length-1 rate recycles against a longer one. Every
+level is reported side by side, tagged in a `discount` column, so one export
+yields the undiscounted **and** the NICE-3.5% figures instead of two runs into
+separate directories. Differential rates need equal-length vectors —
+`qaly = c(0, 1.5)` with `cost = c(0, 4)` is 2 levels, **not** 4.
+Discounting is **no longer CEA-only**: it also reaches `qalys` / `net_qalys` /
+`costs` / `net_costs`. Prevalence, incidence, mortality and exposure tables carry
+no `discount` column (they are rates and counts, not flows), and the equity
+tables are excluded too because their metric set mixes QALYs with plain event
+counts — only the **main** and **CEA** tasks are passed `discount_levels`.
+Four things are load-bearing:
+**(a)** `expand_discount_levels()` scales the **per-year** values *before* any
+`cumsum()`, so the `_cuml` columns accumulate present values rather than
+discounting an already-summed total.
+**(b)** Rates are **paired** with each other but **crossed** with `wtp`, giving
+`length(wtp) × nrow(discount_levels)` NMB rows; a threshold is a ratio of present
+values, so it is never itself discounted, and `ICER` appears once per level
+rather than once per threshold.
+**(c)** `discount` is excluded from the filename key `str6`, so the *set of
+files written* is identical however many levels are requested — the levels live
+in rows, not filenames.
+**(d)** Every entry point defaults to `build_discount_levels(0, 0)` when called
+without levels, so an internal caller cannot silently acquire discounting.
+⚠️ **Breaking for downstream readers** of the qalys / costs / net_* tables: they
+gained a `discount` column and now carry one block of rows per level, so a reader
+that assumed one row per (scenario, year, stratum) will double-count unless it
+filters on `discount`. The `0%` rows reproduce the old undiscounted figures.
+**Year arguments take a two-digit shorthand** (`19` = 2019), because the
+summaries store short years. `baseline_year_for_change_outputs` had always been
+promoted; `discount_from_year` was **not**, so `discount_from_year = 19` was read
+as the year 19 AD — the exponent became `year - 19` ≈ 2000, `1/1.035^2000`
+underflowed, and every discounted figure was published as **zero** with no error
+or warning. Both now go through the single helper `promote_short_year()`, so the
+promotion cannot be added to one year argument and forgotten for the other.
+Ported from IMPACTncd_Japan; the four helpers' executable code is byte-identical
+to that model's, but the currency defaults are not carried over (`wtp` stays
+`c(25000, 35000)` GBP). Tests: `test_discount_levels.R`.
+
 **Integer summaries silently truncate rates — `.promote_integer_measures()`.** Every
 rate in `Simulation_class_tables.R` is one summed column divided by another, written
 back with `:=`. The form decides whether that is safe: `d[, v := v/n]` replaces the
