@@ -459,8 +459,14 @@ The project uses a **three-layer architecture**, so that frequent code changes d
 > A CI **freshness guard** (`data_image_freshness_guard.yml`, on every push to
 > main + weekly) keeps the manual step honest: it fails the build on main —
 > with rebuild instructions — whenever the published data image is older than
-> the files that determine its content, and whenever `impactncdengl:main` is
-> older than the data image (a missed post-data-push model rebuild).
+> the last **content** change to the files that determine it, and whenever
+> `impactncdengl:main` is older than the data image (a missed post-data-push
+> model rebuild). "Content" is literal: for the Dockerfiles and R sources a
+> line-ending-only rewrite is skipped (it cannot change the build), while the
+> `.sh` scripts and package lists stay strict, because a stray CR there breaks
+> a shebang or rides into a package name. Run it locally before pushing with
+> `auxil/test_data_image_freshness_guard.sh --live`; the same script without
+> `--live` is the offline regression suite for the guard itself.
 
 Build the three layers in order:
 

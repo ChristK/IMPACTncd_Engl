@@ -19,6 +19,21 @@
 # keeps original committer dates and is not detected — merge or squash-merge
 # to main is covered.
 #
+# LINE-ENDING-ONLY COMMITS (see EOL_INSENSITIVE below):
+# git dates a file by its newest commit, and git has no notion of a
+# "semantically null" change — a CRLF -> LF rewrite is a different blob, so it
+# walks the timestamp forward like any edit. The repo-wide LF renormalisation
+# (96524fa, 2026-08-08) rewrote all 55 lines of the prerequisite Dockerfile
+# without changing one byte the builder sees, and red-X'd main on every push
+# thereafter. For files where line endings CANNOT change the built image, the
+# walk therefore skips commits whose diff is empty under --ignore-cr-at-eol and
+# uses the newest commit that actually changed content.
+# This exemption is opt-in per file, NOT blanket: for a shell script or a
+# shell-parsed package list a stray CR *is* semantic (a CRLF shebang breaks
+# exec; a CR rides along into a package name), so an EOL-only commit there is a
+# real change. Anything not in EOL_INSENSITIVE stays strict, which is also what
+# a newly added HARD_FILES entry gets by default.
+#
 # CHECK 2 — model image vs data image:
 # After a data rebuild, build_push_data.sh triggers the model rebuild on main;
 # if that dispatch failed or was skipped, impactncdengl:main silently bakes an
@@ -146,24 +161,72 @@ jobs:
             docker_setup/entrypoint.sh
           "
 
+          # Files whose line endings the built image cannot see: Dockerfiles
+          # (the builder strips CR when parsing instructions) and R sources
+          # (R's parser accepts either). Everything else — the .sh scripts and
+          # the package lists that sed/grep/tr chew through inside RUN layers —
+          # stays STRICT, because there a CR is a real, breaking change. Adding
+          # a file to HARD_FILES without adding it here gets the strict path,
+          # so the gate can never be weakened by omission.
+          EOL_INSENSITIVE="
+            docker_setup/Dockerfile.data.IMPACTncdENGL
+            docker_setup/Dockerfile.prerequisite.IMPACTncdENGL
+            docker_setup/download_zenodo_data.R
+            Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R
+          "
+
+          is_eol_insensitive() {
+            local g
+            for g in $EOL_INSENSITIVE; do [ "$g" = "$1" ] && return 0; done
+            return 1
+          }
+
+          # resolve_landed <file>
+          # Sets LANDED_EPOCH (committer time of the newest first-parent commit
+          # that changed <file>'s CONTENT; 0 if the file has no history) and
+          # LANDED_REF (that commit, for the message).
           # --first-parent: date a change by when it LANDED ON MAIN (a PR's
           # merge commit), not by its feature-branch committer date — otherwise
           # a change authored before the image push but merged after it would
-          # never be flagged.
+          # never be flagged. `git diff "$c^" "$c"` therefore also compares
+          # against the FIRST parent, matching the walk.
+          # Emptiness is tested on the diff text, not via `git diff --quiet`:
+          # --quiet is free to short-circuit on unequal blob hashes, which is
+          # exactly the case --ignore-cr-at-eol has to look inside.
+          LANDED_EPOCH=0
+          LANDED_REF=""
+          resolve_landed() {
+            local f="$1" c
+            LANDED_EPOCH=0
+            LANDED_REF=""
+            for c in $(git log --format=%H --first-parent HEAD -- "$f"); do
+              # A root commit has no parent, so it is an add: a content change.
+              if is_eol_insensitive "$f" \
+                 && git rev-parse -q --verify "$c^" >/dev/null \
+                 && [ -z "$(git diff --ignore-cr-at-eol "$c^" "$c" -- "$f")" ]; then
+                echo "::notice::$f: ignoring $(git log -1 --format='%h (%cs) %s' "$c") — line-ending-only change, invisible to the build."
+                continue
+              fi
+              LANDED_EPOCH=$(git log -1 --format=%ct "$c")
+              LANDED_REF=$(git log -1 --format='%h %cs' "$c")
+              return
+            done
+          }
+
           NOW=$(date +%s)
           STALE=""
           for f in $HARD_FILES; do
-            T_FILE=$(git log -1 --format=%ct --first-parent HEAD -- "$f" || echo 0)
-            [ -z "$T_FILE" ] && T_FILE=0
+            resolve_landed "$f"
+            T_FILE=$LANDED_EPOCH
             if [ "$T_FILE" -gt "$NOW" ]; then
               # A future committer time is an untrusted clock: it carries no
               # ordering information and would red-X main forever (no rebuild
               # can outrun it). Warn and exclude from the hard gate.
-              echo "::warning::$f's last commit claims a FUTURE committer time ($(git log -1 --format=%ci --first-parent HEAD -- "$f")) — excluded from the staleness gate. Verify manually whether the data image needs a rebuild, and consider re-committing the file to fix its timestamp."
+              echo "::warning::$f's last content change claims a FUTURE committer time ($(date -u -d "@$T_FILE" +%FT%TZ), $LANDED_REF) — excluded from the staleness gate. Verify manually whether the data image needs a rebuild, and consider re-committing the file to fix its timestamp."
               continue
             fi
             if [ "$T_FILE" -gt "$T_IMAGE" ]; then
-              STALE="$STALE\n  - $f  (landed on main: $(git log -1 --format=%ci --first-parent HEAD -- "$f"))"
+              STALE="$STALE\n  - $f  (landed on main: $(date -u -d "@$T_FILE" +%FT%TZ), $LANDED_REF)"
             fi
           done
 
@@ -172,8 +235,8 @@ jobs:
           # is downloaded. Warn, don't fail — a hard gate here would red-X main
           # on every unrelated Zenodo-class tweak and train people to ignore it.
           SOFT_FILE="Rpackage/IMPACTncd_England_model_pkg/R/ZenodoManager_class.R"
-          T_SOFT=$(git log -1 --format=%ct --first-parent HEAD -- "$SOFT_FILE" || echo 0)
-          [ -z "$T_SOFT" ] && T_SOFT=0
+          resolve_landed "$SOFT_FILE"
+          T_SOFT=$LANDED_EPOCH
           if [ "$T_SOFT" -gt "$T_IMAGE" ] && [ "$T_SOFT" -le "$NOW" ]; then
             echo "::warning::$SOFT_FILE is newer than data.impactncdengl:latest. It is sourced by download_zenodo_data.R at build time — if the change affects DOWNLOAD behaviour, rebuild the data image (docker_setup/build_push_data.sh)."
           fi
