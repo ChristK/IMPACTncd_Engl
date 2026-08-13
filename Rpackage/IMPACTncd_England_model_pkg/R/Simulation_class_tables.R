@@ -567,9 +567,12 @@ validate_two_agegrps_split_age <- function(x) {
 
 # Columns the equity tables manage themselves, so they cannot also be named as
 # an output stratum: `mc` is the Monte-Carlo axis the indices are quantiled
-# over, and `scenario` is always present because every index is a contrast
-# against *its* comparator.
-.equity_reserved_vars <- c("mc", "scenario")
+# over, `scenario` is always present because every index is a contrast against
+# *its* comparator, and `discount` is written by the table itself (one block of
+# rows per discount level, as in the main and CEA tables). A stratum sharing one
+# of these names would collide in the group-by rather than fail, so the check is
+# structural and runs in the parent.
+.equity_reserved_vars <- c("mc", "scenario", "discount")
 
 
 # =============================================================================
@@ -748,9 +751,9 @@ validate_equity_strata <- function(strata) {
     bad <- intersect(s, .equity_reserved_vars)
     if (length(bad) > 0L) {
       stop(lbl, " names reserved column(s): ", paste(bad, collapse = ", "),
-           ". `mc` is the Monte-Carlo axis the indices are quantiled over and",
-           " `scenario` is always included, so neither can be an output",
-           " stratum.", call. = FALSE)
+           ". `mc` is the Monte-Carlo axis the indices are quantiled over,",
+           " `scenario` is always included, and `discount` tags the discount",
+           " level, so none of them can be an output stratum.", call. = FALSE)
     }
     if (!"year" %in% s) {
       stop(lbl, " must include \"year\". The benefit is accumulated over years",
@@ -1050,20 +1053,30 @@ build_equity_plans <- function(strata) {
 #'   are set by passing equal-length vectors, e.g.
 #'   `qaly_discount_rate = c(0, 1.5)` with `cost_discount_rate = c(0, 3.5)`.
 #'
-#'   Every level appears in the `qalys`, `net_qalys`, `costs`, `net_costs` **and**
-#'   cost-effectiveness tables - not just the cost-effectiveness ones. The file
-#'   set is unchanged: each of those tables gains a `discount` column and carries
-#'   one block of rows per level, labelled `"0%"`, `"3.5%"`, or
-#'   `"QALYs 1.5%/costs 3.5%"` when a level's two rates differ. The `0%` level
-#'   reproduces the undiscounted figures, so nothing is lost by adding
-#'   discounted ones. Filter on `discount` to pick a level.
+#'   Every level appears in the `qalys`, `net_qalys`, `costs`, `net_costs`, the
+#'   cost-effectiveness **and** the equity `net_qalys` tables - not just the
+#'   cost-effectiveness ones. The file set is unchanged: each of those tables
+#'   gains a `discount` column and carries one block of rows per level, labelled
+#'   `"0%"`, `"3.5%"`, or `"QALYs 1.5%/costs 3.5%"` when a level's two rates
+#'   differ. The `0%` level reproduces the undiscounted figures, so nothing is
+#'   lost by adding discounted ones. Filter on `discount` to pick a level.
 #'
 #'   The prevalence, incidence, mortality and exposure tables carry no
 #'   `discount` column: they are rates and counts, not monetary or QALY flows,
-#'   so a present value is not defined for them. The equity slope-index tables
-#'   are likewise not expanded - their metric set mixes QALYs with plain event
-#'   counts (CPP / CYPP / DPP), which a single `discount` column could not
-#'   describe.
+#'   so a present value is not defined for them.
+#'
+#'   Within the equity family the same rule is applied per metric rather than
+#'   per file. `equity net_qalys ...` is a QALY flow and carries one block per
+#'   level; `equity cpp / cypp / dpp ...` are counts of cases and deaths and
+#'   carry the single `"0%"` block. All four gain the `discount` column, so the
+#'   family shares one schema and a reader never has to know which metric it
+#'   holds. Note that discounting is **not** a uniform rescaling of a slope
+#'   index: it re-weights the years making up the cumulative benefit, so where
+#'   the gradient changes sign or shape over the horizon the discounted index is
+#'   a different weighted combination and can in principle exceed the
+#'   undiscounted one in magnitude. It shrinks the index in every year of the
+#'   HFSS England run, so treat this as a caution rather than a common case --
+#'   but do not assume monotonicity when comparing levels.
 #' @param discount_from_year Integer. First year from which present values are
 #'   discounted (`PV = FV / (1 + rate/100)^max(0, year - base)`), applied to each
 #'   year's flow *before* the cumulative columns are accumulated, so the `_cuml`
@@ -1097,12 +1110,16 @@ build_equity_plans <- function(strata) {
 #'     most- and least-deprived deciles themselves, which is roughly an order of
 #'     magnitude smaller. Because it scales with `n` it is not comparable across
 #'     localities, strata or years -- use `AEI_per100k` or `REI_rel` for that.
-#'   * `AEI_per100k` -- the SII per 100,000 people *alive in the reporting year*.
-#'     The regressand is a benefit cumulated from `baseline_year`, so this is a
-#'     stock per head, not a rate per 100,000 person-years.
-#'   * `total_benefit` -- the total undiscounted benefit the gradient was fit to.
-#'     Reported because the absolute indices are translation-invariant and so
-#'     cannot distinguish levelling up from levelling down.
+#'   * `AEI_per100k` -- the SII per 100,000 **person-years**. The regressand is
+#'     a benefit cumulated from `baseline_year` and the denominator is the
+#'     matching cumulative person-years, so this is a rate per 100,000
+#'     person-years and *is* on the same footing as a published annual-rate SII.
+#'     (Before 2026-08-13 it was divided by the single reporting-year
+#'     population; see the note on the person-years denominator below.)
+#'   * `total_benefit` -- the total benefit the gradient was fit to, at that
+#'     row's discount level. Reported because the absolute indices are
+#'     translation-invariant and so cannot distinguish levelling up from
+#'     levelling down.
 #'   * `REI_rel` -- the SII divided by the population-weighted mean benefit. `NA`
 #'     unless that mean is positive, and unstable when it is near zero.
 #'   * `RII_ratio` -- the ratio of fitted benefit at the most- to the
@@ -1113,7 +1130,58 @@ build_equity_plans <- function(strata) {
 #'   An `n_mc` column records how many Monte-Carlo draws each published quantile
 #'   rests on; the finite-value filter is applied per `type`, so the relative
 #'   indices can be summarised over a strict subset of the draws the absolute
-#'   ones use. By the pro-poor sign convention a positive index means the most
+#'   ones use. A `p_pro_poor` column gives the share of those same draws falling
+#'   on the pro-poor side of that index's own null -- above 0 for `AEI_total`,
+#'   `AEI_per100k` and `REI_rel`, above 1 for the `RII_ratio` -- and is `NA` for
+#'   `total_benefit` and `fit_R2`, which have no pro-poor direction. It answers
+#'   "how sure are we of the direction?", which a quantile interval does not
+#'   unless one of the requested percentiles happens to sit at the sign change.
+#'
+#'   **Quote `p_pro_poor` from `AEI_total` or `AEI_per100k` only. On `REI_rel`
+#'   and `RII_ratio` it is biased UPWARDS -- i.e. too pro-poor -- and must not
+#'   be reported as a probability that the policy is pro-poor.** The bias is not
+#'   sampling noise and does not shrink with more Monte-Carlo draws; it is
+#'   selection, and it is severe precisely when the answer matters most.
+#'
+#'   The mechanism: both relative indices are `NA` unless the fitted benefit is
+#'   positive (`REI_rel` needs a positive population-weighted mean; `RII_ratio`
+#'   needs positive fitted values at *both* ends). The per-`type` finite-value
+#'   filter then drops those draws before the share is taken. But a draw whose
+#'   fitted benefit went non-positive is overwhelmingly a draw with a steep
+#'   *pro-rich* gradient -- a strong enough negative slope is exactly what pulls
+#'   the fitted most-deprived end below zero. So the draws removed are drawn
+#'   disproportionately from the pro-rich tail, and the surviving share is
+#'   computed over a sample the pro-rich draws have been filtered out of.
+#'
+#'   The tinytest fixture in `test_equity_person_years_discount.R` shows it in
+#'   miniature: of 4 draws, 3 pro-poor and 1 pro-rich, the pro-rich one is the
+#'   only draw whose extrapolated most-deprived end goes negative. `AEI_total`
+#'   reports `n_mc = 4`, `p_pro_poor = 0.75`; `RII_ratio` reports `n_mc = 3`,
+#'   `p_pro_poor = 1.00` -- a policy that is pro-rich in a quarter of draws
+#'   published as pro-poor in *all* of them.
+#'
+#'   Diagnosis is `n_mc`: whenever a relative index's `n_mc` is below the
+#'   absolute indices' `n_mc`, its `p_pro_poor` is biased upwards, and the
+#'   shortfall is the number of draws removed. Equality of the two `n_mc`
+#'   values is the only condition under which the relative `p_pro_poor` is
+#'   trustworthy. `AEI_total` and `AEI_per100k` are always defined and never
+#'   drop a draw, so their `p_pro_poor` always rests on the full set -- which
+#'   is the main reason those two are the primary statistics.
+#'
+#'   **Person-years denominator (changed 2026-08-13).** The numerator is a
+#'   benefit cumulated over every year from `baseline_year`, so the exposure
+#'   base is the matching cumulative person-years `sum_t N_k(t)` rather than the
+#'   single reporting-year population `N_k(T)`. The old pairing failed the
+#'   estimator's own neutrality test: for a policy giving every living person
+#'   the identical benefit each year, `y_k = sum_t c(t) N_k(t) / N_k(T)` is
+#'   systematically smaller for groups whose population grew, so -- because the
+#'   more deprived deciles grow fastest in the ONS projection input -- it
+#'   published a **pro-rich gradient out of demography alone**, growing with the
+#'   horizon and distorting the trend as well as the level. On the HFSS England
+#'   run the correction removes about a third of the published magnitude
+#'   (`AEI_total` at 2043: -179,077 to -115,490; 15% of it at 2030, rising to
+#'   36% by 2043) while leaving the sign intact.
+#'   By the pro-poor sign convention a positive index means the most
 #'   deprived gain more (inequality-reducing). The gradient is fit per
 #'   Monte-Carlo iteration and quantiled across iterations. The grouped-data
 #'   weighted least-squares estimator is that of Kakwani, Wagstaff & van
@@ -1413,6 +1481,8 @@ Simulation$set("public", "export_tables", function(
       comparator_scenario = comparator_scenario,
       baseline_year = baseline_year_for_change_outputs,
       ridit_reference = equity_ridit_reference,
+      discount_levels = discount_levels,
+      discount_from_year = discount_from_year,
       strata = strata_cfg$equity,
       two_agegrps = two_agegrps,
       two_agegrps_split_age = two_agegrps_split_age
@@ -1558,6 +1628,8 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
       comparator_scenario = task$comparator_scenario,
       baseline_year = task$baseline_year,
       ridit_reference = task$ridit_reference,
+      discount_levels = task$discount_levels,
+      discount_from_year = task$discount_from_year,
       strata = task$strata,
       two_agegrps = task$two_agegrps,
       two_agegrps_split_age = task$two_agegrps_split_age
@@ -3178,11 +3250,17 @@ Simulation$set("private", "export_equity_tables", function(
     comparator_scenario = "sc0",
     baseline_year = 2019L,
     ridit_reference = "comparator",
+    discount_levels = NULL,
+    discount_from_year = NULL,
     strata = NULL,
     two_agegrps = FALSE,
     two_agegrps_split_age = 65L
 ) {
   ridit_reference <- match.arg(ridit_reference, c("comparator", "scenario"))
+  # Every entry point defaults to undiscounted, so an internal caller cannot
+  # silently acquire discounting (the same contract as the main / CEA tasks).
+  if (is.null(discount_levels)) discount_levels <- build_discount_levels(0, 0)
+  if (is.null(discount_from_year)) discount_from_year <- baseline_year
   # Derived, not passed as a formal (see tbl_smmrs_core for why).
   comparator_is_map <- .comparator_is_map(comparator_scenario)
   if (self$design$sim_prm$logs) {
@@ -3376,11 +3454,54 @@ Simulation$set("private", "export_equity_tables", function(
       d <- d[is.finite(B_year) & is.finite(N) & N > 0]
       if (nrow(d) == 0L) next
 
+      # Multi-level discounting. Only net QALYs is a value flow, so only it is
+      # expanded across levels -- exactly the rule the main tables follow, where
+      # expand_discount_levels() touches QALYs/net_QALYs/costs/net_costs and
+      # never an event count. CPP/CYPP/DPP are counts of cases and deaths, so
+      # they get the single undiscounted block, labelled rather than left
+      # unmarked so the whole equity family shares one schema.
+      #
+      # The scaling is applied to the PER-YEAR benefit, before the cumsum below,
+      # so B accumulates present values instead of discounting an already-summed
+      # total. `discount` then joins the grouping vectors: leaving it out of
+      # by_cum would cumulate the levels into one another, and leaving it out of
+      # by_grp would fit one gradient to all levels stacked.
+      if (metric == "net_qalys") {
+        d <- expand_discount_levels(d, "B_year", discount_levels,
+                                    discount_from_year, rate_for = "qaly")
+      } else {
+        set(d, NULL, "discount", fmt_discount_pct(0))
+      }
+
       # Cumulative benefit over year within
-      # (mc, scenario, <out_vars except year>, <grad>, disease).
-      by_cum <- c("mc", "scenario", setdiff(out_vars, "year"), grad, "disease")
+      # (mc, scenario, <out_vars except year>, <grad>, disease, discount).
+      by_cum <- c("mc", "scenario", setdiff(out_vars, "year"), grad, "disease",
+                  "discount")
       setkeyv(d, c(by_cum, "year"))
       d[, B := cumsum(B_year), by = by_cum]
+
+      # Cumulative PERSON-YEARS, the denominator the cumulative numerator needs.
+      #
+      # B_k(T) sums a flow over every year from `baseline_year` to T, so dividing
+      # it by the single reporting-year population N_k(T) compares quantities
+      # measured over different exposure bases. The estimator then FAILS ITS OWN
+      # NEUTRALITY TEST: for a policy handing every living person the identical
+      # benefit c(t) each year -- the canonical distributionally-neutral policy --
+      # y_k = sum_t c(t) N_k(t) / N_k(T), which is systematically smaller for
+      # groups whose population GREW. Since the more deprived deciles grow fastest
+      # in this model's ONS-projection input, that published a spurious PRO-RICH
+      # gradient out of demography alone, growing with the horizon: measured on the
+      # HFSS England run it was -134 of the -377 AEI_per100k at 2043 (~36%), and
+      # it distorted the TREND too, turning a rising pro-poor series into a falling
+      # one. Dividing instead by sum_t N_k(t) restores the invariance (the same
+      # test returns ~0), and makes AEI_per100k a rate per 100,000 PERSON-YEARS --
+      # comparable, at last, with a published annual-rate SII.
+      #
+      # This is the mirror of the trap the note above describes: pinning N at
+      # `baseline_year` was rejected for reintroducing differential population
+      # growth from one side, and the single reporting-year denominator did it
+      # from the other. Only an exposure base matched to the numerator is neutral.
+      d[, PY := cumsum(N), by = by_cum]
 
       # All-diseases summed row for CPP/CYPP (plain event-count sum; carries
       # comorbidity multiplicity -- not unique persons). DPP is already
@@ -3391,7 +3512,7 @@ Simulation$set("private", "export_equity_tables", function(
       # five site-specific cancers), which would count the same event twice --
       # see umbrella_disease_names(). Both are kept as their own rows.
       if (metric %in% c("cpp", "cypp")) {
-        by_tot <- c("mc", "scenario", out_vars, grad)
+        by_tot <- c("mc", "scenario", out_vars, grad, "discount")
         umbrella <- umbrella_disease_names(self$design$sim_prm$diseases,
                                            unique(d$disease))
         if (length(umbrella) > 0L && self$design$sim_prm$logs) {
@@ -3399,9 +3520,12 @@ Simulation$set("private", "export_equity_tables", function(
                   "all_diseases_sum (components are summed instead): ",
                   paste(sort(umbrella), collapse = ", "))
         }
+        # N and PY are properties of the deprivation group, not of the disease,
+        # so they are carried over unchanged rather than summed -- summing them
+        # across diseases would multiply the denominator by the disease count.
         tot <- d[!grepl("^cms", disease) & !disease %chin% umbrella,
                  .(disease = "all_diseases_sum", B = sum(B),
-                   B_year = sum(B_year), N = N[1L]), by = by_tot]
+                   B_year = sum(B_year), N = N[1L], PY = PY[1L]), by = by_tot]
         d <- rbind(d, tot, fill = TRUE)
       }
 
@@ -3430,9 +3554,15 @@ Simulation$set("private", "export_equity_tables", function(
         }
       }
 
-      by_grp <- c("mc", "scenario", out_vars, "disease")
-      idx <- calc_equity_slope_indices(
-        d[, .SD, .SDcols = c(by_grp, "rank", "B", "N")], by = by_grp)
+      by_grp <- c("mc", "scenario", out_vars, "disease", "discount")
+      # calc_equity_slope_indices() names its exposure base `N` -- it is the
+      # ridit denominator, the regression weight and the per-capita denominator
+      # at once, and all three must be the SAME base as the numerator. Feeding
+      # it cumulative person-years is what makes the neutral policy score zero;
+      # feeding it PY for the weights but N for the denominator would not.
+      dfit <- d[, .SD, .SDcols = c(by_grp, "rank", "B", "PY")]
+      setnames(dfit, "PY", "N")
+      idx <- calc_equity_slope_indices(dfit, by = by_grp)
 
       m <- melt(idx, id.vars = by_grp,
                 measure.vars = c("AEI_total", "AEI_per100k", "total_benefit",
@@ -3465,6 +3595,37 @@ Simulation$set("private", "export_equity_tables", function(
       nmc <- m[, .(n_mc = .N), keyby = c(setdiff(by_grp, "mc"), "type")]
       nmc[, type := as.character(type)]   # melt yields a factor; the CSV is character
       out[nmc, on = c(setdiff(by_grp, "mc"), "type"), n_mc := i.n_mc]
+
+      # Probability of being pro-poor: the share of the SAME finite draws the
+      # quantiles rest on that fall on the pro-poor side. A quantile interval
+      # answers "how big?"; this answers "how sure are we of the direction?",
+      # which is the question a distributional analysis is actually asked, and
+      # it cannot be read off the published percentiles unless one of them
+      # happens to sit at the sign change.
+      #
+      # The threshold is per type because the null differs: the absolute indices
+      # and REI_rel are signed (pro-poor > 0) while RII_ratio is a ratio of
+      # fitted extremes (pro-poor > 1). `total_benefit` and `fit_R2` have no
+      # pro-poor direction at all -- a large benefit or a good fit is neither --
+      # so they get NA rather than a number nobody should interpret.
+      #
+      # It inherits its type's definedness selection, so read it beside `n_mc`:
+      # for the relative indices the draws where the fitted benefit went
+      # non-positive are absent, and those are exactly the draws most likely to
+      # have been pro-rich. On AEI_total / AEI_per100k no draw is ever dropped,
+      # which is the other reason those two remain the primary statistics.
+      pro_poor_thresh <- c(AEI_total = 0, AEI_per100k = 0, REI_rel = 0,
+                           RII_ratio = 1)
+      ppp <- m[as.character(type) %chin% names(pro_poor_thresh),
+               .(p_pro_poor = mean(value > pro_poor_thresh[[as.character(type)[1L]]])),
+               keyby = c(setdiff(by_grp, "mc"), "type")]
+      if (nrow(ppp) > 0L) {
+        ppp[, type := as.character(type)]
+        out[ppp, on = c(setdiff(by_grp, "mc"), "type"),
+            p_pro_poor := i.p_pro_poor]
+      } else {
+        out[, p_pro_poor := NA_real_]
+      }
       # The filename suffix reads as "stratified by", but the gradient token in
       # it means "gradient over"; the `gradient` column makes each file
       # self-describing regardless of how it was named.

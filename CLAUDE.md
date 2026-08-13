@@ -215,14 +215,16 @@ disease-characteristics / exposure / cost-effectiveness (`cea = TRUE`) tables, i
 writes **equity slope-index** tables (`equity = TRUE`, default): absolute (`AEI_total`,
 `AEI_per100k`) and relative (`REI_rel`, `RII_ratio`) analogues of the Slope/Relative Index
 of Inequality for cumulative CPP, CYPP, DPP and net QALYs across DIMD deciles (pro-poor sign
-convention; MC iterations give the uncertainty), plus `total_benefit` and `fit_R2` and an
-`n_mc` column. The estimator is the grouped-data weighted least squares of Kakwani, Wagstaff
-& van Doorslaer (1997); `RII_ratio` is the Kunst–Mackenbach ratio of fitted extremes, *not*
-Moreno-Betancur's RII (they criticise that formula; theirs is `exp(beta)` from a log-linear
-model, impossible on a signed quantity). Three things bite:
-**(a)** `AEI_total = SII * n` is a *hypothetical* whole-population figure, **not** the gap
-between the extreme deciles (~8x smaller) and not Cookson's published gap (`* (J-1)/J^2`);
-it scales with `n`, so only `AEI_per100k`/`REI_rel` compare across localities.
+convention; MC iterations give the uncertainty), plus `total_benefit`, `fit_R2`, `n_mc` and
+`p_pro_poor` columns. The estimator is the grouped-data weighted least squares of Kakwani,
+Wagstaff & van Doorslaer (1997); `RII_ratio` is the Kunst–Mackenbach ratio of fitted extremes,
+*not* Moreno-Betancur's RII (they criticise that formula; theirs is `exp(beta)` from a
+log-linear model, impossible on a signed quantity). Three things bite:
+**(a)** `AEI_total = SII * sum(PY)` is a *hypothetical* whole-population figure, **not** the
+gap between the extreme deciles (~8x smaller) and not Cookson's published gap
+(`* (J-1)/J^2`); it scales with total person-years, so it grows with the **horizon** as well
+as with population — only `AEI_per100k`/`REI_rel` compare across localities, and even
+`AEI_total` only compares at a fixed reporting year.
 **(b)** Both relative indices are `NA` unless the fitted benefit is **positive** — with a
 negative mean they invert, publishing a pro-poor result as pro-rich.
 **(c)** `all_diseases_sum` excludes the design's umbrella conditions (incidence `type: 0`:
@@ -231,11 +233,60 @@ umbrella beside its own components double-counts ~9.5% of events and distorts th
 The ridit reference population is selectable via
 `equity_ridit_reference` (`"comparator"` default vs `"scenario"` — the latter violates
 Cookson's equal-group-size precondition, so it is a sensitivity analysis; see the Renard 2019
-decision support in the vignette). The ridit is re-derived each **year** (N is the
-comparator's reporting-year population) — deliberately, since pinning it at baseline would
-manufacture a gradient out of differential population growth. Core math lives in
+decision support in the vignette). Core math lives in
 `calc_equity_slope_indices()` / `export_equity_tables()` in `Simulation_class_tables.R`; see
 `vignette("understanding_model_outputs")`.
+
+**Person-years denominator (2026-08-13) — the numerator's exposure base must match.**
+`B_k(T)` cumulates a flow over every year from `baseline_year`; it used to be divided by
+`N_k(T)`, the **single reporting-year** population, and that failed the estimator's own
+neutrality test. For a policy giving every living person the identical benefit each year,
+`y_k = sum_t c(t) N_k(t) / N_k(T)` is systematically smaller for groups whose population
+**grew** — and the more deprived deciles grow fastest in the ONS projection input (HFSS
+England comparator, 2026→2043: +21.2% in the most deprived quintile vs +1.5% in the least).
+So the estimator published a **pro-rich gradient out of demography alone**, growing with the
+horizon, which distorted the *trend* as well as the level. `N` is now cumulative person-years
+`cumsum(N)` over the same window, used for the ridit, the weights **and** the denominator —
+all three must share the numerator's base or the invariance fails. Measured on the HFSS run
+(`baseline_year = 2026`) the fix removes ~a third of the magnitude, sign intact: `AEI_total`
+at 2043 −179,077 → −115,490 (35.5% artefact), and the share **grows with the horizon**
+(15.5% at 2030 → 35.5% at 2043) — a trend distortion, not just a level shift.
+Note the mirror-image trap the code had already avoided:
+pinning `N` at `baseline_year` was rejected for reintroducing the same thing from the other
+side. ⚠️ **Breaking**: every equity value changes, and `AEI_per100k` changes **units** (per
+100k people → per **100k person-years** — which finally makes it comparable with a published
+annual-rate SII, reversing the old vignette warning). Exact for an undiscounted stream;
+second-order residual under discounting (a group whose person-years fall later genuinely
+receives less present value per person-year — time preference, not artefact).
+Tests: `test_equity_person_years_discount.R` (the neutral-stream fixture asserts exact zero
+AND that the old formula gives −32 on the same fixture, so it can't pass on unfixed code).
+Production verification: `claude_process/verify_equity_fix_on_nwl.R`.
+
+**Equity tables now carry `discount` and `p_pro_poor`.** Discounting follows the same
+per-metric rule as the main tables: `net_qalys` is a QALY flow → one block per
+`qaly_discount_rate` level; `cpp`/`cypp`/`dpp` are counts the model never discounts → single
+`"0%"` block. All four gain the column so the family shares one schema; levels live in rows,
+not filenames; scaling is applied per-year **before** the cumsum. Gotcha: discounting is
+**not** a uniform rescaling of a slope index — it re-weights the years making up the
+cumulative benefit, so where the gradient changes sign over the horizon the discounted index
+can in principle be *larger* in magnitude (it shrinks in all 18 years of the HFSS run, so
+this is a caution, not a common case — but don't assume monotonicity).
+`p_pro_poor` is the share of the same finite draws on the pro-poor side of each type's own
+null: `> 0` for `AEI_*`/`REI_rel`, `> 1` for `RII_ratio`, `NA` for `total_benefit`/`fit_R2`.
+It answers the *directional* question a percentile interval can't (HFSS 2043: median
+−115,490 with a 95% interval of −269,921..+95,399, but `p_pro_poor = 0.07`).
+⚠️ **Quote `p_pro_poor` from `AEI_total`/`AEI_per100k` ONLY.** On `REI_rel`/`RII_ratio` it is
+biased **upwards (too pro-poor)** and is not a probability the policy is pro-poor. Not noise —
+**selection**, so it does not shrink with more draws, and it is worst exactly when the
+pro-rich signal is strongest. Mechanism: the relative indices are `NA` unless the fitted
+benefit is positive, and the draws that fail that are overwhelmingly the steeply *pro-rich*
+ones (a steep negative slope is what drags the fitted most-deprived end below zero) — so the
+share is taken over a sample the pro-rich draws were filtered out of. Test fixture, 4 draws
+(3 pro-poor, 1 pro-rich): `AEI_total` → `n_mc=4, p=0.75`; `RII_ratio` → `n_mc=3, p=1.00`.
+Diagnosis: a relative index's `n_mc` **below** the absolute indices' `n_mc` is the tell, and
+the shortfall is the number of dropped draws; equality is the only condition under which a
+relative `p_pro_poor` is trustworthy. `AEI_total`/`AEI_per100k` never drop a draw.
+`discount` is now in `.equity_reserved_vars`, so it cannot be a stratum.
 
 **`strata_for_output` with both `dimd` and `qimd`.** The xps tables map `agegrp ->
 agegrp20` and `dimd -> qimd` (exposures are reported in 20-year bands and quintiles).

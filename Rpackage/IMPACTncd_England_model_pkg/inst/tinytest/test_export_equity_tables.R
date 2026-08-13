@@ -80,9 +80,11 @@ expect_equal(files_in(d1),
 t1 <- fread(file.path(d1, "equity cpp slope index by year (not standardised).csv"))
 expect_true("gradient" %in% names(t1), info = "gradient column is written")
 expect_equal(unique(t1$gradient), "dimd")
-expect_equal(names(t1)[1:5],
-             c("gradient", "scenario", "year", "disease", "type"),
-             info = "gradient leads the column order")
+expect_equal(names(t1)[1:6],
+             c("gradient", "scenario", "year", "disease", "discount", "type"),
+             info = "gradient leads the column order, discount precedes type")
+expect_equal(unique(t1$discount), "0%",
+             info = "CPP is an event count, so it gets the single 0% block")
 expect_equal(sort(unique(t1$type)),
              sort(c("AEI_per100k", "AEI_total", "total_benefit",
                     "REI_rel", "RII_ratio", "fit_R2")))

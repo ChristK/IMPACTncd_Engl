@@ -108,3 +108,4 @@ inputs/**/*.txt
 # `graphify update .` (AST-only, no API cost), and the hook rebuilds it
 # automatically anyway. Regenerate rather than retrieve.
 graphify-out/
+claude_process/

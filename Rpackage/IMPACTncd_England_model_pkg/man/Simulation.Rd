@@ -699,20 +699,30 @@ levels: undiscounted, and 3.5\% on QALYs and costs alike. Differential rates
 are set by passing equal-length vectors, e.g.
 \code{qaly_discount_rate = c(0, 1.5)} with \code{cost_discount_rate = c(0, 3.5)}.
 
-Every level appears in the \code{qalys}, \code{net_qalys}, \code{costs}, \code{net_costs} \strong{and}
-cost-effectiveness tables - not just the cost-effectiveness ones. The file
-set is unchanged: each of those tables gains a \code{discount} column and carries
-one block of rows per level, labelled \code{"0\%"}, \code{"3.5\%"}, or
-\code{"QALYs 1.5\%/costs 3.5\%"} when a level's two rates differ. The \verb{0\%} level
-reproduces the undiscounted figures, so nothing is lost by adding
-discounted ones. Filter on \code{discount} to pick a level.
+Every level appears in the \code{qalys}, \code{net_qalys}, \code{costs}, \code{net_costs}, the
+cost-effectiveness \strong{and} the equity \code{net_qalys} tables - not just the
+cost-effectiveness ones. The file set is unchanged: each of those tables
+gains a \code{discount} column and carries one block of rows per level, labelled
+\code{"0\%"}, \code{"3.5\%"}, or \code{"QALYs 1.5\%/costs 3.5\%"} when a level's two rates
+differ. The \verb{0\%} level reproduces the undiscounted figures, so nothing is
+lost by adding discounted ones. Filter on \code{discount} to pick a level.
 
 The prevalence, incidence, mortality and exposure tables carry no
 \code{discount} column: they are rates and counts, not monetary or QALY flows,
-so a present value is not defined for them. The equity slope-index tables
-are likewise not expanded - their metric set mixes QALYs with plain event
-counts (CPP / CYPP / DPP), which a single \code{discount} column could not
-describe.}
+so a present value is not defined for them.
+
+Within the equity family the same rule is applied per metric rather than
+per file. \verb{equity net_qalys ...} is a QALY flow and carries one block per
+level; \verb{equity cpp / cypp / dpp ...} are counts of cases and deaths and
+carry the single \code{"0\%"} block. All four gain the \code{discount} column, so the
+family shares one schema and a reader never has to know which metric it
+holds. Note that discounting is \strong{not} a uniform rescaling of a slope
+index: it re-weights the years making up the cumulative benefit, so where
+the gradient changes sign or shape over the horizon the discounted index is
+a different weighted combination and can in principle exceed the
+undiscounted one in magnitude. It shrinks the index in every year of the
+HFSS England run, so treat this as a caution rather than a common case --
+but do not assume monotonicity when comparing levels.}
       \item{\code{discount_from_year}}{Integer. First year from which present values are
 discounted (\code{PV = FV / (1 + rate/100)^max(0, year - base)}), applied to each
 year's flow \emph{before} the cumulative columns are accumulated, so the \verb{_cuml}
@@ -747,12 +757,16 @@ least-deprived one. It is \strong{not} the benefit difference between the
 most- and least-deprived deciles themselves, which is roughly an order of
 magnitude smaller. Because it scales with \code{n} it is not comparable across
 localities, strata or years -- use \code{AEI_per100k} or \code{REI_rel} for that.
-\item \code{AEI_per100k} -- the SII per 100,000 people \emph{alive in the reporting year}.
-The regressand is a benefit cumulated from \code{baseline_year}, so this is a
-stock per head, not a rate per 100,000 person-years.
-\item \code{total_benefit} -- the total undiscounted benefit the gradient was fit to.
-Reported because the absolute indices are translation-invariant and so
-cannot distinguish levelling up from levelling down.
+\item \code{AEI_per100k} -- the SII per 100,000 \strong{person-years}. The regressand is
+a benefit cumulated from \code{baseline_year} and the denominator is the
+matching cumulative person-years, so this is a rate per 100,000
+person-years and \emph{is} on the same footing as a published annual-rate SII.
+(Before 2026-08-13 it was divided by the single reporting-year
+population; see the note on the person-years denominator below.)
+\item \code{total_benefit} -- the total benefit the gradient was fit to, at that
+row's discount level. Reported because the absolute indices are
+translation-invariant and so cannot distinguish levelling up from
+levelling down.
 \item \code{REI_rel} -- the SII divided by the population-weighted mean benefit. \code{NA}
 unless that mean is positive, and unstable when it is near zero.
 \item \code{RII_ratio} -- the ratio of fitted benefit at the most- to the
@@ -764,7 +778,58 @@ ends, which is common rather than exceptional.
 An \code{n_mc} column records how many Monte-Carlo draws each published quantile
 rests on; the finite-value filter is applied per \code{type}, so the relative
 indices can be summarised over a strict subset of the draws the absolute
-ones use. By the pro-poor sign convention a positive index means the most
+ones use. A \code{p_pro_poor} column gives the share of those same draws falling
+on the pro-poor side of that index's own null -- above 0 for \code{AEI_total},
+\code{AEI_per100k} and \code{REI_rel}, above 1 for the \code{RII_ratio} -- and is \code{NA} for
+\code{total_benefit} and \code{fit_R2}, which have no pro-poor direction. It answers
+"how sure are we of the direction?", which a quantile interval does not
+unless one of the requested percentiles happens to sit at the sign change.
+
+\strong{Quote \code{p_pro_poor} from \code{AEI_total} or \code{AEI_per100k} only. On \code{REI_rel}
+and \code{RII_ratio} it is biased UPWARDS -- i.e. too pro-poor -- and must not
+be reported as a probability that the policy is pro-poor.} The bias is not
+sampling noise and does not shrink with more Monte-Carlo draws; it is
+selection, and it is severe precisely when the answer matters most.
+
+The mechanism: both relative indices are \code{NA} unless the fitted benefit is
+positive (\code{REI_rel} needs a positive population-weighted mean; \code{RII_ratio}
+needs positive fitted values at \emph{both} ends). The per-\code{type} finite-value
+filter then drops those draws before the share is taken. But a draw whose
+fitted benefit went non-positive is overwhelmingly a draw with a steep
+\emph{pro-rich} gradient -- a strong enough negative slope is exactly what pulls
+the fitted most-deprived end below zero. So the draws removed are drawn
+disproportionately from the pro-rich tail, and the surviving share is
+computed over a sample the pro-rich draws have been filtered out of.
+
+The tinytest fixture in \code{test_equity_person_years_discount.R} shows it in
+miniature: of 4 draws, 3 pro-poor and 1 pro-rich, the pro-rich one is the
+only draw whose extrapolated most-deprived end goes negative. \code{AEI_total}
+reports \code{n_mc = 4}, \code{p_pro_poor = 0.75}; \code{RII_ratio} reports \code{n_mc = 3},
+\code{p_pro_poor = 1.00} -- a policy that is pro-rich in a quarter of draws
+published as pro-poor in \emph{all} of them.
+
+Diagnosis is \code{n_mc}: whenever a relative index's \code{n_mc} is below the
+absolute indices' \code{n_mc}, its \code{p_pro_poor} is biased upwards, and the
+shortfall is the number of draws removed. Equality of the two \code{n_mc}
+values is the only condition under which the relative \code{p_pro_poor} is
+trustworthy. \code{AEI_total} and \code{AEI_per100k} are always defined and never
+drop a draw, so their \code{p_pro_poor} always rests on the full set -- which
+is the main reason those two are the primary statistics.
+
+\strong{Person-years denominator (changed 2026-08-13).} The numerator is a
+benefit cumulated over every year from \code{baseline_year}, so the exposure
+base is the matching cumulative person-years \verb{sum_t N_k(t)} rather than the
+single reporting-year population \code{N_k(T)}. The old pairing failed the
+estimator's own neutrality test: for a policy giving every living person
+the identical benefit each year, \verb{y_k = sum_t c(t) N_k(t) / N_k(T)} is
+systematically smaller for groups whose population grew, so -- because the
+more deprived deciles grow fastest in the ONS projection input -- it
+published a \strong{pro-rich gradient out of demography alone}, growing with the
+horizon and distorting the trend as well as the level. On the HFSS England
+run the correction removes about a third of the published magnitude
+(\code{AEI_total} at 2043: -179,077 to -115,490; 15\% of it at 2030, rising to
+36\% by 2043) while leaving the sign intact.
+By the pro-poor sign convention a positive index means the most
 deprived gain more (inequality-reducing). The gradient is fit per
 Monte-Carlo iteration and quantiled across iterations. The grouped-data
 weighted least-squares estimator is that of Kakwani, Wagstaff & van
