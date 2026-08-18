@@ -15,13 +15,19 @@ IMPACTncd$
 
 IMPACTncd$export_summaries(
   multicore = TRUE,
-  type = "prvl",
+  # type = c("prvl", "incd", "mrtl"),
   single_year_of_age = TRUE
 )
-IMPACTncd$export_tables(multicore = TRUE,
+
+IMPACTncd$export_tables(
+  multicore = TRUE,
+  cea = FALSE,
+  equity = FALSE, # sc0-only run: nothing to contrast
   strata = list(
-    ons = list(c("year", "age")),  # only prevalence by year × age
-    esp = list()  
-    )
+    ons = list(c("year", "age")),
+    esp = list(),
+    mrtl_ons = list(c("year", "age")), # ← was defaulting to agegrp
+    mrtl_esp = list()
   )
+)
 print("Simulation has finished!")
