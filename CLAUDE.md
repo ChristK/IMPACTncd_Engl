@@ -309,6 +309,86 @@ quintile-based). Shared deprivation helpers: `.deprivation_vars`, `.deprivation_
 `.dimd_to_qimd`, `deprivation_rank()` (errors on unrecognised labels rather than
 silently mis-mapping). Tests: `test_qimd_derivation.R`.
 
+**Single years of age (`export_summaries(single_year_of_age = TRUE)`).** Swaps
+`agegrp` for `age` in the stratification (`strata <- strata_age` — one line,
+`Simulation_class_summaries.R`), so **no** summary keeps `agegrp`: 20 of the 30
+datasets gain `age`, the other 10 (`le`, `le60`, `hle_*`, `dis_characteristics`)
+take `strata_noagegrp` and have neither in either mode. ~5x the rows (70 single
+years vs 14 bands on the stock 30-99 design).
+`export_tables()` merges `strata` over its defaults **by name only** — eight
+independent keys (`ons`, `esp`, `mrtl_ons`, `mrtl_esp`, `disease_char`,
+`xps_ons`, `xps_esp`, `equity`), whole-element replacement, no coupling — and
+two of them hard-code `agegrp`: `ons` (task 1 main, reused verbatim by task 5
+CEA) and `mrtl_ons` (task 2). So overriding `ons` alone used to abort the export
+with ``task 2 failed - "object 'agegrp' not found"`` — the message form
+`keyby = eval(outstrata)` produces for a missing column, raised from inside a
+forked worker after GBs were loaded, *after* the two agegrp-free defaults had
+already been written.
+Fixed 2026-08-18 by **`add_agegrp_from_age()`** (next to `add_qimd_from_dimd()`,
+called at every one of the 9 summary-load sites): derives the bands from `age`
+before any group-by, so the shipped `agegrp` defaults just work. Deriving, not
+substituting `age` into the defaults — a substitution multiplies the group-by
+~5x inside a worker already peaking in the tens of GB, and renames every file
+whose strata name `agegrp`. Bands come from `CKutils::to_agegrp(dt, 5L, 99L, ...)`, the same
+call `Simulation_class.R` used to build the column originally, with `min_age`
+left data-derived so `ageL: 20` stays consistent; the column is **character**,
+matching the on-disk type. Exact for counts and summed-num/summed-denom rates
+(relabel-before-the-group-by, same argument as `qimd`); the converse is
+impossible.
+Also guards the top edge: `to_agegrp()` builds its age vector over
+`max(actual, max_age)` but its LABELS from `max_age` alone, so on a design with
+`ageH > 99` age 100 recycled onto the first band and was published as `30-34`
+behind a "recycled with remainder" warning. The helper now extends `max_age` to
+the data.
+Three gotchas: **(a)** the denominator must be derived too — `pp_scaled` is
+aggregated on the same strata before being joined to the numerator, so deriving
+on one side only fails in *that* group-by with the same `object 'agegrp' not
+found`. **(b)** the derivation must precede `collapse_two_agegrps()`, which
+returns FALSE and does nothing when `agegrp` is absent. Every family had it right
+except **equity**, which collapsed first — caught in review, fixed the same day.
+That ordering is *silent* (a `tables2agegrps/` file md5-identical to its
+`tables/` namesake — the 2026-08-05 signature) and worst in equity, because that
+family fits a *model*: the two-group and 5-year-band fits are different
+estimands, not a relabel. `check_two_agegrps_split_age()` also falls back to
+deriving from `age`, so the parent-side probe is not silently skipped.
+**(c)** `age` is a legal stratum but 5x the cells — `c("year","age")` is cheap,
+`c("year","age","sex","dimd")` is ~347M rows post-melt.
+Measured inflation of the summaries themselves: **exactly 4.99x the rows**,
+2.90-5.05x the bytes (six main summaries, Gloucester single-year vs Wales banded;
+`claude_process/measure_single_year_inflation.R`).
+**None of this changes a banded run's output.** Verified by building the package
+at the pre-change commit into a separate lib and diffing real output: full
+`export_tables()` on Wales (banded, 204 files) and equity+CEA at both
+`two_agegrps` settings on ineqCK (banded, 17 scenarios, 52 files) are **byte-
+identical** old vs new. Scripts: `claude_process/verify_no_change_to_agegrp_runs.R`,
+`..._equity_cea.R`, `claude_process/compare_agegrp_run_md5.R`.
+Two parent-side guards were added alongside (2026-08-18), both for mistakes that
+used to surface as ``task N failed - "object 'x' not found"`` from a fork:
+`build_strata_config()` now **errors** on an element name outside the eight
+(with a prefix-aware "did you mean" — `mrtl` -> `mrtl_ons`) instead of dropping
+it silently, and `check_strata_columns()` errors on a stratum the summaries
+cannot supply (the reverse case, `age` against a banded run, which is
+underivable). The column check reads **schemas only**, applies the same
+`qimd`-from-`dimd` / `agegrp`-from-`age` rules as the workers
+(`.derivable_strata_columns()`), and flags a column only when it is missing from
+**every** existing dataset that family reads — so it cannot fire where the
+worker would have coped. Exempt by design: `xps_*` (not built from `summaries/`;
+it filters pre-aggregated `"All"` rows) and `equity` (its per-table
+warn-and-skip text is pinned by `test_export_equity_tables.R`).
+Tests: `test_strata_validation.R` (43).
+
+Known wart, not fixed: `cms` is passed both `strata` and `strata_age`, which the
+flag makes the same vector, so `cms_score_*` and `cms_score_by_age_*` are
+byte-identical (verified: 400 files, ~140 MB/run). The flag is recorded nowhere
+on disk — the parquet schema is the only evidence of which mode ran.
+Tests: `test_agegrp_derivation.R` (73 — mapping, no-ops, ordering vs
+`two_agegrps` through the real main/acm/CEA/equity export paths, exactness vs a
+natively banded fixture, ages above the top edge). Two meaningfulness proofs live
+in the gitignored `claude_process/` and are therefore NOT in CI:
+`verify_test_fails_without_fix.R` (neuters the helper; must reproduce
+`object 'agegrp' not found`) and `verify_equity_ordering_regression.R` (rebuilds
+the function with the pre-fix ordering; must publish 5-year bands).
+
 **Equity strata + gradient axis.** Each entry of `strata$equity` is one table. Any
 column the summaries carry (`strata_for_output`) can be an output stratum — the gradient
 is fit *within* it, identically to filtering to that stratum and fitting without it.

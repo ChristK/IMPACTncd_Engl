@@ -208,6 +208,8 @@ knitr::include_graphics("img/output_folder_sum.jpg")
 
 #### Column names
 
+> The stratification columns below are those of a default run. If the summaries were written with `export_summaries(single_year_of_age = TRUE)`, **every** age-stratified file carries `age` (single years) in place of `agegrp` — see [Single years of age](#single-years-of-age-single_year_of_age) under the tables folder. `export_tables()` handles either shape, but a script reading these files directly must not assume `agegrp` is present.
+
 [Disease characteristics file]{.underline} : this gives information about the people who have X condition in Y year.
 
 -   **scenario** : scenario
@@ -522,6 +524,29 @@ The derivation is **exact**, not an approximation. Every aggregation groups by t
 
 The converse does not hold. Deciles cannot be recovered from quintiles, so a `dimd` stratum genuinely requires `dimd` in `strata_for_output`. `dimd` is also unavailable in the `xps_*` (exposure) tables: `$export_xps()` writes those datasets quintile-based (`agegrp20`, `qimd`) during `$run()`, so they were always quintile-only.
 
+#### Single years of age (`single_year_of_age`)
+
+`export_summaries(single_year_of_age = TRUE)` writes the age-stratified summaries by **single year of age**: `agegrp` is dropped from the stratification and `age` put in its place. This is not limited to prevalence and incidence — it applies to every summary that is stratified by age at all (`prvl`, `incd`, `mrtl`, `dis_mrtl`, `all_cause_mrtl_by_dis`, `cms`, `qalys`, `costs`, `contd`), leaving only `le`, `hle` and `dis_char`, which have no age axis in either mode. **No summary keeps `agegrp`.** Expect **five times the rows** — 70 single years against 14 five-year bands on the stock 30–99 design — and 2.9–5.1× the bytes on disk, measured like-for-like across the six main summaries (parquet compresses the repeated key columns unevenly).
+
+You do not have to change anything in `export_tables()` to read those summaries. Whenever a loaded summary carries `age` but no `agegrp`, the 5-year bands are derived from it before any group-by — the age analogue of the `dimd` → `qimd` collapse above, and exact for the same reason. The built-in `agegrp` strata defaults therefore keep working, and produce the same numbers and the same filenames a banded run would have produced.
+
+Ask for `age` explicitly only where you want the single-year detail:
+
+```{r eval=FALSE}
+IMPACTncd$export_summaries(multicore = TRUE, single_year_of_age = TRUE)
+
+IMPACTncd$export_tables(strata = list(
+  ons      = list("year", c("year", "age"), c("year", "agegrp", "sex", "dimd")),
+  mrtl_ons = list("year", c("year", "agegrp"))
+))
+```
+
+Mind the cardinality when you do. `c("year", "age", "sex", "dimd")` has about five times the cells of its `agegrp` counterpart, inside a worker whose peak is already in the tens of GB; `c("year", "age")` is cheap, the four-way version is not. The converse of the derivation is impossible — single years cannot be recovered from bands — so an `age` stratum genuinely requires `single_year_of_age = TRUE` at summary time.
+
+Two further things to know. The flag is **not recorded anywhere on disk**, so nothing downstream can tell which mode produced a set of summaries; the parquet schema is the only evidence. And `cms_score_*` and `cms_score_by_age_*` come out identical under it, because the only thing distinguishing them was the age axis the flag removes.
+
+> **Changed on 2026-08-18.** Before that date the `agegrp` derivation did not exist, and `export_tables()` merged your `strata` over its defaults *by name only*. Overriding `ons` but not `mrtl_ons` (whose defaults name `agegrp`) therefore aborted the whole export with `task 2 failed - "object 'agegrp' not found"`, raised from inside a forked worker several minutes in. Calls written to work around that — substituting `age` into every family — still work, but now write single-year tables where the defaults would give you banded ones.
+
 #### Two age groups (`two_agegrps`)
 
 `export_tables(two_agegrps = TRUE)` reports `agegrp` as **two** coarse groups instead of the design's 5-year bands, and writes the whole set to `tables2agegrps/` rather than `tables/`. The split age is the argument `two_agegrps_split_age`, default `65L` — which reproduces the historical `30-64` / `65-99`:
@@ -535,7 +560,7 @@ This is the same kind of collapse as `dimd` → `qimd` above: a pure **relabelli
 
 The group labels are derived from the **data**, not hard-coded: a run reporting ages 20–89 yields `20-64` / `65-89`, and an open-ended top band yields `65+`. The split must fall *between* bands rather than inside one — `two_agegrps_split_age = 62` is refused because it would have to cut `60-64` in half — and it must leave both groups non-empty. It need **not** start a band that is actually present, so a small locality with an empty band at the split still works. Both checks run before any table is built, so a mistake fails immediately rather than part-way through a long export.
 
-The collapse applies to every family whose summaries carry `agegrp`: the main tables, all-cause mortality by disease, the cost-effectiveness tables and the equity tables. Two families are outside it by construction — the disease-characteristics summaries have no `agegrp` column at all, and the exposure (`xps_*`) tables are stratified by `agegrp20` (`30-49`, `50-69`, `70-89`, `90+`, `All`), a different variable that a split at 65 would bisect.
+The collapse applies to every family whose summaries carry `agegrp` — the main tables, all-cause mortality by disease, the cost-effectiveness tables and the equity tables — including runs exported with `single_year_of_age = TRUE`, where the bands are derived from `age` first and then collapsed. Two families are outside it by construction — the disease-characteristics summaries have no `agegrp` column at all, and the exposure (`xps_*`) tables are stratified by `agegrp20` (`30-49`, `50-69`, `70-89`, `90+`, `All`), a different variable that a split at 65 would bisect.
 
 > **Changed on 2026-08-05.** Before that date `two_agegrps` was applied only to the main and equity tables. The all-cause-mortality-by-disease tables written into `tables2agegrps/` therefore still carried 5-year bands — they were byte-identical to their `tables/` counterparts. If you have `tables2agegrps/all-cause mortality given disease-*agegroup*.csv` files from an earlier run, they are 5-year-band tables despite their location; re-run `export_tables(two_agegrps = TRUE)` to regenerate them.
 

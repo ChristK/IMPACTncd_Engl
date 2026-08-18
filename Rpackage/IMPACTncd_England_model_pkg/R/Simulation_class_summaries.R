@@ -33,11 +33,40 @@
 #'   forces single-threaded BLAS/data.table/fst within each worker to avoid
 #'   nested parallelism. If `FALSE`, runs sequentially using
 #'   `clusternumber_export` threads.
-#' @param type Character vector of summary types to export. Defaults to all
-#'   supported types (`le`, `hle`, `dis_char`, `prvl`, `incd`, `dis_mrtl`,
-#'   `mrtl`, `all_cause_mrtl_by_dis`, `cms`, `qalys`, `costs`).
-#' @param single_year_of_age Logical. If `TRUE`, exports prevalence /
-#'   incidence summaries by single year of age instead of age groups.
+#' @param type Character vector of summary types to export. The default is
+#'   `le`, `hle`, `dis_char`, `prvl`, `incd`, `dis_mrtl`, `mrtl`,
+#'   `all_cause_mrtl_by_dis`, `cms`, `qalys`, `costs`. `contd` is also
+#'   supported but is **not** in the default and must be named explicitly.
+#' @param single_year_of_age Logical, default `FALSE`. If `TRUE`, the
+#'   age-stratified summaries are written by **single year of age**: `agegrp`
+#'   is dropped from the stratification and `age` put in its place
+#'   (`strata_for_output` minus `agegrp`, plus `age`).
+#'
+#'   This is **not** limited to prevalence and incidence. It applies to every
+#'   type that is stratified by age at all -- `prvl`, `incd`, `mrtl`,
+#'   `dis_mrtl`, `all_cause_mrtl_by_dis`, `cms`, `qalys`, `costs`, and `contd`
+#'   when requested -- i.e. all but `le`, `hle` and `dis_char`, which are
+#'   aggregated without an age axis in either mode. No summary keeps `agegrp`.
+#'   Expect **5x the rows** (70 single years against 14 five-year bands on the
+#'   stock 30-99 design) and 2.9-5.1x the bytes on disk, measured like-for-like
+#'   across the six main summaries -- parquet compresses the repeated key
+#'   columns unevenly, so the size multiple is never worse than the row one.
+#'
+#'   `$export_tables()` copes with either shape: whenever a loaded summary
+#'   carries `age` but no `agegrp`, the band column is derived from it before
+#'   any group-by (`add_agegrp_from_age()`, the age analogue of the
+#'   `qimd`-from-`dimd` collapse). The built-in `agegrp` strata defaults
+#'   therefore keep working and produce exactly the tables -- and the exact
+#'   filenames -- an `agegrp` run would have produced. Name `age` in `strata`
+#'   only when you actually want single-year output, and mind the cardinality
+#'   when you do: `c("year", "age", "sex", "dimd")` has ~5x the cells of its
+#'   `agegrp` counterpart, in a worker that already peaks in the tens of GB.
+#'
+#'   Two things to know. The flag is **not recorded anywhere on disk**, so
+#'   nothing downstream can detect which mode produced a set of summaries --
+#'   the parquet schema is the only evidence. And `cms_score_*` and
+#'   `cms_score_by_age_*` come out **identical** under it, because the only
+#'   thing that distinguished them was the age axis this flag removes.
 #' @details When `logs: yes` in the design YAML, console output from this
 #'   method (including `foreach`'s `.verbose` bookkeeping) is appended to
 #'   `<output_dir>/logs/console.txt` and restored on exit. See

@@ -406,6 +406,77 @@ add_qimd_from_dimd <- function(dt) {
 }
 
 
+# add_agegrp_from_age ----
+# Adds an `agegrp` (5-year band) column derived from `age`, in place, so a
+# strata entry naming `agegrp` keeps working against summaries written by
+# `export_summaries(single_year_of_age = TRUE)`.
+#
+# That flag replaces `agegrp` with `age` in EVERY summary it writes
+# (Simulation_class_summaries.R), while build_strata_config() merges the
+# caller's `strata` over the defaults BY NAME -- so any family the caller did
+# not name kept asking for a column that is no longer there. The result was
+# `object 'agegrp' not found`, raised by `keyby = eval(outstrata)` from inside a
+# forked worker, minutes in and after gigabytes had been loaded.
+#
+# Same shape and the same exactness argument as add_qimd_from_dimd(): this only
+# RELABELS, and the caller's existing group-by does the collapsing, so summing
+# the single years within a band reproduces precisely what banding at summary
+# time would have given. Rates follow because they are formed as
+# summed-numerator / summed-denominator AFTER the group-by. The converse is
+# impossible: single years cannot be recovered from bands.
+#
+# DERIVING is deliberately preferred to the obvious alternative of substituting
+# `age` into the defaults. A substitution would silently multiply the group-by
+# cardinality ~5x (70 single years against 14 bands on the stock 30-99 design)
+# inside a worker whose peak is already tens of GB, and it would rename every
+# file whose strata name `agegrp` -- `...by year-age...` in place of
+# `...by year-agegrp...` in the main and CEA families, and `...-age...` for
+# `...-agegroup...` in the by-disease and equity families, which spell the
+# suffix out. (The xps family carries neither column, so nothing there is
+# affected either way.) Deriving leaves the numbers AND the filenames exactly
+# as an `agegrp` run produced them.
+#
+# The band edges come from CKutils::to_agegrp() called with the same arguments
+# the model itself used to build the column in the first place
+# (`to_agegrp(sp$pop, 5, 99)` in Simulation_class.R), so the labels are
+# identical by construction rather than by coincidence. `min_age` is left to
+# to_agegrp()'s data-derived default for the same reason: both calls see the
+# same age range, so both start their bands in the same place, and a design
+# with `ageL: 20` stays consistent without anyone remembering to edit a
+# constant here. The column is CHARACTER, matching what the summaries carry on
+# disk -- duckdb writes the band labels as a plain string, not a dictionary.
+#
+# No-op (returning FALSE) when `dt` is NULL, already has `agegrp`, or has no
+# `age` to derive from -- so the call sites need no guard of their own, and
+# `dis_characteristics`, which carries neither column, is simply unaffected.
+add_agegrp_from_age <- function(dt, grp_width = 5L, max_age = 99L) {
+  if (is.null(dt) || "agegrp" %in% names(dt) || !"age" %in% names(dt)) {
+    return(invisible(FALSE))
+  }
+  if (nrow(dt) == 0L) {
+    # to_agegrp() reads its lower band edge off min(age), which is undefined on
+    # an empty table (and warns). The column must still be created, so that a
+    # strata entry naming `agegrp` yields an empty table rather than the
+    # missing-column error this helper exists to prevent.
+    dt[, agegrp := character(0)]
+    return(invisible(TRUE))
+  }
+  # Extend the top edge to whatever the data actually hold. to_agegrp() builds
+  # its age vector over max(actual, max_age) but derives the LABELS from
+  # max_age alone, so an age above it recycles the label vector and silently
+  # maps centenarians onto the FIRST band -- age 100 becomes "30-34", behind a
+  # "recycled with remainder" warning that is one of thousands in a run. The
+  # stock design caps at `ageH: 99` so this cannot bite today, but a locality
+  # design with a higher cap would publish that quietly. Note this is the one
+  # place the derivation deliberately does NOT reproduce
+  # `to_agegrp(sp$pop, 5, 99)`: for such a design that call produces the same
+  # wrapped labels, and matching it would mean matching a bug.
+  to_agegrp(dt, grp_width, max(max_age, max(dt[["age"]], na.rm = TRUE)),
+            "age", "agegrp", to_factor = FALSE)
+  invisible(TRUE)
+}
+
+
 # =============================================================================
 # Two-age-group collapse (`two_agegrps`)
 # -----------------------------------------------------------------------------
@@ -811,13 +882,23 @@ build_equity_plans <- function(strata) {
 #     and `qimd` mean something different here -- see below -- and the list is
 #     validated.
 #
+#   The merge is BY NAME and replaces the whole element: any name not supplied
+#   keeps its built-in default in full. Overriding `ons` alone leaves the other
+#   seven families on defaults -- including the `agegrp` entries in `mrtl_ons`.
+#
 #   Valid stratification variables:
 #   - year: Simulation year (always required)
 #   - sex: Sex (men/women)
 #   - agegrp: Age groups (5-year bands)
+#   - age: Single years of age (needs export_summaries(single_year_of_age =
+#     TRUE); ~5x the cells of the agegrp equivalent)
 #   - dimd: IMD deciles (10 levels: "1 most deprived" to "10 least deprived")
 #   - agegrp20: 20-year age groups (xps tables only)
 #   - qimd: IMD quintiles (5 levels)
+#
+#   `agegrp` works even on single-year-of-age summaries: the bands are derived
+#   from `age` on load (see add_agegrp_from_age()), so the defaults above need
+#   no adjustment and the filenames do not change.
 #
 #   `qimd` works in EVERY table family and does NOT need to be in
 #   `strata_for_output`: whenever the summaries carry `dimd` it is derived by
@@ -860,6 +941,15 @@ build_equity_plans <- function(strata) {
 #   mrtl_esp     = list("year", c("year", "qimd")),
 #   disease_char = list("year", c("year", "qimd")),
 #   equity       = list(c("year", "qimd"))
+# ))
+#
+# # A run whose summaries were exported by single year of age
+# # (export_summaries(single_year_of_age = TRUE)). `agegrp` still works -- the
+# # bands are derived from `age` -- so ask for `age` only where you want the
+# # single-year detail, and keep the deeper strata banded:
+# sim$export_tables(strata = list(
+#   ons      = list("year", c("year", "age"), c("year", "agegrp", "sex", "dimd")),
+#   mrtl_ons = list("year", c("year", "agegrp"))
 # ))
 #
 # # Equity indices over IMD quintiles instead of deciles, plus both gradients
@@ -992,8 +1082,67 @@ build_equity_plans <- function(strata) {
 #'   England design, but a run reporting ages 20-89 gets `20-64` / `65-89`, and
 #'   an open-ended top band gives `65+`.
 #' @param strata Optional named list overriding the default stratification
-#'   configuration. See examples in the file header for shape; passed
-#'   through `private$build_strata_config()`.
+#'   configuration, passed through `private$build_strata_config()`. Each
+#'   element is itself a **list of character vectors**, one vector per
+#'   stratification. A vector is not one file: each family writes every one of
+#'   its metrics at every stratification you list, so
+#'   `list(ons = list("year", c("year", "sex")))` yields two *stratifications*
+#'   and on the order of forty files.
+#'
+#'   The recognised names, and the table family each drives:
+#'   \describe{
+#'     \item{`ons`}{main tables (prevalence, incidence, mortality, case
+#'       fatality, QALYs, costs, population), non-standardised. Also reused
+#'       verbatim by the cost-effectiveness tables.}
+#'     \item{`esp`}{the same main tables, ESP-standardised.}
+#'     \item{`mrtl_ons`, `mrtl_esp`}{all-cause mortality by disease.}
+#'     \item{`disease_char`}{disease characteristics (duration, mean ages,
+#'       CMS). This summary carries no age axis in any mode.}
+#'     \item{`xps_ons`, `xps_esp`}{exposure tables. These use `agegrp20`
+#'       (20-year bands) and `qimd`, written by `$export_xps()` during
+#'       `$run()`, so `agegrp` and `dimd` are unavailable here.}
+#'     \item{`equity`}{equity slope-index tables. `dimd`/`qimd` mean something
+#'       different here -- see the `equity` argument -- and the list is
+#'       validated.}
+#'   }
+#'
+#'   The merge is **by name**, and the whole element is replaced: a name you do
+#'   not supply keeps its built-in default in full, and there is no coupling
+#'   between the elements. Overriding `ons` alone therefore leaves the other
+#'   seven families running on defaults -- which is deliberate, but means a
+#'   change you intend globally has to be written out for every family it
+#'   should reach.
+#'
+#'   Two mistakes in `strata` are caught **in the parent**, before any task is
+#'   dispatched, because both otherwise surface as
+#'   `task N failed - "object 'x' not found"` from a forked worker minutes in:
+#'   an element name that is not one of the eight (an unrecognised name would
+#'   be ignored, silently leaving that family on its defaults -- `mrtl` for
+#'   `mrtl_ons` is the classic), and a stratum the summaries cannot supply. The
+#'   second check reads schemas only, applies the same `qimd`-from-`dimd` and
+#'   `agegrp`-from-`age` derivations the workers apply, and reports a column
+#'   only when it is missing from every summary that family reads -- so it can
+#'   only fire where the worker was certain to fail. The `xps_*` elements are
+#'   exempt (those tables are not built from `summaries/`), and `equity` keeps
+#'   its own per-table warn-and-skip.
+#'
+#'   Valid stratification variables are `year` (required in every entry), `sex`,
+#'   `agegrp`, `age`, `dimd`, `qimd`, and `agegrp20` (`xps_*` only). Anything
+#'   else must be present in `strata_for_output` in the sim_design YAML.
+#'
+#'   `agegrp` may be asked for whichever of the two the summaries carry.
+#'   `$export_summaries()` writes one or the other depending on
+#'   `single_year_of_age`, and whenever a loaded summary has `age` but no
+#'   `agegrp`, the 5-year bands are derived from it before any group-by
+#'   (`add_agegrp_from_age()`), so the built-in `agegrp` defaults keep working
+#'   on single-year-of-age summaries and produce the same numbers and the same
+#'   filenames a banded run would. The reverse does **not** hold: single years
+#'   cannot be recovered from bands, so an `age` stratum genuinely requires
+#'   `single_year_of_age = TRUE` at summary time, and asking for one against a
+#'   banded run fails inside the worker with `object 'age' not found`.
+#'   Note that `age` is far finer: `c("year", "age", "sex", "dimd")` has about
+#'   five times the cells of its `agegrp` counterpart, in a worker that already
+#'   peaks in the tens of GB.
 #'
 #'   Any element may be stratified by `"qimd"` (IMD quintiles) instead of
 #'   `"dimd"` (deciles), and `qimd` does **not** need to be listed in
@@ -1222,8 +1371,10 @@ build_equity_plans <- function(strata) {
 #'   files they always have. The chosen axis is echoed in a `gradient` column in
 #'   every file, and (when the caller wrote it) in the filename suffix:
 #'   `list(c("year", "sex", "qimd"))` writes
-#'   `equity cpp slope index by year-sex-qimd (not standardised).csv`. As in
-#'   every other table family, `agegrp` is spelled `agegroup` in the suffix.
+#'   `equity cpp slope index by year-sex-qimd (not standardised).csv`. As in the
+#'   all-cause-mortality-by-disease and exposure families, `agegrp` is spelled
+#'   `agegroup` in the suffix -- note the main and CEA families do not do this
+#'   and keep `agegrp`.
 #'   Quintiles give a coarser, lower-variance gradient with less power to detect
 #'   departures from linearity; deciles are usually preferable when available.
 #'   `qimd` does **not** need to be in `strata_for_output` -- if the summaries
@@ -1370,6 +1521,9 @@ Simulation$set("public", "export_tables", function(
 
   # Build strata configuration (merge user-provided with defaults)
   strata_cfg <- private$build_strata_config(strata, two_agegrps)
+  # Parent-side, data-dependent: a stratum the summaries cannot supply fails
+  # here in seconds rather than from inside a forked worker minutes in.
+  private$check_strata_columns(strata_cfg)
 
   tables_subdir <- if (two_agegrps) "tables2agegrps" else "tables"
   tables_dir <- private$output_dir(tables_subdir)
@@ -1667,6 +1821,114 @@ Simulation$set("private", "probe_summary_scenarios", function() {
 })
 
 
+# Strata-column availability (parent-side)
+# -----------------------------------------------------------------------------
+# `.strata_family_sources` maps each strata element to the summaries its family
+# reads, and to the standardisation those reads use. `ons` covers the CEA task
+# too, which is handed `strata_cfg$ons` verbatim.
+#
+# Deliberately absent:
+#   xps_ons / xps_esp -- the exposure tables are not built from `summaries/` at
+#     all. export_xps_tables() filters pre-aggregated rows whose non-strata
+#     variables are the literal "All", so "is this column present" is not the
+#     right question there.
+#   equity -- it already checks its own strata per table and answers with a
+#     warning-and-skip whose exact text is pinned by
+#     inst/tinytest/test_export_equity_tables.R. Turning that into a parent
+#     error would change documented behaviour.
+.strata_family_sources <- list(
+  ons          = list(std = "scaled_up",
+                      src = c("prvl", "incd", "mrtl", "dis_mrtl", "qalys", "costs")),
+  esp          = list(std = "esp",
+                      src = c("prvl", "incd", "mrtl", "dis_mrtl", "qalys", "costs")),
+  mrtl_ons     = list(std = "scaled_up", src = c("all_cause_mrtl_by_dis", "prvl")),
+  mrtl_esp     = list(std = "esp",       src = "all_cause_mrtl_by_dis"),
+  disease_char = list(std = "scaled_up", src = "dis_characteristics")
+)
+
+
+# .derivable_strata_columns ----
+# Extend a summary's real columns with the ones the table builders DERIVE on
+# load, so this check accepts exactly what the workers accept -- no more (which
+# would let a genuine mistake through) and no less (which would reject strata
+# that work today). Keep in step with the add_*_from_*() calls at the load
+# sites; the tests below assert both directions.
+.derivable_strata_columns <- function(cols) {
+  if ("dimd" %chin% cols) cols <- union(cols, "qimd")   # add_qimd_from_dimd()
+  if ("age" %chin% cols) cols <- union(cols, "agegrp")  # add_agegrp_from_age()
+  cols
+}
+
+
+# check_strata_columns ----
+# Up-front, DATA-DEPENDENT validation of the requested strata, run in the
+# PARENT for the same reason as check_two_agegrps_split_age() and
+# check_comparator_map(): a stratum the summaries cannot supply is a mistake,
+# and the user should learn which one in a second rather than as
+# `task N failed - "object 'x' not found"` from a forked worker minutes in,
+# after gigabytes have been read.
+#
+# Reads SCHEMAS only -- arrow::open_dataset() + names(), no Scanner, no rows --
+# so it costs milliseconds per summary.
+#
+# Conservative by construction. A column is reported only when it is absent
+# from EVERY dataset that family reads and that exists on disk; a summary that
+# is not there is skipped exactly as the workers skip it, and a family with no
+# datasets at all is not checked. So this can only fire where the worker was
+# certain to fail anyway.
+Simulation$set("private", "check_strata_columns", function(strata_cfg) {
+  problems <- character(0)
+  for (fam in names(.strata_family_sources)) {
+    entries <- strata_cfg[[fam]]
+    if (!length(entries)) next
+    cfg <- .strata_family_sources[[fam]]
+
+    avail <- NULL
+    for (sname in cfg$src) {
+      p <- private$output_dir(paste0("summaries/", sname, "_", cfg$std))
+      if (!dir.exists(p)) next
+      ds <- tryCatch(arrow::open_dataset(p), error = function(e) NULL)
+      if (is.null(ds)) next
+      avail <- union(avail, .derivable_strata_columns(names(ds)))
+    }
+    if (is.null(avail)) next   # nothing on disk for this family yet
+
+    bad <- character(0)
+    for (e in entries) {
+      miss <- setdiff(as.character(e), avail)
+      if (length(miss)) {
+        bad <- c(bad, sprintf(
+          "  strata$%s entry c(%s): no such column(s) %s",
+          fam, paste(sQuote(as.character(e)), collapse = ", "),
+          paste(sQuote(miss), collapse = ", ")))
+      }
+    }
+    # Report the vocabulary per FAMILY, not once at the end: the families read
+    # different summaries, so "what is available" is not one list.
+    if (length(bad)) {
+      problems <- c(problems, bad,
+                    sprintf("    (%s reads %s; available, including derived: %s)",
+                            fam, paste(cfg$src, collapse = ", "),
+                            paste(sQuote(sort(avail)), collapse = ", ")))
+    }
+  }
+  if (!length(problems)) return(invisible(TRUE))
+
+  # The age pair is the overwhelmingly likely cause, and its remedy is a
+  # different `export_summaries()` call rather than a different stratum, so say
+  # so instead of only listing what is available.
+  hint <- ""
+  if (any(grepl("'age'", problems, fixed = TRUE))) {
+    hint <- paste0("\n`age` needs summaries written with ",
+                   "`export_summaries(single_year_of_age = TRUE)`; a banded run ",
+                   "carries `agegrp` instead. (The reverse is handled for you: ",
+                   "`agegrp` is derived from `age` when only `age` is present.)")
+  }
+  stop("`strata` asks for columns the summaries do not carry:\n",
+       paste(problems, collapse = "\n"), hint, call. = FALSE)
+})
+
+
 # check_two_agegrps_split_age ----
 # Up-front, DATA-DEPENDENT validation of `two_agegrps_split_age`, run in the
 # PARENT for the same reason as check_comparator_map(): a split age that does
@@ -1675,17 +1937,44 @@ Simulation$set("private", "probe_summary_scenarios", function() {
 # so the default path pays nothing.
 #
 # Reads one summary's `agegrp` column via a projected arrow scan (an aggregate,
-# never a join -- see probe_summary_scenarios). Silently does nothing if no
-# summary carries `agegrp`: there is then nothing for the collapse to act on,
-# and collapse_two_agegrps() is a no-op everywhere.
+# never a join -- see probe_summary_scenarios). A summary written by
+# `export_summaries(single_year_of_age = TRUE)` has no `agegrp`, so the bands
+# are derived from its `age` column exactly as the workers will derive them
+# (add_agegrp_from_age()) -- otherwise this check would quietly pass on every
+# single-year-of-age run and the split-age typo would resurface from inside a
+# fork, which is the one thing this function exists to prevent.
+#
+# Silently does nothing if no summary carries either column: there is then
+# nothing for the collapse to act on, and collapse_two_agegrps() is a no-op
+# everywhere.
 Simulation$set("private", "check_two_agegrps_split_age", function(split_age) {
   for (s in c("prvl", "incd", "mrtl", "all_cause_mrtl_by_dis", "qalys", "costs")) {
     p <- private$output_dir(paste0("summaries/", s, "_scaled_up"))
     if (!dir.exists(p)) next
     ds <- tryCatch(arrow::open_dataset(p), error = function(e) NULL)
-    if (is.null(ds) || !"agegrp" %chin% names(ds)) next
-    tb <- arrow::Scanner$create(ds, projection = "agegrp")$ToTable()
-    labs <- unique(as.character(as.data.frame(tb)$agegrp))
+    if (is.null(ds)) next
+    col <- if ("agegrp" %chin% names(ds)) {
+      "agegrp"
+    } else if ("age" %chin% names(ds)) {
+      "age"
+    } else {
+      next
+    }
+    tb <- arrow::Scanner$create(ds, projection = col)$ToTable()
+    v <- as.data.frame(tb)[[col]]
+    labs <- if (col == "agegrp") {
+      unique(as.character(v))
+    } else {
+      # unique() FIRST: the derivation only needs the distinct ages, and
+      # to_agegrp()'s data-derived `min_age` depends on min(age), which
+      # unique() preserves. Deriving over millions of rows would be the same
+      # answer at a few seconds' cost.
+      u <- unique(v[!is.na(v)])
+      if (length(u) == 0L) next
+      d <- data.table(age = u)
+      add_agegrp_from_age(d)
+      unique(as.character(d$agegrp))
+    }
     two_agegrp_map(labs, split_age, "agegrp")   # errors if it splits no band
     return(invisible(TRUE))
   }
@@ -1884,13 +2173,55 @@ Simulation$set("private", "build_strata_config", function(user_strata, two_agegr
     )
   }
 
+  # An unrecognised element name used to be dropped in silence, which is the
+  # same class of surprise this whole merge causes: the family you meant to
+  # override keeps its built-in defaults, and you find out from whatever those
+  # defaults do next -- for `mrtl` instead of `mrtl_ons`, that was
+  # `object 'agegrp' not found` from a forked worker, minutes in. There is no
+  # legitimate reason to pass a name that means nothing, so it is an error,
+  # raised in the PARENT alongside validate_equity_strata().
+  if (!is.null(user_strata)) {
+    nms <- names(user_strata)
+    if (is.null(nms) || any(!nzchar(nms))) {
+      stop("`strata` must be a NAMED list -- element(s) ",
+           paste(which(if (is.null(nms)) rep(TRUE, length(user_strata)) else !nzchar(nms)),
+                 collapse = ", "),
+           " have no name. Valid names: ",
+           paste(sQuote(names(defaults)), collapse = ", "), ".", call. = FALSE)
+    }
+    unknown <- setdiff(nms, names(defaults))
+    if (length(unknown)) {
+      # A near-miss is the likely case (`mrtl` for `mrtl_ons`, `cea` for `ons`),
+      # so point at it rather than only listing the vocabulary.
+      near <- vapply(unknown, function(u) {
+        v <- names(defaults)
+        # A truncation (`mrtl` for `mrtl_ons`) is the commonest slip and is far
+        # from its target by edit distance, so match prefixes first and fall
+        # back to edit distance for genuine typos (`onz`).
+        pre <- v[startsWith(v, u) | startsWith(u, v)]
+        if (length(pre)) return(pre[[which.min(nchar(pre))]])
+        d <- utils::adist(u, v, ignore.case = TRUE)[1L, ]
+        if (min(d) <= 2L) v[[which.min(d)]] else NA_character_
+      }, character(1))
+      hint <- if (any(!is.na(near))) {
+        paste0(" Did you mean ",
+               paste(sprintf("%s -> %s", sQuote(unknown[!is.na(near)]),
+                             sQuote(near[!is.na(near)])), collapse = ", "), "?")
+      } else ""
+      stop("unknown `strata` element name(s): ",
+           paste(sQuote(unknown), collapse = ", "),
+           ". Valid names are ", paste(sQuote(names(defaults)), collapse = ", "),
+           ".", hint,
+           " An unrecognised name would be ignored, leaving that table family on ",
+           "its built-in defaults.", call. = FALSE)
+    }
+  }
+
   # Merge user-provided strata with defaults (user overrides defaults)
   result <- defaults
   if (!is.null(user_strata)) {
     for (name in names(user_strata)) {
-      if (name %in% names(defaults)) {
-        result[[name]] <- user_strata[[name]]
-      }
+      result[[name]] <- user_strata[[name]]
     }
   }
 
@@ -2384,10 +2715,13 @@ Simulation$set("private", "export_main_tables", function(
       if (is.null(tt_base)) next
       # Convert year from short format (19) to full format (2019)
       tt_base[, year := year + 2000L]
-      # Allow `qimd` strata even when the summaries only carry `dimd`. Every
-      # aggregation below selects value columns by anchored pattern, so the
-      # extra column is inert unless it is named in the strata.
+      # Allow `qimd` strata even when the summaries only carry `dimd`, and
+      # `agegrp` strata even when the summaries carry single years of age
+      # (`export_summaries(single_year_of_age = TRUE)`). Every aggregation
+      # below selects value columns by anchored pattern, so the extra columns
+      # are inert unless they are named in the strata.
       add_qimd_from_dimd(tt_base)
+      add_agegrp_from_age(tt_base)
 
       # Also load prvl for ftlt metrics (case fatality denominator)
       prvl_for_ftlt <- NULL
@@ -2396,6 +2730,7 @@ Simulation$set("private", "export_main_tables", function(
         if (!is.null(prvl_for_ftlt)) {
           prvl_for_ftlt[, year := year + 2000L]
           add_qimd_from_dimd(prvl_for_ftlt)
+          add_agegrp_from_age(prvl_for_ftlt)
         }
       }
 
@@ -2570,10 +2905,18 @@ Simulation$set("private", "export_all_cause_mrtl_tables", function(
   if (!is.null(tt_scaled)) tt_scaled[, year := year + 2000L]
   if (!is.null(pp_scaled)) pp_scaled[, year := year + 2000L]
   if (!is.null(tt_esp)) tt_esp[, year := year + 2000L]
-  # Allow `qimd` strata even when the summaries only carry `dimd`
+  # Allow `qimd` strata even when the summaries only carry `dimd`, and `agegrp`
+  # strata even when they carry single years of age. `pp_scaled` is the
+  # population denominator and is aggregated on the SAME strata before being
+  # joined to `tt_scaled`, so it must gain the same derived columns -- deriving
+  # on only one side fails in that group-by, with the same
+  # `object 'agegrp' not found` this helper exists to prevent.
   add_qimd_from_dimd(tt_scaled)
   add_qimd_from_dimd(pp_scaled)
   add_qimd_from_dimd(tt_esp)
+  add_agegrp_from_age(tt_scaled)
+  add_agegrp_from_age(pp_scaled)
+  add_agegrp_from_age(tt_esp)
   # Match export_main_tables(): under two_agegrps, `agegrp` means the coarse
   # split. `pp_scaled` is the population denominator and is joined to
   # `tt_scaled` on the strata, so it MUST be collapsed on the same split.
@@ -2688,8 +3031,13 @@ Simulation$set("private", "export_disease_characteristics_tables", function(
 
   # Convert year from short format (19) to full format (2019)
   tt[, year := year + 2000L]
-  # Allow `qimd` strata even when the summaries only carry `dimd`
+  # Allow `qimd` strata even when the summaries only carry `dimd`. The `agegrp`
+  # derivation is a no-op here and always will be: this summary is written from
+  # `strata_noagegrp`, so it carries neither `agegrp` nor `age`. It is called
+  # anyway so that "every summary we load gets both derivations" stays a rule
+  # you can verify by grep rather than a fact you have to remember.
   add_qimd_from_dimd(tt)
+  add_agegrp_from_age(tt)
 
   # Type conversion if needed
   if ("mean_cms_count_cms1st_cont" %in% names(tt)) {
@@ -2992,9 +3340,13 @@ Simulation$set("private", "export_cea_tables", function(
   # baseline-year filtering and discounting use the same scale as the args.
   qalys[, year := year + 2000L]
   costs[, year := year + 2000L]
-  # Allow `qimd` strata even when the summaries only carry `dimd`
+  # Allow `qimd` strata even when the summaries only carry `dimd`, and `agegrp`
+  # strata even when they carry single years of age. CEA defaults to the `ons`
+  # strata, which name `agegrp`.
   add_qimd_from_dimd(qalys)
   add_qimd_from_dimd(costs)
+  add_agegrp_from_age(qalys)
+  add_agegrp_from_age(costs)
   # Match export_main_tables(): the CEA strata default to the `ons` list, which
   # may carry `agegrp`. Both frames are aggregated on the same strata and then
   # joined, so both must be collapsed on the same split.
@@ -3319,6 +3671,24 @@ Simulation$set("private", "export_equity_tables", function(
     # Promote short year (19) to full (2019) to match baseline_year.
     tt[, year := year + 2000L]
 
+    # Derive `agegrp` from single years of age, so an age-stratified gradient
+    # survives `single_year_of_age = TRUE` (see add_agegrp_from_age()).
+    # Unconditional, unlike the `qimd` gradient axis derived further down:
+    # `agegrp` is an ordinary output stratum here, so it may appear in any
+    # entry of `strata$equity`, and the availability check inside the plan loop
+    # is what reports a genuinely absent one.
+    #
+    # ORDER IS LOAD-BEARING, and this is the only family where getting it wrong
+    # is silent. collapse_two_agegrps() below returns FALSE and does nothing
+    # when there is no `agegrp` column, so deriving afterwards would leave the
+    # equity tables in `tables2agegrps/` carrying the full 5-year bands -- the
+    # same silent no-op as the 2026-08-05 two_agegrps bug, and worse here
+    # because this family fits a MODEL: a two-group and a 5-year-band fit are
+    # different estimands, so the file would not merely be mislabelled.
+    if (add_agegrp_from_age(tt) && self$design$sim_prm$logs) {
+      message("  ", metric, ": derived agegrp bands from single years of age")
+    }
+
     # Match export_main_tables(): under two_agegrps, `agegrp` means the coarse
     # split. Relevant now that agegrp can be an equity stratum.
     if (two_agegrps) collapse_two_agegrps(tt, two_agegrps_split_age)
@@ -3366,7 +3736,6 @@ Simulation$set("private", "export_equity_tables", function(
         self$design$sim_prm$logs) {
       message("  ", metric, ": derived qimd quintiles from dimd deciles")
     }
-
     for (p in plans) {                        # out_vars always contains "year"
       grad <- p$gradient
       if (!grad %in% names(tt)) {

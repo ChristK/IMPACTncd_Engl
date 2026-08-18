@@ -474,11 +474,40 @@ prevalence, incidence, mortality, CMS counts, QALYs, and costs.
 forces single-threaded BLAS/data.table/fst within each worker to avoid
 nested parallelism. If \code{FALSE}, runs sequentially using
 \code{clusternumber_export} threads.}
-      \item{\code{type}}{Character vector of summary types to export. Defaults to all
-supported types (\code{le}, \code{hle}, \code{dis_char}, \code{prvl}, \code{incd}, \code{dis_mrtl},
-\code{mrtl}, \code{all_cause_mrtl_by_dis}, \code{cms}, \code{qalys}, \code{costs}).}
-      \item{\code{single_year_of_age}}{Logical. If \code{TRUE}, exports prevalence /
-incidence summaries by single year of age instead of age groups.}
+      \item{\code{type}}{Character vector of summary types to export. The default is
+\code{le}, \code{hle}, \code{dis_char}, \code{prvl}, \code{incd}, \code{dis_mrtl}, \code{mrtl},
+\code{all_cause_mrtl_by_dis}, \code{cms}, \code{qalys}, \code{costs}. \code{contd} is also
+supported but is \strong{not} in the default and must be named explicitly.}
+      \item{\code{single_year_of_age}}{Logical, default \code{FALSE}. If \code{TRUE}, the
+age-stratified summaries are written by \strong{single year of age}: \code{agegrp}
+is dropped from the stratification and \code{age} put in its place
+(\code{strata_for_output} minus \code{agegrp}, plus \code{age}).
+
+This is \strong{not} limited to prevalence and incidence. It applies to every
+type that is stratified by age at all -- \code{prvl}, \code{incd}, \code{mrtl},
+\code{dis_mrtl}, \code{all_cause_mrtl_by_dis}, \code{cms}, \code{qalys}, \code{costs}, and \code{contd}
+when requested -- i.e. all but \code{le}, \code{hle} and \code{dis_char}, which are
+aggregated without an age axis in either mode. No summary keeps \code{agegrp}.
+Expect \strong{5x the rows} (70 single years against 14 five-year bands on the
+stock 30-99 design) and 2.9-5.1x the bytes on disk, measured like-for-like
+across the six main summaries -- parquet compresses the repeated key
+columns unevenly, so the size multiple is never worse than the row one.
+
+\verb{$export_tables()} copes with either shape: whenever a loaded summary
+carries \code{age} but no \code{agegrp}, the band column is derived from it before
+any group-by (\code{add_agegrp_from_age()}, the age analogue of the
+\code{qimd}-from-\code{dimd} collapse). The built-in \code{agegrp} strata defaults
+therefore keep working and produce exactly the tables -- and the exact
+filenames -- an \code{agegrp} run would have produced. Name \code{age} in \code{strata}
+only when you actually want single-year output, and mind the cardinality
+when you do: \code{c("year", "age", "sex", "dimd")} has ~5x the cells of its
+\code{agegrp} counterpart, in a worker that already peaks in the tens of GB.
+
+Two things to know. The flag is \strong{not recorded anywhere on disk}, so
+nothing downstream can detect which mode produced a set of summaries --
+the parquet schema is the only evidence. And \verb{cms_score_*} and
+\verb{cms_score_by_age_*} come out \strong{identical} under it, because the only
+thing that distinguished them was the age axis this flag removes.}
     }
     \if{html}{\out{</div>}}
   }
@@ -638,8 +667,67 @@ The group labels are derived from the data: \code{30-64} / \code{65-99} for the 
 England design, but a run reporting ages 20-89 gets \code{20-64} / \code{65-89}, and
 an open-ended top band gives \verb{65+}.}
       \item{\code{strata}}{Optional named list overriding the default stratification
-configuration. See examples in the file header for shape; passed
-through \code{private$build_strata_config()}.
+configuration, passed through \code{private$build_strata_config()}. Each
+element is itself a \strong{list of character vectors}, one vector per
+stratification. A vector is not one file: each family writes every one of
+its metrics at every stratification you list, so
+\code{list(ons = list("year", c("year", "sex")))} yields two \emph{stratifications}
+and on the order of forty files.
+
+The recognised names, and the table family each drives:
+\describe{
+\item{\code{ons}}{main tables (prevalence, incidence, mortality, case
+fatality, QALYs, costs, population), non-standardised. Also reused
+verbatim by the cost-effectiveness tables.}
+\item{\code{esp}}{the same main tables, ESP-standardised.}
+\item{\code{mrtl_ons}, \code{mrtl_esp}}{all-cause mortality by disease.}
+\item{\code{disease_char}}{disease characteristics (duration, mean ages,
+CMS). This summary carries no age axis in any mode.}
+\item{\code{xps_ons}, \code{xps_esp}}{exposure tables. These use \code{agegrp20}
+(20-year bands) and \code{qimd}, written by \verb{$export_xps()} during
+\verb{$run()}, so \code{agegrp} and \code{dimd} are unavailable here.}
+\item{\code{equity}}{equity slope-index tables. \code{dimd}/\code{qimd} mean something
+different here -- see the \code{equity} argument -- and the list is
+validated.}
+}
+
+The merge is \strong{by name}, and the whole element is replaced: a name you do
+not supply keeps its built-in default in full, and there is no coupling
+between the elements. Overriding \code{ons} alone therefore leaves the other
+seven families running on defaults -- which is deliberate, but means a
+change you intend globally has to be written out for every family it
+should reach.
+
+Two mistakes in \code{strata} are caught \strong{in the parent}, before any task is
+dispatched, because both otherwise surface as
+\verb{task N failed - "object 'x' not found"} from a forked worker minutes in:
+an element name that is not one of the eight (an unrecognised name would
+be ignored, silently leaving that family on its defaults -- \code{mrtl} for
+\code{mrtl_ons} is the classic), and a stratum the summaries cannot supply. The
+second check reads schemas only, applies the same \code{qimd}-from-\code{dimd} and
+\code{agegrp}-from-\code{age} derivations the workers apply, and reports a column
+only when it is missing from every summary that family reads -- so it can
+only fire where the worker was certain to fail. The \verb{xps_*} elements are
+exempt (those tables are not built from \verb{summaries/}), and \code{equity} keeps
+its own per-table warn-and-skip.
+
+Valid stratification variables are \code{year} (required in every entry), \code{sex},
+\code{agegrp}, \code{age}, \code{dimd}, \code{qimd}, and \code{agegrp20} (\verb{xps_*} only). Anything
+else must be present in \code{strata_for_output} in the sim_design YAML.
+
+\code{agegrp} may be asked for whichever of the two the summaries carry.
+\verb{$export_summaries()} writes one or the other depending on
+\code{single_year_of_age}, and whenever a loaded summary has \code{age} but no
+\code{agegrp}, the 5-year bands are derived from it before any group-by
+(\code{add_agegrp_from_age()}), so the built-in \code{agegrp} defaults keep working
+on single-year-of-age summaries and produce the same numbers and the same
+filenames a banded run would. The reverse does \strong{not} hold: single years
+cannot be recovered from bands, so an \code{age} stratum genuinely requires
+\code{single_year_of_age = TRUE} at summary time, and asking for one against a
+banded run fails inside the worker with \verb{object 'age' not found}.
+Note that \code{age} is far finer: \code{c("year", "age", "sex", "dimd")} has about
+five times the cells of its \code{agegrp} counterpart, in a worker that already
+peaks in the tens of GB.
 
 Any element may be stratified by \code{"qimd"} (IMD quintiles) instead of
 \code{"dimd"} (deciles), and \code{qimd} does \strong{not} need to be listed in
@@ -870,8 +958,10 @@ falls back to \code{dimd} so the built-in defaults keep producing exactly the
 files they always have. The chosen axis is echoed in a \code{gradient} column in
 every file, and (when the caller wrote it) in the filename suffix:
 \code{list(c("year", "sex", "qimd"))} writes
-\verb{equity cpp slope index by year-sex-qimd (not standardised).csv}. As in
-every other table family, \code{agegrp} is spelled \code{agegroup} in the suffix.
+\verb{equity cpp slope index by year-sex-qimd (not standardised).csv}. As in the
+all-cause-mortality-by-disease and exposure families, \code{agegrp} is spelled
+\code{agegroup} in the suffix -- note the main and CEA families do not do this
+and keep \code{agegrp}.
 Quintiles give a coarser, lower-variance gradient with less power to detect
 departures from linearity; deciles are usually preferable when available.
 \code{qimd} does \strong{not} need to be in \code{strata_for_output} -- if the summaries
