@@ -1101,6 +1101,8 @@ build_equity_plans <- function(strata) {
 #'     \item{`xps_ons`, `xps_esp`}{exposure tables. These use `agegrp20`
 #'       (20-year bands) and `qimd`, written by `$export_xps()` during
 #'       `$run()`, so `agegrp` and `dimd` are unavailable here.}
+#'     \item{`le_ons`, `le_esp`}{life expectancy / healthy life expectancy.
+#'       Like `disease_char`, these summaries carry no age axis in any mode.}
 #'     \item{`equity`}{equity slope-index tables. `dimd`/`qimd` mean something
 #'       different here -- see the `equity` argument -- and the list is
 #'       validated.}
@@ -1109,14 +1111,14 @@ build_equity_plans <- function(strata) {
 #'   The merge is **by name**, and the whole element is replaced: a name you do
 #'   not supply keeps its built-in default in full, and there is no coupling
 #'   between the elements. Overriding `ons` alone therefore leaves the other
-#'   seven families running on defaults -- which is deliberate, but means a
+#'   nine families running on defaults -- which is deliberate, but means a
 #'   change you intend globally has to be written out for every family it
 #'   should reach.
 #'
 #'   Two mistakes in `strata` are caught **in the parent**, before any task is
 #'   dispatched, because both otherwise surface as
 #'   `task N failed - "object 'x' not found"` from a forked worker minutes in:
-#'   an element name that is not one of the eight (an unrecognised name would
+#'   an element name that is not one of the ten (an unrecognised name would
 #'   be ignored, silently leaving that family on its defaults -- `mrtl` for
 #'   `mrtl_ons` is the classic), and a stratum the summaries cannot supply. The
 #'   second check reads schemas only, applies the same `qimd`-from-`dimd` and
@@ -1433,6 +1435,23 @@ build_equity_plans <- function(strata) {
 #'   in the ONS projection input the decile shares of England aged 30-99 move at
 #'   most 0.18 percentage points between 2019 and 2043 -- so the two options
 #'   usually differ only slightly.
+#' @param life_expectancy Logical, default `TRUE`. Write the life-expectancy
+#'   family: `le` (mean age at death), `le60` (mean age at death among those
+#'   dying after 60) and the two healthy-life-expectancy measures
+#'   `hle_1st_cond` and `hle_cmsmm1.5`, all four in one file per
+#'   stratification, distinguished by a `type` column.
+#'
+#'   These are **weight-averaged ages at an event**, not period life-table
+#'   expectancies, and `popsize` in the underlying summaries is the weighted
+#'   count of those events. Collapsing over strata is therefore exact -- the
+#'   weights are the denominators the means were formed with -- but it must be
+#'   a `weighted.mean`, so never average or sum these values across strata
+#'   yourself. Each published figure is accompanied by `n_events`, the median
+#'   weighted event count behind it, so a thin stratum is recognisable.
+#'
+#'   `two_agegrps` and the discount levels do not apply: the summaries carry no
+#'   age axis in either mode, and an age at death is not a flow with a present
+#'   value.
 #' @details When `logs: yes` in the design YAML, console output from this
 #'   method (including `foreach`'s `.verbose` bookkeeping) is appended to
 #'   `<output_dir>/logs/console.txt` and restored on exit. See
@@ -1453,7 +1472,8 @@ Simulation$set("public", "export_tables", function(
     discount_from_year = NULL,
     custom_costs_in_healthcare = NULL,
     equity = TRUE,
-    equity_ridit_reference = c("comparator", "scenario")
+    equity_ridit_reference = c("comparator", "scenario"),
+    life_expectancy = TRUE
 ) {
   # Console output -> logs/console.txt while this phase runs (no-op unless
   # sim_prm$logs). See private$start_console_log() for the rationale.
@@ -1623,6 +1643,21 @@ Simulation$set("public", "export_tables", function(
     )
   }
 
+  # Life expectancy / healthy life expectancy tables, built from the le / le60 /
+  # hle_* summaries. Cheap: those summaries are a few thousand rows per mc, so
+  # this task adds a negligible read next to the main and CEA ones.
+  if (life_expectancy) {
+    tasks[[length(tasks) + 1L]] <- list(
+      id = 7L,
+      type = "le",
+      prbl = prbl,
+      summaries_dir = private$output_dir("summaries"),
+      tables_dir = tables_dir,
+      strata_ons = strata_cfg$le_ons,
+      strata_esp = strata_cfg$le_esp
+    )
+  }
+
   # Equity slope-index (SII / RII analogue) tables, built from the prvl / incd /
   # mrtl / qalys summaries. The deprivation gradient is fit across DIMD deciles.
   if (equity) {
@@ -1775,6 +1810,13 @@ Simulation$set("private", "export_tables_hlpr", function(task, implicit_parallel
       two_agegrps_split_age = task$two_agegrps_split_age,
       strata = task$strata
     ),
+    "le" = private$export_le_tables(
+      prbl = task$prbl,
+      summaries_dir = task$summaries_dir,
+      tables_dir = task$tables_dir,
+      strata_ons = task$strata_ons,
+      strata_esp = task$strata_esp
+    ),
     "equity" = private$export_equity_tables(
       prbl = task$prbl,
       summaries_dir = task$summaries_dir,
@@ -1843,7 +1885,11 @@ Simulation$set("private", "probe_summary_scenarios", function() {
                       src = c("prvl", "incd", "mrtl", "dis_mrtl", "qalys", "costs")),
   mrtl_ons     = list(std = "scaled_up", src = c("all_cause_mrtl_by_dis", "prvl")),
   mrtl_esp     = list(std = "esp",       src = "all_cause_mrtl_by_dis"),
-  disease_char = list(std = "scaled_up", src = "dis_characteristics")
+  disease_char = list(std = "scaled_up", src = "dis_characteristics"),
+  le_ons       = list(std = "scaled_up",
+                      src = c("le", "le60", "hle_1st_cond", "hle_cmsmm1.5")),
+  le_esp       = list(std = "esp",
+                      src = c("le", "le60", "hle_1st_cond", "hle_cmsmm1.5"))
 )
 
 
@@ -2107,6 +2153,22 @@ Simulation$set("private", "build_strata_config", function(user_strata, two_agegr
         c("year", "qimd"),
         c("year", "sex", "qimd")
       ),
+      # Life expectancy / HLE output strata. These summaries are written from
+      # `strata_noagegrp`, so they carry neither `agegrp` nor `age` -- the
+      # defaults are the same in both the standard and the two_agegrps branch
+      # for the same reason `disease_char`'s are.
+      le_ons = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
+      le_esp = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
       # Equity slope-index output strata. DIMD deciles are always the gradient
       # axis (consumed into the index), so it never appears here.
       equity = list(
@@ -2163,6 +2225,22 @@ Simulation$set("private", "build_strata_config", function(user_strata, two_agegr
         c("year", "sex"),
         c("year", "qimd"),
         c("year", "sex", "qimd")
+      ),
+      # Life expectancy / HLE output strata. These summaries are written from
+      # `strata_noagegrp`, so they carry neither `agegrp` nor `age` -- the
+      # defaults are the same in both the standard and the two_agegrps branch
+      # for the same reason `disease_char`'s are.
+      le_ons = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
+      ),
+      le_esp = list(
+        "year",
+        c("year", "sex"),
+        c("year", "dimd"),
+        c("year", "sex", "dimd")
       ),
       # Equity slope-index output strata. DIMD deciles are always the gradient
       # axis (consumed into the index), so it never appears here.
@@ -3114,6 +3192,185 @@ Simulation$set("private", "export_disease_characteristics_tables", function(
 })
 
 
+# export_le_tables ----
+# Life-expectancy / healthy-life-expectancy tables.
+#
+# Reads the four summaries `export_summaries()` already writes but no table
+# family consumed until now: `le`, `le60`, `hle_1st_cond` and `hle_cmsmm1.5`,
+# in both standardisations. Each is built by
+#
+#   SELECT <strata>, SUM(w) AS popsize, SUM(age * w) / SUM(w) AS LE
+#   FROM lc_table WHERE all_cause_mrtl > 0 [AND age > 60] GROUP BY <strata>
+#
+# so the value is a weight-averaged **age at the event** (death for `le`/`le60`,
+# first condition / CMS-1.5 multimorbidity onset for the two `hle_*`) and
+# `popsize` is the weighted **count of those events** -- the very denominator
+# the average was formed with, not a population.
+#
+# That makes collapsing over strata EXACT rather than approximate:
+# `weighted.mean(value, popsize)` across a set of strata reproduces
+# `sum(age * w) / sum(w)` over their union identically. It is the same argument
+# that licenses `add_qimd_from_dimd()` here as in every other family -- with the
+# difference that here the weights must be carried explicitly, because a mean
+# age is not additive the way a count is. Summing or plain-averaging these
+# values across strata would be wrong.
+#
+# Out of scope by construction:
+#   * `two_agegrps` -- these summaries are written from `strata_noagegrp` and
+#     carry neither `agegrp` nor `age`, so there is nothing to collapse
+#     (cf. `dis_characteristics`). `add_agegrp_from_age()` is still called, so
+#     that "every summary we load gets both derivations" stays greppable.
+#   * discounting -- an age at death is not a flow with a present value.
+Simulation$set("private", "export_le_tables", function(
+    prbl,
+    summaries_dir,
+    tables_dir,
+    strata_ons = NULL,
+    strata_esp = NULL
+) {
+  if (self$design$sim_prm$logs) {
+    message("Generating life expectancy tables...")
+  }
+
+  # One `type` value per summary, all four in one file per strata combination:
+  # they share the strata, the units (years of age) and the weighting, so a
+  # reader can plot LE against HLE without joining files. Same shape as the
+  # disease-characteristics and cost-effectiveness families.
+  measures <- c("le", "le60", "hle_1st_cond", "hle_cmsmm1.5")
+
+  make_strata_configs <- function(strata_list, standardised = FALSE) {
+    lapply(strata_list, function(s) {
+      outstrata <- c("mc", s, "scenario")
+      # `agegrp` is spelled `agegroup` in filenames, as in the by-disease and
+      # equity families. It cannot occur here today (see above), but the rule
+      # should not have an exception waiting to be discovered.
+      suffix <- gsub("agegrp", "agegroup", paste(s, collapse = "-"))
+      if (standardised) {
+        # Which axes were averaged over, i.e. what the ESP weights standardised
+        # for. `qimd` retains the deprivation axis just as `dimd` does, so a
+        # qimd stratum must not be reported as standardised over dimd.
+        possible_vars <- c("age", "sex", "dimd")
+        s_axes <- if ("qimd" %in% s) c(s, "dimd") else s
+        list(strata = outstrata, suffix = suffix,
+             std = paste(setdiff(possible_vars, s_axes), collapse = "-"))
+      } else {
+        list(strata = outstrata, suffix = suffix)
+      }
+    })
+  }
+
+  for (pop_name in c("ons", "esp")) {
+    pop_key <- if (pop_name == "ons") "scaled_up" else "esp"
+
+    parts <- list()
+    for (m in measures) {
+      tt <- private$read_summary_dataset(m, pop_key)
+      # `le60` is not written when the design's age range does not span 60, so
+      # a missing summary is expected, not an error.
+      if (is.null(tt)) next
+      vcol <- intersect(c("LE", "HLE"), names(tt))
+      if (!length(vcol) || !"popsize" %chin% names(tt)) {
+        warning("summary '", m, "_", pop_key, "' carries no LE/HLE value or no ",
+                "popsize weight; skipping it.", call. = FALSE)
+        next
+      }
+      setnames(tt, vcol[[1L]], "value")
+      # Convert year from short format (19) to full format (2019)
+      tt[, year := year + 2000L]
+      add_qimd_from_dimd(tt)
+      add_agegrp_from_age(tt)
+      tt[, type := m]
+      parts[[m]] <- tt
+    }
+    if (!length(parts)) next
+    tt <- rbindlist(parts, use.names = TRUE, fill = TRUE)
+    rm(parts)
+
+    strata <- if (pop_name == "ons") strata_ons else strata_esp
+    for (cfg in make_strata_configs(strata, standardised = pop_name == "esp")) {
+      outstrata <- cfg$strata
+      grp <- setdiff(outstrata, "mc")
+
+      d <- tt[, .(value = weighted.mean(value, popsize, na.rm = TRUE),
+                  n_events = sum(popsize, na.rm = TRUE)),
+              keyby = c(outstrata, "type")]
+
+      # The weighted event count behind each published figure, so a reader can
+      # tell a genuinely long life expectancy from a thin stratum. Taken as the
+      # median over mc iterations, alongside the quantiles of the value itself.
+      n <- d[, .(n_events = as.double(stats::median(n_events, na.rm = TRUE))),
+             keyby = c(grp, "type")]
+
+      setkey(d, "type")
+      d <- d[, safe_fquantile_byid(value, prbl, id = as.character(type)),
+             keyby = eval(grp)]
+      setnames(d, c(grp, "type", scales::percent(prbl, prefix = "le_mean_")))
+      # `n_events` does not exist in `d` yet, so this `:=` creates the whole
+      # column from the RHS rather than coercing into an existing integer one
+      # (see .promote_integer_measures() for why that distinction matters).
+      d[n, on = c(grp, "type"), n_events := i.n_events]
+      setkeyv(d, c(grp, "type"))
+      setcolorder(d)
+
+      fnam <- if (pop_name == "ons") {
+        paste0("life expectancy by ", cfg$suffix, " (not standardised).csv")
+      } else {
+        paste0("life expectancy by ", cfg$suffix, " (", cfg$std,
+               " standardised).csv")
+      }
+      fwrite(d, file.path(tables_dir, fnam))
+      rm(d, n)
+    }
+    rm(tt)
+    gc(verbose = FALSE)
+  }
+
+  invisible(NULL)
+})
+
+
+# promote_xps_year ----
+# The `xps/` datasets carry FULL years (export_xps() adds 2000 before writing),
+# unlike `summaries/`, whose readers all do `year := year + 2000L`. This exists
+# so that difference is stated in one place and cannot be re-introduced by
+# copying a load site from another family.
+#
+# Defensive rather than a no-op: if a dataset ever arrives in short form it is
+# promoted, so a mixed tree cannot publish two different year conventions. The
+# cut is at 200 -- short years run 0..99ish, full ones are 4-digit.
+promote_xps_year <- function(dt) {
+  if (!"year" %chin% names(dt)) return(invisible(FALSE))
+  if (max(dt$year, na.rm = TRUE) < 200L) {
+    dt[, year := year + 2000L]
+    return(invisible(TRUE))
+  }
+  invisible(FALSE)
+}
+
+
+# skip_missing_strata ----
+# TRUE if this stratification can be built from `dt`, FALSE (with a warning)
+# if it names a column the dataset does not have.
+#
+# The `xps_*` strata are exempt from check_strata_columns() -- those datasets
+# are not built from `summaries/`, so the parent has nothing to check them
+# against -- which left one gap: the ESP dataset (xps5) drops `agegrp20`, so
+# naming it in `strata$xps_esp` reached `keyby` and raised
+# `object 'agegrp20' not found` from inside a forked worker, after the whole
+# dataset had been read. Warn and skip just that stratification instead, the
+# same answer the equity family gives for a stratum it cannot supply.
+skip_missing_strata <- function(cfg, dt, where) {
+  miss <- setdiff(setdiff(cfg$strata, "mc"), names(dt))
+  if (!length(miss)) return(TRUE)
+  warning("'", where, "' has no column(s) ",
+          paste(sQuote(miss), collapse = ", "),
+          "; skipping the '", cfg$suffix, "' stratification. ",
+          "The ESP exposure dataset is age-standardised and carries no ",
+          "`agegrp20`, so it cannot be stratified by it.", call. = FALSE)
+  FALSE
+}
+
+
 # export_xps_tables ----
 # Generate exposure summary tables
 # Memory-optimized: adds cleanup between sections
@@ -3152,11 +3409,24 @@ Simulation$set("private", "export_xps_tables", function(
       filter_expr <- if (length(filter_parts) > 0) parse(text = filter_str)[[1]] else quote(TRUE)
 
       if (standardised) {
-        # Determine what was standardised by: all filterable vars not in the strata
-        # Convert agegrp20 to age for standardisation naming
-        s_for_std <- gsub("agegrp20", "age", s)
-        all_std_vars <- gsub("agegrp20", "age", filterable_vars)
-        standardised_vars <- setdiff(all_std_vars, s_for_std)
+        # What the ESP weights standardised over.
+        #
+        # `age` is STATED, not derived. This dataset (xps5) has no age axis at
+        # all -- it is built by dropping `agegrp20` and weighting by `wt_esp`
+        # -- so age is always standardised over and can never be one of `s`.
+        # Deriving it with a setdiff against `s` would imply otherwise, and a
+        # stray `agegrp20` in `strata$xps_esp` then removed it, labelling an
+        # age-standardised table `(sex-qimd standardised)`. Leaving it out of
+        # the vocabulary entirely was the original defect: it understated every
+        # ESP filename and left the fully-stratified one as `( standardised)`,
+        # naming nothing.
+        #
+        # The remaining axes ARE derived, because they genuinely can be strata:
+        # whichever filterable column the caller did not stratify by was
+        # averaged over. The main families spell the result the same way:
+        # `... (age-sex-dimd standardised).csv`.
+        other_axes <- setdiff(filterable_vars, c("age", "agegrp20"))
+        standardised_vars <- c("age", setdiff(other_axes, s))
         std_suffix <- paste(standardised_vars, collapse = "-")
         list(strata = outstrata, suffix = suffix, filter_expr = filter_expr, std = std_suffix)
       } else {
@@ -3166,10 +3436,23 @@ Simulation$set("private", "export_xps_tables", function(
   }
 
   # Helper to detect filterable vars: columns with "All" values from groupingsets
+  #
+  # is.factor() as well as is.character(): `export_xps()` writes these datasets
+  # as parquet, and `read_parquet_dt()` brings the strata columns back as
+  # DICTIONARY-encoded factors, not character. Testing only is.character() made
+  # this return nothing, with three consequences, all silent:
+  #   * `filter_expr` fell back to quote(TRUE), so every stratification's file
+  #     got the WHOLE dataset -- the year-only marginal rows averaged together
+  #     with the agegrp20 x sex x qimd cells, i.e. a mean of means rather than
+  #     the marginal;
+  #   * files were written for stratifications the data does not support
+  #     (`... by year-agegroup ...` containing `agegrp20 = "All"`);
+  #   * `standardised_vars` came out empty, naming files `( standardised)`.
   detect_filterable_vars <- function(dt) {
     candidates <- setdiff(names(dt), c("mc", "scenario", "year"))
     candidates[vapply(candidates, function(v) {
-      is.character(dt[[v]]) && "All" %in% dt[[v]]
+      x <- dt[[v]]
+      (is.character(x) || is.factor(x)) && "All" %chin% as.character(unique(x))
     }, logical(1))]
   }
 
@@ -3177,8 +3460,11 @@ Simulation$set("private", "export_xps_tables", function(
   xps_path <- file.path(output_dir, "xps", "xps20")
   if (dir.exists(xps_path)) {
     xps_tab <- CKutils::read_parquet_dt(xps_path)
-    # Convert year from short format (19) to full format (2019)
-    xps_tab[, year := year + 2000L]
+    # NOT `year + 2000L`. Unlike everything under `summaries/`, these datasets
+    # are written by `export_xps()`, which already promotes the year to full
+    # form before writing. Adding 2000 again published every exposure table
+    # with years 4013-4043.
+    promote_xps_year(xps_tab)
 
     # Identify exposure columns: _curr_xps columns plus any extra from exposures_for_output
     xps_cols <- grep("_curr_xps$", names(xps_tab), value = TRUE)
@@ -3194,6 +3480,7 @@ Simulation$set("private", "export_xps_tables", function(
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
+      if (!skip_missing_strata(cfg, xps_tab, basename(xps_path))) next
       d <- xps_tab[eval(cfg$filter_expr)]
       if (nrow(d) == 0) next
       d <- d[, lapply(.SD, mean), .SDcols = xps_cols, keyby = eval(outstrata)]
@@ -3215,8 +3502,11 @@ Simulation$set("private", "export_xps_tables", function(
   xps_path <- file.path(output_dir, "xps", "xps5")
   if (dir.exists(xps_path)) {
     xps_tab <- CKutils::read_parquet_dt(xps_path)
-    # Convert year from short format (19) to full format (2019)
-    xps_tab[, year := year + 2000L]
+    # NOT `year + 2000L`. Unlike everything under `summaries/`, these datasets
+    # are written by `export_xps()`, which already promotes the year to full
+    # form before writing. Adding 2000 again published every exposure table
+    # with years 4013-4043.
+    promote_xps_year(xps_tab)
 
     # Identify exposure columns: _curr_xps columns plus any extra from exposures_for_output
     xps_cols <- grep("_curr_xps$", names(xps_tab), value = TRUE)
@@ -3232,6 +3522,7 @@ Simulation$set("private", "export_xps_tables", function(
 
     for (cfg in strata_configs) {
       outstrata <- cfg$strata
+      if (!skip_missing_strata(cfg, xps_tab, basename(xps_path))) next
       d <- xps_tab[eval(cfg$filter_expr)]
       if (nrow(d) == 0) next
       d <- d[, lapply(.SD, mean), .SDcols = xps_cols, keyby = eval(outstrata)]
@@ -3246,6 +3537,74 @@ Simulation$set("private", "export_xps_tables", function(
       rm(d)  # Cleanup after each output
     }
     rm(xps_tab)  # Final cleanup
+  }
+
+  # ---- Exposure quantiles (xps20_qnt / xps5_qnt) ----
+  # Present only when the run had `export_xps_quantiles: yes`; a missing
+  # directory is the normal case and is skipped in silence, exactly as the two
+  # sections above skip a missing xps20 / xps5.
+  #
+  # These files have TWO levels of percentage and they mean different things:
+  #   * the `prob` COLUMN is a quantile of the exposure distribution across
+  #     simulants -- prob = 0.9 is the 90th centile of, say, BMI;
+  #   * the `xps_qnt_*` COLUMN NAMES are Monte Carlo uncertainty on that
+  #     quantile, the same percentiles `prbl` puts on every other table.
+  # So `xps_qnt_2.5%` in the `prob = 0.9` row is the lower credible bound of
+  # the 90th centile of the exposure. Reading the column names as exposure
+  # centiles is the mistake to avoid.
+  for (qsec in list(
+    list(sub = "xps20_qnt", strata = strata_ons, standardised = FALSE),
+    list(sub = "xps5_qnt", strata = strata_esp, standardised = TRUE)
+  )) {
+    xps_path <- file.path(output_dir, "xps", qsec$sub)
+    if (!dir.exists(xps_path)) next
+    xps_tab <- CKutils::read_parquet_dt(xps_path)
+    if (!all(c("xps", "prob", "value") %chin% names(xps_tab))) {
+      warning("'", qsec$sub, "' does not look like an exposure-quantile ",
+              "dataset (expected columns xps, prob, value); skipping it.",
+              call. = FALSE)
+      rm(xps_tab)
+      next
+    }
+    # Already promoted by export_xps() -- see the note in the means sections.
+    promote_xps_year(xps_tab)
+
+    # `xps` is a character column but never holds the literal "All", so the
+    # same detector used above picks out exactly the strata columns.
+    filt_vars <- detect_filterable_vars(xps_tab)
+    strata_configs <- make_xps_strata_configs(
+      qsec$strata, filt_vars, standardised = qsec$standardised
+    )
+
+    for (cfg in strata_configs) {
+      outstrata <- cfg$strata
+      if (!skip_missing_strata(cfg, xps_tab, qsec$sub)) next
+      d <- xps_tab[eval(cfg$filter_expr)]
+      if (nrow(d) == 0L) next
+      # Average the per-chunk quantiles within an mc iteration, mirroring the
+      # `lapply(.SD, mean)` the mean sections use to combine chunks. Chunks are
+      # independent draws of the same design, so this is the pooling step, not
+      # a cross-stratum aggregation -- which for quantiles would be wrong.
+      d <- d[, .(value = mean(value, na.rm = TRUE)),
+             keyby = c(outstrata, "xps", "prob")]
+      setkey(d, "xps")
+      d <- d[, safe_fquantile_byid(value, prbl, id = as.character(xps)),
+             keyby = eval(c(setdiff(outstrata, "mc"), "prob"))]
+      setnames(d, c(setdiff(outstrata, "mc"), "prob", "exposure",
+                    scales::percent(prbl, prefix = "xps_qnt_")))
+      setkeyv(d, c(setdiff(outstrata, "mc"), "exposure", "prob"))
+      setcolorder(d)
+      fnam <- if (qsec$standardised) {
+        paste0("exposure quantiles by ", cfg$suffix, " (", cfg$std,
+               " standardised).csv")
+      } else {
+        paste0("exposure quantiles by ", cfg$suffix, " (not standardised).csv")
+      }
+      fwrite(d, file.path(tables_dir, fnam))
+      rm(d)
+    }
+    rm(xps_tab)
+    gc(verbose = FALSE)
   }
 
   invisible(NULL)

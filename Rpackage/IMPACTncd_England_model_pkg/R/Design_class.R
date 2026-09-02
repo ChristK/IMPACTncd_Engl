@@ -85,6 +85,21 @@ Design <-
       #'     \item `clusternumber_export`: Integer. Number of CPU cores/clusters to use for exporting summaries.
       #'     \item `logs`: Logical. If TRUE, enables verbose logging of simulation progress.
       #'     \item `export_xps`: Logical. If TRUE, exports cross-sectional population states (xps) to disk.
+      #'     \item `export_xps_quantiles`: Logical, optional (default `FALSE`).
+      #'       If TRUE, `export_xps()` additionally writes weighted quantiles of
+      #'       every exposure (`xps20_qnt` / `xps5_qnt`), so exposure
+      #'       *distributions* -- not just their means -- can be compared across
+      #'       scenarios. Roughly a 6x increase in `export_xps()` cost, paid once
+      #'       per mc chunk per scenario.
+      #'     \item `xps_quantile_probs`: Numeric vector in (0, 1), optional
+      #'       (default `c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)`). The
+      #'       quantiles written when `export_xps_quantiles` is TRUE.
+      #'     \item `xps_quantile_strata`: List of character vectors, optional
+      #'       (default `list("year", c("year", "qimd"))`). Which
+      #'       stratifications get quantiles -- fewer than the means use,
+      #'       because the cost is ~linear in their number. Every entry must
+      #'       include `"year"`, and may name only variables the exposure output
+      #'       carries (`agegrp20`, `sex`, `qimd` -- not `agegrp`/`dimd`).
       #'     \item `export_PARF`: Logical. If TRUE, exports Population Attributable Risk Fraction (PARF) files.
       #'     \item `n`: Integer. Size of the synthetic population to generate or simulate.
       #'     \item `num_chunks`: Integer. Number of chunks to split the simulation into for memory management.
@@ -216,6 +231,91 @@ Design <-
         sim_prm$init_year <- as.integer(sim_prm$init_year_long - 2000L)
 
         # Default values
+        # Optional, and absent from every YAML written before they existed, so
+        # they are defaulted here rather than added to `required_params` --
+        # otherwise an existing sim_design.yaml would stop loading.
+        #
+        # `export_xps_quantiles` is off by default because it is not free:
+        # export_xps() runs once per mc chunk per scenario. Measured end to
+        # end at the stock England shape (n = 100,000 over 31 years, 18
+        # exposure columns), the means alone cost 8.6 s per call and the
+        # quantiles add 4.7 s on the default `xps_quantile_strata`. Turn it on
+        # when you need the exposure *distributions* rather than their means
+        # -- e.g. to show how a scenario shifts the whole distribution, which
+        # a mean cannot express.
+        if (is.null(sim_prm$export_xps_quantiles)) {
+          sim_prm$export_xps_quantiles <- FALSE
+        }
+        if (is.null(sim_prm$xps_quantile_probs)) {
+          sim_prm$xps_quantile_probs <- c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
+        }
+        sim_prm$xps_quantile_probs <- sort(unique(as.numeric(
+          sim_prm$xps_quantile_probs
+        )))
+        if (
+          length(sim_prm$xps_quantile_probs) == 0L ||
+            anyNA(sim_prm$xps_quantile_probs) ||
+            any(sim_prm$xps_quantile_probs <= 0) ||
+            any(sim_prm$xps_quantile_probs >= 1)
+        ) {
+          stop(
+            "`xps_quantile_probs` must be a non-empty numeric vector with every ",
+            "element strictly between 0 and 1; got: ",
+            paste(sim_prm$xps_quantile_probs, collapse = ", ")
+          )
+        }
+
+        # Which stratifications get quantiles. Deliberately NOT the same list
+        # the means use: cost is ~linear in the number of stratifications
+        # times the number of columns, so the 8 the means need is what made
+        # the quantiles expensive (+17.9 s per export_xps() call, against
+        # +4.7 s on the default below). The default answers the question the
+        # quantiles are for -- how does the scenario shift the distribution,
+        # overall and across deprivation. Add stratifications when you need
+        # them, knowing each costs roughly another 2-3 s per call.
+        xps_vocab <- c("year", xps_strata_from_output(sim_prm$strata_for_output))
+        if (is.null(sim_prm$xps_quantile_strata)) {
+          # A DEFAULT must never be able to fail. A design whose
+          # `strata_for_output` omits `dimd` has no `qimd` to group by, so the
+          # default degrades to what is available rather than erroring on a
+          # value the user never wrote. (export_xps() applies the same
+          # intersection per population, since xps5 has no `agegrp20`.)
+          sim_prm$xps_quantile_strata <- lapply(
+            list("year", c("year", "qimd")),
+            function(e) intersect(e, xps_vocab)
+          )
+        } else {
+          # A value the USER wrote is validated strictly, and HERE in the
+          # parent, for the same reason as export_tables()'s strata checks: a
+          # typo must not surface from inside a forked worker after a scenario
+          # has already run.
+          sim_prm$xps_quantile_strata <- lapply(
+            sim_prm$xps_quantile_strata,
+            function(e) unique(as.character(unlist(e)))
+          )
+          for (e in sim_prm$xps_quantile_strata) {
+            if (!length(e) || !("year" %in% e)) {
+              stop(
+                "every `xps_quantile_strata` entry must include \"year\"; got: ",
+                "c(", paste(sQuote(e), collapse = ", "), ")"
+              )
+            }
+            bad <- setdiff(e, xps_vocab)
+            if (length(bad)) {
+              stop(
+                "`xps_quantile_strata` names variable(s) the exposure output ",
+                "cannot supply: ", paste(sQuote(bad), collapse = ", "),
+                ". Available: ", paste(sQuote(xps_vocab), collapse = ", "),
+                ". Note the exposure tables use `agegrp20` and `qimd`, not ",
+                "`agegrp`/`dimd` (see xps_strata_from_output())."
+              )
+            }
+          }
+        }
+        sim_prm$xps_quantile_strata <- unique(Filter(
+          length,
+          sim_prm$xps_quantile_strata
+        ))
         sim_prm$national_qimd <- TRUE
         sim_prm$init_year_fromGUI <- sim_prm$init_year
         sim_prm$sim_horizon_fromGUI <- sim_prm$sim_horizon_max

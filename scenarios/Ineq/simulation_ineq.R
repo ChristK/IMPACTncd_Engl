@@ -17,23 +17,50 @@ run(1:n_runs, multicore = TRUE, "sc0")
 #LUP Leveling-up: Only the most deprived (Q4 & Q5) improve to Q3
 
 #3 types for each scenarios
-# sc1 All modeled exposures (incl. exposure history)	    //named Modeled 
-# CAN NOT BE DONE FOR NOW sc2 Disaggregate modeled exposures	
+# sc1 All modelled exposures (incl. exposure history)	    //named Modelled 
+# CAN NOT BE DONE FOR NOW sc2 Disaggregate modelled exposures	
 #change only the main behaviors ones for disagg? like smoking, PA, alcohol, diet (but diet will not be perfect because incomplete)
-# sc3 Including non-modeled exposures (incl. prevalence)	//named Non-Modeled 
+# sc3 Including non-modelled exposures (incl. prevalence)	//named Non-Modelled 
 
 #####NOTE
 #MG can be removed because of health foundation don't need that anymore
 #CHANGE PAST SCENARIO JUST CREATED NEED TO RUN TO TEST IF WORKING so need to do the same scenarios, where we put sc_year <- 0L
-#NEED TO CREATE THE SCENARIO WERE WE DECOMPOSE EACH DISAGGREGATE MODELED EXPOSURES. need to check with Chris why/how
+#NEED TO CREATE THE SCENARIO WERE WE DECOMPOSE EACH DISAGGREGATE MODELLED EXPOSURES. need to check with Chris why/how
 # chris need to add a line for prevalence change for change in history scenarios for sc3
 ##need to choose dimd or qimd. Chris says qimd because it's how exposures are defined and therefore when dimd
 #fall in between, we split as 50%/50% as we did
 
 
+# The Modelled / Non-Modelled distinction ----
+#
+# Both arms rewrite dimd AND qimd. The two variables drive different halves
+# of the model:
+#
+#   qimd  keys every exposure distribution table and the whole smoking
+#         sub-model (simsmok), so rewriting it regenerates each simulant's
+#         risk factors from the target quintile. This is the MODELLED
+#         channel and is active in both arms.
+#
+#   dimd  keys the cached PARF table, whose p0 (background "unexposed"
+#         incidence) and m0 (background disease mortality) carry the
+#         OBSERVED, decile-specific rates -- i.e. the part of the
+#         deprivation gradient the modelled risk factors do not explain.
+#         Whether that moves too is the NON-MODELLED channel.
+#
+# Which channel a scenario acts on is now stated explicitly:
+#
+#   update_primary_prevention_scn(fn)                                # Modelled
+#   update_primary_prevention_scn(fn, parf_deprivation = "scenario") # Non-Modelled
+#
+# It used to be implied by whether the scenario called gen_parf() itself
+# after rewriting dimd. That stopped working when the framework began
+# calling gen_parf() after every scenario (commit adbf762, 2026-04-28): the
+# manual call became redundant, both arms silently became the Non-Modelled
+# arm, and they published identical results.
+#
 # FUTURE ----
 # Everyone moves to the lowest deprivation quintile FUTURE ----
-## Modeled ----
+## Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
@@ -564,9 +591,9 @@ IMPACTncd$update_primary_prevention_scn(
   }
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "PW_Modeled_future_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "PW_Modelled_future_scn")
 
-## Non-Modeled ----
+## Non-Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
@@ -574,10 +601,6 @@ IMPACTncd$update_primary_prevention_scn(
       year >= sc_year,
       `:=`(dimd = "10 least deprived", qimd = "5 least deprived")
     ]
-
-        lapply(self$design$diseases, function(x) {
-          x$gen_parf(sp, self$design, self$design$diseases)
-        })
 
     # first delete existing columns to avoid confusion
     xps_nam <- c(
@@ -1098,14 +1121,21 @@ IMPACTncd$update_primary_prevention_scn(
     }
 
     setnames(sp$pop, xps_nam, c(paste0(xps_nam, "_curr_xps")))
-  }
+  },
+  # Transfer the NON-MODELLED part of the deprivation gradient as well as
+  # the modelled exposures: the cached PARF table (p0 = background
+  # incidence, m0 = background disease mortality, both keyed on dimd) is
+  # joined at the decile this scenario forced, not at the simulant's
+  # original one. This is what makes it the "Non-Modelled" arm. The Modelled
+  # arm above leaves it at the default, "original".
+  parf_deprivation = "scenario"
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "PW_Non_Modeled_future_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "PW_Non_Modelled_future_scn")
 
 
 # Everyone moves to the average deprivation quintile FUTURE ----
-## Modeled ----
+## Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
@@ -1640,9 +1670,9 @@ IMPACTncd$update_primary_prevention_scn(
   }
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_Modeled_future_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_Modelled_future_scn")
 
-## Non-Modeled ----
+## Non-Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
@@ -1654,10 +1684,6 @@ IMPACTncd$update_primary_prevention_scn(
       year >= sc_year & rbinom(.N, 1, 0.5) == 1L,
       `:=`(dimd = "5")
     ]
-
-    lapply(self$design$diseases, function(x) {
-      x$gen_parf(sp, self$design, self$design$diseases)
-    })
 
     # first delete existing columns to avoid confusion
     xps_nam <- c(
@@ -2178,15 +2204,22 @@ IMPACTncd$update_primary_prevention_scn(
     }
 
     setnames(sp$pop, xps_nam, c(paste0(xps_nam, "_curr_xps")))
-  }
+  },
+  # Transfer the NON-MODELLED part of the deprivation gradient as well as
+  # the modelled exposures: the cached PARF table (p0 = background
+  # incidence, m0 = background disease mortality, both keyed on dimd) is
+  # joined at the decile this scenario forced, not at the simulant's
+  # original one. This is what makes it the "Non-Modelled" arm. The Modelled
+  # arm above leaves it at the default, "original".
+  parf_deprivation = "scenario"
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_Non_Modeled_future_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_Non_Modelled_future_scn")
 
 
 
 # Everyone moved toward the middle quintiles SENSI FUTURE ----
-## Modeled ----
+## Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
@@ -2736,9 +2769,9 @@ IMPACTncd$update_primary_prevention_scn(
   }
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Modeled_future_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Modelled_future_scn")
 
-## Non-Modeled ----
+## Non-Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
@@ -2766,10 +2799,6 @@ IMPACTncd$update_primary_prevention_scn(
       )
     ]
     
-    lapply(self$design$diseases, function(x) {
-      x$gen_parf(sp, self$design, self$design$diseases)
-    })
-
     # first delete existing columns to avoid confusion
     xps_nam <- c(
       "active_days",
@@ -3289,14 +3318,21 @@ IMPACTncd$update_primary_prevention_scn(
     }
 
     setnames(sp$pop, xps_nam, c(paste0(xps_nam, "_curr_xps")))
-  }
+  },
+  # Transfer the NON-MODELLED part of the deprivation gradient as well as
+  # the modelled exposures: the cached PARF table (p0 = background
+  # incidence, m0 = background disease mortality, both keyed on dimd) is
+  # joined at the decile this scenario forced, not at the simulant's
+  # original one. This is what makes it the "Non-Modelled" arm. The Modelled
+  # arm above leaves it at the default, "original".
+  parf_deprivation = "scenario"
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Non_Modeled_future_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Non_Modelled_future_scn")
 
 
 # The most deprived (Q4 & Q5) improve to Q3 FUTURE ----
-## Modeled ----
+## Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
@@ -3831,9 +3867,9 @@ IMPACTncd$update_primary_prevention_scn(
   }
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Modeled_future_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Modelled_future_scn")
 
-## Non-Modeled ----
+## Non-Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
@@ -3845,10 +3881,6 @@ IMPACTncd$update_primary_prevention_scn(
       year >= sc_year & rbinom(.N, 1, 0.5) == 1L & qimd %in% c("1 most deprived","2"), #TODO CHECK CHRIS IF THAT CONDITION IS ENOUGH OR NEED DIMD ALSO
       `:=`(dimd = "5")
     ]
-
-    lapply(self$design$diseases, function(x) {
-      x$gen_parf(sp, self$design, self$design$diseases)
-    })
 
     # first delete existing columns to avoid confusion
     xps_nam <- c(
@@ -4369,14 +4401,21 @@ IMPACTncd$update_primary_prevention_scn(
     }
 
     setnames(sp$pop, xps_nam, c(paste0(xps_nam, "_curr_xps")))
-  }
+  },
+  # Transfer the NON-MODELLED part of the deprivation gradient as well as
+  # the modelled exposures: the cached PARF table (p0 = background
+  # incidence, m0 = background disease mortality, both keyed on dimd) is
+  # joined at the decile this scenario forced, not at the simulant's
+  # original one. This is what makes it the "Non-Modelled" arm. The Modelled
+  # arm above leaves it at the default, "original".
+  parf_deprivation = "scenario"
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Non_Modeled_future_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Non_Modelled_future_scn")
 
 # PAST+FUTURE ----
 # Everyone moves to the lowest deprivation quintile ----
-## Modeled ----
+## Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 0L
@@ -4907,9 +4946,9 @@ IMPACTncd$update_primary_prevention_scn(
   }
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "PW_Modeled_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "PW_Modelled_scn")
 
-## Non-Modeled ----
+## Non-Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 0L
@@ -4917,10 +4956,6 @@ IMPACTncd$update_primary_prevention_scn(
       year >= sc_year,
       `:=`(dimd = "10 least deprived", qimd = "5 least deprived")
     ]
-    
-    lapply(self$design$diseases, function(x) {
-      x$gen_parf(sp, self$design, self$design$diseases)
-    })
     
     # first delete existing columns to avoid confusion
     xps_nam <- c(
@@ -5441,14 +5476,21 @@ IMPACTncd$update_primary_prevention_scn(
     }
     
     setnames(sp$pop, xps_nam, c(paste0(xps_nam, "_curr_xps")))
-  }
+  },
+  # Transfer the NON-MODELLED part of the deprivation gradient as well as
+  # the modelled exposures: the cached PARF table (p0 = background
+  # incidence, m0 = background disease mortality, both keyed on dimd) is
+  # joined at the decile this scenario forced, not at the simulant's
+  # original one. This is what makes it the "Non-Modelled" arm. The Modelled
+  # arm above leaves it at the default, "original".
+  parf_deprivation = "scenario"
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "PW_Non_Modeled_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "PW_Non_Modelled_scn")
 
 
 # Everyone moves to the average deprivation quintile ----
-## Modeled ----
+## Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 0L
@@ -5983,9 +6025,9 @@ IMPACTncd$update_primary_prevention_scn(
   }
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_Modeled_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_Modelled_scn")
 
-## Non-Modeled ----
+## Non-Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 0L
@@ -5997,10 +6039,6 @@ IMPACTncd$update_primary_prevention_scn(
       year >= sc_year & rbinom(.N, 1, 0.5) == 1L,
       `:=`(dimd = "5")
     ]
-    
-    lapply(self$design$diseases, function(x) {
-      x$gen_parf(sp, self$design, self$design$diseases)
-    })
     
     # first delete existing columns to avoid confusion
     xps_nam <- c(
@@ -6521,15 +6559,22 @@ IMPACTncd$update_primary_prevention_scn(
     }
     
     setnames(sp$pop, xps_nam, c(paste0(xps_nam, "_curr_xps")))
-  }
+  },
+  # Transfer the NON-MODELLED part of the deprivation gradient as well as
+  # the modelled exposures: the cached PARF table (p0 = background
+  # incidence, m0 = background disease mortality, both keyed on dimd) is
+  # joined at the decile this scenario forced, not at the simulant's
+  # original one. This is what makes it the "Non-modelled" arm. The modelled
+  # arm above leaves it at the default, "original".
+  parf_deprivation = "scenario"
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_Non_Modeled_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_Non_Modelled_scn")
 
 
 
 # Everyone moved toward the middle quintiles SENSI  ----
-## Modeled ----
+## Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 0L
@@ -7079,9 +7124,9 @@ IMPACTncd$update_primary_prevention_scn(
   }
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Modeled_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Modelled_scn")
 
-## Non-Modeled ----
+## Non-Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 0L
@@ -7108,10 +7153,6 @@ IMPACTncd$update_primary_prevention_scn(
         dimd == "6", "6"
       )
     ]
-    lapply(self$design$diseases, function(x) {
-      x$gen_parf(sp, self$design, self$design$diseases)
-    })
-    
     # first delete existing columns to avoid confusion
     xps_nam <- c(
       "active_days",
@@ -7631,14 +7672,21 @@ IMPACTncd$update_primary_prevention_scn(
     }
     
     setnames(sp$pop, xps_nam, c(paste0(xps_nam, "_curr_xps")))
-  }
+  },
+  # Transfer the NON-MODELLED part of the deprivation gradient as well as
+  # the modelled exposures: the cached PARF table (p0 = background
+  # incidence, m0 = background disease mortality, both keyed on dimd) is
+  # joined at the decile this scenario forced, not at the simulant's
+  # original one. This is what makes it the "Non-Modelled" arm. The Modelled
+  # arm above leaves it at the default, "original".
+  parf_deprivation = "scenario"
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Non_Modeled_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Non_Modelled_scn")
 
 
 # The most deprived (Q4 & Q5) improve to Q3 ----
-## Modeled ----
+## Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 0L
@@ -8177,9 +8225,9 @@ IMPACTncd$update_primary_prevention_scn(
   }
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Modeled_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Modelled_scn")
 
-## Non-Modeled ----
+## Non-Modelled ----
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 0L
@@ -8195,10 +8243,6 @@ IMPACTncd$update_primary_prevention_scn(
       year >= sc_year & qimd %in% c("1 most deprived","2"), 
       `:=`(qimd = "3")
     ]
-    
-    lapply(self$design$diseases, function(x) {
-      x$gen_parf(sp, self$design, self$design$diseases)
-    })
     
     # first delete existing columns to avoid confusion
     xps_nam <- c(
@@ -8719,10 +8763,17 @@ IMPACTncd$update_primary_prevention_scn(
     }
     
     setnames(sp$pop, xps_nam, c(paste0(xps_nam, "_curr_xps")))
-  }
+  },
+  # Transfer the NON-MODELLED part of the deprivation gradient as well as
+  # the modelled exposures: the cached PARF table (p0 = background
+  # incidence, m0 = background disease mortality, both keyed on dimd) is
+  # joined at the decile this scenario forced, not at the simulant's
+  # original one. This is what makes it the "Non-Modelled" arm. The Modelled
+  # arm above leaves it at the default, "original".
+  parf_deprivation = "scenario"
 )
 
-IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Non_Modeled_scn")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Non_Modelled_scn")
 
 IMPACTncd$export_summaries(multicore = TRUE)
 

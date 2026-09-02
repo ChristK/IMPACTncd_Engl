@@ -533,3 +533,172 @@ output_dir <- function(x = "") {
   file.path(design$sim_prm$output_dir, x)
 }
 
+
+# weighted_quantile ----
+#' Weighted empirical quantiles
+#'
+#' @description
+#' Quantiles of `x` under the sampling weights `w`, i.e. quantiles of the
+#' population `x` represents rather than of the simulated sample. Used by
+#' `Simulation$export_xps()` to describe exposure *distributions* alongside
+#' their weighted means, so a scenario that shifts a whole distribution can be
+#' told apart from one that merely moves its mean.
+#'
+#' @param x Numeric vector of values.
+#' @param w Numeric vector of non-negative weights, the same length as `x`.
+#' @param probs Numeric vector of probabilities, each strictly between 0 and 1.
+#'
+#' @details
+#' This is the **inverse-CDF (lower) quantile**: the smallest observed `x`
+#' whose cumulative weight reaches `p`. No interpolation is done, deliberately
+#' -- several model exposures are discrete (`active_days` is 0-7, smoking
+#' status is a small set of levels, `smok_packyrs` is integer-valued), and
+#' interpolating between adjacent observations would publish values the
+#' variable cannot take. For a continuous exposure with many simulants per
+#' stratum the difference from an interpolating definition is far below the
+#' Monte Carlo noise.
+#'
+#' Elements with a missing value, a missing weight or a non-positive weight are
+#' dropped; if nothing is left, `NA_real_` is returned for every probability.
+#'
+#' **Not additive.** Unlike a weighted mean or a count, quantiles cannot be
+#' combined: the median of two strata is not a function of their medians, and
+#' averaging per-iteration quantiles across Monte Carlo iterations does not give
+#' the quantile of the pooled draw. Summarise them across iterations the way the
+#' table exports do (percentiles of the per-iteration values), and read each
+#' stratum on its own.
+#'
+#' @return A numeric vector the same length as `probs`.
+#'
+#' @examples
+#' # With equal weights this agrees with the type-1 (inverse CDF) definition
+#' x <- c(1, 2, 3, 4, 5)
+#' weighted_quantile(x, rep(1, 5), c(0.25, 0.5, 0.75))
+#' stats::quantile(x, c(0.25, 0.5, 0.75), type = 1, names = FALSE)
+#'
+#' # Weighting shifts the median toward the heavily-weighted values
+#' weighted_quantile(x, c(1, 1, 1, 50, 50), 0.5)
+#'
+#' @export
+weighted_quantile <- function(x, w, probs) {
+  wsel <- !is.na(w) & w > 0
+  if (all(wsel)) {
+    wsel <- NULL
+    W <- sum(w)
+  } else {
+    W <- sum(w[wsel])
+  }
+  .weighted_quantile_pre(x, w, wsel, W, probs)
+}
+
+
+# .weighted_quantile_pre ----
+# weighted_quantile() with the weight cleaning already done by the caller.
+#
+# The single implementation of the quantile itself; weighted_quantile() is a
+# thin wrapper that computes `wsel`/`W` and delegates here, so there is no
+# second copy of the definition to drift.
+#
+# It exists because export_xps() calls this once per exposure per group -- ~30
+# times over the SAME weight vector. Recomputing `!is.na(w) & w > 0`,
+# re-subsetting `w` and re-summing it 30 times was ~20% of the quantile cost.
+# The caller hoists that out of its per-exposure loop and passes the result:
+#
+#   wsel  NULL when every weight is usable (the common case, no subsetting at
+#         all), otherwise the logical mask.
+#   W     sum of the usable weights. Recomputed here only if `x` has NAs, since
+#         then the usable rows are a subset of the ones `W` was summed over.
+#
+# @noRd
+.weighted_quantile_pre <- function(x, w, wsel, W, probs) {
+  if (!is.null(wsel)) {
+    x <- x[wsel]
+    w <- w[wsel]
+  }
+  if (anyNA(x)) {
+    ok <- !is.na(x)
+    x <- x[ok]
+    w <- w[ok]
+    W <- sum(w)
+  }
+  if (!length(x)) return(rep(NA_real_, length(probs)))
+  x <- as.double(x)
+  # method = "radix" explicitly: order()'s "auto" picks radix for doubles
+  # anyway, but saying so avoids the dispatch on every one of these calls.
+  o <- order(x, method = "radix")
+  xs <- x[o]
+  cw <- cumsum(as.double(w[o]))
+  # findInterval(..., left.open = TRUE) counts the cumulative weights strictly
+  # below p, so +1 lands on the first one that reaches it. pmin() guards the
+  # top end against floating-point drift in cw[.N] / sum(w).
+  xs[pmin(
+    findInterval(probs * W, cw, left.open = TRUE) + 1L,
+    length(xs)
+  )]
+}
+
+# with_original_dimd ----
+# Evaluate `expr` with `pop$dimd` temporarily reset to the pre-scenario
+# deprivation snapshotted in `pop$dimd_orig`, restoring the scenario's `dimd`
+# on the way out (including on error, via on.exit).
+#
+# WHY THIS EXISTS
+# ---------------
+# `Disease$gen_parf()` recomputes nothing from the scenario's exposures. It
+# reads the cached PARF table from `simulation/parf/` and joins it onto
+# `sp$pop` with `on = .NATURAL` -- and `dimd` is one of those natural keys. The
+# payload is
+#     p0 = mu       * (1 - parf)          background ("unexposed") incidence
+#     m0 = mu_mrtl  * (1 - parf_mrtl)     background disease mortality
+# where `mu` is the OBSERVED, decile-specific rate. So p0/m0 carry the part of
+# the deprivation gradient the modelled risk factors do not explain, and which
+# decile's version a simulant receives is decided by the value of `dimd` at the
+# moment gen_parf() runs.
+#
+# gen_parf() runs AFTER the primary-prevention scenario (so that
+# `set_init_prvl()` sees the scenario world -- see run_sim()). A scenario that
+# rewrites `dimd` to model deprivation change would therefore hand every
+# simulant the target decile's background risk as an unavoidable side effect of
+# the call order, moving the non-modelled gradient whether or not that was
+# intended. The measured size of that side effect is large: for COPD the
+# most-deprived decile's p0 is ~2.6x the least-deprived's, and the residual
+# all-cause mortality m0 ~1.4x.
+#
+# Which of the two is wanted is a modelling choice, so it is stated by the
+# scenario (`update_primary_prevention_scn(fn, parf_deprivation = ...)`) and
+# applied here, rather than inferred from call order.
+#
+# The `dimd` axis is exactly the non-modelled channel: every exposure
+# distribution table and the whole smoking sub-model are keyed on `qimd`
+# instead, so a scenario that rewrites both keeps its modelled effect in full
+# under either setting.
+#
+# @param pop A data.table (`sp$pop`), modified by reference.
+# @param parf_deprivation `"original"` to swap, anything else to do nothing.
+# @param expr Expression evaluated with the chosen `dimd` in place.
+# @return `TRUE` if a swap happened, `FALSE` otherwise, invisibly.
+# @noRd
+with_original_dimd <- function(pop, parf_deprivation, expr) {
+  swapped <- identical(parf_deprivation, "original") &&
+    all(c("dimd", "dimd_orig") %chin% names(pop)) &&
+    !identical(pop[["dimd"]], pop[["dimd_orig"]])
+
+  if (swapped) {
+    # `dimd_scn` is deliberately a third column rather than a saved vector:
+    # `expr` may add or drop rows' worth of work but never reorders sp$pop, and
+    # keeping it in the table means the restore is a plain column swap that
+    # cannot silently mis-align.
+    data.table::set(pop, NULL, "dimd_scn", pop[["dimd"]])
+    data.table::set(pop, NULL, "dimd", pop[["dimd_orig"]])
+    on.exit(
+      {
+        data.table::set(pop, NULL, "dimd", pop[["dimd_scn"]])
+        data.table::set(pop, NULL, "dimd_scn", NULL)
+      },
+      add = TRUE
+    )
+  }
+
+  force(expr)
+  invisible(swapped)
+}

@@ -374,6 +374,7 @@ EQ-5D Scores for the United Kingdom." \emph{Medical Decision Making},
     \item \href{#method-Simulation-export_tables}{\code{Simulation$export_tables()}}
     \item \href{#method-Simulation-initialize}{\code{Simulation$new()}}
     \item \href{#method-Simulation-update_primary_prevention_scn}{\code{Simulation$update_primary_prevention_scn()}}
+    \item \href{#method-Simulation-get_parf_deprivation}{\code{Simulation$get_parf_deprivation()}}
     \item \href{#method-Simulation-get_primary_prevention_scn}{\code{Simulation$get_primary_prevention_scn()}}
     \item \href{#method-Simulation-update_secondary_prevention_scn}{\code{Simulation$update_secondary_prevention_scn()}}
     \item \href{#method-Simulation-get_secondary_prevention_scn}{\code{Simulation$get_secondary_prevention_scn()}}
@@ -579,7 +580,8 @@ silently falling back to a narrower one.
   discount_from_year = NULL,
   custom_costs_in_healthcare = NULL,
   equity = TRUE,
-  equity_ridit_reference = c("comparator", "scenario")
+  equity_ridit_reference = c("comparator", "scenario"),
+  life_expectancy = TRUE
 )}
     \if{html}{\out{</div>}}
   }
@@ -686,6 +688,8 @@ CMS). This summary carries no age axis in any mode.}
 \item{\code{xps_ons}, \code{xps_esp}}{exposure tables. These use \code{agegrp20}
 (20-year bands) and \code{qimd}, written by \verb{$export_xps()} during
 \verb{$run()}, so \code{agegrp} and \code{dimd} are unavailable here.}
+\item{\code{le_ons}, \code{le_esp}}{life expectancy / healthy life expectancy.
+Like \code{disease_char}, these summaries carry no age axis in any mode.}
 \item{\code{equity}}{equity slope-index tables. \code{dimd}/\code{qimd} mean something
 different here -- see the \code{equity} argument -- and the list is
 validated.}
@@ -694,14 +698,14 @@ validated.}
 The merge is \strong{by name}, and the whole element is replaced: a name you do
 not supply keeps its built-in default in full, and there is no coupling
 between the elements. Overriding \code{ons} alone therefore leaves the other
-seven families running on defaults -- which is deliberate, but means a
+nine families running on defaults -- which is deliberate, but means a
 change you intend globally has to be written out for every family it
 should reach.
 
 Two mistakes in \code{strata} are caught \strong{in the parent}, before any task is
 dispatched, because both otherwise surface as
 \verb{task N failed - "object 'x' not found"} from a forked worker minutes in:
-an element name that is not one of the eight (an unrecognised name would
+an element name that is not one of the ten (an unrecognised name would
 be ignored, silently leaving that family on its defaults -- \code{mrtl} for
 \code{mrtl_ons} is the classic), and a stratum the summaries cannot supply. The
 second check reads schemas only, applies the same \code{qimd}-from-\code{dimd} and
@@ -1020,6 +1024,23 @@ different axes. In this model DIMD deciles are structurally near-fixed --
 in the ONS projection input the decile shares of England aged 30-99 move at
 most 0.18 percentage points between 2019 and 2043 -- so the two options
 usually differ only slightly.}
+      \item{\code{life_expectancy}}{Logical, default \code{TRUE}. Write the life-expectancy
+family: \code{le} (mean age at death), \code{le60} (mean age at death among those
+dying after 60) and the two healthy-life-expectancy measures
+\code{hle_1st_cond} and \code{hle_cmsmm1.5}, all four in one file per
+stratification, distinguished by a \code{type} column.
+
+These are \strong{weight-averaged ages at an event}, not period life-table
+expectancies, and \code{popsize} in the underlying summaries is the weighted
+count of those events. Collapsing over strata is therefore exact -- the
+weights are the denominators the means were formed with -- but it must be
+a \code{weighted.mean}, so never average or sum these values across strata
+yourself. Each published figure is accompanied by \code{n_events}, the median
+weighted event count behind it, so a thin stratum is recognisable.
+
+\code{two_agegrps} and the discount levels do not apply: the summaries carry no
+age axis in either mode, and an age at death is not a flow with a present
+value.}
     }
     \if{html}{\out{</div>}}
   }
@@ -1063,13 +1084,18 @@ method (including \code{foreach}'s \code{.verbose} bookkeeping) is appended to
   Updates the primary prevention policy scenario
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{Simulation$update_primary_prevention_scn(method)}
+    \preformatted{Simulation$update_primary_prevention_scn(
+  method,
+  parf_deprivation = c("original", "scenario")
+)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{method}}{a function with synthpop as an argument that models the primary prevention policy.}
+      \item{\code{parf_deprivation}}{Either \code{"original"} (default) or \code{"scenario"}.
+Only consulted when the scenario rewrites \code{dimd}; see Details.}
     }
     \if{html}{\out{</div>}}
   }
@@ -1083,9 +1109,53 @@ stratified by each simulant's ORIGINAL, pre-scenario deprivation. The
 original is snapshotted before the scenario runs and restored after
 the simulation, automatically; scenarios that do not touch
 \code{dimd}/\code{qimd} are unaffected.
+
+\code{parf_deprivation} selects which of the two channels a
+deprivation-change scenario acts on. The model keys them on different
+variables:
+\itemize{
+\item \strong{\code{qimd}} keys every exposure distribution table and the smoking
+sub-model (\code{simsmok}). It is the \strong{modelled} channel: rewriting it
+regenerates each simulant's risk factors from the target
+quintile's distributions.
+\item \strong{\code{dimd}} keys the cached PARF table, whose \code{p0} (background
+incidence) and \code{m0} (background disease mortality) carry the
+\emph{observed}, decile-specific rates -- i.e. the part of the
+deprivation gradient the modelled risk factors do \strong{not} explain.
+\code{dimd} also predicts stochastic disease duration in \code{simcpp}.
+}
+
+With \code{"original"} (the default) the PARF table is joined at the
+simulant's pre-scenario \code{dimd}, so only the modelled exposures move:
+the non-modelled gradient is left intact. With \code{"scenario"} the join
+uses the \code{dimd} the scenario forced, so the non-modelled gradient is
+transferred as well, and the counterfactual becomes "as if this
+simulant had always lived in the target decile" for both explained
+and unexplained risk.
+
+This is a modelling choice, not a technical detail, which is why it
+is stated here rather than inferred from the order in which
+\code{gen_parf()} happens to be called. Setting it has no effect at all on
+a scenario that leaves \code{dimd} alone.
   }
   \subsection{Returns}{
     The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Simulation-get_parf_deprivation"></a>}}
+\if{latex}{\out{\hypertarget{method-Simulation-get_parf_deprivation}{}}}
+\subsection{\code{Simulation$get_parf_deprivation()}}{
+  Which deprivation stratum the cached PARF table is joined
+at for the current primary prevention scenario.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Simulation$get_parf_deprivation()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{"original"} or \code{"scenario"}.
   }
 }
 

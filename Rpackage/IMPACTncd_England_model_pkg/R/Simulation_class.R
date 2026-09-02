@@ -293,6 +293,7 @@ Simulation <-
         private$esp_weights <- copy(absorb_dt(esp, tt))
 
         private$primary_prevention_scn <- function(synthpop) NULL # default for baseline scenario
+        private$parf_deprivation <- "original" # default for baseline scenario
         private$secondary_prevention_scn <- function(synthpop) NULL # default for baseline scenario
 
         # Complete data-dependent initialization if data is loaded
@@ -306,6 +307,8 @@ Simulation <-
       # update_primary_prevention_scn ----
       #' @description Updates the primary prevention policy scenario
       #' @param method a function with synthpop as an argument that models the primary prevention policy.
+      #' @param parf_deprivation Either `"original"` (default) or `"scenario"`.
+      #'   Only consulted when the scenario rewrites `dimd`; see Details.
       #' @details If the scenario function changes a simulant's deprivation
       #'   (`dimd`/`qimd`) -- e.g. to model a deprivation-reduction policy -- the
       #'   forced values drive the simulation (they are live covariates for
@@ -315,12 +318,53 @@ Simulation <-
       #'   original is snapshotted before the scenario runs and restored after
       #'   the simulation, automatically; scenarios that do not touch
       #'   `dimd`/`qimd` are unaffected.
+      #'
+      #'   `parf_deprivation` selects which of the two channels a
+      #'   deprivation-change scenario acts on. The model keys them on different
+      #'   variables:
+      #'
+      #'   - **`qimd`** keys every exposure distribution table and the smoking
+      #'     sub-model (`simsmok`). It is the **modelled** channel: rewriting it
+      #'     regenerates each simulant's risk factors from the target
+      #'     quintile's distributions.
+      #'   - **`dimd`** keys the cached PARF table, whose `p0` (background
+      #'     incidence) and `m0` (background disease mortality) carry the
+      #'     *observed*, decile-specific rates -- i.e. the part of the
+      #'     deprivation gradient the modelled risk factors do **not** explain.
+      #'     `dimd` also predicts stochastic disease duration in `simcpp`.
+      #'
+      #'   With `"original"` (the default) the PARF table is joined at the
+      #'   simulant's pre-scenario `dimd`, so only the modelled exposures move:
+      #'   the non-modelled gradient is left intact. With `"scenario"` the join
+      #'   uses the `dimd` the scenario forced, so the non-modelled gradient is
+      #'   transferred as well, and the counterfactual becomes "as if this
+      #'   simulant had always lived in the target decile" for both explained
+      #'   and unexplained risk.
+      #'
+      #'   This is a modelling choice, not a technical detail, which is why it
+      #'   is stated here rather than inferred from the order in which
+      #'   `gen_parf()` happens to be called. Setting it has no effect at all on
+      #'   a scenario that leaves `dimd` alone.
       #' @return The invisible self for chaining.
-      update_primary_prevention_scn = function(method) {
+      update_primary_prevention_scn = function(
+        method,
+        parf_deprivation = c("original", "scenario")
+      ) {
+        parf_deprivation <- match.arg(parf_deprivation)
         private$primary_prevention_scn <- method
+        private$parf_deprivation <- parf_deprivation
         environment(private$primary_prevention_scn) <- environment(
           private$update_primary_prevention_scn
         )
+        invisible(self)
+      },
+
+      # get_parf_deprivation ----
+      #' @description Which deprivation stratum the cached PARF table is joined
+      #'   at for the current primary prevention scenario.
+      #' @return `"original"` or `"scenario"`.
+      get_parf_deprivation = function() {
+        private$parf_deprivation
       },
 
       # get_primary_prevention_scn ----
@@ -3022,6 +3066,11 @@ Simulation <-
       esp_weights = data.table(),
       # Models a primary prevention policy scenario
       primary_prevention_scn = NULL,
+      # Which deprivation stratum the cached PARF table is joined at for the
+      # current primary prevention scenario: "original" (pre-scenario dimd) or
+      # "scenario" (the dimd the scenario forced). See
+      # update_primary_prevention_scn() and run_sim().
+      parf_deprivation = "original",
       # Models a secondary prevention policy scenario
       secondary_prevention_scn = NULL,
       # Zenodo asset manager for input data
@@ -3567,7 +3616,12 @@ Simulation <-
 
         private$primary_prevention_scn(sp) # apply primary prevention scenario
         # message("scenario finished")
-        set.seed(rs)
+        # Restore the base-R stream by assigning .Random.seed directly, as
+        # Disease_class.R's with_random() does. set.seed(rs) would NOT restore
+        # it: set.seed() keeps only rs[1], which is the RNG *kind* code (a
+        # constant, e.g. 10403), so every scenario and every mc iteration would
+        # silently continue from the same fixed stream.
+        assign(".Random.seed", rs, envir = globalenv())
         dqrng_set_state(dqrs)
 
         # gen_parf + set_init_prvl run AFTER the primary-prevention scenario
@@ -3575,14 +3629,43 @@ Simulation <-
         # set_init_prvl internally buffers year == init_year columns with
         # year == init_year - 1 values for the duration of its prevalence
         # calculation; see ?set_init_prvl for the contract.
-        lapply(self$design$diseases, function(x) {
-          if (self$design$sim_prm$logs) {
-            print(x$name)
-          }
-          x$gen_parf(sp, self$design, self$design$diseases)$set_init_prvl(
-            sp = sp,
-            design_ = self$design
-          )
+        #
+        # gen_parf() does not recompute anything from the scenario's exposures:
+        # it reads the cached PARF table and joins it onto sp$pop with
+        # `on = .NATURAL`, and `dimd` is one of those natural keys. The payload
+        # p0 = mu * (1 - parf) and m0 = mu_mrtl * (1 - parf_mrtl) therefore
+        # carry the OBSERVED, decile-specific incidence and mortality levels --
+        # the part of the deprivation gradient the modelled risk factors do not
+        # explain. Because this join happens after the scenario, a scenario
+        # that rewrites dimd would otherwise hand every simulant the target
+        # decile's background risk as an unavoidable side effect, i.e. move the
+        # non-modelled gradient whether or not that was intended.
+        #
+        # So the stratum is chosen explicitly. "original" (the default) joins
+        # at the pre-scenario dimd snapshotted above, leaving the non-modelled
+        # gradient intact so that only the regenerated exposures act;
+        # "scenario" keeps the forced dimd and transfers the non-modelled
+        # gradient too. See ?Simulation and update_primary_prevention_scn().
+        #
+        # The swap also covers set_init_prvl(), which is chained onto the same
+        # call and looks prevalence up by dimd: initial prevalence must sit on
+        # the same side of the modelled/non-modelled split as the incidence it
+        # seeds. It is a no-op whenever the scenario left dimd untouched, so
+        # scenarios that do not model deprivation change are unaffected.
+        # The scenario's dimd is restored on the way out -- including if a
+        # disease throws -- so from the next statement on it is a live
+        # covariate again (set_rr/set_incd_prb below, and stochastic disease
+        # duration in simcpp), exactly as before this swap existed.
+        with_original_dimd(sp$pop, private$parf_deprivation, {
+          lapply(self$design$diseases, function(x) {
+            if (self$design$sim_prm$logs) {
+              print(x$name)
+            }
+            x$gen_parf(sp, self$design, self$design$diseases)$set_init_prvl(
+              sp = sp,
+              design_ = self$design
+            )
+          })
         })
 
         lapply(self$design$diseases, function(x) {
@@ -3607,7 +3690,10 @@ Simulation <-
         private$secondary_prevention_scn(sp) # apply secondary prevention scenario
         # message("2nd scenario finished")
         # message("scenario finished")
-        set.seed(rs)
+        # See the note above the matching restore after the primary scenario:
+        # set.seed(rs) silently seeds from rs[1] (the RNG kind code) instead of
+        # restoring the saved stream.
+        assign(".Random.seed", rs, envir = globalenv())
         dqrng_set_state(dqrs)
 
         # ds <- copy(self$diseases) # Necessary for parallelisation
@@ -3880,6 +3966,45 @@ Simulation <-
               )
             ]
 
+            # Population-mean companions for the smoking-history exposures.
+            #
+            # Further down, pack-years / duration / cigarettes-per-day are set
+            # to NA for never-smokers, so the means written for those columns
+            # are CONDITIONAL ON EVER HAVING SMOKED. That is the right
+            # denominator for "how heavily do smokers smoke", but it makes a
+            # scenario that moves people into never-smoking look as though
+            # smoking got *worse*: the remaining ever-smokers are a more
+            # heavily-smoking selection, so their mean pack-years rises even as
+            # the population total falls. (This is exactly the "pack-years
+            # increase in the Perfect World scenario" puzzle.)
+            #
+            # Both readings are wanted, so the population-weighted one --
+            # never-smokers counted as the zero they are -- is written
+            # alongside under a `_pop_` infix, created here BEFORE the NAs are
+            # introduced and before `xps` is assembled, so it is picked up by
+            # the same `_curr_xps$` grep and needs no special casing anywhere
+            # downstream.
+            for (.smk in intersect(
+              c(
+                "smok_packyrs_curr_xps",
+                "smok_dur_curr_xps",
+                "smok_cig_curr_xps"
+              ),
+              names(sp$pop)
+            )) {
+              .smk_pop <- sub("_curr_xps$", "_pop_curr_xps", .smk)
+              set(sp$pop, NULL, .smk_pop, as.double(sp$pop[[.smk]]))
+              # Never-smokers, and any simulant the column left unset, count as
+              # zero rather than as missing.
+              sp$pop[
+                smok_status_curr_xps == "1" | is.na(get(.smk_pop)),
+                (.smk_pop) := 0
+              ]
+            }
+            # `smok_quit_yrs` deliberately has no population companion: a
+            # population mean over never-smokers AND current smokers, neither of
+            # whom has any years since quitting, would not mean anything.
+
             xps <- grep("_curr_xps$", names(sp$pop), value = TRUE)
             xps <- grep("_prvl_curr_xps$", xps, value = TRUE, invert = TRUE)
             # NOTE: Using setdiff() instead of -which() to avoid R gotcha where
@@ -3958,12 +4083,19 @@ Simulation <-
             if (logs_enabled) {
               message("  export_xps: Computing groupingsets for xps20...")
             }
+            # One subset, shared by every aggregation below. The xps20, xps5
+            # and (when enabled) the two quantile calls all used a
+            # byte-identical filter, so this was three or four full copies of
+            # sp$pop -- a few seconds and a few GB of pointless allocation on a
+            # production-sized population.
+            xps_sub <- sp$pop[
+              all_cause_mrtl >= 0L &
+                year >= self$design$sim_prm$init_year &
+                age >= self$design$sim_prm$ageL,
+            ]
+
             out_xps20 <- groupingsets(
-              sp$pop[
-                all_cause_mrtl >= 0L &
-                  year >= self$design$sim_prm$init_year &
-                  age >= self$design$sim_prm$ageL,
-              ],
+              xps_sub,
               j = lapply(.SD, weighted.mean, wt, na.rm = TRUE),
               by = xps20_by,
               .SDcols = xps,
@@ -3971,8 +4103,15 @@ Simulation <-
             )[, `:=`(year = year + 2000L, mc = sp$mc, scenario = scenario_nam)]
             # TODO above mc could also be mc_aggr. Getting the uncertainty right here is tricky
 
-            for (j in seq_len(ncol(out_xps20))) {
-              set(out_xps20, which(is.na(out_xps20[[j]])), j, "All")
+            # Label the marginals groupingsets left as NA. Restricted to the
+            # STRATA columns: an exposure mean is legitimately NaN for a
+            # stratum with no contributing simulants (e.g. smok_quit_yrs in a
+            # stratum with no ex-smokers, or pack-years where everyone is a
+            # never-smoker, both NA'd above), and writing "All" into a double
+            # column coerced it to NA behind a "NAs introduced by coercion"
+            # warning on every run.
+            for (.j in intersect(xps20_by, names(out_xps20))) {
+              set(out_xps20, which(is.na(out_xps20[[.j]])), .j, "All")
             }
             setkey(out_xps20, year)
 
@@ -4012,18 +4151,15 @@ Simulation <-
               message("  export_xps: Computing groupingsets for xps5...")
             }
             out_xps5 <- groupingsets(
-              sp$pop[
-                all_cause_mrtl >= 0L &
-                  year >= self$design$sim_prm$init_year &
-                  age >= self$design$sim_prm$ageL,
-              ],
+              xps_sub,
               j = lapply(.SD, weighted.mean, wt_esp, na.rm = TRUE),
               by = xps5_by,
               .SDcols = xps,
               sets = xps5_sets
             )[, `:=`(year = year + 2000L, mc = sp$mc, scenario = scenario_nam)]
-            for (j in seq_len(ncol(out_xps5))) {
-              set(out_xps5, which(is.na(out_xps5[[j]])), j, "All")
+            # See the note on out_xps20 above.
+            for (.j in intersect(xps5_by, names(out_xps5))) {
+              set(out_xps5, which(is.na(out_xps5[[.j]])), .j, "All")
             }
             setkey(out_xps5, year)
 
@@ -4044,15 +4180,214 @@ Simulation <-
             # NOTE parquet format about 30 times smaller but about 50% slower in writting to disk
             write_dataset(dataset = out_xps5, path = fnam, format = fileformat)
 
+            # xps20_qnt / xps5_qnt: weighted QUANTILES of every informative
+            # exposure, on the stratifications named by `xps_quantile_strata`.
+            #
+            # Why they are needed at all: a mean cannot express a *shift in
+            # distribution*. Two scenarios can share a mean BMI while one has
+            # moved the whole distribution down and the other has thinned its
+            # upper tail, and only the second reduces obesity. The quantiles
+            # come from the simulated population itself, so they carry the
+            # actual age/sex/deprivation mix rather than requiring anyone to
+            # re-simulate from the GAMLSS parameters and guess that mix.
+            #
+            # LONG format (one row per exposure per probability) rather than one
+            # column per exposure-quantile pair: ~30 exposures x ~7 probabilities
+            # would otherwise be 210 columns, and the long form is what a plot
+            # wants anyway.
+            #
+            # WARNING for downstream readers: unlike the means and unlike every
+            # count in `summaries/`, quantiles are NOT additive. They cannot be
+            # averaged across mc iterations to get "the" quantile, and they
+            # cannot be combined across strata. Summarise them across mc the way
+            # the table exports do -- percentiles of the per-iteration values --
+            # and read each stratum on its own.
+            #
+            # Off unless `export_xps_quantiles: yes`, because it is not free:
+            # export_xps() runs once per mc chunk per scenario. Measured
+            # end to end through this function on the stock England shape
+            # (n = 100,000 over 31 years, 18 exposure columns of which 4 are
+            # indicators), where the means alone cost 8.6 s per call:
+            #
+            #   all 8 of the mean stratifications, every column   26.5 s
+            #   the default 2 stratifications, informative only   13.3 s
+            #
+            # i.e. the ADDED cost went from +17.9 s to +4.7 s per call -- for a
+            # 17-scenario x 100-iteration design over 10 cores, ~3.4 h to
+            # ~0.5 h. Cost is ~linear in (stratifications) x (columns) and NOT
+            # in the number of groups, which is why trimming those two is the
+            # whole game. Benchmarks:
+            # claude_process/ineq_diag/bench_xps_quantiles_v{2,3}.R;
+            # end-to-end check (including that the means are unchanged):
+            # claude_process/ineq_diag/verify_xps_quantile_speedup.R.
+            if (isTRUE(self$design$sim_prm$export_xps_quantiles)) {
+              xps_probs <- self$design$sim_prm$xps_quantile_probs
+              n_probs <- length(xps_probs)
+
+              # Cost is ~linear in (stratifications) x (columns), so both are
+              # trimmed rather than inherited from the means above.
+              #
+              # Columns: a quantile of a 0/1 indicator only ever returns 0 or
+              # 1, so it carries nothing the mean does not already give --
+              # `ets`, `statin_px`, `smok_never`, `smok_active` are all like
+              # this. Constant and all-missing columns go for the same reason.
+              # The test is on the whole population column, not per stratum, so
+              # the set of exposures written does not vary between strata,
+              # scenarios or iterations.
+              # range() rather than unique(): a hash over 3M distinct
+              # doubles, once per exposure, cost more than the quantiles it was
+              # meant to save. range() is a single scan, and the only test that
+              # needs a second scan (is every value 0 or 1?) runs solely when
+              # the range is exactly [0, 1], which no continuous exposure has.
+              xps_q <- xps[vapply(
+                xps,
+                function(.cn) {
+                  v <- sp$pop[[.cn]]
+                  r <- suppressWarnings(range(v, na.rm = TRUE))
+                  if (!all(is.finite(r))) return(FALSE) # all missing
+                  if (r[1L] == r[2L]) return(FALSE) # constant
+                  if (r[1L] == 0 && r[2L] == 1) {
+                    return(!all(v == 0 | v == 1, na.rm = TRUE)) # 0/1 indicator
+                  }
+                  TRUE
+                },
+                logical(1)
+              )]
+              if (logs_enabled && length(xps_q) < length(xps)) {
+                message(
+                  "  export_xps: skipping quantiles for ",
+                  length(xps) - length(xps_q),
+                  " indicator/constant exposure(s): ",
+                  paste(setdiff(xps, xps_q), collapse = ", ")
+                )
+              }
+
+              # Stratifications: from `xps_quantile_strata` (validated in
+              # Design), intersected with what each population actually has --
+              # xps5 has no `agegrp20`, since it standardises over age.
+              q_sets <- self$design$sim_prm$xps_quantile_strata
+
+              if (!length(xps_q) && logs_enabled) {
+                message(
+                  "  export_xps: no non-indicator exposures, skipping quantiles"
+                )
+              }
+
+              for (qcfg in if (!length(xps_q)) list() else list(
+                list(
+                  strata = xps20_strata,
+                  by = xps20_by,
+                  wtcol = "wt",
+                  subdir = "xps20_qnt",
+                  stem = "_xps20_qnt"
+                ),
+                list(
+                  strata = xps5_strata,
+                  by = xps5_by,
+                  wtcol = "wt_esp",
+                  subdir = "xps5_qnt",
+                  stem = "_xps_esp_qnt"
+                )
+              )) {
+                sets_here <- unique(lapply(
+                  q_sets,
+                  function(e) intersect(e, c("year", qcfg$strata))
+                ))
+                sets_here <- sets_here[lengths(sets_here) > 0L]
+                if (!length(sets_here)) next
+
+                if (logs_enabled) {
+                  message(
+                    "  export_xps: Computing ", qcfg$subdir, " (",
+                    length(sets_here), " stratification(s) x ",
+                    length(xps_q), " exposures)..."
+                  )
+                }
+                out_qnt <- groupingsets(
+                  xps_sub,
+                  j = {
+                    # Weight cleaning hoisted out of the per-exposure loop:
+                    # it does not depend on the exposure, and doing it inside
+                    # cost ~20% of the total. See .weighted_quantile_pre().
+                    .w <- get(qcfg$wtcol)
+                    .wsel <- !is.na(.w) & .w > 0
+                    if (all(.wsel)) {
+                      .wsel <- NULL
+                      .W <- sum(.w)
+                    } else {
+                      .W <- sum(.w[.wsel])
+                    }
+                    list(
+                      xps = rep(xps_q, each = n_probs),
+                      prob = rep(xps_probs, times = length(xps_q)),
+                      value = unlist(
+                        lapply(
+                          .SD,
+                          .weighted_quantile_pre,
+                          .w,
+                          .wsel,
+                          .W,
+                          xps_probs
+                        ),
+                        use.names = FALSE
+                      )
+                    )
+                  },
+                  by = qcfg$by,
+                  .SDcols = xps_q,
+                  sets = sets_here
+                )[, `:=`(
+                  year = year + 2000L,
+                  mc = sp$mc,
+                  scenario = scenario_nam
+                )]
+
+                # Same "All" convention as the means: a grouping variable that
+                # this set did not group by comes back NA and is labelled
+                # "All". Restricted to the strata columns, because `value` is
+                # legitimately NA for an empty stratum and must stay numeric.
+                for (.j in intersect(qcfg$by, names(out_qnt))) {
+                  set(out_qnt, which(is.na(out_qnt[[.j]])), .j, "All")
+                }
+                setkey(out_qnt, year)
+
+                fnam <- private$output_dir(file.path(
+                  "xps",
+                  qcfg$subdir,
+                  paste0("mc=", sp$mc_aggr),
+                  paste0("scenario=", scenario_nam),
+                  paste0(sp$mc, qcfg$stem, ".", fileformat)
+                ))
+                dir.create(dirname(fnam), recursive = TRUE, showWarnings = FALSE)
+                if (logs_enabled) {
+                  message("  export_xps: Writing ", qcfg$subdir, " to ", fnam)
+                }
+                write_dataset(dataset = out_qnt, path = fnam, format = fileformat)
+                rm(out_qnt)
+              }
+            }
+            rm(xps_sub)
+
             if (logs_enabled) {
               message("  export_xps: Tidying up temporary columns...")
             }
-            # Tidy up
+            # Tidy up. The `_pop_` companions are export-only, like
+            # smok_never/smok_active, so they must not reach the lifecourse
+            # parquet -- intersect() because they only exist if their source
+            # column did.
             sp$pop[,
               c(
                 "agegrp20",
                 "smok_never_curr_xps",
-                "smok_active_curr_xps"
+                "smok_active_curr_xps",
+                intersect(
+                  c(
+                    "smok_packyrs_pop_curr_xps",
+                    "smok_dur_pop_curr_xps",
+                    "smok_cig_pop_curr_xps"
+                  ),
+                  names(sp$pop)
+                )
               ) := NULL
             ]
             sp$pop[

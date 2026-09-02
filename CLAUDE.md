@@ -210,6 +210,155 @@ filename), not wrong; the uniqueness test therefore covers relative only.
 2026-08-05 — values are unchanged, only the column name.
 Tests: `test_tbl_col_prefixes.R`.
 
+**Life-expectancy tables (`life_expectancy = TRUE`, default) — new 2026-09-02.**
+`export_summaries()` had always written `le`, `le60`, `hle_1st_cond` and
+`hle_cmsmm1.5`, but **no table family read them**, so a run produced the summaries
+and no CSV. `export_le_tables()` publishes all four in one file per
+stratification (`life expectancy by <strata> (...).csv`), distinguished by a
+`type` column, in both standardisations. Strata element names: `le_ons` /
+`le_esp` (the vocabulary is now **ten**, not eight).
+The values are **weight-averaged ages at an event**, not period life-table
+expectancies: each summary is
+`SELECT <strata>, SUM(w) AS popsize, SUM(age * w)/SUM(w) AS LE FROM lc_table
+WHERE all_cause_mrtl > 0 [AND age > 60]`, so `popsize` is the weighted **count of
+events**, not a population. Collapsing over strata is therefore **exact** — the
+weights are the denominators the means were formed with — but only as a
+`weighted.mean(value, popsize)`; averaging or summing them is wrong. Each figure
+carries `n_events` (median weighted count over mc) so a thin stratum is visible.
+`two_agegrps` and discounting do not apply (no age axis in either mode; an age at
+death is not a flow). `qimd` is derived from `dimd` as everywhere else.
+Tests: `test_le_tables.R` (25). Production verification:
+`claude_process/ineq_diag/verify_le_tables_on_real_output.R` (recomputes a cell
+independently from the parquet; on the Ineq run the 2043 most-vs-least-deprived
+LE gap goes 11.14 y in `sc0` to 4.38 y under `PW_*_scn`).
+
+**Exposure quantiles (`export_xps_quantiles: yes`, default `no`) — new 2026-09-02.**
+`export_xps()` only ever stored `weighted.mean` per exposure, so a *shift in
+distribution* was unrecoverable from output — two scenarios can share a mean BMI
+while only one thins the upper tail. With the flag on it additionally writes
+`xps20_qnt` / `xps5_qnt` (long format: one row per exposure per probability,
+probabilities from `xps_quantile_probs`, default the 5th-95th centiles), and
+`export_xps_tables()` publishes `exposure quantiles by <strata> (...).csv`.
+Off by default because it is not free, and **`xps_quantile_strata` is the knob
+that decides how much**. Cost is ~linear in (stratifications) x (columns) and
+**not** in the number of groups, so the 8 stratifications the *means* need are
+what made it expensive. Measured end to end through `export_xps()` at the stock
+England shape (n = 100,000 x 31 years, 18 exposure columns of which 4 are
+indicators), against 8.6 s for the means alone:
+
+| config | per call | added |
+|---|---|---|
+| all 8 mean stratifications, every column | 26.5 s | +17.9 s |
+| default `list("year", c("year","qimd"))`, informative columns only | 13.3 s | **+4.7 s** |
+
+For the 17-scenario x 100-iteration Ineq design over 10 cores that is **~3.4 h
+-> ~0.5 h**. Three things get it there, all exact:
+**(a)** `xps_quantile_strata` (Design-level, default the two above) — every
+entry must contain `year` and may name only `agegrp20`/`sex`/`qimd`, validated
+in the **parent**; the *default* is intersected with what is available rather
+than validated, because a design whose `strata_for_output` omits `dimd` has no
+`qimd` and a default must never be able to fail.
+**(b)** indicator and constant columns are skipped — a quantile of `ets` /
+`statin_px` / `smok_never` / `smok_active` can only return 0 or 1, so it says
+nothing the mean does not. Detected with `range()`, **not** `unique()`: hashing
+3M distinct doubles once per exposure cost more than the quantiles it saved.
+They keep their means.
+**(c)** the `all_cause_mrtl >= 0 & year >= init_year & age >= ageL` subset is
+taken **once** and shared — xps20, xps5 and both quantile calls used a
+byte-identical filter, i.e. three or four full copies of `sp$pop`. This also
+made the means ~8% faster; verified byte-identical to the inline-subset form.
+Adding more `xps_quantile_probs` is nearly free (the sort dominates), so widen
+the probabilities freely and the stratifications sparingly.
+Benchmarks: `claude_process/ineq_diag/bench_xps_quantiles{,_v2,_v3}.R`
+(v2 decomposes the cost: 26 of 33 s was the per-group sort, only 6.9 s
+data.table machinery; a sort-once formulation was tried and is only 1.4x, so
+the readable `groupingsets` form was kept — the two agree exactly).
+End-to-end check incl. the unchanged means:
+`claude_process/ineq_diag/verify_xps_quantile_speedup.R`.
+`weighted_quantile()` (`aux_functions.R`, exported) is the **inverse-CDF (type-1)**
+weighted quantile. It is a thin wrapper over the internal
+`.weighted_quantile_pre()`, which takes the weight cleaning already done — the
+one implementation, so there is no second copy to drift, and `export_xps()`
+hoists `!is.na(w) & w > 0` out of its per-exposure loop instead of repeating it
+~18 times over the same weight vector (~20% of the quantile cost). A 300-case
+fuzz test pins the hoisted path identical to the public one. It is — no interpolation, deliberately, because several exposures are
+discrete (`active_days` 0-7, integer pack-years) and interpolation would publish
+values the variable cannot take. Verified against `stats::quantile(type = 1)` and
+for replication invariance (integer weights == repeating the values).
+⚠️ **Quantiles are NOT additive** — unlike every count in `summaries/` and unlike
+the means. They cannot be averaged across mc to get "the" quantile and cannot be
+combined across strata. In the CSVs the row-level `prob` is a centile of the
+*exposure*; the `xps_qnt_*` column names are *Monte Carlo* uncertainty on it.
+Also fixed alongside: `export_xps()`'s "All"-marginal relabel looped over **every**
+column, so a legitimately `NaN` exposure mean (a stratum with no ex-smokers, say)
+had `"All"` coerced into a double column — `NA` behind a "NAs introduced by
+coercion" warning on every run. Now restricted to the strata columns, so a `NaN`
+stays `NaN` (both are `is.na()`; on disk it is now a float NaN rather than a null).
+
+**`export_xps_tables()` was materially broken — four fixes (2026-09-02).** Found
+by running the exposure family end to end for the first time (the Ineq run's
+`xps/` had been emptied by `del_outputs()`, so nobody had seen its output).
+All four were **pre-existing** and affected the exposure *means*, not just the
+new quantiles:
+**(a)** `year` was promoted twice. Every reader under `summaries/` does
+`year := year + 2000L`, and that line was copied here — but `export_xps()`
+already promotes the year before writing, so the tables published **4013-4043**.
+Now via `promote_xps_year()`, which promotes only if `max(year) < 200`, so the
+convention lives in one place and a mixed tree cannot publish two.
+**(b)** `detect_filterable_vars()` tested `is.character()`, but these datasets
+come back from parquet **dictionary-encoded as factors**. So it found nothing,
+`filter_expr` fell back to `quote(TRUE)`, and **every stratification's file got
+the whole dataset** — the year-only marginal averaged together with the
+`agegrp20 x sex x qimd` cells, i.e. a mean of means instead of the marginal.
+**(c)** Same root cause: files were written for stratifications the data cannot
+support (`... by year-agegroup ...` whose `agegrp20` is entirely `"All"`), and
+**(d)** `standardised_vars` came out empty, naming files `( standardised)`.
+Fixing (b) exposed a fifth: the ESP label omitted `age`. The xps5 dataset is
+age-standardised *by construction* (weighted by `wt_esp`, no age axis), so
+`agegrp20` is not among its filterable columns and `age` could never appear —
+understating every ESP filename (`(sex-qimd standardised)` for what is
+age-sex-qimd) and leaving the fully-stratified one labelled with nothing.
+`age` is now **stated** in that branch, not derived: it can never be one of the
+strata there, so deriving it with a `setdiff` against them implied otherwise,
+and a stray `agegrp20` in `strata$xps_esp` removed it — labelling an
+age-standardised table `(sex-qimd standardised)`. Only the remaining axes are
+derived. Matches the main families' `... (age-sex-dimd standardised).csv`.
+And a sixth, found by testing that stray config: naming a column the loaded xps
+dataset lacks (`agegrp20` in `strata$xps_esp`) reached `keyby` and raised
+``object 'agegrp20' not found`` **from inside a forked worker**, after the whole
+dataset had been read. `xps_*` is exempt from `check_strata_columns()` (those
+datasets are not built from `summaries/`, so the parent has nothing to check
+against), which left this gap. `skip_missing_strata()` now warns and skips just
+that stratification — the same answer the equity family gives.
+⚠️ **Breaking for any reader of `exposures by *.csv`**: the years change by
+-2000, the non-marginal files change value (they were averaging marginals in),
+and most ESP filenames gain `age-`. Note `export_tables()` never wipes
+`tables/`, so a re-export leaves the old wrongly-named files behind as orphans
+— clear the directory or `del_outputs()` first.
+Why the tests missed it: the fixture built its strata columns as **character**,
+so `is.character()` succeeded there and failed in production; and its marginal
+rows were the exact unweighted mean of their cells, so filtered and unfiltered
+results coincided. The fixture now uses factors and a population-**weighted**
+marginal, and asserts the two differ. Tests: `test_xps_quantiles.R` (387).
+
+**Pack-years are reported among EVER-SMOKERS — `*_pop_curr_xps` (2026-09-02).**
+`export_xps()` sets `smok_packyrs`/`smok_dur`/`smok_cig`/`smok_quit_yrs` to `NA`
+for never-smokers (`smok_status_curr_xps == "1"`) and aggregates with
+`weighted.mean(na.rm = TRUE)`, so those means are **conditional on ever having
+smoked** — never-smokers are dropped from the denominator, not counted as zero.
+Consequence, and the reason it looks like a paradox: a scenario that moves people
+into never-smoking leaves a more heavily-smoking remainder, so **mean pack-years
+RISES** while population-total pack-years falls. The conditional mean is also
+`NaN` in a stratum with no ever-smokers, whereas a population mean is defined
+everywhere. `smok_packyrs_pop_curr_xps`, `smok_dur_pop_curr_xps` and
+`smok_cig_pop_curr_xps` now carry the population-weighted reading alongside
+(never-smokers as 0), created before the `NA`s and picked up by the same
+`_curr_xps$` grep, and dropped again before the lifecourse write. No companion
+for `smok_quit_yrs`: a population mean over never- and current smokers alike,
+neither of whom has years since quitting, would mean nothing.
+Tests: `test_xps_quantiles.R` (52, incl. an end-to-end `export_xps()` run
+asserting the conditional mean is blind to a scenario the population mean sees).
+
 `export_tables()` turns the summaries into CSVs. Besides the main / mortality /
 disease-characteristics / exposure / cost-effectiveness (`cea = TRUE`) tables, it also
 writes **equity slope-index** tables (`equity = TRUE`, default): absolute (`AEI_total`,
@@ -315,9 +464,10 @@ silently mis-mapping). Tests: `test_qimd_derivation.R`.
 datasets gain `age`, the other 10 (`le`, `le60`, `hle_*`, `dis_characteristics`)
 take `strata_noagegrp` and have neither in either mode. ~5x the rows (70 single
 years vs 14 bands on the stock 30-99 design).
-`export_tables()` merges `strata` over its defaults **by name only** — eight
+`export_tables()` merges `strata` over its defaults **by name only** — ten
 independent keys (`ons`, `esp`, `mrtl_ons`, `mrtl_esp`, `disease_char`,
-`xps_ons`, `xps_esp`, `equity`), whole-element replacement, no coupling — and
+`xps_ons`, `xps_esp`, `le_ons`, `le_esp`, `equity`), whole-element replacement,
+no coupling — and
 two of them hard-code `agegrp`: `ons` (task 1 main, reused verbatim by task 5
 CEA) and `mrtl_ons` (task 2). So overriding `ons` alone used to abort the export
 with ``task 2 failed - "object 'agegrp' not found"`` — the message form
@@ -364,7 +514,7 @@ identical** old vs new. Scripts: `claude_process/verify_no_change_to_agegrp_runs
 `..._equity_cea.R`, `claude_process/compare_agegrp_run_md5.R`.
 Two parent-side guards were added alongside (2026-08-18), both for mistakes that
 used to surface as ``task N failed - "object 'x' not found"`` from a fork:
-`build_strata_config()` now **errors** on an element name outside the eight
+`build_strata_config()` now **errors** on an element name outside the ten
 (with a prefix-aware "did you mean" — `mrtl` -> `mrtl_ons`) instead of dropping
 it silently, and `check_strata_columns()` errors on a stratum the summaries
 cannot supply (the reverse case, `age` against a banded run, which is
@@ -488,6 +638,69 @@ IMPACTncd$run(1:n_runs, multicore = TRUE, "sc1")
 pre-scenario deprivation. The original is snapshotted before the scenario runs and restored
 after `simcpp()` automatically (in `Simulation_class.R` `run_sim`); scenarios that don't
 touch `dimd`/`qimd` are unaffected.
+
+**`dimd` vs `qimd` are two different channels — `parf_deprivation` (2026-09-02).**
+`qimd` keys **every** exposure distribution table (all 36 in
+`inputs/exposure_distributions/`) and the whole smoking sub-model (`simsmok.cpp`
+reads `qimd`, and `qimd_sc` for its scenario variant): it is the **modelled**
+channel. `dimd` keys the cached PARF table (`simulation/parf/`), every
+disease-burden input (`*_prvl`, `*_incd`, `*_ftlt`, `*_dur`) and
+`IMPACTncd_sim.cpp`'s stochastic disease-duration predictor: it is the
+**non-modelled** channel — the part of the deprivation gradient the modelled
+risk factors do not explain.
+`Disease$gen_parf()` recomputes nothing from a scenario's exposures; it reads the
+cached table and **joins it with `on = .NATURAL`**, and `dimd` is one of those
+keys. Its payload `p0 = mu * (1 - parf)` / `m0 = mu_mrtl * (1 - parf_mrtl)`
+carries the *observed*, decile-specific rates, consumed positionally as
+`private$parf$p0` in `set_incd_prb()` and `private$parf$m0` in `set_mrtl_prb()`
+for the whole horizon. So **when** the join happens decides which decile's
+background risk each simulant gets.
+`update_primary_prevention_scn(fn, parf_deprivation = )` now states it:
+`"original"` (default) joins at the pre-scenario `dimd` — only the regenerated
+exposures act; `"scenario"` keeps the forced `dimd` and transfers the
+non-modelled gradient too. Applied by `with_original_dimd()` (`aux_functions.R`)
+around the `gen_parf()`+`set_init_prvl()` block in `run_sim`, with `on.exit()`
+restoration so a throwing disease cannot leave the rest of the run on the wrong
+deprivation. A **no-op** whenever `dimd == dimd_orig`, so every scenario that
+does not model deprivation change is bit-unaffected; `scenarios/Ineq/` is the
+only script in the repo that rewrites deprivation.
+⚠️ **This was a silent regression.** Commit `adbf762` (2026-04-28, "move
+set_init_prvl() after the scenario") moved that block from *before* the scenario
+to *after* it, so the framework began doing the re-join unconditionally. The Ineq
+paper's "Modeled" and "Non-Modeled" arms differed **only** in that the
+Non-Modeled one called `gen_parf()` itself after rewriting `dimd`; that call
+became redundant and **both arms became the Non-Modeled arm**. Measured: 13 of 24
+arm-pairs bit-identical in the production summaries, the rest differing by a mean
+signed 1.7e-5 of either sign; population-mean COPD `p0` falls 35.6% from the join
+timing alone (most-deprived decile to 0.39x its own value), residual all-cause
+`m0` 17.0%; extreme-decile `p0` ratios reach 3.0x (COPD, psychosis) and 12 of 21
+diseases differ >25%. Net QALYs went 4.9M -> 22.9M on the Modeled arm while the
+Non-Modeled arm reconciled with the old figures once discounting was matched.
+Not covered, deliberately (it is pre-existing and unchanged): `set_incd_prb()`
+computes its own `clbfctr = sum(mu)/sum(rp)` keyed on `.(dimd, sex)` at
+`init_year` and looks `mu` up at the *current* `dimd`. `clbfctr` is a ratio of
+observed to modelled (≈1), so for a **future**-change scenario
+(`sc_year > init_year`, where `init_year`'s `dimd` is still original) the effect
+is second-order. For a **past**-change scenario it is not: `mu` is then taken at
+the forced decile, so incidence is partly re-calibrated to it whatever
+`parf_deprivation` says.
+Tests: `test_parf_deprivation.R` (36). Meaningfulness proof (gitignored, not in
+CI): `claude_process/ineq_diag/verify_parf_test_fails_without_fix.R` neuters
+`with_original_dimd()` and 8 assertions must fail.
+
+**RNG restore in `run_sim` (2026-09-02).** Both scenario hooks saved
+`rs <- .Random.seed` and restored with `set.seed(rs)`. `set.seed()` keeps only
+`rs[1]` — the RNG **kind** code, a constant (10403) — so this silently reseeded
+the base-R stream from one fixed value after every scenario and every iteration
+instead of restoring it. Now `assign(".Random.seed", rs, envir = globalenv())`,
+the idiom `Disease_class.R`'s `with_random()` already used. Result-neutral in
+current code: every base-R consumer downstream sets its own seed
+(`sample_int_expj` at `Disease_class.R:843`/`943`, `runif` inside
+`with_random()`), and `dqrng` — which the C++ engine uses — was always restored
+correctly via `dqrng_set_state()`. Audit:
+`claude_process/ineq_diag/audit_base_rng_consumers.R`. One exception: if a PARF
+cache is **missing**, `gen_parf_files()` now draws from a different stream, so
+regenerate PARFs before a comparison intended to be bit-exact.
 
 ### File Paths
 - **Absolute paths required** for `output_dir`, `synthpop_dir` in YAML

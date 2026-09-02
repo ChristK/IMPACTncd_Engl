@@ -3,6 +3,15 @@ clusternumber: 10 # explicit parallelisation
 clusternumber_export: 10 # NEW: number of clusters for export_summaries
 logs: yes
 export_xps: yes
+export_xps_quantiles: yes # weighted quantiles of every exposure as well as their means,
+                          # so the distribution shifts each scenario implies can be plotted.
+                          # Adds ~4.7 s per mc chunk per scenario on the strata below
+                          # (the means alone cost ~8.6 s).
+xps_quantile_probs: [0.025, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.975]
+xps_quantile_strata:      # Cost is ~linear in the number of these -- each extra entry
+  - [year]                # is roughly another 2-3 s per chunk per scenario, whereas
+  - [year, qimd]          # adding more probs above is nearly free (the sort dominates).
+                          # Vocabulary: year (required), agegrp20, sex, qimd.
 keep_lifecourse: yes
 export_PARF: no
 'n': 100000 # number of individuals in simulation

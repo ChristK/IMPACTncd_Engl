@@ -104,6 +104,21 @@ The parameters must include the following keys:
 \item \code{clusternumber_export}: Integer. Number of CPU cores/clusters to use for exporting summaries.
 \item \code{logs}: Logical. If TRUE, enables verbose logging of simulation progress.
 \item \code{export_xps}: Logical. If TRUE, exports cross-sectional population states (xps) to disk.
+\item \code{export_xps_quantiles}: Logical, optional (default \code{FALSE}).
+If TRUE, \code{export_xps()} additionally writes weighted quantiles of
+every exposure (\code{xps20_qnt} / \code{xps5_qnt}), so exposure
+\emph{distributions} -- not just their means -- can be compared across
+scenarios. Roughly a 6x increase in \code{export_xps()} cost, paid once
+per mc chunk per scenario.
+\item \code{xps_quantile_probs}: Numeric vector in (0, 1), optional
+(default \code{c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)}). The
+quantiles written when \code{export_xps_quantiles} is TRUE.
+\item \code{xps_quantile_strata}: List of character vectors, optional
+(default \code{list("year", c("year", "qimd"))}). Which
+stratifications get quantiles -- fewer than the means use,
+because the cost is ~linear in their number. Every entry must
+include \code{"year"}, and may name only variables the exposure output
+carries (\code{agegrp20}, \code{sex}, \code{qimd} -- not \code{agegrp}/\code{dimd}).
 \item \code{export_PARF}: Logical. If TRUE, exports Population Attributable Risk Fraction (PARF) files.
 \item \code{n}: Integer. Size of the synthetic population to generate or simulate.
 \item \code{num_chunks}: Integer. Number of chunks to split the simulation into for memory management.

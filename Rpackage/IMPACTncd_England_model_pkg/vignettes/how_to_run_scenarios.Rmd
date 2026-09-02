@@ -270,6 +270,84 @@ IMPACTncd$
                      "all_cause_mrtl_by_dis", "cms"))
 ```
 
+### Deprivation-change scenarios: which gradient do you want to move?
+
+A scenario can model a deprivation-*reduction* policy by forcing a simulant's
+deprivation, e.g. "everyone moves to the least deprived decile from 2026":
+
+```{r, dep-scn, eval = FALSE}
+IMPACTncd$update_primary_prevention_scn(
+  function(sp) {
+    sc_year <- 26L
+    sp$pop[year >= sc_year,
+           `:=`(dimd = "10 least deprived", qimd = "5 least deprived")]
+    # ... then regenerate the exposures, which are drawn conditional on qimd
+  }
+)
+```
+
+The forced values drive the simulation, but every **output** (lifecourse,
+summaries, tables, equity indices, exposure tables) is stratified by each
+simulant's **original**, pre-scenario deprivation, so results remain
+interpretable as "what happened to the people who started out deprived". That
+snapshot-and-restore is automatic.
+
+#### `dimd` and `qimd` are two different channels
+
+The model keys the two halves of the deprivation gradient on **different
+variables**, which is what lets you choose between them:
+
+| Variable | What it keys | Channel |
+|:---------|:-------------|:--------|
+| `qimd` | every exposure distribution table, and the whole smoking sub-model | **modelled** — the risk factors the model represents explicitly |
+| `dimd` | the cached PARF table (`p0` background incidence, `m0` background disease mortality), the disease-burden inputs, and stochastic disease duration | **non-modelled** — the part of the gradient the modelled risk factors do *not* explain |
+
+Rewriting `qimd` regenerates each simulant's risk factors from the target
+quintile's distributions. Rewriting `dimd` additionally moves their *observed*,
+decile-specific background rates. In England the second channel is much the
+larger of the two for many outcomes, because the modelled biomarkers carry
+little of the deprivation gradient (mean SBP differs by under 1% between the
+extreme quintiles, and total cholesterol is slightly *inverse*), while the
+non-modelled background risk differs by up to threefold (COPD, psychosis).
+
+#### Choosing, with `parf_deprivation`
+
+`Disease$gen_parf()` runs after your scenario and joins the cached PARF table
+onto the population on its natural keys — one of which is `dimd`. So which
+decile's background risk each simulant ends up with would otherwise depend on
+the order in which the framework happens to call things. It is an explicit
+argument instead:
+
+```{r, parf-dep, eval = FALSE}
+# "Modelled": only the regenerated exposures act. The non-modelled gradient
+# stays as it was. This is the default.
+IMPACTncd$update_primary_prevention_scn(my_scenario_fn)
+IMPACTncd$run(1:n_runs, multicore = TRUE, "modelled_scn")
+
+# "Non-modelled": the non-modelled gradient moves too, i.e. "as if this person
+# had always lived in the target decile" for explained AND unexplained risk.
+IMPACTncd$update_primary_prevention_scn(my_scenario_fn,
+                                        parf_deprivation = "scenario")
+IMPACTncd$run(1:n_runs, multicore = TRUE, "non_modelled_scn")
+```
+
+Running the same scenario function under both settings decomposes the total
+effect into the part the model's risk factors explain and the part they do not —
+which is usually the more interesting result.
+
+The argument has **no effect whatsoever** on a scenario that leaves `dimd`
+alone, so you never need to think about it unless you are modelling deprivation
+change.
+
+One caveat, so you are not surprised by it. `set_incd_prb()` separately
+calibrates incidence to the observed rate at `init_year`, grouped on `dimd`.
+If your scenario changes deprivation only from a **future** year onwards, that
+calibration is computed on the original deciles and the effect is second-order.
+If it rewrites deprivation **at or before `init_year`** (a "change the past"
+scenario), the calibration is taken at the forced decile, so incidence is partly
+re-calibrated to it whatever `parf_deprivation` says — treat the modelled /
+non-modelled split as partial in that case.
+
 ### Other files 
 
 - Use the following code to open the vignette to run a test of IMPACTncdEngland

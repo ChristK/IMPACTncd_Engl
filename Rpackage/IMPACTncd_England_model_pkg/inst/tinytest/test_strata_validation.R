@@ -23,13 +23,32 @@ build <- function(user_strata, two_agegrps = FALSE) {
 }
 
 VALID <- c("ons", "esp", "mrtl_ons", "mrtl_esp", "disease_char",
-           "xps_ons", "xps_esp", "equity")
+           "xps_ons", "xps_esp", "le_ons", "le_esp", "equity")
 
 # ===========================================================================
 # 1. Unknown element names
 # ===========================================================================
 expect_equal(sort(names(build(NULL))), sort(VALID),
-             info = "the eight documented names are exactly what defaults holds")
+             info = "the documented names are exactly what defaults holds")
+
+# The life-expectancy family carries no age axis in either mode (its summaries
+# are written from strata_noagegrp), so -- like disease_char -- its defaults are
+# the same whether or not two_agegrps is set.
+expect_equal(build(NULL)$le_ons, build(NULL, two_agegrps = TRUE)$le_ons,
+             info = "le_ons defaults are mode-independent")
+expect_equal(build(NULL)$le_esp, build(NULL, two_agegrps = TRUE)$le_esp,
+             info = "le_esp defaults are mode-independent")
+expect_false(any(vapply(build(NULL)$le_ons,
+                        function(s) any(c("agegrp", "age", "agegrp20") %in% s),
+                        logical(1))),
+             info = "no age axis in the le defaults -- the summaries have none")
+
+# `le` is a truncation of two real names, so it must be rejected with a
+# suggestion rather than silently ignored (the `mrtl` -> `mrtl_ons` case).
+e_le <- tryCatch(build(list(le = list("year"))), error = conditionMessage)
+expect_true(grepl("unknown `strata` element name", e_le))
+expect_true(grepl("le_ons|le_esp", e_le),
+            info = "and it points at one of the real names")
 
 # The near-miss that motivated this: `mrtl` is not a name, `mrtl_ons` is.
 expect_error(build(list(ons = list("year"), mrtl = list("year"))),
