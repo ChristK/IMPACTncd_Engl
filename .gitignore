@@ -109,3 +109,13 @@ inputs/**/*.txt
 # automatically anyway. Regenerate rather than retrieve.
 graphify-out/
 claude_process/
+
+# Published NHS Digital source data for the GENVASC/polygenic scenarios.
+# `national_data/` is a local drop of two public files — the LA-level risk
+# extract (~19 MB CSV) and the NHS Health Check summary workbook — fetched
+# separately and parsed by gen_nhshc_national_tables.R et al. into the small,
+# tracked genvasc_params/*.csv. Only the derived parameters are versioned;
+# the bulk source is treated like inputs/ and re-fetched rather than stored.
+# (The workbook was already covered by the *.xlsx rule above; this makes the
+# whole folder's treatment explicit and consistent.)
+scenarios/polygenic/national_data/
