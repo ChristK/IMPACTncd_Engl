@@ -26,7 +26,7 @@ IMPACTncd$export_tables(
   strata = list(
     ons = list(c("year", "age")),
     esp = list(),
-    mrtl_ons = list(c("year", "age")), # ← was defaulting to agegrp
+    mrtl_ons = list(c("year", "age")),
     mrtl_esp = list()
   )
 )
