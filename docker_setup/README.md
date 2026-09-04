@@ -468,8 +468,11 @@ Bring your own scenario either way:
 > keeping the model version` line on stderr — and the "model version" it keeps is the
 > empty mount point, so your scripts simply won't be there. Keep them at the **top
 > level** of your folder, or pass `-ScenariosDir <your folder>/scenarios`, which mounts
-> them at that path. The two options compose: the mount wins and the skip is then
-> exactly what you want, since it stops the symlink from displacing the mount.
+> them at that path. The two options compose, and the skip is then exactly what you
+> want: `ln -s` into an existing directory writes the link **inside** it, so without
+> the skip you would get a self-referential `scenarios/scenarios` link deposited in
+> your own mounted folder — visible on the host, and an outright
+> `Read-only file system` error if you mounted it read-only.
 
 Mechanically, each of the three ways code can enter the image excludes it separately:
 `Dockerfile.IMPACTncdENGL` prunes `scenarios/` in the same `RUN` as the code copy/clone
