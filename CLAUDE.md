@@ -582,6 +582,42 @@ tagged by Zenodo version:
 ```bash
 ./docker_setup/build_push_data.sh   # auto-tags data.impactncdengl:<zenodo_ver> + :latest, pushes
 ```
+
+**The image does NOT ship `scenarios/`.** Those drivers and their
+`sim_design_*.yaml` are project-specific working files, and
+`/IMPACTncd_England/scenarios` is where `setup_user_docker_env.sh -ScenariosDir`
+bind-mounts the *user's* folder — a baked copy is shadowed exactly when it would
+be used. The image keeps the path as an empty, world-writable mount point.
+**Three** code-entry paths, **three** mechanisms — they are not interchangeable:
+**(a)** the **copy** method is covered by `.dockerignore` (context filtering, so
+the files never enter the `COPY` layer); **(b)** CI's **git** method clones
+*inside* the build, where `.dockerignore` has no reach, so
+`Dockerfile.IMPACTncdENGL` prunes `/tmp/repo/scenarios` in the **same `RUN`** as
+the clone; **(c)** `build_model_via_commit.sh` (the containerd-GC-race fallback)
+has neither a build context nor a Dockerfile — it pipes `git archive` into
+`docker cp` — so the exclusion lives in its pathspec
+(`git archive HEAD -- . ':(exclude)scenarios'`). Miss any one and that path
+publishes an image unlike the other two.
+Same-RUN matters in (b): an `rm -rf` in a later layer leaves the files in the
+earlier one, still pushed and still extractable. Both (b) and (c) then assert the
+folder is empty and **fail the build** if it is not, so a future overlay path
+cannot silently re-add them. The CI workflow needs no filtering step of its own.
+Verification (gitignored): `claude_process/test_docker_excludes_scenarios.sh` —
+builds all three paths against `data.impactncdengl:local`, probes the copy-method
+build *context*, and runs a negative control on the pre-change Dockerfile.
+
+**That same asymmetry had already broken the copy method** (2026-07-02 →
+2026-09-04, fixed): `.dockerignore` excludes `docker_setup/`, so the "Refresh the
+container ENTRYPOINT" step could not find `docker_setup/entrypoint.sh` and every
+`./docker_build_push.sh Dockerfile.IMPACTncdENGL` died there — while CI (clone)
+and the commit fallback (`git archive`) sailed past, because neither filters
+through `.dockerignore`. It stayed hidden because a failing layer-3 `docker
+build` on this host is *documented* as the containerd GC race, whose fix is "use
+`build_model_via_commit.sh`" — the same workaround absorbs both failures. Fixed
+with a `!docker_setup/entrypoint.sh` negation. Rule of thumb: a `RUN` that reads
+a repo file from inside the image must be checked against `.dockerignore`, not
+just against git.
+
 Downstream Dockerfiles parametrize their base via build-args
 (`FROM ${DATA_IMAGE}` / `FROM ${PREREQ_IMAGE}`, default `:local`), so CI/other
 builds point `FROM` at the pushed image (e.g.

@@ -181,7 +181,7 @@ cd docker_setup
 | PowerShell | Bash | Description |
 |---|---|---|
 | `-Tag <name>` | `-Tag <name>` | Image tag. Default: `main`. |
-| `-ScenariosDir <path>` | `-ScenariosDir <path>` | Optional. Mounted at `/IMPACTncd_England/scenarios`. |
+| `-ScenariosDir <path>` | `-ScenariosDir <path>` | Optional. Mounted at `/IMPACTncd_England/scenarios` — which the image ships **empty**, on purpose (see [What the image does *not* contain](#what-the-image-does-not-contain)). |
 | `-SimDesignYaml <path>` | `-SimDesignYaml <path>` | Path to YAML config. Default: **auto-detect** a single `sim_design*.yaml` next to the script (standalone mode); otherwise the repo's `inputs/sim_design.yaml`. |
 | `-Run` | `-Run` | Standalone mode only. Auto-run the single `simulate*.R` driver in the folder via `Rscript`, then exit (default is an interactive shell). |
 | `-UseVolumes` | `--UseVolumes` | Use Docker volumes instead of bind mounts. |
@@ -221,7 +221,7 @@ which is merged into the model folder: `Simulation$new("<your-sim_design>.yaml")
 | (built into image) | `/IMPACTncd_England` | Project source. The image already contains it; no host project mount is needed. |
 | `output_dir` from YAML | `/outputs` | Simulation outputs (lifecourse, summaries, etc.). |
 | `synthpop_dir` from YAML | `/synthpop` | Synthetic population cache. |
-| `-ScenariosDir` (optional) | `/IMPACTncd_England/scenarios` | Custom scenario scripts. |
+| `-ScenariosDir` (optional) | `/IMPACTncd_England/scenarios` | Custom scenario scripts. The image ships this folder **empty** — the repo's own `scenarios/` is deliberately not baked in. |
 | working folder (standalone mode) | merged into `/IMPACTncd_England` | Your folder's files are symlinked into the model root (no subfolder); name clashes with model files are skipped. The config is also at `$SIM_DESIGN_YAML`. |
 
 ### Bind mount mode (default)
@@ -445,7 +445,30 @@ The project uses a **three-layer architecture**, so that frequent code changes d
 
 1. **Prerequisite image** (`prerequisite.impactncdengl:local`) — base R environment with all system/R dependencies. The dev workflow runs this with your source mounted on top.
 2. **Data image** (`data.impactncdengl`) — prerequisite **+ ~13 GB of model data downloaded from Zenodo**. Rebuilt only when the Zenodo data (or the prerequisite) changes. Published to Docker Hub tagged by **Zenodo version** (see `build_push_data.sh` below).
-3. **Model image** (`impactncdengl:local`) — data **+ model code** (from your checkout or GitHub) + the built package. Rebuilt on code changes; the data is **inherited** from the data image, so it is **not** re-downloaded (~33 GB total).
+3. **Model image** (`impactncdengl:local`) — data **+ model code** (from your checkout or GitHub) + the built package. Rebuilt on code changes; the data is **inherited** from the data image, so it is **not** re-downloaded (~33 GB total). The repo's `scenarios/` folder is **excluded** — see below.
+
+#### What the image does *not* contain
+
+The model image carries the framework, the default `inputs/sim_design.yaml` and the
+Zenodo data — but **not** the repository's `scenarios/` folder (the per-locality and
+per-paper simulation scripts and their `sim_design_*.yaml` files). Those are
+project-specific working files that go stale independently of the code, and
+`/IMPACTncd_England/scenarios` is exactly where `-ScenariosDir` mounts **your** scenarios
+folder — so a baked-in copy would be shadowed the moment it mattered. The image keeps the
+path as an empty, writable mount point.
+
+Bring your own scenario either way:
+
+- **standalone mode** — keep `sim_design_*.yaml` + your `.R` script next to `setup_user_docker_env.sh`; they are merged into the model root (no subfolder prefix), **or**
+- **`-ScenariosDir <dir>`** — mount a folder at `/IMPACTncd_England/scenarios`.
+
+Mechanically, each of the three ways code can enter the image excludes it separately:
+`Dockerfile.IMPACTncdENGL` prunes `scenarios/` in the same `RUN` as the code copy/clone
+(so the files never enter a layer), `.dockerignore` keeps it out of the copy-method
+build context, and `build_model_via_commit.sh` excludes it from its `git archive`
+pathspec. The Dockerfile and the commit fallback both then **fail the build** if the
+folder is not empty. To ship a scenario inside a custom image, add it under a different
+path.
 
 > **How images reach Docker Hub:** the **model** image is built and pushed by
 > GitHub Actions on every push (and on manual dispatch); the **prerequisite**

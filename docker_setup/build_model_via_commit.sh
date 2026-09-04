@@ -50,13 +50,28 @@ log "Starting build container from $DATA_IMAGE ..."
 docker run -d --name "$CONTAINER" --entrypoint sleep "$DATA_IMAGE" infinity >/dev/null
 
 log "Merging code (git-tracked HEAD) over the data layer ..."
-git -C "$PROJECT_ROOT" archive HEAD | docker cp - "$CONTAINER":/IMPACTncd_England
+# scenarios/ is excluded, as in Dockerfile.IMPACTncdENGL: the image ships that
+# path as an EMPTY mount point (setup_user_docker_env.sh -ScenariosDir mounts the
+# user's own folder there). This path has NO build context and NO Dockerfile, so
+# neither .dockerignore nor the Dockerfile's prune applies - the exclusion has to
+# be made here, in the pathspec, or this fallback would publish an image that
+# differs from the CI one.
+git -C "$PROJECT_ROOT" archive HEAD -- . ':(exclude)scenarios' \
+  | docker cp - "$CONTAINER":/IMPACTncd_England
 
 log "Building the package inside the container (roxy + build + install) ..."
 docker exec -i "$CONTAINER" bash -s <<'BUILD'
 set -e
 export PATH=/usr/local/lib/R/site-library/littler/bin:/usr/local/lib/R/site-library/littler/examples:$PATH
-mkdir -p /outputs /synthpop
+mkdir -p /outputs /synthpop /IMPACTncd_England/scenarios
+# Same build-time assertion as Dockerfile.IMPACTncdENGL: the scenarios/ mount
+# point must ship EMPTY, so a change to the pathspec above cannot quietly
+# re-introduce the repo's scenario scripts.
+if [ -n "$(ls -A /IMPACTncd_England/scenarios)" ]; then
+  echo "ERROR: /IMPACTncd_England/scenarios must ship EMPTY, but contains:"
+  ls -A /IMPACTncd_England/scenarios
+  exit 1
+fi
 cd /IMPACTncd_England/Rpackage/IMPACTncd_England_model_pkg
 roxy.r
 build.r

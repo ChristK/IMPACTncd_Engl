@@ -15,11 +15,27 @@ secure_data/
 docker_setup/
 # ...except the build-time Zenodo data-download helper, which the Dockerfile runs
 !docker_setup/download_zenodo_data.R
+# ...and entrypoint.sh, which the model Dockerfile re-copies from the CODE overlay
+# ("Refresh the container ENTRYPOINT", added 2026-07-02) so an entrypoint fix does
+# not stay dormant until the next ~33GB data rebuild. Without this negation the
+# COPY-method build has no docker_setup/ in its context and dies at that step with
+# `cp: cannot stat '/IMPACTncd_England/docker_setup/entrypoint.sh'`. The git-clone
+# and commit-fallback paths never noticed: neither filters through .dockerignore.
+!docker_setup/entrypoint.sh
 documents/
 debugging_info/
 auxil/
 validation/
 validation_internal/
+
+# Scenario drivers and their sim_design YAMLs are NOT shipped in the image.
+# /IMPACTncd_England/scenarios is where setup_user_docker_env.sh -ScenariosDir
+# bind-mounts the USER's own scenarios folder, so a baked copy is shadowed
+# whenever it would be used. This entry is what keeps them out of the COPY-method
+# build context; the git-clone method prunes them inside Dockerfile.IMPACTncdENGL
+# (same RUN as the clone, so they never reach a layer), and that Dockerfile also
+# asserts the folder ships empty.
+scenarios/
 
 # Runtime directories (not in git)
 outputs/

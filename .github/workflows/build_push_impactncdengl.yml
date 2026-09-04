@@ -165,10 +165,20 @@ jobs:
       # STEP 6: Docker Image Build and Push
       # Build the main IMPACTncd England Docker image and push to Docker Hub.
       # This creates the complete application image that includes:
-      # - All source code from the repository
+      # - All source code from the repository, EXCEPT scenarios/ (see below)
       # - Built R package with documentation
       # - Configured environment for running simulations
       # - All dependencies from the prerequisite image
+      #
+      # scenarios/ IS EXCLUDED from the published image. With SOURCE_METHOD=git
+      # the code enters the image via a `git clone` run INSIDE the build, so the
+      # build context (and .dockerignore) cannot filter it - the exclusion lives
+      # in Dockerfile.IMPACTncdENGL, which prunes scenarios/ in the same RUN as
+      # the clone and then asserts the folder ships empty (the build FAILS if it
+      # is not). Nothing to configure here; do not add a filtering step.
+      # /IMPACTncd_England/scenarios stays an empty, writable mount point - it is
+      # where setup_user_docker_env.sh -ScenariosDir bind-mounts the user's own
+      # scenarios folder.
       #
       # Build configuration:
       # - Uses docker_setup as build context (contains Dockerfiles and configs)
@@ -197,7 +207,9 @@ jobs:
 #    chriskypri/impactncdengl:<branch_name>
 #
 # 2. The image contains:
-#    - Complete IMPACTncd England application source code
+#    - Complete IMPACTncd England application source code, minus scenarios/
+#      (excluded by Dockerfile.IMPACTncdENGL; the folder ships empty as the
+#      bind-mount point for the user's own scenarios)
 #    - Built and installed R package with documentation
 #    - All system dependencies and R packages from prerequisite image
 #    - Configured environment ready for simulation execution

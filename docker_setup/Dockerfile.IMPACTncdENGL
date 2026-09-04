@@ -22,11 +22,23 @@ ARG SOURCE_METHOD=copy
 # top, MERGING with the data (cp -a / clone-then-copy, not mv, so the existing
 # data is preserved). The code (git-tracked files) does not include the data
 # files, so this only writes code/config on top of the data.
+#
+# EXCEPTION - scenarios/ is NOT shipped. The repo's scenario drivers and their
+# sim_design_*.yaml are project-specific working files (localities, papers,
+# in-flight analyses) that go stale independently of the code, and
+# /IMPACTncd_England/scenarios is precisely where the launcher bind-mounts a
+# user's OWN scenarios folder (setup_user_docker_env.sh -ScenariosDir), so
+# anything baked there is shadowed the moment it matters. The image keeps the
+# path as an EMPTY, writable mount point (created below).
+# The prune runs INSIDE the same RUN as the copy/clone on purpose: deleting the
+# files in a LATER layer would leave them in the earlier one - still adding to
+# the pushed image and still extractable from it.
 COPY . /tmp/build_context/
 RUN if [ "$SOURCE_METHOD" = "copy" ]; then \
         echo "Copy method: merging local code over the data layer" && \
+        rm -rf /tmp/build_context/scenarios && \
         cp -a /tmp/build_context/. /IMPACTncd_England/ && \
-        echo "Code merged over data."; \
+        echo "Code merged over data (scenarios/ excluded)."; \
     fi && \
     rm -rf /tmp/build_context
 
@@ -35,17 +47,27 @@ RUN if [ "$SOURCE_METHOD" = "copy" ]; then \
 RUN if [ "$SOURCE_METHOD" = "git" ]; then \
         echo "Git method: cloning code over the data layer" && \
         git clone https://github.com/ChristK/IMPACTncd_Engl.git /tmp/repo && \
+        rm -rf /tmp/repo/scenarios && \
         cp -a /tmp/repo/. /IMPACTncd_England/ && \
         rm -rf /tmp/repo && \
-        echo "Code cloned over data."; \
+        echo "Code cloned over data (scenarios/ excluded)."; \
     fi
 
 # Add littler tools to PATH
 ENV PATH="/usr/local/lib/R/site-library/littler/bin:${PATH}"
 # Add littler examples to PATH
 ENV PATH="/usr/local/lib/R/site-library/littler/examples:${PATH}"
-# Create directories for outputs and synthpop
-RUN mkdir -p /outputs /synthpop
+# Create directories for outputs and synthpop, plus the EMPTY scenarios/ mount
+# point left behind by the prune above (made writable by the chmod further down,
+# so a container user can drop their own scripts in).
+# The guard is a build-time assertion, not decoration: if a future overlay path
+# (or an edited .dockerignore) ever re-introduced scenario files, the build fails
+# here instead of quietly publishing them again.
+RUN mkdir -p /outputs /synthpop /IMPACTncd_England/scenarios && \
+    if [ -n "$(ls -A /IMPACTncd_England/scenarios)" ]; then \
+        echo "ERROR: /IMPACTncd_England/scenarios must ship EMPTY, but contains:" && \
+        ls -A /IMPACTncd_England/scenarios && exit 1; \
+    fi
 # Change working directory to the package directory
 WORKDIR /IMPACTncd_England/Rpackage/IMPACTncd_England_model_pkg
 # Generate documentation using Roxygen
