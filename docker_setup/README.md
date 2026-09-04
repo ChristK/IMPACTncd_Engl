@@ -462,6 +462,15 @@ Bring your own scenario either way:
 - **standalone mode** — keep `sim_design_*.yaml` + your `.R` script next to `setup_user_docker_env.sh`; they are merged into the model root (no subfolder prefix), **or**
 - **`-ScenariosDir <dir>`** — mount a folder at `/IMPACTncd_England/scenarios`.
 
+> **Don't name a subfolder `scenarios/` in standalone mode.** The launcher symlinks
+> your folder's entries into the model root and skips any name that already exists
+> there, so a `scenarios/` subfolder of your own is passed over with a `NOTE: …
+> keeping the model version` line on stderr — and the "model version" it keeps is the
+> empty mount point, so your scripts simply won't be there. Keep them at the **top
+> level** of your folder, or pass `-ScenariosDir <your folder>/scenarios`, which mounts
+> them at that path. The two options compose: the mount wins and the skip is then
+> exactly what you want, since it stops the symlink from displacing the mount.
+
 Mechanically, each of the three ways code can enter the image excludes it separately:
 `Dockerfile.IMPACTncdENGL` prunes `scenarios/` in the same `RUN` as the code copy/clone
 (so the files never enter a layer), `.dockerignore` keeps it out of the copy-method
