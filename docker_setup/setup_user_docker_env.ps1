@@ -5,19 +5,24 @@
 # IMPACTncd England project. This script supports two operation modes:
 #
 # USAGE:
-#   .\setup_user_docker_env.ps1 [[-Tag] <string>] [[-ScenariosDir] <string>] [[-SimDesignYaml] <string>] [-Run] [-UseVolumes]
+#   .\setup_user_docker_env.ps1 [[-Tag] <string>] [[-ScenariosDir] <string>] [[-SimDesignYaml] <string>] [-Run] [-RunScript <string>] [-UseVolumes]
 #
 # STANDALONE ("drop-in folder") MODE:
 #   Download just this script into a folder that also holds your own
-#   sim_design*.yaml (plus scenarios / a driver R script) and run it with no
+#   sim_design*.yaml (plus scenarios / a run script) and run it with no
 #   arguments. It auto-detects the single sim_design*.yaml next to it and merges
 #   that folder's files (via symlinks) into the model folder /IMPACTncd_England,
 #   so your config + scripts sit alongside global.R — referenced with no
 #   subfolder prefix and no paths to pass.
 #   Relative output_dir/synthpop_dir are resolved relative to the YAML's folder.
-#   Add -Run to auto-run the single simulate*.R driver via Rscript and exit;
-#   otherwise you land in an interactive bash shell (as before). If no YAML sits
-#   next to the script it falls back to the repo default inputs/sim_design.yaml.
+#   With NO -Run you land in an interactive bash shell and NOTHING runs by
+#   itself -- that is the default, deliberately, because the run script is found by
+#   glob rather than declared. Add -Run to instead execute the folder's run script R
+#   script via Rscript and exit. The run script is auto-detected when the folder
+#   holds exactly one candidate (simulate*.R / simulation*.R preferred; any
+#   single *.R accepted); when several are present, name one with
+#   -RunScript <file>. If no YAML sits next to the script it falls back to the repo
+#   default inputs/sim_design.yaml.
 #
 # EXAMPLES:
 #   # Basic usage with default settings (uses main tag, bind mounts)
@@ -27,6 +32,12 @@
 #   .\setup_user_docker_env.ps1 -Tag "v1.2.3"
 #   .\setup_user_docker_env.ps1 -Tag "local"
 #   
+#   # Auto-run the folder's run script non-interactively (no shell), then exit
+#   .\setup_user_docker_env.ps1 -Run
+#
+#   # Same, naming the run script (needed when several .R files sit in the folder)
+#   .\setup_user_docker_env.ps1 -RunScript simulation_ineq2.R
+#
 #   # Mount custom scenarios directory
 #   .\setup_user_docker_env.ps1 -ScenariosDir "C:\path\to\my\scenarios"
 #   .\setup_user_docker_env.ps1 -ScenariosDir "..\custom_scenarios"
@@ -63,9 +74,20 @@
 #       default ..\inputs\sim_design.yaml.
 #
 #   -Run [<SwitchParameter>]
-#       Standalone mode only. Auto-run the single simulate*.R driver in the
-#       working folder via Rscript, then exit (instead of an interactive shell).
+#       Standalone mode only. Auto-run the working folder's run script via
+#       Rscript, then exit (instead of an interactive shell). The run script is
+#       auto-detected when exactly one candidate is present.
 #       Default: False (interactive bash shell).
+#
+#   -RunScript <string>
+#       Standalone mode only. Name the run script -Run should execute,
+#       for a folder holding several .R files. Implies -Run. The file must sit
+#       directly in the working folder.
+#       The bash twin accepts BOTH `-Run <file>` (shorthand) and `-RunScript <file>`,
+#       so `-RunScript simulation_ineq2.R` is one command line valid in either
+#       shell. PowerShell cannot express the shorthand: a [switch] given a value
+#       is a binding error, and a [string] would make bare -Run one.
+#       Default: empty (auto-detect).
 #
 #   -UseVolumes [<SwitchParameter>]
 #       Use Docker-managed volumes instead of direct bind mounts.
@@ -117,8 +139,21 @@ param (
     [string]$ScenariosDir = "",
     [string]$SimDesignYaml = "",
     [switch]$Run,
+    [string]$RunScript = "",
     [switch]$UseVolumes
 )
+
+# -RunScript names the script -Run should execute; naming one means you want it
+# run, so it IMPLIES -Run -- you never need to pass both, and it can never
+# silently do nothing. It exists because PowerShell cannot express the bash
+# shorthand `-Run <file>`: a [switch] given a value is a binding error, and a
+# [string] would make bare -Run one. The bash twin accepts -RunScript too, so
+# `-RunScript foo.R` is a single command line valid in BOTH shells.
+# -Run and -RunScript coexist safely: PowerShell resolves an EXACT parameter
+# name before considering prefixes, so bare `-Run` still binds this switch
+# rather than erroring as an ambiguous abbreviation of the two. Same shape as
+# Test-Path's -Path vs -PathType.
+$RunMode = $Run.IsPresent -or ($RunScript -ne "")
 
 # Resolve script directory and switch to it
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -132,13 +167,14 @@ $ProjectRoot = (Resolve-Path "$ScriptDir/..").Path -replace '\\', '/'
 # folder to mount.
 #
 # Standalone mode = this launcher was downloaded into a folder that also holds
-# the user's own sim_design*.yaml (plus scenarios / a driver script). With no
+# the user's own sim_design*.yaml (plus scenarios / a run script). With no
 # -SimDesignYaml and exactly one YAML next to the script, it is used
 # automatically and its files are merged (symlinked) into the model folder
 # /IMPACTncd_England. If none sits next to the script we fall back to the repo
 # default (inputs/sim_design.yaml) and the classic behaviour.
 # -----------------------------------------------------------------------------
 $WorkdirMount = $null   # host folder merged into /IMPACTncd_England ($null = none)
+$WorkdirIsScriptDir = $true   # is the work folder this script's own folder?
 
 if ($SimDesignYaml) {
     # Explicit -SimDesignYaml. Resolve relative to the project root if needed.
@@ -160,6 +196,11 @@ if ($SimDesignYaml) {
     $projFwd    = ($ProjectRoot -replace '\\', '/').TrimEnd('/')
     if (-not ($yamlDirFwd -eq $projFwd -or $yamlDirFwd.StartsWith("$projFwd/"))) {
         $WorkdirMount = (Split-Path -Parent $SimDesignYaml)
+        # The work folder is NOT this script's folder, so any command we print
+        # for the user to re-run must carry -SimDesignYaml or it would land in a
+        # different mode. Tracked as a flag rather than by comparing paths,
+        # because the two branches normalise them differently.
+        $WorkdirIsScriptDir = $false
     }
 } else {
     # No -SimDesignYaml: look for a single YAML next to this script. Prefer the
@@ -173,6 +214,7 @@ if ($SimDesignYaml) {
     if ($cands.Count -eq 1) {
         $SimDesignYaml = $cands[0].FullName
         $WorkdirMount  = $ScriptDir
+        $WorkdirIsScriptDir = $true
         Write-Host "Auto-detected sim-design YAML next to the script: $($cands[0].Name)"
     } elseif ($cands.Count -gt 1) {
         Write-Host "Error: multiple YAML files sit next to the script; cannot choose one automatically:"
@@ -515,28 +557,102 @@ done
 cd /IMPACTncd_England
 '@
 
-# -Run: locate the single driver R script in the working folder to run.
-$DriverName = $null
-if ($Run) {
+# -----------------------------------------------------------------------------
+# RunScript R script detection (standalone mode only).
+#
+# Collects the candidate run scripts in the working folder. Run in BOTH
+# modes: -Run needs one to execute, and the interactive hint below names the one
+# it found -- so detection only collects and never exits. Deciding that "no
+# unique run script" is an error belongs to -Run alone.
+#
+# BOTH naming spellings are matched on purpose: real run scripts are named either
+# simulate_*.R or simulation_*.R, and "simulation" does NOT match simulate*
+# ("simulati" vs "simulate"). The bash twin had only simulate*, so a run script
+# called simulation_ineq2.R fell through to the bare *.R fallback and -Run broke
+# as soon as a second .R file appeared. Hidden items are excluded (no -Force),
+# so editor backup folders such as .history\ are invisible here.
+# -----------------------------------------------------------------------------
+$runScripts = @()
+if ($WorkdirMount) {
+    $allR = @(Get-ChildItem -Path $WorkdirMount -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.Extension -match '^\.[Rr]$' })
+    $runScripts = @($allR | Where-Object { $_.Name -match '^simulat(e|ion)' })
+    if ($runScripts.Count -eq 0) { $runScripts = $allR }
+}
+
+# The command to print when telling the user how to re-run. In autodetect mode
+# the work folder IS this script's folder, so a bare re-run reproduces the
+# setup; with an out-of-tree -SimDesignYaml it does not, and the flag has to be
+# echoed back. -Tag and the rest are deliberately not echoed: they do not change
+# which folder or run script is used.
+$launcherName = Split-Path -Leaf $MyInvocation.MyCommand.Path
+if ($WorkdirIsScriptDir) {
+    $rerunCmd = ".\$launcherName"
+} else {
+    $rerunCmd = ".\$launcherName -SimDesignYaml '$SimDesignYaml'"
+}
+
+# -Run: resolve the run script to execute non-interactively (requires
+# standalone mode, i.e. a mounted working folder).
+$RunScriptName = $null
+if ($RunMode) {
     if (-not $WorkdirMount) {
-        Write-Host "Error: -Run needs a working folder (standalone mode). Put your sim_design*.yaml and a simulate*.R driver next to this script, then re-run with -Run."
+        Write-Host "Error: -Run needs a working folder (standalone mode). Put your sim_design*.yaml and a run script (simulate*.R / simulation*.R) next to this script, then re-run with -Run."
         Pop-Location
         Exit 1
     }
-    $drv = @(Get-ChildItem -Path $WorkdirMount -Filter 'simulate*.R' -File -ErrorAction SilentlyContinue)
-    if ($drv.Count -eq 0) {
-        $drv = @(Get-ChildItem -Path $WorkdirMount -Filter '*.R' -File -ErrorAction SilentlyContinue)
-    }
-    if ($drv.Count -eq 1) {
-        $DriverName = $drv[0].Name
-    } elseif ($drv.Count -gt 1) {
+    if ($RunScript -ne "") {
+        # An explicit run script was named. It must be a file sitting DIRECTLY in
+        # the working folder: the merge step symlinks that folder's entries into
+        # the model root by basename, and the container runs `Rscript <basename>`
+        # from there -- so a run script anywhere else could not be reached.
+        $RunScriptName = [System.IO.Path]::GetFileName($RunScript)
+        if ($RunScriptName -notmatch '\.[Rr]$') {
+            Write-Host "Error: -RunScript '$RunScript' is not an R script (expected .R or .r)."
+            Write-Host "       Did you mean to pass it to -SimDesignYaml?"
+            Pop-Location
+            Exit 1
+        }
+        $runScriptHost = Join-Path $WorkdirMount $RunScriptName
+        if (-not (Test-Path -LiteralPath $runScriptHost -PathType Leaf)) {
+            Write-Host "Error: -RunScript '$RunScript' not found in the working folder:"
+            Write-Host "         $runScriptHost"
+            Write-Host "       The run script must sit directly in that folder (its files are the"
+            Write-Host "       ones merged into the model folder inside the container)."
+            if ($runScripts.Count -gt 0) {
+                Write-Host "       R scripts found there:"
+                $runScripts | ForEach-Object { Write-Host "         - $($_.Name)" }
+            }
+            Pop-Location
+            Exit 1
+        }
+        # A path (rather than a bare name) must point at that very file, so
+        # naming a run script from some other folder is refused instead of being
+        # silently reinterpreted as the same-named file in the working folder.
+        if ($RunScript -match '[\\/]') {
+            $givenPath = (Resolve-Path -LiteralPath $RunScript -ErrorAction SilentlyContinue)
+            $wantPath  = (Resolve-Path -LiteralPath $runScriptHost -ErrorAction SilentlyContinue)
+            if ((-not $givenPath) -or (-not $wantPath) -or ($givenPath.Path -ne $wantPath.Path)) {
+                Write-Host "Error: -RunScript '$RunScript' is outside the working folder"
+                Write-Host "         $WorkdirMount"
+                Write-Host "       Only files in that folder are visible to the container."
+                Pop-Location
+                Exit 1
+            }
+        }
+    } elseif ($runScripts.Count -eq 1) {
+        $RunScriptName = $runScripts[0].Name
+    } elseif ($runScripts.Count -gt 1) {
         Write-Host "Error: -Run found multiple R scripts in the working folder; cannot choose one:"
-        $drv | ForEach-Object { Write-Host "  - $($_.Name)" }
-        Write-Host "Keep a single simulate*.R driver, or run interactively (omit -Run)."
+        $runScripts | ForEach-Object { Write-Host "  - $($_.Name)" }
+        Write-Host "Name the run script you want, e.g.:"
+        Write-Host "    $rerunCmd -RunScript $($runScripts[0].Name)"
+        Write-Host "...or omit -Run to run interactively."
         Pop-Location
         Exit 1
     } else {
-        Write-Host "Error: -Run found no R script in the working folder to execute."
+        Write-Host "Error: -Run found no R script in the working folder to execute:"
+        Write-Host "         $WorkdirMount"
         Pop-Location
         Exit 1
     }
@@ -550,10 +666,15 @@ if ($Run) {
 # on every shell. Running the decoded FILE (not a pipe) lets `exec bash` keep the TTY.
 $LaunchDecode = 'echo $0 | base64 -d > /tmp/impactncd_launch.sh; exec bash /tmp/impactncd_launch.sh'
 if ($WorkdirMount) {
-    if ($Run) {
+    if ($RunMode) {
         $TtyFlags = @("--rm")                    # non-interactive (batch)
-        $execLine = "exec Rscript '$DriverName'"
-        Write-Host "Auto-run mode: will run $DriverName via Rscript (merged into the model folder), then exit."
+        # The run script name is interpolated into a single-quoted word inside the
+        # in-container bash script, so any apostrophe must be escaped or the
+        # word ends early: `Rscript 'it's.R'` reaches Rscript as `its.R`. Same
+        # POSIX close-escape-reopen idiom as the bash twin.
+        $runScriptQuoted = $RunScriptName -replace "'", "'\''"
+        $execLine = "exec Rscript '$runScriptQuoted'"
+        Write-Host "Auto-run mode: will run $RunScriptName via Rscript (merged into the model folder), then exit."
     } else {
         $TtyFlags = @("-it", "--rm")
         $execLine = "exec bash"
@@ -568,16 +689,45 @@ if ($WorkdirMount) {
     $ContainerCmd = @("bash")
 }
 
-if ((-not $Run) -and $WorkdirMount) {
-    $yamlBaseHint = [System.IO.Path]::GetFileName($SimDesignYaml)
+# Friendly hint for interactive standalone runs. Names the run script that -Run
+# would pick, and says plainly that nothing starts by itself here -- the
+# previous wording left users unsure whether a simulation had already begun.
+if ((-not $RunMode) -and $WorkdirMount) {
+    $yamlBaseHint  = [System.IO.Path]::GetFileName($SimDesignYaml)
     Write-Host "-----------------------------------------------------------------------"
+    Write-Host "INTERACTIVE SHELL: nothing is run automatically. You get a bash prompt"
+    Write-Host "inside the container and decide what to run."
+    Write-Host ""
     Write-Host "Your files are available directly in the model folder (no subfolder to remember)."
     Write-Host "Inside the container, run your simulation, e.g.:"
     Write-Host "    R"
     Write-Host '    > source("global.R")'
     Write-Host ('    > IMPACTncd <- Simulation$new("' + $yamlBaseHint + '")')
     Write-Host '    > IMPACTncd$run(1:10, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)'
-    Write-Host '  ...or source your driver:  source("<your-driver>.R")'
+    if ($runScripts.Count -eq 1) {
+        Write-Host "  ...or source the run script detected in this folder:"
+        Write-Host ('    > source("' + $runScripts[0].Name + '")')
+        Write-Host ""
+        Write-Host "TO RUN IT NON-INTERACTIVELY INSTEAD: re-run this launcher with -Run"
+        Write-Host "    $rerunCmd -Run"
+        Write-Host ("  That skips the shell entirely, executes ``Rscript " + $runScripts[0].Name + "``")
+        Write-Host "  to completion, and exits when the simulation finishes."
+    } elseif ($runScripts.Count -gt 1) {
+        Write-Host "  ...or source one of the R scripts detected in this folder:"
+        $runScripts | ForEach-Object { Write-Host ('    > source("' + $_.Name + '")') }
+        Write-Host ""
+        Write-Host "TO RUN ONE NON-INTERACTIVELY INSTEAD: re-run this launcher naming it, e.g."
+        Write-Host "    $rerunCmd -RunScript $($runScripts[0].Name)"
+        Write-Host "  That skips the shell entirely, runs that script via Rscript to"
+        Write-Host "  completion, and exits when the simulation finishes."
+    } else {
+        Write-Host '  ...or source your run script:  source("<your-script>.R")'
+        Write-Host ""
+        Write-Host "  (No .R script sits in the working folder"
+        Write-Host "     $WorkdirMount"
+        Write-Host "   so -Run has nothing to execute. Put your run script there to enable it.)"
+    }
+    Write-Host ""
     Write-Host "  (outputs are written to /outputs -> your host output_dir)"
     Write-Host "-----------------------------------------------------------------------"
 }

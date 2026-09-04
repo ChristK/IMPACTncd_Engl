@@ -3,14 +3,14 @@
 # setup_user_docker_env.sh
 #
 # Usage:
-#   ./setup_user_docker_env.sh [-Tag <tag>] [-ScenariosDir <path_to_scenarios>] [-SimDesignYaml <path_to_yaml>] [-Run] [--UseVolumes]
+#   ./setup_user_docker_env.sh [-Tag <tag>] [-ScenariosDir <path_to_scenarios>] [-SimDesignYaml <path_to_yaml>] [-Run [<script.R>]] [-RunScript <script.R>] [--UseVolumes]
 #
 # Description:
 #   This script pulls and runs a Docker container for the IMPACTncd England project.
 #
 # Standalone ("drop-in folder") mode:
 #   Download just this script into a folder that also holds your own
-#   sim_design*.yaml (plus any scenarios / a driver R script), then run it with
+#   sim_design*.yaml (plus any scenarios / a run script), then run it with
 #   NO arguments. It will:
 #     - auto-detect the single sim_design*.yaml sitting next to it (if exactly
 #       one YAML is present; otherwise pass -SimDesignYaml to choose), and
@@ -19,8 +19,17 @@
 #       reference them with no subfolder prefix and pass no paths.
 #   Relative output_dir/synthpop_dir in the YAML are resolved relative to the
 #   YAML's own folder.
-#   Add -Run to auto-run the single simulate*.R driver in the folder via Rscript
-#   and exit (otherwise you land in an interactive bash shell, as before).
+#   With NO -Run you land in an interactive bash shell and NOTHING runs by
+#   itself — that is the default, deliberately, because the run script is found by
+#   glob rather than declared.
+#   Add -Run to instead execute the folder's run script via Rscript and
+#   exit. The run script is auto-detected when the folder holds exactly one
+#   candidate (simulate*.R / simulation*.R preferred; any single *.R accepted).
+#   When several R scripts are present, name the one you want:
+#     -Run simulation_ineq2.R          # bash shorthand
+#     -RunScript simulation_ineq2.R    # same thing; it implies -Run, and also
+#                                      # works in the PowerShell twin, so one
+#                                      # command line is valid in both shells
 #
 #   If no YAML sits next to the script, it falls back to the repo default
 #   inputs/sim_design.yaml and the classic behaviour (nothing extra mounted).
@@ -68,6 +77,16 @@
 #
 # 5. Use Docker volumes for better performance:
 #    ./setup_user_docker_env.sh -Tag main -ScenariosDir /path/to/scenarios -SimDesignYaml /path/to/custom_sim_design.yaml --UseVolumes
+#
+# 6. Auto-run the folder's run script non-interactively (no shell), then exit:
+#    ./setup_user_docker_env.sh -Run
+#
+# 7. Same, naming the run script (needed when several .R files sit in the folder):
+#    ./setup_user_docker_env.sh -Run simulation_ineq2.R
+#
+# 8. -Run combined with other flags (the run script name is optional, so a following
+#    flag is never mistaken for it):
+#    ./setup_user_docker_env.sh -Run --UseVolumes -Tag local
 # -----------------------------------------------------------------------------
 
 # Get the directory where the script is located
@@ -79,7 +98,8 @@ PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
 DOCKER_TAG="main"  # Default tag
 YAML_FILE=""       # Sim-design YAML; stays empty until set by -SimDesignYaml or auto-detected
 SCENARIOS_DIR=""  # Scenarios directory to copy into container
-RUN_MODE=false     # -Run: auto-run the single driver R script in the working folder, then exit
+RUN_MODE=false     # -Run: auto-run the run script in the working folder, then exit
+RUNSCRIPT_REQUESTED="" # -Run <file> / -RunScript <file>: explicit run script ("" = auto-detect)
 CURRENT_USER=$(whoami)
 # Get current user's UID and GID for running containers as non-root
 USER_ID=$(id -u)
@@ -156,7 +176,30 @@ while [[ $# -gt 0 ]]; do
       ;;
     -Run)
       RUN_MODE=true
-      shift
+      # The script name is OPTIONAL, so the next token is consumed only when
+      # it looks like a value rather than another option. Without this guard
+      # `-Run --UseVolumes` would swallow the flag as a run-script name and
+      # then fail with a confusing "run script not found"; `-Run -Tag local`
+      # would eat the tag. A leading "-" therefore always means "not my value" —
+      # a script whose name starts with "-" needs `-RunScript ./-odd.R`.
+      if [ $# -ge 2 ] && [ -n "$2" ] && [ "${2#-}" = "$2" ]; then
+        RUNSCRIPT_REQUESTED="$2"
+        shift 2
+      else
+        shift
+      fi
+      ;;
+    -RunScript)
+      # Explicit spelling that also exists in the PowerShell twin (where a
+      # switch cannot take an optional value). Naming a run script means you
+      # want it run, so this implies -Run and can never silently do nothing.
+      if [ $# -lt 2 ] || [ -z "$2" ]; then
+        echo "Error: -RunScript needs a file name (e.g. -RunScript simulation_ineq2.R)"
+        exit 1
+      fi
+      RUNSCRIPT_REQUESTED="$2"
+      RUN_MODE=true
+      shift 2
       ;;
     *)
       echo "Unknown argument: $1"
@@ -173,7 +216,7 @@ DOCKER_TAG=${DOCKER_TAG:-"main"}
 # folder to mount.
 #
 # Standalone mode = this launcher was downloaded into a folder that also holds
-# the user's own sim_design*.yaml (plus scenarios / a driver script). When no
+# the user's own sim_design*.yaml (plus scenarios / a run script). When no
 # -SimDesignYaml is given and exactly one YAML sits next to the script, it is
 # used automatically and its files are merged (symlinked) into the model folder
 # /IMPACTncd_England — so the user's config and scripts sit alongside the model
@@ -338,7 +381,7 @@ RUN_ENV_ARGS=(
 # STAGING path, and MERGE_SCRIPT (below) symlinks its files into the model root
 # /IMPACTncd_England at container start — so they sit alongside global.R and the
 # user references them with NO subfolder prefix. SIM_DESIGN_YAML points at that
-# post-symlink location so a driver can do Simulation$new(Sys.getenv("SIM_DESIGN_YAML")).
+# post-symlink location so a run script can do Simulation$new(Sys.getenv("SIM_DESIGN_YAML")).
 WORK_STAGE="/mnt/impactncd_project"   # internal staging mount (users never see it)
 EXTRA_MOUNTS=()
 if [[ -n "$SCENARIOS_DIR" ]]; then
@@ -354,7 +397,7 @@ fi
 # that ALREADY exists there — so a user file never shadows a model file (global.R,
 # Rpackage, …). The skip check runs against the real in-container tree, so there
 # is no hardcoded reserved list to keep in sync. Then cd to the model root so the
-# relative paths in global.R and in the user's driver resolve.
+# relative paths in global.R and in the user's run script resolve.
 MERGE_SCRIPT='for f in '"$WORK_STAGE"'/*; do
   [ -e "$f" ] || continue
   n=$(basename "$f")
@@ -367,30 +410,117 @@ MERGE_SCRIPT='for f in '"$WORK_STAGE"'/*; do
 done
 cd /IMPACTncd_England'
 
-# -Run: locate the single driver R script in the working folder to execute
-# non-interactively (requires standalone mode, i.e. a mounted working folder).
-DRIVER_NAME=""
+# -----------------------------------------------------------------------------
+# Run-script detection (standalone mode only).
+#
+# Fills the `run_scripts` array with the candidate run scripts sitting in the
+# working folder. Called in BOTH modes: -Run needs one to execute, and the
+# interactive hint below names the one it found — which is why detection only
+# *collects* candidates and never exits. Deciding that "no unique run script"
+# is an error belongs to -Run alone.
+#
+# Note `*` never matches a leading dot, so editor backup folders (.history/ and
+# friends) are invisible here by construction and need no special-casing.
+# -----------------------------------------------------------------------------
+run_scripts=()
+detect_run_scripts() {
+  run_scripts=()
+  [ -n "$WORKDIR_MOUNT" ] || return 0
+  shopt -s nullglob
+  # Preferred naming convention. BOTH spellings are listed on purpose: real
+  # run scripts are named either simulate_*.R or simulation_*.R, and "simulation"
+  # does NOT match simulate* ("simulati" vs "simulate"). Collapsing these to a
+  # single truncated simulat*.R would work but reads like a typo and invites a
+  # maintainer to "fix" it back to simulate*.R — which is exactly the bug this
+  # replaces, where the preferred glob silently missed simulation_ineq2.R and
+  # only the *.R fallback below saved it. The two prefixes are mutually
+  # exclusive, so no candidate can be listed twice.
+  run_scripts=( "$WORKDIR_MOUNT"/simulate*.R   "$WORKDIR_MOUNT"/simulate*.r \
+                "$WORKDIR_MOUNT"/simulation*.R "$WORKDIR_MOUNT"/simulation*.r )
+  if [ ${#run_scripts[@]} -eq 0 ]; then
+    run_scripts=( "$WORKDIR_MOUNT"/*.R "$WORKDIR_MOUNT"/*.r )
+  fi
+  shopt -u nullglob
+}
+detect_run_scripts
+
+# The command to print when telling the user how to re-run. In autodetect mode
+# the working folder IS the script's own folder, so a bare re-run reproduces
+# this setup. With an explicit -SimDesignYaml pointing OUTSIDE the repo tree the
+# two differ, and a bare re-run would land in a different mode (or classic
+# mode) - so the flag has to be echoed back, or every command we print would be
+# wrong in exactly that case. -Tag and the rest are deliberately not echoed:
+# they do not change which folder or run script is used.
+LAUNCHER_NAME="$(basename "${BASH_SOURCE[0]}")"
+RERUN_CMD="./$LAUNCHER_NAME"
+if [ -n "$WORKDIR_MOUNT" ] && [ "$WORKDIR_MOUNT" != "$SCRIPT_DIR" ]; then
+  RERUN_CMD="$LAUNCHER_NAME -SimDesignYaml '$YAML_FILE'"
+  case "$SCRIPT_DIR" in
+    /*) RERUN_CMD="'$SCRIPT_DIR/$LAUNCHER_NAME' -SimDesignYaml '$YAML_FILE'" ;;
+  esac
+fi
+
+# -Run: resolve the run script to execute non-interactively (requires
+# standalone mode, i.e. a mounted working folder).
+RUNSCRIPT_NAME=""
 if [ "$RUN_MODE" = true ]; then
   if [ -z "$WORKDIR_MOUNT" ]; then
     echo "Error: -Run needs a working folder (standalone mode). Put your sim_design*.yaml"
-    echo "       and a simulate*.R driver next to this script, then re-run with -Run."
+    echo "       and a run script (simulate*.R / simulation*.R) next to this"
+    echo "       script, then re-run with -Run."
     exit 1
   fi
-  shopt -s nullglob
-  drivers=( "$WORKDIR_MOUNT"/simulate*.R "$WORKDIR_MOUNT"/simulate*.r )
-  if [ ${#drivers[@]} -eq 0 ]; then
-    drivers=( "$WORKDIR_MOUNT"/*.R "$WORKDIR_MOUNT"/*.r )
-  fi
-  shopt -u nullglob
-  if [ ${#drivers[@]} -eq 1 ]; then
-    DRIVER_NAME="$(basename "${drivers[0]}")"
-  elif [ ${#drivers[@]} -gt 1 ]; then
+  if [ -n "$RUNSCRIPT_REQUESTED" ]; then
+    # An explicit run script was named. It must be a file sitting DIRECTLY in
+    # the working folder: the merge step symlinks that folder's entries into the
+    # model root by basename, and the container runs `Rscript <basename>` from
+    # there — so a run script anywhere else could not be reached.
+    RUNSCRIPT_NAME="$(basename -- "$RUNSCRIPT_REQUESTED")"
+    case "$RUNSCRIPT_NAME" in
+      *.R|*.r) : ;;
+      *)
+        echo "Error: run script '$RUNSCRIPT_REQUESTED' is not an R script (expected .R or .r)."
+        echo "       Did you mean to pass it to -SimDesignYaml?"
+        exit 1
+        ;;
+    esac
+    if [ ! -f "$WORKDIR_MOUNT/$RUNSCRIPT_NAME" ]; then
+      echo "Error: run script '$RUNSCRIPT_REQUESTED' not found in the working folder:"
+      echo "         $WORKDIR_MOUNT/$RUNSCRIPT_NAME"
+      echo "       The run script must sit directly in that folder (its files are the"
+      echo "       ones merged into the model folder inside the container)."
+      if [ ${#run_scripts[@]} -gt 0 ]; then
+        echo "       R scripts found there:"
+        for d in "${run_scripts[@]}"; do echo "         - $(basename "$d")"; done
+      fi
+      exit 1
+    fi
+    # A path (rather than a bare name) must point at that very file, so naming a
+    # run script from some other folder is refused instead of being silently
+    # reinterpreted as the same-named file in the working folder.
+    case "$RUNSCRIPT_REQUESTED" in
+      */*)
+        if [ "$(realpath -- "$RUNSCRIPT_REQUESTED" 2>/dev/null)" \
+             != "$(realpath -- "$WORKDIR_MOUNT/$RUNSCRIPT_NAME" 2>/dev/null)" ]; then
+          echo "Error: run script '$RUNSCRIPT_REQUESTED' is outside the working folder"
+          echo "         $WORKDIR_MOUNT"
+          echo "       Only files in that folder are visible to the container."
+          exit 1
+        fi
+        ;;
+    esac
+  elif [ ${#run_scripts[@]} -eq 1 ]; then
+    RUNSCRIPT_NAME="$(basename "${run_scripts[0]}")"
+  elif [ ${#run_scripts[@]} -gt 1 ]; then
     echo "Error: -Run found multiple R scripts in the working folder; cannot choose one:"
-    for d in "${drivers[@]}"; do echo "  - $(basename "$d")"; done
-    echo "Keep a single simulate*.R driver, or run interactively (omit -Run)."
+    for d in "${run_scripts[@]}"; do echo "  - $(basename "$d")"; done
+    echo "Name the run script you want, e.g.:"
+    echo "    $RERUN_CMD -Run $(basename "${run_scripts[0]}")"
+    echo "...or omit -Run to run interactively."
     exit 1
   else
-    echo "Error: -Run found no R script in the working folder to execute."
+    echo "Error: -Run found no R script in the working folder to execute:"
+    echo "         $WORKDIR_MOUNT"
     exit 1
   fi
 fi
@@ -407,8 +537,15 @@ LAUNCH_DECODE='echo $0 | base64 -d > /tmp/impactncd_launch.sh; exec bash /tmp/im
 if [ -n "$WORKDIR_MOUNT" ]; then
   if [ "$RUN_MODE" = true ]; then
     TTY_FLAGS=()                                 # non-interactive (batch)
-    FULL_SCRIPT="$MERGE_SCRIPT"$'\n'"exec Rscript '$DRIVER_NAME'"
-    echo "Auto-run mode: will run $DRIVER_NAME via Rscript (merged into the model folder), then exit."
+    # The script name is interpolated into a single-quoted word inside the
+    # in-container script, so any apostrophe in it must be escaped or the word
+    # ends early: `Rscript 'it's.R'` reaches Rscript as `its.R`. The POSIX idiom
+    # closes the quote, emits a backslash-escaped quote and reopens. The name is
+    # user-supplied via -Run/-RunScript, so this also keeps a filename from
+    # smuggling shell syntax into the blob.
+    RUNSCRIPT_QUOTED="${RUNSCRIPT_NAME//\'/\'\\\'\'}"
+    FULL_SCRIPT="$MERGE_SCRIPT"$'\n'"exec Rscript '$RUNSCRIPT_QUOTED'"
+    echo "Auto-run mode: will run $RUNSCRIPT_NAME via Rscript (merged into the model folder), then exit."
   else
     TTY_FLAGS=( -it )
     FULL_SCRIPT="$MERGE_SCRIPT"$'\n'"exec bash"
@@ -420,16 +557,45 @@ else
   CONTAINER_CMD=( bash )
 fi
 
-# Friendly hint for interactive standalone runs.
+# Friendly hint for interactive standalone runs. Names the run script that -Run
+# would pick, and says plainly that nothing starts by itself here — the previous
+# wording left users unsure whether the launcher had already begun a simulation.
 if [ "$RUN_MODE" != true ] && [ -n "$WORKDIR_MOUNT" ]; then
   echo "-----------------------------------------------------------------------"
+  echo "INTERACTIVE SHELL: nothing is run automatically. You get a bash prompt"
+  echo "inside the container and decide what to run."
+  echo ""
   echo "Your files are available directly in the model folder (no subfolder to"
   echo "remember). Inside the container, run your simulation, e.g.:"
   echo "    R"
   echo "    > source(\"global.R\")"
   echo "    > IMPACTncd <- Simulation\$new(\"$(basename "$YAML_FILE")\")"
   echo "    > IMPACTncd\$run(1:10, multicore = TRUE, \"sc0\")\$export_summaries(multicore = TRUE)"
-  echo "  ...or source your driver:  source(\"<your-driver>.R\")"
+  if [ ${#run_scripts[@]} -eq 1 ]; then
+    echo "  ...or source the run script detected in this folder:"
+    echo "    > source(\"$(basename "${run_scripts[0]}")\")"
+    echo ""
+    echo "TO RUN IT NON-INTERACTIVELY INSTEAD: re-run this launcher with -Run"
+    echo "    $RERUN_CMD -Run"
+    echo "  That skips the shell entirely, executes \`Rscript $(basename "${run_scripts[0]}")\`"
+    echo "  to completion, and exits when the simulation finishes."
+  elif [ ${#run_scripts[@]} -gt 1 ]; then
+    echo "  ...or source one of the R scripts detected in this folder:"
+    for d in "${run_scripts[@]}"; do echo "    > source(\"$(basename "$d")\")"; done
+    echo ""
+    echo "TO RUN ONE NON-INTERACTIVELY INSTEAD: re-run this launcher naming it,"
+    echo "e.g."
+    echo "    $RERUN_CMD -Run $(basename "${run_scripts[0]}")"
+    echo "  That skips the shell entirely, runs that script via Rscript to"
+    echo "  completion, and exits when the simulation finishes."
+  else
+    echo "  ...or source your run script:  source(\"<your-script>.R\")"
+    echo ""
+    echo "  (No .R script sits in the working folder"
+    echo "     $WORKDIR_MOUNT"
+    echo "   so -Run has nothing to execute. Put your run script there to enable it.)"
+  fi
+  echo ""
   echo "  (outputs are written to /outputs -> your host output_dir)"
   echo "-----------------------------------------------------------------------"
 fi

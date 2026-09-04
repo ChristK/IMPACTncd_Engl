@@ -314,15 +314,32 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\setup_user_docker_env.ps1 -Run
 ```
 
-**What `-Run` does:** it runs the single `simulate.R` in your folder from start
-to finish and then exits — hands-off. When it finishes you are back at your
-normal prompt and your results are on disk.
+**What `-Run` does:** it runs your run script from start to finish and then
+exits — hands-off. When it finishes you are back at your normal prompt and your
+results are on disk.
+
+The launcher finds the run script by name: it prefers a single `simulate*.R` or
+`simulation*.R`, and otherwise accepts any single `*.R` in the folder. If you
+keep **several** `.R` files there it will not guess — name the one to run:
+
+```bash
+bash setup_user_docker_env.sh -Run simulate.R
+```
+```powershell
+.\setup_user_docker_env.ps1 -RunScript simulate.R
+```
+
+(`-RunScript` works in both shells and implies `-Run` — you never need to pass
+both — so that second form is valid on Linux/macOS too.)
 
 ### Prefer to work interactively?
 
 Leave off `-Run` (`bash setup_user_docker_env.sh`, or
-`.\setup_user_docker_env.ps1`). Instead of running your script, the launcher
-drops you into a shell **inside** the container. Your prompt changes to something
+`.\setup_user_docker_env.ps1`). **Nothing is run automatically** — instead of
+running your script, the launcher drops you into a shell **inside** the
+container. Before it does, it prints which run script it detected and the exact
+`-Run` command that would execute that run script non-interactively, so you can see
+at a glance what the hands-off option would do. Your prompt changes to something
 like `youruser@a1b2c3d4:/IMPACTncd_England$`. Your files (`sim_design.yaml`,
 `simulate.R`) are right there next to the model — no subfolder to remember — so
 you can run:

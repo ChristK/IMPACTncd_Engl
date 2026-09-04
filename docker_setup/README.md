@@ -67,14 +67,16 @@ cd IMPACTncd_Engl/docker_setup
 
 If you just want to run simulations with your own config, you don't need to
 clone the repo. Make a folder for your run, drop in **the one launcher script**
-for your OS plus your own `sim_design*.yaml` (and, optionally, scenario scripts
-and a `simulate*.R` driver), and run it with **no arguments**:
+for your OS plus your own `sim_design*.yaml` (and, optionally, your scenario and
+`simulate*.R` / `simulation*.R` run scripts — keep them at the **top level** of the
+folder, not in a subfolder: see [the `scenarios/` caveat](#what-the-image-does-not-contain)),
+and run it with **no arguments**:
 
 ```text
 my_run/
   setup_user_docker_env.sh        # or .ps1 on Windows
   sim_design_testing.yaml         # your config (the only *.yaml here)
-  simulate_testing.R              # optional driver
+  simulate_testing.R              # optional run script
 ```
 
 ```bash
@@ -96,10 +98,13 @@ The launcher then:
   symlinks created at container start), so your config and scripts sit alongside
   `global.R` — referenced with **no subfolder prefix** and no paths to pass. A
   user file whose name clashes with a model file is skipped with a note (the
-  model's copy wins), so nothing is shadowed;
+  model's copy wins), so no model file is ever shadowed. Note this cuts both
+  ways: it is *your* clashing file that gets left out, which matters most for a
+  subfolder named `scenarios/` — see
+  [the `scenarios/` caveat](#what-the-image-does-not-contain);
 - resolves **relative** `output_dir`/`synthpop_dir` (e.g. `./outputs`) against
   the folder itself, so results land right next to your config on the host;
-- exposes the config path inside as `$SIM_DESIGN_YAML`, so a driver can do
+- exposes the config path inside as `$SIM_DESIGN_YAML`, so a run script can do
   `Simulation$new(Sys.getenv("SIM_DESIGN_YAML"))` regardless of the working dir.
 
 Inside the interactive shell your files sit right in the model folder — no prefix:
@@ -110,10 +115,28 @@ IMPACTncd$run(1:10, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)
 # ...or just: source("simulate_testing.R")
 ```
 
-With `-Run`, the single `simulate*.R` in the folder is executed via `Rscript`
-and the container exits when it finishes — good for unattended runs. (Your
-driver references its config as just `<name>.yaml`, or via
+With `-Run`, the folder's run script is executed via `Rscript` and the
+container exits when it finishes — good for unattended runs. Without `-Run`
+**nothing runs by itself**: you get an interactive shell, and the launcher
+prints the run script it detected plus the exact `-Run` command that would execute
+it. (Your run script references its config as just `<name>.yaml`, or via
 `Sys.getenv("SIM_DESIGN_YAML")`.)
+
+**Which script does `-Run` execute?** It prefers a single `simulate*.R` or
+`simulation*.R`, and otherwise accepts any single `*.R`. If the folder holds
+several candidates it refuses to guess — name the one you want:
+
+```bash
+./setup_user_docker_env.sh -Run simulation_ineq2.R     # bash shorthand
+./setup_user_docker_env.sh -RunScript simulation_ineq2.R
+```
+```powershell
+.\setup_user_docker_env.ps1 -RunScript simulation_ineq2.R
+```
+
+`-RunScript` works in **both** shells and **implies `-Run`** — so you never need
+to pass both, and the second form is one command line you can paste on either OS.
+PowerShell has no `-Run <file>` shorthand: a `[switch]` cannot take a value there.
 
 Both scripts accept the same parameters. Note that `--UseVolumes` is a double-dash flag in bash but `-UseVolumes` in PowerShell — that's a PowerShell convention, not a typo.
 
@@ -183,7 +206,8 @@ cd docker_setup
 | `-Tag <name>` | `-Tag <name>` | Image tag. Default: `main`. |
 | `-ScenariosDir <path>` | `-ScenariosDir <path>` | Optional. Mounted at `/IMPACTncd_England/scenarios` — which the image ships **empty**, on purpose (see [What the image does *not* contain](#what-the-image-does-not-contain)). |
 | `-SimDesignYaml <path>` | `-SimDesignYaml <path>` | Path to YAML config. Default: **auto-detect** a single `sim_design*.yaml` next to the script (standalone mode); otherwise the repo's `inputs/sim_design.yaml`. |
-| `-Run` | `-Run` | Standalone mode only. Auto-run the single `simulate*.R` driver in the folder via `Rscript`, then exit (default is an interactive shell). |
+| `-Run` | `-Run [<file>]` | Standalone mode only. Auto-run the folder's run script via `Rscript`, then exit (default is an interactive shell). Bash accepts an optional run script name; PowerShell uses `-RunScript` for that. |
+| `-RunScript <file>` | `-RunScript <file>` | Standalone mode only. Name the run script `-Run` should execute, for a folder holding several `.R` files. **Implies `-Run`.** The file must sit directly in the folder. |
 | `-UseVolumes` | `--UseVolumes` | Use Docker volumes instead of bind mounts. |
 
 ### What happens when you run the script
@@ -192,8 +216,9 @@ cd docker_setup
 2. **Reads your `sim_design.yaml`** to find `output_dir` and `synthpop_dir`.
 3. **Creates those host directories** if they don't exist.
 4. **Starts the container** — an interactive shell by default; with `-Run`
-   (standalone mode) it instead runs the single `simulate*.R` in your folder
-   and then exits.
+   (standalone mode) it instead runs the folder's run script (preferring a
+   single `simulate*.R` / `simulation*.R`, else any single `*.R`, else the one
+   you name) and then exits.
 5. **Runs as your user** (UID/GID auto-detected, including your supplementary
    groups) — not root — so files you create belong to you and group-based
    permissions on shared folders (e.g. a team synthpop cache) work inside the
