@@ -3336,13 +3336,29 @@ IMPACTncd$run(1:n_runs, multicore = TRUE, "MG_sensi_Non_Modelled_future_scn")
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
+    # The target quintile (qimd 3) spans deciles 5 and 6, so movers are split
+    # 50/50 between them. `qimd` must therefore be assigned LAST: the split
+    # below selects on `qimd %in% c("1 most deprived","2")`, so setting qimd
+    # here would make that condition match ZERO rows and land every mover on
+    # decile 6 -- half a decile further than intended, and inconsistent with
+    # the past+future arm, which already did it in this order. (That is what
+    # this arm did until 2026-09-09.)
+    #
+    # Selecting on qimd alone is sufficient -- resolving the old TODO:
+    # `qimd %in% c("1 most deprived","2")` is exactly `dimd %in% 1:4` under the
+    # standard decile-pair collapse (1-2 -> q1, 3-4 -> q2, ...), so there is
+    # nothing dimd would add.
     sp$pop[
-      year >= sc_year & qimd %in% c("1 most deprived","2"), #TODO CHECK CHRIS IF THAT CONDITION IS ENOUGH OR NEED DIMD ALSO
-      `:=`(dimd = "6", qimd = "3")
+      year >= sc_year & qimd %in% c("1 most deprived","2"),
+      `:=`(dimd = "6")
     ]
     sp$pop[
-      year >= sc_year & rbinom(.N, 1, 0.5) == 1L & qimd %in% c("1 most deprived","2"), #TODO CHECK CHRIS IF THAT CONDITION IS ENOUGH OR NEED DIMD ALSO
+      year >= sc_year & rbinom(.N, 1, 0.5) == 1L & qimd %in% c("1 most deprived","2"),
       `:=`(dimd = "5")
+    ]
+    sp$pop[
+      year >= sc_year & qimd %in% c("1 most deprived","2"),
+      `:=`(qimd = "3")
     ]
 
     # first delete existing columns to avoid confusion
@@ -3873,13 +3889,29 @@ IMPACTncd$run(1:n_runs, multicore = TRUE, "LUP_Modelled_future_scn")
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     sc_year <- 26L
+    # The target quintile (qimd 3) spans deciles 5 and 6, so movers are split
+    # 50/50 between them. `qimd` must therefore be assigned LAST: the split
+    # below selects on `qimd %in% c("1 most deprived","2")`, so setting qimd
+    # here would make that condition match ZERO rows and land every mover on
+    # decile 6 -- half a decile further than intended, and inconsistent with
+    # the past+future arm, which already did it in this order. (That is what
+    # this arm did until 2026-09-09.)
+    #
+    # Selecting on qimd alone is sufficient -- resolving the old TODO:
+    # `qimd %in% c("1 most deprived","2")` is exactly `dimd %in% 1:4` under the
+    # standard decile-pair collapse (1-2 -> q1, 3-4 -> q2, ...), so there is
+    # nothing dimd would add.
     sp$pop[
-      year >= sc_year & qimd %in% c("1 most deprived","2"), #TODO CHECK CHRIS IF THAT CONDITION IS ENOUGH OR NEED DIMD ALSO
-      `:=`(dimd = "6", qimd = "3")
+      year >= sc_year & qimd %in% c("1 most deprived","2"),
+      `:=`(dimd = "6")
     ]
     sp$pop[
-      year >= sc_year & rbinom(.N, 1, 0.5) == 1L & qimd %in% c("1 most deprived","2"), #TODO CHECK CHRIS IF THAT CONDITION IS ENOUGH OR NEED DIMD ALSO
+      year >= sc_year & rbinom(.N, 1, 0.5) == 1L & qimd %in% c("1 most deprived","2"),
       `:=`(dimd = "5")
+    ]
+    sp$pop[
+      year >= sc_year & qimd %in% c("1 most deprived","2"),
+      `:=`(qimd = "3")
     ]
 
     # first delete existing columns to avoid confusion
