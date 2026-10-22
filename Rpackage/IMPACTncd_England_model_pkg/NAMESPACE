@@ -69,6 +69,7 @@ importFrom(digest,
 importFrom(doParallel,registerDoParallel)
 importFrom(dqrng,
   dqRNGkind,
+  dqrexp,
   dqrng_get_state,
   dqrng_set_state,
   dqrunif,

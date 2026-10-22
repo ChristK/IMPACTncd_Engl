@@ -3601,6 +3601,12 @@ Simulation <-
         # a no-op for scenarios that do not touch deprivation.
         sp$pop[, dimd_orig := dimd]
 
+        # Row identity before the scenario, checked after it (see below). Deep
+        # copies: data.table reorders and updates columns in place, so a plain
+        # reference would silently follow any change the scenario makes.
+        pid_pre_scn <- copy(sp$pop$pid)
+        year_pre_scn <- copy(sp$pop$year)
+
         # Isolate tha rng state for the user defines scenarios
         rs <- .Random.seed
         dqrs <- dqrng_get_state()
@@ -3623,6 +3629,36 @@ Simulation <-
         # silently continue from the same fixed stream.
         assign(".Random.seed", rs, envir = globalenv())
         dqrng_set_state(dqrs)
+
+        # set_init_prvl() below gives every row of sp$pop its own random
+        # numbers BY POSITION, so that a scenario shares them with the baseline
+        # for every simulant-year it leaves alone (common random numbers; GitHub
+        # issue #8). A scenario that added, dropped, replaced or reordered rows
+        # would silently pair simulant-years with another row's draws, so it is
+        # refused here: the (pid, year) of every row must be exactly as before.
+        # (A lost key would also fail the check before simcpp().)
+        if (
+          !identical(key(sp$pop), c("pid", "year")) ||
+            !identical(sp$pop$pid, pid_pre_scn) ||
+            !identical(sp$pop$year, year_pre_scn)
+        ) {
+          stop(
+            "The primary-prevention scenario '",
+            scenario_nam,
+            "' changed the rows of sp$pop (rows before: ",
+            length(pid_pre_scn),
+            ", after: ",
+            nrow(sp$pop),
+            "; key after: ",
+            paste(key(sp$pop), collapse = ", "),
+            "). Scenarios must modify sp$pop in place, without adding, ",
+            "removing, replacing or reordering rows, and keep it keyed by ",
+            "pid, year: initial disease prevalence is drawn row by row, so a ",
+            "changed row set breaks the pairing of simulants with the baseline.",
+            call. = FALSE
+          )
+        }
+        rm(pid_pre_scn, year_pre_scn)
 
         # gen_parf + set_init_prvl run AFTER the primary-prevention scenario
         # so that initial disease prevalence reflects the scenario world.

@@ -708,6 +708,26 @@ Disease <-
       #'   scenario edits leak into init_prvl, and it is intrinsic to the
       #'   model: a brand-new simulant has no "year before" to defer to.
       #'
+      #'   **Common random numbers**: every per-row (`dqrng`) random number
+      #'   drawn here belongs to one row of `sp$pop` and is drawn, for all rows
+      #'   at once, straight after a `dqset.seed()` (streams `mc * 10 + 1` for
+      #'   the initial Bernoulli draw, `+ 3` for the within-stratum
+      #'   reallocation, `+ 2` for the duration and `+ 4` for the diagnosis).
+      #'   Whether a simulant-year is an initial prevalent case, and its
+      #'   duration and diagnosis, therefore depend only on its own inputs and
+      #'   on those of the other members of its prevalence stratum (which
+      #'   includes `year`), never on other strata or on how many other rows
+      #'   happened to be prevalent. A scenario that changes only rows with
+      #'   `year >= sc_year` thus leaves the initial disease state of every
+      #'   earlier simulant-year aged `ageL` or over -- every row that reaches
+      #'   the outputs -- identical to the baseline's (GitHub issue #8). (The
+      #'   pre-entry rows, aged under `ageL`, of a simulant entering from
+      #'   `sc_year` on are back-filled from its entry-year state by
+      #'   `carry_backward_decr()`, so they can differ; they are never
+      #'   simulated or exported.) This relies on the primary-prevention
+      #'   scenario modifying `sp$pop` in place, without adding, removing or
+      #'   reordering rows, which `run_sim()` checks.
+      #'
       #' @param sp A SynthPop object containing the synthetic population.
       #' @param design_ A Design object with the simulation parameters.
       #' @return The invisible self for chaining.
@@ -838,9 +858,23 @@ Disease <-
           } else if (self$meta$incidence$type > 1L) {
             # if incidence type not 0 or 1
 
+            # Common random numbers (GitHub issue #8): every draw below is made
+            # for EVERY row of sp$pop, in row order, straight after a
+            # dqset.seed(), and each row then uses its own draw (or ignores
+            # it). A row's random number therefore depends on its position
+            # alone -- the same in every scenario -- never on how many OTHER
+            # rows needed one. Drawing only for a data-dependent subset (the
+            # prevalent rows, or one stratum after another on a shared stream)
+            # let a scenario that edits entrants from sc_year on re-draw the
+            # initial prevalence of init_year simulants it never touched.
             dqRNGkind("pcg64")
             dqset.seed(private$seed, stream = sp$mc * 10 + 1L) # not mc_aggr
-            set.seed(private$seed + sp$mc * 10 + 1L) # for sample_int_expj
+            # Nothing below consumes the base-R stream (the uncertainty factor
+            # draws through with_random(), which needs .Random.seed to exist
+            # and restores it). Seeding here, with the `+ 2L` call below last,
+            # leaves the base-R state exactly as before issue #8 and
+            # independent of the data.
+            set.seed(private$seed + sp$mc * 10 + 1L)
             # First find out how many prevalent cases by pop subgroup
             tbl <- rbind(
               self$get_prvl(design_$sim_prm$init_year)[between(
@@ -922,25 +956,36 @@ Disease <-
 
               sp$pop[, disease_wt := ((disease_wt - 1) * 0.5) + 1]
 
-              ss <- sp$pop[ncases > 0, ][,
-                .(
-                  "pid" = pid[wrswoR::sample_int_expj(
-                    unique(.N),
-                    unique(ncases),
-                    disease_wt
-                  )]
-                ),
-                by = eval(strata)
-              ]
+              # Within each stratum, keep ncases rows by weighted sampling
+              # without replacement. One exponential variate per ROW, from a
+              # dedicated stream, so that a stratum's selection depends on its
+              # own rows only. Same distribution as the per-stratum
+              # wrswoR::sample_int_expj() call this replaces, whose single
+              # shared stream let a change in any (entrant) stratum re-draw
+              # every stratum visited after it -- see select_wrswor_by().
+              dqset.seed(private$seed, stream = sp$mc * 10 + 3L) # not mc_aggr
+              sel <- select_wrswor_by(
+                sp$pop,
+                by = strata,
+                size = "ncases",
+                weight = "disease_wt",
+                rexp = dqrexp(nrow(sp$pop))
+              )
               sp$pop[, (namprvl) := 0L]
-              sp$pop[ss, on = c("pid", "year"), (namprvl) := 1L]
+              set(sp$pop, i = sel, j = namprvl, value = 1L)
               sp$pop[, c("ncases", "disease_wt") := NULL]
-              rm(ss)
+              rm(sel)
             }
 
             # set duration
             dqset.seed(private$seed, stream = sp$mc * 10 + 2L) # not mc_aggr
-            set.seed(private$seed + sp$mc * 10 + 2L) # for sample_int_expj
+            # No base-R draw follows (see the `+ 1L` call above).
+            set.seed(private$seed + sp$mc * 10 + 2L)
+            # One uniform per ROW, drawn before anything else touches the
+            # stream; only the prevalent rows use theirs. Indexing the draws
+            # among the prevalent rows alone would hand every later case a
+            # different duration whenever one entrant's status changed.
+            u_dur <- dqrunif(nrow(sp$pop))
             tbl <- read_parquet_dt(private$filenams$dur)
             col_nam <- setdiff(names(tbl), names(sp$pop))
             tbl[, (namprvl) := 1L]
@@ -950,12 +995,27 @@ Disease <-
               check_lookup_tbl_validity = design_$sim_prm$logs
             )
             fn <- paste0("q", self$meta$diagnosis$duration_distr_backwards)
-            sp$pop[
-              get(namprvl) == 1L,
-              (namprvl) := 2L + do.call(fn, c(p = list(dqrunif(.N)), .SD)),
-              .SDcols = col_nam
-            ]
+            # Plain vectors and set(), no data.table NSE: explicit row numbers
+            # (inside j after an i subset with no `by`, .I is 1..(rows
+            # selected), which would silently restore the indexing among
+            # prevalent rows), and no local name that a column of sp$pop could
+            # shadow. set() coerces to the integer column exactly as `:=` does.
+            rows <- which(sp$pop[[namprvl]] == 1L)
+            if (length(rows) > 0L) {
+              prm <- lapply(
+                setNames(col_nam, col_nam),
+                function(x) sp$pop[[x]][rows]
+              )
+              set(
+                sp$pop,
+                i = rows,
+                j = namprvl,
+                value = 2L + do.call(fn, c(list(p = u_dur[rows]), prm))
+              )
+              rm(prm)
+            }
             sp$pop[, (col_nam) := NULL]
+            rm(u_dur, rows)
 
             if (
               !is.null(self$meta$mortality$cure) &&
@@ -973,6 +1033,13 @@ Disease <-
           # TODO this only makes sense when probability of diagnosis is 1
           namdgns <- paste0(self$name, "_dgns")
           set(sp$pop, NULL, namdgns, 0L)
+          # The draw below is one uniform per row (.N inside i is nrow), so it
+          # is CRN-safe only from a data-independent stream position. A
+          # dedicated stream guarantees that for every incidence type: type 0/1
+          # diseases used to continue whatever stream the previous disease had
+          # left behind.
+          dqRNGkind("pcg64")
+          dqset.seed(private$seed, stream = sp$mc * 10 + 4L) # not mc_aggr
           sp$pop[
             get(namprvl) > 0 &
               year >= design_$sim_prm$init_year &

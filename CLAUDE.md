@@ -730,13 +730,71 @@ CI): `claude_process/ineq_diag/verify_parf_test_fails_without_fix.R` neuters
 the base-R stream from one fixed value after every scenario and every iteration
 instead of restoring it. Now `assign(".Random.seed", rs, envir = globalenv())`,
 the idiom `Disease_class.R`'s `with_random()` already used. Result-neutral in
-current code: every base-R consumer downstream sets its own seed
-(`sample_int_expj` at `Disease_class.R:843`/`943`, `runif` inside
-`with_random()`), and `dqrng` — which the C++ engine uses — was always restored
-correctly via `dqrng_set_state()`. Audit:
+current code: every base-R consumer downstream sets its own seed (`runif`
+inside `with_random()`; the `set.seed()` calls in `set_init_prvl()`'s type > 1
+branch are kept for the same reason, although since issue #8 nothing there
+consumes the base-R stream), and `dqrng` — which the C++ engine uses — was always
+restored correctly via `dqrng_set_state()`. Audit:
 `claude_process/ineq_diag/audit_base_rng_consumers.R`. One exception: if a PARF
 cache is **missing**, `gen_parf_files()` now draws from a different stream, so
 regenerate PARFs before a comparison intended to be bit-exact.
+
+**Initial prevalence and common random numbers (issue #8, 2026-10-22).** A
+scenario acting only from `sc_year` must reproduce `sc0` *exactly*, pid by pid,
+in every year before `sc_year` — and did not. `set_init_prvl()` reallocated
+initial prevalent cases with `wrswoR::sample_int_expj()` once per stratum
+(`by = strata`) on ONE base-R stream, and `sample_int_expj()` consumes a
+data-dependent number of variates. Synthpop pids put every future entrant
+before every `init_year` simulant, so the entrant strata (`year > init_year`,
+`age == ageL`) are visited first; a scenario touching entrants from `sc_year`
+on (their exposures → `disease_wt`; under `parf_deprivation = "scenario"` their
+`dimd` → stratum, `mu`, `ncases`) re-drew **which** `init_year` simulants were
+prevalent, per-stratum counts preserved. Second channel: the duration draw was
+`dqrunif(.N)` over the *prevalent rows only*. The calibration factors `clbfctr`
+(aggregated over `init_year` prevalence by `dimd, sex`) then spread it to
+everyone's 2013 incidence and mortality. Measured on the real model
+(`auxil/verify_init_prvl_crn.R`, n = 20000, `sc_year` 2015, 2 mc): 0.2–44% of
+pre-2015 person-years differed under an exposure-only scenario and ~75% under
+forced `dimd`; a no-op scenario matched exactly. After the fix: **0** differing
+rows in every cell. Introduced by `adbf762` — the `init_year - 1` buffer
+protects `init_year` rows' *inputs*, not their *random numbers*.
+Fix: every random number in `set_init_prvl()` is drawn for **every row**, in row
+order, straight after a `dqset.seed()` — streams `mc*10+1` Bernoulli, `+3`
+reallocation keys (`dqrexp`), `+2` duration, `+4` diagnosis (all types; type
+0/1 used to inherit the previous disease's stream). Reallocation goes through
+`select_wrswor_by()` (`aux_functions.R`): key = `E / disease_wt`, keep the
+`ncases` smallest per stratum — Efraimidis–Spirakis, i.e.
+`wrswoR::sample_int_rank()` vectorised, the same law as `sample_int_expj()` and
+`sample.int(prob =)`. `run_sim()` now **stops** if, after the primary scenario,
+the key is not `(pid, year)` or any row's `(pid, year)` differs (deep copies of
+both columns are taken before the scenario — `data.table` reorders in place, so
+a plain reference would follow the change), since positional CRN depends on it.
+Gotchas: **(a)** never `.I` inside `j` after an `i` subset with no `by` — it is
+`1..k`, not row numbers, and silently restores subset indexing; use `which()`.
+**(b)** `.N` inside `i` *is* `nrow(x)`, so `DT[cond & dqrunif(.N) < p]` is
+positional — but only from a data-independent stream position. **(c)**
+`sample_int_expj()` never validates weights (NA/negative/Inf always selected,
+zero weights returned); `select_wrswor_by()` errors instead.
+⚠️ **Breaking:** the initial prevalent set and durations of every incidence
+type ≥ 2 disease are re-drawn — statistically equivalent, not bit-identical —
+and so is the initial `*_dgns` draw of every disease whose
+`diagnosis$probability < 1` (none in the stock design).
+Never mix pre- and post-2026-10-22 runs in one comparison; re-run the baseline
+with the scenarios. Tests: `test_init_prvl_crn.R` (54, incl. a negative control
+with the old pattern and a tripwire on the inline per-row draws). Production
+verification: `Rscript auxil/verify_init_prvl_crn.R <label>
+--base-dir=<dir> [--rebuild]` (or set `IMPACTNCD_VERIFY_DIR`; ~7.5 min, 2
+cores; five arms incl. a no-op negative control; exit 0 = checks A–E pass,
+A/B on every lifecourse column). Without `--rebuild` it uses the installed
+build, so it cannot swap the package under another run. The unit tests cannot
+reach the inline duration and diagnosis draws; this can — a mutant that
+re-indexes only the duration draw among prevalent rows is caught
+(`claude_process/issue8/mutant_duration_e2e.sh`).
+Out of scope, pre-existing: `simcpp` reads `dead_data[i-1]` without checking
+that row `i-1` is the same pid (`IMPACTncd_sim.cpp` ~L1499/1578); unreachable
+while `maxlag >= 1` (every pid keeps `maxlag` pre-`init_year` rows), which
+`Design` does not validate. And with `kismet: no` the per-disease streams
+differ by scenario by design, so only initial prevalence is then paired.
 
 ### File Paths
 - **Absolute paths required** for `output_dir`, `synthpop_dir` in YAML

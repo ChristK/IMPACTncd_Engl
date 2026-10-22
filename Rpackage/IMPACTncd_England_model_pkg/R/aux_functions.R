@@ -702,3 +702,195 @@ with_original_dimd <- function(pop, parf_deprivation, expr) {
   force(expr)
   invisible(swapped)
 }
+
+# select_wrswor_by ----
+# Weighted random sampling without replacement within groups, driven by one
+# caller-supplied exponential variate per ROW, so that a group's selection
+# depends on that group's rows alone (common-random-number safe).
+#
+# Within every group of `dt` defined by the columns in `by`, selects `size`
+# rows with probability proportional to `weight`, without replacement, and
+# returns their row numbers. Each row's key is `rexp / weight`; within each
+# group the `size` rows with the smallest keys are kept. This is Algorithm A of
+# Efraimidis & Spirakis (2006) with log-transformed keys -- i.e.
+# `wrswoR::sample_int_rank()` vectorised over groups -- so the selected set has
+# exactly the law of successive sampling: the same as
+# `sample.int(n, size, prob = weight)` and as `wrswoR::sample_int_expj()`.
+#
+# WHY THIS EXISTS (GitHub issue #8)
+# ---------------------------------
+# `Disease$set_init_prvl()` used to call `wrswoR::sample_int_expj()` once per
+# stratum with `by =`. All strata then shared ONE base-R stream, visited in
+# order of first appearance, and `sample_int_expj()` consumes a data-dependent
+# number of variates (its exponential jumps depend on the weights and on
+# `size`). Any change to one stratum -- a weight, a row moving in or out, a
+# different `size` -- shifted the stream for every stratum visited after it.
+# Synthpop pids are ordered by age in the initial year, so the strata of future
+# entrants come before every `init_year` stratum, and a scenario that touched
+# only entrants from `sc_year` on re-drew WHICH simulants were prevalent in
+# `init_year`: the baseline/scenario pairing (common random numbers) was lost
+# before the scenario did anything.
+#
+# Here every row owns its variate. The contract the caller must keep is that
+# `rexp` is drawn at a stream position that does not depend on the data (e.g.
+# `dqrexp(nrow(dt))` straight after a `dqset.seed()`), and that the same
+# simulant-year sits at the same row of `dt` in every scenario. Perturbing any
+# other group, including moving rows into or out of it, then cannot change a
+# group's selection.
+#
+# Semantics: reproduces `sample_int_expj()` wherever its result is well
+# defined (positive, finite weights), and fails loudly wherever it errors or
+# silently misbehaves. `sample_int_expj()` never inspects the weights: with NA,
+# negative or Inf weights it always selects that row, and it returns
+# zero-weight rows, without a warning.
+# * Only rows with `size > 0` are candidates; the `weight`/`rexp` of other rows
+#   are ignored (not validated).
+# * `size` must be non-missing, finite, whole and non-negative on every row. It
+#   must be constant among the rows of a group that have `size > 0` (rows with
+#   `size == 0` are never candidates) and no larger than their number.
+# * Candidate weights must be finite, non-negative and not NA. A zero weight is
+#   never selected, as in `sample.int()`; needing one is an error.
+# * NA in a `by` column forms a group of its own, as in data.table's `by =`.
+# * Ties between keys (probability zero) are broken by row order; keys are
+#   sorted on all 64 bits whatever the user's numeric rounding setting.
+#
+# @param dt A data.table. Not modified.
+# @param by Character vector of grouping (stratum) column names.
+# @param size Name of the column holding the number of rows to select from
+#   each group (constant within a group).
+# @param weight Name of the column holding the selection weights.
+# @param rexp Numeric vector of `nrow(dt)` independent standard exponential
+#   variates, one per row of `dt`, drawn at a data-independent stream position.
+# @return Integer vector of the selected row numbers of `dt`, ascending;
+#   exactly `size` rows per group.
+# @references Efraimidis, P.S. & Spirakis, P.G. (2006). Weighted random
+#   sampling with a reservoir. Information Processing Letters 97(5), 181-185.
+#   doi:10.1016/j.ipl.2005.11.003
+# @noRd
+select_wrswor_by <- function(dt, by, size, weight, rexp) {
+  # ---- argument checks ----
+  if (!data.table::is.data.table(dt)) {
+    stop("'dt' must be a data.table.", call. = FALSE)
+  }
+  if (!is.character(by) || length(by) == 0L || anyNA(by)) {
+    stop("'by' must be a non-empty character vector.", call. = FALSE)
+  }
+  for (.arg in list(size, weight)) {
+    if (!is.character(.arg) || length(.arg) != 1L || is.na(.arg)) {
+      stop(
+        "'size' and 'weight' must each be a single column name.",
+        call. = FALSE
+      )
+    }
+  }
+  missing_cols <- setdiff(c(by, size, weight), names(dt))
+  if (length(missing_cols) > 0L) {
+    stop(
+      "Column(s) not found in 'dt': ",
+      paste(missing_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  # Internal column names of the working table; they must not shadow `by`.
+  internal <- c(".wrs_size", ".wrs_pos", ".wrs_key", ".wrs_row")
+  if (any(internal %chin% by)) {
+    stop(
+      "'by' must not contain the reserved names ",
+      paste(internal, collapse = ", "),
+      ".",
+      call. = FALSE
+    )
+  }
+  if (!is.numeric(rexp) || length(rexp) != nrow(dt)) {
+    stop(
+      "'rexp' must be a numeric vector with one variate per row of 'dt' ",
+      "(length ", nrow(dt), ", got ", length(rexp), ").",
+      call. = FALSE
+    )
+  }
+
+  sz <- dt[[size]]
+  if (!is.numeric(sz)) {
+    stop("Column '", size, "' must be numeric.", call. = FALSE)
+  }
+  if (anyNA(sz)) {
+    stop("'size' must not be NA (column '", size, "').", call. = FALSE)
+  }
+  if (any(sz < 0)) {
+    stop("'size' must be non-negative (column '", size, "').", call. = FALSE)
+  }
+  if (!is.integer(sz) && (any(!is.finite(sz)) || any(sz != trunc(sz)))) {
+    stop(
+      "'size' must be finite whole numbers (column '", size, "').",
+      call. = FALSE
+    )
+  }
+
+  # ---- candidate rows ----
+  cand <- which(sz > 0)
+  if (length(cand) == 0L) {
+    return(integer(0L))
+  }
+
+  w <- dt[[weight]][cand]
+  e <- rexp[cand]
+  if (!is.numeric(w) || anyNA(w) || any(!is.finite(w)) || any(w < 0)) {
+    stop(
+      "'weight' (column '", weight, "') must be finite, non-negative and ",
+      "not NA in every group with size > 0.",
+      call. = FALSE
+    )
+  }
+  if (anyNA(e) || any(!is.finite(e)) || any(e < 0)) {
+    stop(
+      "'rexp' must be finite, non-negative and not NA on every row of a ",
+      "group with size > 0.",
+      call. = FALSE
+    )
+  }
+
+  # Only the stratum columns of the candidate rows are copied, never `dt`.
+  wk <- dt[cand, by, with = FALSE]
+  # Efraimidis-Spirakis key: smaller is selected first. A zero weight gets an
+  # infinite key explicitly (0/0 would be NaN when the variate is 0).
+  keys <- e / w
+  keys[w == 0] <- Inf
+  data.table::set(wk, j = ".wrs_key", value = keys)
+  data.table::set(wk, j = ".wrs_size", value = as.integer(sz[cand]))
+  data.table::set(wk, j = ".wrs_pos", value = w > 0)
+  data.table::set(wk, j = ".wrs_row", value = cand)
+
+  # ---- sort: groups contiguous, keys ascending within each group ----
+  # Exact 64-bit ordering of the keys (data.table rounds the last bytes of
+  # doubles when sorting if the user has changed this global setting).
+  old_rounding <- data.table::getNumericRounding()
+  if (old_rounding != 0L) {
+    data.table::setNumericRounding(0L)
+    on.exit(data.table::setNumericRounding(old_rounding), add = TRUE)
+  }
+  # na.last = TRUE is explicit: setorderv() defaults to na.last = FALSE, which
+  # would put NA keys FIRST, i.e. select them. No key can be NA here (weights
+  # and variates are validated above); NA stratum values only need to stay
+  # together, which either setting guarantees.
+  data.table::setorderv(wk, c(by, ".wrs_key"), na.last = TRUE)
+
+  # ---- per-group checks and selection (plain vectors, no NSE) ----
+  g <- data.table::rleidv(wk, cols = by) # contiguous group id, 1..G
+  n_g <- tabulate(g)
+  s <- wk[[".wrs_size"]]
+  start_g <- cumsum(n_g) - n_g + 1L # first sorted row of each group
+  s_g <- s[start_g]
+  if (any(s != s_g[g])) {
+    stop("'size' must be constant within each group of 'by'.", call. = FALSE)
+  }
+  if (any(s_g > n_g)) {
+    stop("cannot take a sample larger than the population", call. = FALSE)
+  }
+  if (any(s_g > tabulate(g[wk[[".wrs_pos"]]], nbins = length(n_g)))) {
+    stop("too few positive weights", call. = FALSE)
+  }
+  # Within-group rank of the key; keep the `size` smallest.
+  rk <- seq_along(g) - start_g[g] + 1L
+  sel <- wk[[".wrs_row"]][rk <= s]
+  sort.int(sel, method = "radix")
+}

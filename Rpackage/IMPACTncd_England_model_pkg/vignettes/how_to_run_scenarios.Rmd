@@ -348,7 +348,42 @@ scenario), the calibration is taken at the forced decile, so incidence is partly
 re-calibrated to it whatever `parf_deprivation` says — treat the modelled /
 non-modelled split as partial in that case.
 
-### Other files 
+### Scenarios share their random numbers with the baseline
+
+The model pairs each scenario with the baseline simulant by simulant: wherever
+a scenario leaves a simulant-year alone, that simulant-year receives exactly the
+same random numbers as in `sc0` (*common random numbers*; this needs
+`kismet: yes` in the design, as in every shipped design). This is what lets a
+scenario-minus-baseline contrast be estimated with little Monte Carlo noise. A
+direct consequence you can check: a scenario that acts only from `sc_year`
+reproduces the baseline lifecourse **exactly**, for every `pid`, in every year
+before `sc_year`.
+
+One thing is up to you: **edit `sp$pop` in place.** Do not add, remove,
+replace or reorder rows, and keep the table keyed by `pid, year`. Initial
+disease prevalence is drawn row by row, so a changed row set would pair
+simulants with the wrong draws; `run()` stops with an explanatory error if the
+`(pid, year)` of any row differs after your scenario has run. (A
+`setkey(sp$pop, pid, year)` on the already-keyed table is harmless.)
+
+Random draws inside a scenario are safe: the framework seeds each scenario from
+its name and restores the random-number state afterwards, so they never disturb
+the rest of the model. Seed them yourself, as in the physical-activity example
+above, only when two differently named scenarios must make the same draws.
+
+Initial prevalence has honoured this pairing only since 2026-10-22 (GitHub
+issue #8). Before that, a scenario that changed simulants entering the model
+from `sc_year` on re-drew *which* simulants were prevalent in `init_year`, with
+the number of cases per stratum unchanged, so pre-`sc_year` years differed from
+the baseline. The fix re-draws the initial prevalent cases and their durations
+of every disease whose initial prevalence is sampled (incidence type 2 and
+above), and the initial diagnosis of every disease whose diagnosis probability
+is below 1 (none in the stock design), from statistically equivalent but
+different random numbers. Results are therefore **not** bit-comparable with
+runs made before it: re-run the baseline together with the scenarios rather
+than mixing vintages.
+
+### Other files
 
 - Use the following code to open the vignette to run a test of IMPACTncdEngland
 

@@ -136,6 +136,10 @@ The files inside lifecourse folder are as shown below; the number of files gener
 knitr::include_graphics("img/output_folder_lf.jpg")
 ```
 
+A scenario and the baseline share their random numbers simulant by simulant (*common random numbers*; this needs `kismet: yes` in the design, as in every shipped design), so a scenario that acts only from `sc_year` reproduces the baseline lifecourse **exactly**, for every `pid`, in every year before `sc_year`. Contrasts such as `cpp`, `cypp` and `dpp` are therefore exactly zero before `sc_year`; a non-zero value there means the scenario also edits earlier years.
+
+> **Changed on 2026-10-22 (GitHub issue #8).** Before that date the pairing above did not hold for initial disease prevalence: a scenario that changed simulants entering the model from `sc_year` on also re-drew *which* simulants were prevalent in `init_year` (the number of cases per stratum was unchanged), so lifecourses differed from the baseline from the very first year. The fix draws the initial prevalent cases and their durations of every disease whose initial prevalence is sampled (incidence type 2 and above) from different, statistically equivalent random numbers. Initial disease status shapes every later year, so lifecourse files, summaries and tables from runs made before this date are **not** bit-comparable with later ones — including the baseline `sc0`. Do not combine a scenario run after this date with a baseline run before it; re-run `sc0` together with the scenarios.
+
 #### Column names
 
 -   **pid** : unique person ID

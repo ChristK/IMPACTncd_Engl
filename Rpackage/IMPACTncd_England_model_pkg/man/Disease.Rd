@@ -210,6 +210,26 @@ exposures across the threshold \emph{will} shift init_prvl for these
 new entrants. This is the only case where year == \code{init_year}
 scenario edits leak into init_prvl, and it is intrinsic to the
 model: a brand-new simulant has no "year before" to defer to.
+
+\strong{Common random numbers}: every per-row (\code{dqrng}) random number
+drawn here belongs to one row of \code{sp$pop} and is drawn, for all rows
+at once, straight after a \code{dqset.seed()} (streams \code{mc * 10 + 1} for
+the initial Bernoulli draw, \code{+ 3} for the within-stratum
+reallocation, \code{+ 2} for the duration and \code{+ 4} for the diagnosis).
+Whether a simulant-year is an initial prevalent case, and its
+duration and diagnosis, therefore depend only on its own inputs and
+on those of the other members of its prevalence stratum (which
+includes \code{year}), never on other strata or on how many other rows
+happened to be prevalent. A scenario that changes only rows with
+\code{year >= sc_year} thus leaves the initial disease state of every
+earlier simulant-year aged \code{ageL} or over -- every row that reaches
+the outputs -- identical to the baseline's (GitHub issue #8). (The
+pre-entry rows, aged under \code{ageL}, of a simulant entering from
+\code{sc_year} on are back-filled from its entry-year state by
+\code{carry_backward_decr()}, so they can differ; they are never
+simulated or exported.) This relies on the primary-prevention
+scenario modifying \code{sp$pop} in place, without adding, removing or
+reordering rows, which \code{run_sim()} checks.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Disease$set_init_prvl(sp, design_ = design)}
