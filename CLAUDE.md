@@ -40,6 +40,27 @@ source("global.R")  # Initializes environment, installs deps, builds local packa
 ```
 Package rebuilds automatically when source changes are detected.
 
+**CKutils install routes (`IMPACTNCD_CKUTILS_INSTALL`).** `global.R` defines,
+calls and removes `install_ckutils()`: `auto` (default) tries
+`remotes::install_github()` over HTTPS and falls back to SSH
+(`git@github.com:ChristK/CKutils.git`, system git) for networks that block HTTPS
+to GitHub; `https` / `ssh` force one route. If every route fails but CKutils is
+installed, it warns and continues (previously a GitHub outage stopped
+`global.R`, because `install_github(force = FALSE)` contacts the API on every
+run to compare SHAs). Two `remotes` traps it works around: **(a)** a failed
+download or clone returns `NA` *silently* when `quiet = TRUE` rather than
+erroring, so success means "no error **and** no `NA`"; **(b)**
+`install_git()` cannot tell an SSH install from GitHub is current — it reads the
+package name via `git archive --remote`, which GitHub refuses, so the name is
+`NA` and it re-clones and recompiles on **every** run. The SSH route therefore
+compares `git ls-remote <url> HEAD` with the installed `RemoteSha` itself and
+calls `install_git()` only on a mismatch. A manual clone + `install_local()`
+would be no better: it records no `RemoteSha` at all. The `github` and `xgit`
+installs share `RemoteSha`, so switching routes never forces a recompile.
+Tests (network + an SSH key registered with GitHub, so not CI):
+`Rscript auxil/test_global_ckutils_install.R` (25 checks; its `[INFO]` line
+reports whether (b) still holds).
+
 ### Download model data (required on a fresh clone)
 Large input/simulation data is not in git — it lives on Zenodo (concept DOI
 `10.5281/zenodo.20812409`, CC-BY-SA-4.0). Download once; no Zenodo token needed

@@ -99,13 +99,150 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }
 
-# Ensure 'CKutils' is installed from GitHub if missing
-remotes::install_github(
-  "ChristK/CKutils",
-  upgrade = "never",
-  force = FALSE,
-  quiet = !dev_mode
-)
+# Install CKutils from GitHub, or update it when its default branch has moved:
+# the install is skipped while the installed commit (RemoteSha) still matches
+# the remote one, so this contacts GitHub on every run.
+#
+# Some corporate networks block HTTPS to github.com but allow SSH. There,
+# CKutils is cloned over SSH with the system git and installed from that clone.
+# remotes::install_git() does both and -- unlike a manual clone followed by
+# install_local() -- records the commit it installed, against which the next
+# run compares `git ls-remote`. SSH needs git on the PATH and an SSH key
+# registered with a GitHub account: GitHub has no anonymous SSH access, even
+# to public repos.
+#
+# The route is set by the environment variable IMPACTNCD_CKUTILS_INSTALL
+# (e.g. in ~/.Renviron):
+#   auto  (default) HTTPS, falling back to SSH if that fails;
+#   https HTTPS only;
+#   ssh   SSH only, so an SSH-only network does not wait on HTTPS every run.
+# If every route fails but CKutils is installed, the installed version is used
+# with a warning, so a session can still start offline.
+# Tests: auxil/test_global_ckutils_install.R
+install_ckutils <- function(
+  quiet = TRUE,
+  mode = Sys.getenv("IMPACTNCD_CKUTILS_INSTALL", "auto"),
+  ssh_url = "git@github.com:ChristK/CKutils.git"
+) {
+  mode <- tolower(trimws(mode))
+  if (!nzchar(mode)) {
+    mode <- "auto" # the variable is set, but empty
+  }
+  if (!mode %in% c("auto", "https", "ssh")) {
+    stop(
+      "IMPACTNCD_CKUTILS_INSTALL must be \"auto\", \"https\" or \"ssh\", not \"",
+      mode,
+      "\".",
+      call. = FALSE
+    )
+  }
+
+  routes <- list(
+    https = function() {
+      remotes::install_github(
+        "ChristK/CKutils",
+        upgrade = "never",
+        force = FALSE,
+        quiet = quiet
+      )
+    },
+    ssh = function() {
+      if (!nzchar(Sys.which("git"))) {
+        stop("git was not found on the PATH.", call. = FALSE)
+      }
+      # Compare commits here: remotes cannot tell whether an SSH install from
+      # GitHub is current. It reads the package name with `git archive
+      # --remote`, which GitHub refuses, so it would re-clone and recompile
+      # on every run. This also keeps git's own error (e.g. a refused key),
+      # which remotes discards.
+      remote_head <- suppressWarnings(system2(
+        "git",
+        c("ls-remote", ssh_url, "HEAD"),
+        stdout = TRUE,
+        stderr = TRUE
+      ))
+      if (!is.null(attr(remote_head, "status"))) {
+        stop(paste(remote_head, collapse = "\n"), call. = FALSE)
+      }
+      remote_head <- sub("\t.*", "", grep("\tHEAD$", remote_head, value = TRUE))
+      installed <- suppressWarnings(
+        utils::packageDescription("CKutils", fields = "RemoteSha")
+      )
+      if (length(remote_head) == 1L && identical(remote_head, installed)) {
+        if (!quiet) {
+          message(
+            "Skipping install of 'CKutils' over SSH, the SHA1 (",
+            substr(remote_head, 1L, 8L),
+            ") has not changed since last install."
+          )
+        }
+        return("CKutils")
+      }
+      remotes::install_git(
+        ssh_url,
+        git = "external", # git2r is often built without SSH support
+        upgrade = "never",
+        force = FALSE,
+        quiet = quiet
+      )
+    }
+  )
+  if (mode != "auto") {
+    routes <- routes[mode]
+  }
+
+  failures <- character()
+  for (route in names(routes)) {
+    res <- tryCatch(routes[[route]](), error = identity)
+    # remotes returns NA, rather than raising an error, when the download or
+    # clone itself fails -- silently when quiet = TRUE -- so test for both.
+    if (!inherits(res, "error") && !anyNA(res)) {
+      return(invisible(route))
+    }
+    failures[[route]] <- if (inherits(res, "error")) {
+      conditionMessage(res)
+    } else {
+      "the download failed."
+    }
+    if (route == "https" && length(routes) > 1L) {
+      message(
+        "Installing CKutils from GitHub over HTTPS failed; trying SSH (",
+        ssh_url,
+        "). Set IMPACTNCD_CKUTILS_INSTALL=ssh to go straight to SSH."
+      )
+    }
+  }
+
+  failures <- paste0(
+    "  [",
+    names(failures),
+    "] ",
+    gsub("\n", "\n    ", failures, fixed = TRUE),
+    collapse = "\n"
+  )
+  if (nzchar(system.file(package = "CKutils"))) {
+    warning(
+      "Could not install or update CKutils from GitHub; using the installed ",
+      "version ",
+      format(utils::packageVersion("CKutils")),
+      ".\n",
+      failures,
+      call. = FALSE
+    )
+    return(invisible("installed"))
+  }
+  stop(
+    "CKutils is not installed and could not be installed from GitHub.\n",
+    failures,
+    "\nHTTPS needs access to github.com and api.github.com. SSH needs git on ",
+    "the PATH and an SSH key registered with GitHub (test with: ssh -T ",
+    "git@github.com). On an SSH-only network, set ",
+    "IMPACTNCD_CKUTILS_INSTALL=ssh in ~/.Renviron.",
+    call. = FALSE
+  )
+}
+install_ckutils(quiet = !dev_mode)
+rm(install_ckutils)
 if (dev_mode) {
   library(CKutils)
 } else {

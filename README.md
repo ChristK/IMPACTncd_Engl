@@ -81,6 +81,8 @@ git clone https://github.com/ChristK/IMPACTncd_Engl.git
 
 Or download a ZIP: on the [repository page](https://github.com/ChristK/IMPACTncd_Engl), click **Code ▸ Download ZIP**, then unzip it to your chosen location.
 
+> **Network blocks HTTPS to GitHub but allows SSH?** Clone with `git clone git@github.com:ChristK/IMPACTncd_Engl.git` instead. `global.R` installs the [CKutils](https://github.com/ChristK/CKutils) helper package from GitHub over HTTPS and, if that fails, falls back automatically to cloning it over SSH. This needs Git on your `PATH` and an SSH key registered with your GitHub account (check with `ssh -T git@github.com`). To skip the HTTPS attempt altogether, add `IMPACTNCD_CKUTILS_INSTALL=ssh` to your `~/.Renviron` and restart R. If port 22 is blocked too, GitHub also accepts [SSH over the HTTPS port](https://docs.github.com/en/authentication/troubleshooting-ssh/using-ssh-over-the-https-port). The other downloads (CRAN packages, the Zenodo data) come from other hosts and are not affected.
+
 **2. Download the model data from Zenodo** (required on a fresh clone — a freshly cloned repository has no data). The data is public, so no account or token is needed:
 
 ```r
