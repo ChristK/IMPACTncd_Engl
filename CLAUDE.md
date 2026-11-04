@@ -904,17 +904,47 @@ between the last worker finishing and `End of parallelisation` (should be ~0 s).
 2. **BLAS threading** - Single-threaded mode forced to avoid fork issues with OpenMP
 3. **Memory for exports** - `clusternumber_export` may need lower value than `clusternumber`
 4. **Docker detection** - Code checks `file.exists("/.dockerenv")` for container-specific config
+5. **Working directory must stay the repository root, from `Simulation$new()` to
+   the last call** (GitHub issue #11). ~89 bare `./inputs`/`./simulation` paths
+   resolve against `getwd()` at *call* time, while `Disease`/`ExposureEffect`
+   fix their cache paths at *construction*. RStudio evaluates `.Rmd` chunks in
+   the document's folder, so running a vignette in place breaks this. Worse
+   than a failed read: `gen_parf_files()` then looks for
+   `simulation/parf_generation_record.csv` under the wrong folder (creating an
+   empty one there), judges the snapshot invalid and `del_parf_file()` deletes
+   the REAL PARF cache. Telltale: a stray `vignettes/simulation/`. Not yet
+   guarded in code (2026-11-04). Repro:
+   `claude_process/issue11/verify_wrong_wd_deletes_parf_cache.R`.
+6. **`library(IMPACTncdEngland)` alone is not enough** — `Exposure` resolves its
+   distribution functions (e.g. `pZABNB`) on the search path, so `gamlss.dist`
+   must be attached (`global.R` does it); without it synthpop generation fails
+   with ``object 'pZABNB' not found``. That one is deliberate; an UNIMPORTED
+   generic is not: `dbListFields()` was called unqualified at 5 sites in
+   `Simulation_class_summaries.R` but never imported, so
+   `export_summaries(multicore = FALSE)` failed in every clean session with
+   ``could not find function "dbListFields"`` (since 505569a, 2026-05-29).
+   The multicore path hid it — `foreach(.packages = "duckdb")` attaches duckdb,
+   which `Depends: DBI`. Fixed 2026-11-04 (`@importFrom DBI ... dbListFields`).
+   `test_namespace_imports.R` walks every namespace function and R6 method
+   with `codetools::findGlobals()` and fails on any unimported DBI/duckdb call.
 
 ## Documentation
 
 Vignettes in `Rpackage/IMPACTncd_England_model_pkg/vignettes/`:
-- `how_to_test_run.Rmd` - Quick start guide
+- `how_to_test_run.Rmd` - Quick start guide (rewritten 2026-11-04 for Zenodo + issue #11)
 - `how_to_run_scenarios.Rmd` - Scenario setup
 - `understanding_model_outputs.Rmd` - Output interpretation
+- `custom-scenario-columns.Rmd` - Scenario-specific output columns
+- `custom_exposure_tables.Rmd` - Bring your own exposure tables
 - `inputs_manifest_system.Rmd` - Data asset management
 - `zenodo_data_management.Rmd` - Zenodo integration
 
-Access via: `vignette(package = "IMPACTncdEngland")`
+`global.R` installs the package WITHOUT building vignettes, so `vignette()`
+finds none after a standard install; read the `.Rmd` files or render them with
+`vignettes/build_vignettes.sh`. A 2026-11-04 audit found every vignette at
+least partly outdated: `claude_process/vignette_audit/vignette_audit_report.md`.
+Mechanical API check (method names + argument names vs current source):
+`Rscript claude_process/vignette_audit/check_vignette_api_refs.R [--strict] [file.Rmd]`.
 
 ## graphify
 

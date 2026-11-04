@@ -1,7 +1,7 @@
 ---
 title: "How to run a test of IMPACTncdEngland"
 author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
-date: "11 March, 2024"
+date: "Last updated 4 November 2026"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{How to run a test of IMPACTncdEngland}
@@ -9,63 +9,152 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-#### Setting the working directory 
+This vignette takes you through a small **baseline test run** from a fresh
+copy of the model to a set of output tables. It follows the **native R**
+route. If you use the project's Docker images instead (recommended; see the
+[README](https://github.com/ChristK/IMPACTncd_Engl#installation)), the data are
+already inside the image, so skip [step 3](#step-3-download-the-model-data),
+and set up your design file and output folders with
+`docker_setup/setup_user_docker_env.sh` as described in
+`docker_setup/INSTALLATION_GUIDE.md`.
 
-Whether using IMPACTncdEngland in Rstudio or in a terminal, we need to ensure that the working directory is set to where the model is downloaded. 
+Before you start, install the prerequisites listed in the README: R (≥ 4.1.0),
+**Rtools on Windows** (needed to compile the model's C++ simulation engine)
+and, optionally, Git. The model data take about 13 GB once unpacked. While
+they are being downloaded you need about as much again for the archives, which
+are kept in R's temporary folder (usually on the system drive) and deleted
+afterwards. You also need space for the outputs.
 
-If using Rstudio, we would recommend setting up a project for IMPACTncd in the directory where you have downloaded the model. Instructions on how to start a new project in an existing directory are available [here](https://bookdown.org/introrbook/intro2r/files-and-projects.html#:~:text=3.2.2)
-The model should then always be run from within this project when using Rstudio.  
+## Read this first: the working directory
 
-If running the model in the terminal, you will need to set the working directory to where you saved the downloaded IMPACTncd. To run R code in the terminal, type `R` and press enter
+> **Run every command in this vignette in the R console, or from your own
+> script, with the working directory set to the root of the repository** (the
+> folder that contains `global.R` and `inputs/`).
+>
+> **Do not run the code chunk by chunk inside this `.Rmd` file.** RStudio
+> evaluates the chunks of an open R Markdown document in the *document's*
+> folder (`Rpackage/IMPACTncd_England_model_pkg/vignettes/`). The model finds
+> its data through paths such as `./inputs/...`, so they are then looked for
+> under `vignettes/` and the run fails
+> ([GitHub issue #11](https://github.com/ChristK/IMPACTncd_Engl/issues/11)). If
+> `Simulation$new()` was created from the root and a later call runs from
+> another folder, the model may also discard one of its cached files (it is
+> downloaded again, or regenerated, the next time you run from the root).
 
-#### How to run the model 
+Check before you begin:
 
-Two main files are used to run IMPACTncdEngland: 
+```{r, check-wd, eval = FALSE}
+getwd()                 # the repository root, e.g. "C:/IMPACTncd_Engl"
+file.exists("global.R") # must be TRUE
+```
 
-- `simulation.R `- deploys assets, sets the parameters for the baseline and alternative scenarios, including number of iterations to be run. 
+In RStudio, create a project **in the repository root**: *File → New Project →
+Existing Directory*, and choose the root folder. Do not open
+`Rpackage/IMPACTncd_England_model_pkg/IMPACTncd_England_model_pkg.Rproj`: that
+is the R package's own project and sets the wrong working directory. If you
+prefer to run chunks from R Markdown files, set *Tools → Global Options → R
+Markdown → Evaluate chunks in directory* to *Project*.
 
-- `sim_design.yaml` - sets the overall parameters for deploying assets in the local system, the simulation, including the location to store outputs, the characteristics and size of the synthetic population to be simulated, and some computing specifications (e.g. number of processors, compiling of files etc.)
+In a terminal, change to the repository root before starting R (type `R` and
+press Enter).
 
-The steps to follow for running the simulation are as shown below - 
-
-1. Open `simulation.R` run the `global.R` file using the code
+## Step 1: set up the R environment
 
 ```{r, run-global-r, eval = FALSE}
 source("global.R")
 ```
 
-NB: Depending on your system setup, you may get an error indicating that `pandoc` is not installed. If so, please follow the pandoc installation instructions [here](https://pandoc.org/installing.html). 
+The first time, `global.R` installs the R packages the model needs, installs
+the `CKutils` helper package from GitHub, and compiles and installs the model
+package `IMPACTncdEngland`. This can take a while. Later calls are quick: the
+model package is only rebuilt when its source code has changed. Run
+`source("global.R")` at the start of every R session.
 
-2. To install certain large data files that are necessary for the simulation, stored as GitHub repo assets. A design file `inputs/sim_design.yaml` holds details that ease asset installation. Open `inputs/sim_design.yaml` with any text editor. There are a few parameters to check and/or change in the configuration of this file:
+`simulation.R` in the repository root is an example driver script, not a
+required step: it runs a baseline and an example scenario with
+`multicore = TRUE`. Its last line sources a file that is not in the
+repository, so copy the parts you need into your own script rather than
+running it as it is.
 
-- `locality` is the population you would like to simulate. The default is England, which will simulate a representative sample of the English population. Users can set this to subnational populations for Local Authorities, Integrated Care Boards, and Regions. Users can find the exact names to use for these localities in the file `./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst`   (column "LAD17NM" for Local Authorities, "RGN11NM" for Regions, and "ICB22NM" for Integrated Care Boards)
-- `clusternumber` is the number of processing cores used for parallelization in the simulation. As a rule of thumb, you need about 10 GB of free RAM per core. That is if you plan to utilise 8 cores, you need about 80Gb of free RAM in your system. For Windows, check - [Find out how many cores your processor has - Microsoft Support](https://support.microsoft.com/en-us/windows/find-out-how-many-cores-your-processor-has-3126ef99-0247-33b3-81fc-065e9fb0c35b#:~:text=Press%20Ctrl%20%2B%20Shift%20%2B%20Esc%20to,logical%20processors%20your%20PC%20has), for other systems, this link may be helpful [How Many Cores Do I Have?](https://www.hivelocity.net/kb/how-many-cores-do-i-have/#:~:text=While%20there%20are%20many%20methods,is%20using%20the%20lscpu%20command)
-- `clusternumber_export` number of processing cores used for parallelization for exporting summaries. Currently, exporting the summary files may use more memory than running the simulation, so this may need to be lower than `clusternumber`
-- `logs` type “yes” if you need to save logs (recommended for test runs). The logs are stored in the output folder, in the subfolder ‘logs’
-- `export_xps` type "yes" if you want to export a summary file of exposure values. This is relatively slow.
-- `n` is the number of individuals we want to use in the simulation (for test runs, recommended > 1000 e.g., 1500)
-- `num_chunks` is the number of synthpops to aggregate together. This can be a smaller value for a test run eg - 2. The sample size for each simulation is n x num_chunks. Therefore, If you use n = 20,000 and num_chunks = 10, you will be simulating a cohort of 200,000 synthetic individuals (which is the default and suitable for most simulations)
-- `sim_horizon_max` is the final projection year for the simulation. Currently, this cannot be earlier than 2013 and later than 2043 due to the availability of exposure data informing the simulation and available ONS population projections
-- `output_dir` is the absolute path to the output folder, e.g., `D:/IMPACTncd_Engl/output/hf_real` for Windows or `/output/hf_real` for Linux. This folder can grow to hundreds of GB.  If the folder doesn't exist, it is created automatically during the simulation, and it can be in a different location outside the root folder of the model.
-- `synthpop_dir` is the absolute path to the synthpop folder, e.g. `D:/IMPACTncd_Engl/synthpop/hf_real` for Windows or `/synthpop/hf_real` for Linux. This is where the synthpop files are stored for efficiency after the first simulation run. This folder can grow to hundreds of GB. If the folder doesn't exist, it is created automatically during the simulation, and it can be in a different location outside the root folder of the model.
-- `sTag` is the version of the assets latest being v0.0.5 (as of March 2024)
-- `bOverwriteFilesOnDeploy` is an option to overwrite existing files, which will either be `no` or `yes` 
-- `RootDirectory` is an absolute path in your system, i.e., *C:/IMPACTncd_Engl* on Windows, or */IMPACTncd_Engl* on Linux. This path should be the root directory where the model will be deployed. You need at least 25 GB of free disk available
-- `sToken` should be the specific GitHub token for this project (ensure your system is protected as this token should be private) else we can keep it as NULL as this will use the token generated in the git installation document [here](https://github.com/ChristK/IMPACTncd_Engl/blob/main/installation_docs/installing_git.md#setting-a-personal-access-token).
+## Step 2: make your own design file
 
-*All other parameters in the YAML file can be unchanged for day-to-day use and are only to be used by developers and advanced users.*
+All settings live in a YAML *design file*. Do not edit the stock
+`inputs/sim_design.yaml`: it is tracked by Git, and editing it causes merge
+conflicts whenever you update the model. Copy it instead, e.g. to
+`inputs/sim_design_test.yaml`, and edit the copy in any text editor.
 
-If any of the `locality`, `n`, `num_chunks`, and `sim_horizon_max` parameters in this file are changed, it is recommended that you delete the existing output and synthpop folders and then run the code from here again.
+These are the settings to check for a test run. Leave everything else as it is
+unless you know what it does.
 
-3. Once `inputs/sim_design.yaml` is configured and saved, we can run this using the code below, which creates an object of the Simulation class that holds the simulation environment for the simulation
+| Setting | What it does | Suggested for a test run |
+|---|---|---|
+| `locality` | The population to simulate: `England` (default), or the exact name of a Local Authority (as spelt in column `LAD17NM`, i.e. 2017 boundaries), a Region (`RGN11NM`, e.g. `North West`) or an Integrated Care Board (`ICB22NM`). A YAML list combines several. | `England` |
+| `n` | Number of simulants aged `ageL`–`ageH` in the initial year, per synthetic-population chunk. New `ageL`-year-olds join in every later year on top of this. Stock: 100000. | `2000` |
+| `num_chunks` | Number of chunks combined into each Monte Carlo iteration, so the initial population is about `n × num_chunks`. Stock: 4. | `2` |
+| `sim_horizon_max` | Last projected year. Keep it at or below 2043: the Local-Authority population projections end there. The model does not check this for you. | `2043` |
+| `clusternumber` | Number of CPU cores used in parallel. Allow about 10 GB of free RAM per core. This matters even with `multicore = FALSE` (see step 4). Stock: 20. | `2` |
+| `clusternumber_export` | Cores used by `export_summaries()` and `export_tables()`. Exporting can need more memory per core than simulating, so this may need to be lower than `clusternumber`. | `2` |
+| `logs` | `yes` keeps a record of the run in `<output_dir>/logs/` (see step 4). | `yes` |
+| `export_xps` | `yes` also exports summaries of the exposures (risk factors). This is relatively slow. | `no` for speed |
+| `output_dir` | **Absolute** path for the results, e.g. `C:/IMPACTncd_Engl_output/test` on Windows or `/home/me/IMPACTncd_output/test` on Linux. The stock value is a path on the developers' server, so change it. It can grow to hundreds of GB. | your own path |
+| `synthpop_dir` | **Absolute** path where the synthetic populations are stored and reused, e.g. `C:/IMPACTncd_Engl_output/synthpop`. Also needs changing; can also grow large. | your own path |
 
-```{r, create-simulation-constructor, eval = FALSE}
-IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+Both folders are created automatically when you create the simulation object
+in step 3; an existing folder must be writable. Locality names that do not
+match exactly are not reported as an error, so copy them from the lookup file
+once the data are downloaded:
+
+```{r, locality-names, eval = FALSE}
+lkp <- fst::read_fst("./inputs/pop_estimates_lsoa/lsoa_to_locality_indx.fst",
+                     columns = c("LAD17NM", "RGN11NM", "ICB22NM"))
+sort(unique(lkp$LAD17NM)) # Local Authority names (2017 boundaries)
 ```
 
-Note that you can have multiple yaml files with different configurations, and you can call them at will, depending on your needs.
+Authorities created after 2017 (for example Buckinghamshire, or North and West
+Northamptonshire) are not recognised; list their 2017 districts instead.
 
-4. To run a baseline scenario, run the following chunk of code, which deletes everything inside the existing output and log folders, runs a new baseline scenario from scratch and summarises the results of the simulation. 
+You can keep several design files for different purposes and pass whichever
+you need to `Simulation$new()`.
+
+## Step 3: download the model data
+
+The model's input data (about 13 GB) are not stored in Git. They are published
+on Zenodo ([10.5281/zenodo.20812409](https://doi.org/10.5281/zenodo.20812409),
+CC-BY-SA-4.0) and are downloaded once per copy of the repository. No Zenodo
+account or token is needed.
+
+```{r, download-data, eval = FALSE}
+IMPACTncd <- Simulation$new("./inputs/sim_design_test.yaml")
+IMPACTncd$zenodo_connect()      # the published record; no token needed
+IMPACTncd$zenodo_download_all() # inputs and cached model files (~13 GB)
+```
+
+On a fresh copy, `Simulation$new()` warns that the exposure data were not
+found. That is expected before the download. `zenodo_download_all()` reloads
+the object when it finishes, so you can carry straight on. If you skip this
+step, the run in step 4 fails with an unhelpful error such as
+`object 'active_days' not found`.
+
+The download writes into `./inputs` and `./simulation`, so it too must run from
+the repository root. It only adds files that are missing, so running it again
+is safe, and it restores any cached file that has been deleted. If the system
+drive is short of space, put the temporary archives elsewhere with, e.g.,
+`IMPACTncd$zenodo_connect(archive_dir = "D:/zenodo_tmp")` (the folder must
+exist). See `vignette("zenodo_data_management")` for details.
+
+## Step 4: run a baseline test
+
+In a new R session, the simulation object is created from your design file
+(this is the same call as in step 3; there is no need to repeat it in the
+session where you downloaded the data):
+
+```{r, create-simulation-constructor, eval = FALSE}
+source("global.R")
+IMPACTncd <- Simulation$new("./inputs/sim_design_test.yaml")
+```
+
+The following deletes any earlier logs and outputs in `output_dir`, runs two
+Monte Carlo iterations of the baseline scenario and summarises them:
 
 ```{r, run-simulation, eval = FALSE}
 IMPACTncd$
@@ -75,7 +164,7 @@ IMPACTncd$
   export_summaries(multicore = FALSE)
 ```
 
-In the above, we use the chain syntax using $, which is equivalent to
+This uses method chaining with `$`. It is equivalent to:
 
 ```{r, run-another-simulation, eval = FALSE}
 IMPACTncd$del_logs()
@@ -84,34 +173,131 @@ IMPACTncd$run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")
 IMPACTncd$export_summaries(multicore = FALSE)
 ```
 
-Note: In the arguments for the `run()`, we have selected the number of Monte Carlo iterations to be 2  (mc = 1:2). This is OK for a test run, but in reality, you would like to run at least 100 iterations (i.e. mc = 1:100) in production. If, at a later point, you would like to run 100 more iterations additionally, then you could do `IMPACTncd$run(mc = 101:200, multicore = FALSE, scenario_nam = "sc0")` without deleting the existing output (i.e. do not run `IMPACTncd$del_outputs()`). 
+The arguments of `run()`:
 
-We have also selected `multicore = FALSE` here so that parallel processing is not used. This slows down the simulation, but it requires substantially less computational resources. In production, you would most likely want to set this to `TRUE.` The third argument of the `run()` function defines the name of the baseline scenario as "sc0" here. Please do not change the name of the baseline scenario. Finally, the `export_summaries()` generates summary output files from the lifecourse files that are the raw simulation output. 
+- `mc = 1:2` runs Monte Carlo iterations 1 and 2. That is enough for a test;
+  in production run at least 100 (`mc = 1:100`).
+- `multicore = FALSE` runs the iterations one after another in a single R
+  process, which needs much less memory than running them in parallel. In
+  production you would normally use `TRUE`. `clusternumber` still matters: it
+  sets the number of threads, and the number of helper processes the model
+  starts if it has to regenerate its cached population-attributable risk
+  fractions (PARFs). With the stock value of 20 that can be too much for a
+  laptop, which is why the table above suggests 2.
+- `scenario_nam = "sc0"` names the baseline. Do not rename it: other scenarios
+  and the output tables are compared with `sc0`.
 
-6. After running the code we will have the folders created as shown below in the `output/hf_real` folder. A separate vignette will detail the `output/hf_real` folder contents.
+The first run takes longer than later ones, because the synthetic population
+is generated and saved to `synthpop_dir`; later runs with the same settings
+reuse it.
 
-```{r, echo = FALSE, out.width = "50%", fig.cap = "output/hf_real structure folder structure"}
+With `logs: yes`, what `run()`, `export_summaries()` and `export_tables()`
+would print goes to `<output_dir>/logs/console.txt` instead of the screen, so
+the console stays quiet while they work. Errors still appear on screen. To
+follow progress, open `logs/times.txt` (time stamps for each phase and
+iteration) or `logs/console.txt`.
+
+## Step 5: export the output tables
+
+`export_summaries()` writes intermediate summary files. The readable CSV
+tables come from `export_tables()`:
+
+```{r, export-tables, eval = FALSE}
+IMPACTncd$export_tables(multicore = FALSE, cea = FALSE, equity = FALSE)
+```
+
+`cea = FALSE` and `equity = FALSE` are recommended for a baseline-only run.
+The cost-effectiveness and equity tables compare a scenario with the baseline,
+so with only `sc0` there is nothing to write, but the two tasks would still
+load several GB of summaries before finding that out.
+
+## Step 6: look at the outputs
+
+`Simulation$new()` creates these folders in `output_dir`:
+
+```{r, echo = FALSE, out.width = "50%", fig.cap = "Top level of output_dir (with logs: yes and export_xps: yes)"}
 knitr::include_graphics("img/output_folder.jpg")
 ```
 
-#### How to remove IMPACTncdEngland installed package 
+- `lifecourse/`: the raw simulation output, written by `run()`, one folder
+  per iteration and scenario (`mc=<i>/scenario=<name>/`).
+- `summaries/`: written by `export_summaries()`.
+- `tables/`: the CSV tables, written by `export_tables()`. It is empty until
+  you run step 5.
+- `xps/`: exposure summaries, written by `run()` when `export_xps: yes`.
+- `logs/`: `times.txt`, `console.txt` and one `log<i>.txt` per iteration, when
+  `logs: yes`.
+- `plots/`: only used by the validation tools.
 
-1. First and foremost we need to permanently delete the files from the project folder of `IMPACTncd_Engl` which can be identified from in `inputs/sim_design.yaml` : `RootDirPath.` 
-2. Then we need to permanently delete the output and synthpop folder as mentioned in `inputs/sim_design.yaml` : `output_dir` and `synthpop_dir`. 
-3. Finally delete the `IMPACTncd_Engl` folder / package  from `R/library` and the file inside `_cache` folder in the `R/library`.  
+See `vignette("understanding_model_outputs")` for what the tables contain and
+how to read them.
 
+## Running more iterations or scenarios later
 
-### Other files 
+`run()` adds new iterations without touching existing ones, provided you do not
+call `del_outputs()`. `export_summaries()` is more limited: it skips every
+iteration number that already has summaries, even if those summaries were made
+before a new scenario was run, and it assumes the iterations are numbered 1, 2,
+3, … without gaps. So:
 
-- Use the following code to open the vignette to run different policy scenarios
+- number iterations contiguously from 1 (e.g. `mc = 3:100` after a `1:2` test);
+- run all the scenarios you need first;
+- then rebuild the summaries from scratch:
 
-```{r}
-vignette("how_to_run_scenarios", package = "IMPACTncdEngland")
+```{r, more-iterations, eval = FALSE}
+IMPACTncd$run(mc = 3:100, multicore = TRUE, scenario_nam = "sc0")
+IMPACTncd$del_summaries()$export_summaries(multicore = TRUE)
 ```
 
-- Use the following code to open the vignette to understand model outputs 
+When adding iterations, `run()` reports that output from a previous run of the
+scenario already exists. That is expected; only iterations with the same
+number would be overwritten. Only add iterations to an existing set if the
+model version, input data and design file are all unchanged; otherwise re-run
+everything.
 
-```{r}
+## When you change the design file
+
+After changing anything that affects the results (locality, population size,
+horizon, ages, diseases, exposures, …), delete the old outputs with
+`IMPACTncd$del_outputs()` before running again. Old raw outputs and summaries
+are otherwise reused or mixed with the new ones.
+
+Synthetic populations are named after the settings that define them, so a
+changed design generates new ones automatically and never reuses an
+incompatible file. Delete old ones only to free disk space, with
+`IMPACTncd$del_synthpops()`. That deletes *everything* in `synthpop_dir`, so
+never use it on a folder shared with other users.
+
+## Troubleshooting
+
+| Symptom | Likely cause and fix |
+|---|---|
+| `cannot open file 'global.R'`, or a path containing `.../vignettes/inputs/...` | The working directory is not the repository root; see [Read this first](#read-this-first-the-working-directory). |
+| `object 'active_days' not found` during `run()` | The data have not been downloaded; see [step 3](#step-3-download-the-model-data). |
+| `You don't have write access to the output folder` | `output_dir` or `synthpop_dir` points to a folder you cannot write to; change the path or its permissions. |
+| The console shows almost nothing for a long time | Normal with `logs: yes`; follow `logs/times.txt` and `logs/console.txt`. |
+| R runs out of memory or the computer becomes unresponsive | Lower `clusternumber` and `clusternumber_export`, or use smaller `n`. |
+
+## Removing the model
+
+1. Delete the repository folder. This also removes the downloaded data in
+   `inputs/` and `simulation/`.
+2. Delete the folders named by `output_dir` and `synthpop_dir` in your design
+   file(s).
+3. In R, run `remove.packages("IMPACTncdEngland")` and, if no other project
+   uses it, `remove.packages("CKutils")`.
+4. Docker users: also remove the model images with `docker image rm`.
+
+## Other vignettes
+
+The other vignettes are in `Rpackage/IMPACTncd_England_model_pkg/vignettes/`.
+Next, read `how_to_run_scenarios.Rmd` (defining and running policy scenarios)
+and `understanding_model_outputs.Rmd` (what the tables mean). You can read the
+`.Rmd` files directly, or render them to HTML with `vignettes/build_vignettes.sh`
+(this needs pandoc). The `vignette()` function only finds them if the package
+was installed with its vignettes built, which `global.R` does not do.
+
+```{r, other-vignettes, eval = FALSE}
+vignette("how_to_run_scenarios", package = "IMPACTncdEngland")
 vignette("understanding_model_outputs", package = "IMPACTncdEngland")
 ```
-
