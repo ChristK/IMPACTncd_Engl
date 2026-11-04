@@ -50,7 +50,7 @@
 #' @importFrom igraph make_graph make_empty_graph is_dag V neighbors all_simple_paths topo_sort as_adjacency_matrix diameter layout_components make_ego_graph plot.igraph vcount
 #' @importFrom qs2 qs_read qs_save
 #' @importFrom arrow write_dataset open_dataset
-#' @importFrom DBI dbConnect dbDisconnect dbExecute dbGetQuery
+#' @importFrom DBI dbConnect dbDisconnect dbExecute dbGetQuery dbListFields
 #' @importFrom wrswoR sample_int_expj
 #' @useDynLib IMPACTncdEngland
 #' @name IMPACTncdEngland

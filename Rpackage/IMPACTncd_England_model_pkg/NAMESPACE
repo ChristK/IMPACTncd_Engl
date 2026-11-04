@@ -44,7 +44,8 @@ importFrom(DBI,
   dbConnect,
   dbDisconnect,
   dbExecute,
-  dbGetQuery
+  dbGetQuery,
+  dbListFields
 )
 importFrom(R6,R6Class)
 importFrom(Rcpp,evalCpp)
