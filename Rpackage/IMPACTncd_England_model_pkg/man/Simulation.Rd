@@ -1051,9 +1051,12 @@ dying after 60) and the two healthy-life-expectancy measures
 \code{hle_1st_cond} and \code{hle_cmsmm1.5}, all four in one file per
 stratification, distinguished by a \code{type} column.
 
-These are \strong{weight-averaged ages at an event}, not period life-table
-expectancies, and \code{popsize} in the underlying summaries is the weighted
-count of those events. Collapsing over strata is therefore exact -- the
+These are \strong{weight-averaged ages}, not period life-table expectancies,
+and \code{popsize} in the underlying summaries is the weighted count of the
+rows averaged: deaths for \code{le}/\code{le60}, onsets of CMS >= 1.5
+multimorbidity for \code{hle_cmsmm1.5}, but for \code{hle_1st_cond} every
+person-year lived with exactly one CMS condition (\code{cms_count = 1}) -- so
+that one is not an age at onset. Collapsing over strata is exact -- the
 weights are the denominators the means were formed with -- but it must be
 a \code{weighted.mean}, so never average or sum these values across strata
 yourself. Each published figure is accompanied by \code{n_events}, the median

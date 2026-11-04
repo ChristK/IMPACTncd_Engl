@@ -34,8 +34,9 @@ synthpop_dir: /mnt/storage_fast/synthpop/hf_real
 # NICE 3.5% reported side by side), discount_from_year (defaults to the baseline
 # year), and wtp (default c(25000, 35000) GBP/QALY). Every level appears in the
 # qalys / net_qalys / costs / net_costs and cost-effectiveness tables, tagged in
-# a `discount` column; prevalence, incidence, mortality, exposure and equity
-# tables carry no discount column.
+# a `discount` column, as do the equity tables (net QALYs discounted at the
+# QALY rate; the CPP/CYPP/DPP event counts as a single "0%" block); prevalence,
+# incidence, mortality and exposure tables carry no discount column.
 
 uncertainty: # Note that uncertainties are independent
   incidence:

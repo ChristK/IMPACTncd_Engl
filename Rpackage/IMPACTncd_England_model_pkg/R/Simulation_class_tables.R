@@ -46,9 +46,10 @@ safe_fquantile_byid <- function(x, q, id, rounding = FALSE) {
 # `discount` column and carries one block of rows per level, so the undiscounted
 # (0%) figures and the discounted ones live in the same file.
 #
-# The equity slope-index tables are deliberately NOT expanded: their metric set
-# mixes discountable QALYs with plain event counts (CPP / CYPP / DPP), which
-# have no present value, so one `discount` column could not describe the file.
+# The equity slope-index tables carry the same `discount` column, per metric
+# (since 2026-08-13): net_qalys is a QALY flow, expanded to one block per
+# qaly_discount_rate level; CPP / CYPP / DPP are event counts, which have no
+# present value, so they get a single "0%" block. One schema for the family.
 
 
 # fmt_discount_pct ----
@@ -212,9 +213,11 @@ expand_discount_levels <- function(d, value_cols, levels, from_year,
 #
 # @param d  A data.table with (at least) columns `rank` (integer deprivation
 #   rank, 1 = MOST deprived .. K = LEAST deprived, i.e. `as.integer(dimd)`),
-#   `B` (cumulative benefit for that group) and `N` (reference population for
-#   that group, used both as the regression weight and the ridit denominator),
-#   plus the grouping columns named in `by`.
+#   `B` (cumulative benefit for that group) and `N` (the group's exposure base,
+#   used as the ridit denominator, the regression weight AND the per-capita
+#   denominator; export_equity_tables() passes cumulative PERSON-YEARS from
+#   `baseline_year` to the reporting year, the base the cumulative numerator
+#   needs), plus the grouping columns named in `by`.
 # @param by  Character vector of columns identifying one gradient per group
 #   (must include the Monte-Carlo id `mc`; DIMD is NOT in `by` -- it is the
 #   gradient axis consumed into the index).
@@ -224,8 +227,10 @@ expand_discount_levels <- function(d, value_cols, levels, from_year,
 #     most-deprived per-capita benefit instead of the fitted least-deprived one.
 #     It is NOT the benefit difference between the extreme deciles themselves,
 #     which is roughly an order of magnitude smaller);
-#   AEI_per100k (the SII per 100,000 people alive in the reporting year);
-#   total_benefit (the total undiscounted benefit the gradient was fit to --
+#   AEI_per100k (the SII per 100,000 units of `N`: per 100,000 PERSON-YEARS as
+#     export_equity_tables() calls it, since 2026-08-13);
+#   total_benefit (the total benefit the gradient was fit to, at the row's
+#     `discount` level for net QALYs --
 #     reported because the absolute indices are translation-invariant and so
 #     cannot distinguish levelling up from levelling down);
 #   REI_rel (SII / population-weighted mean benefit; NA unless that mean is
@@ -1441,9 +1446,12 @@ build_equity_plans <- function(strata) {
 #'   `hle_1st_cond` and `hle_cmsmm1.5`, all four in one file per
 #'   stratification, distinguished by a `type` column.
 #'
-#'   These are **weight-averaged ages at an event**, not period life-table
-#'   expectancies, and `popsize` in the underlying summaries is the weighted
-#'   count of those events. Collapsing over strata is therefore exact -- the
+#'   These are **weight-averaged ages**, not period life-table expectancies,
+#'   and `popsize` in the underlying summaries is the weighted count of the
+#'   rows averaged: deaths for `le`/`le60`, onsets of CMS >= 1.5
+#'   multimorbidity for `hle_cmsmm1.5`, but for `hle_1st_cond` every
+#'   person-year lived with exactly one CMS condition (`cms_count = 1`) -- so
+#'   that one is not an age at onset. Collapsing over strata is exact -- the
 #'   weights are the denominators the means were formed with -- but it must be
 #'   a `weighted.mean`, so never average or sum these values across strata
 #'   yourself. Each published figure is accompanied by `n_events`, the median
@@ -1503,8 +1511,9 @@ Simulation$set("public", "export_tables", function(
   # QALY / cost / net-QALY / net-cost tables AND the cost-effectiveness tables:
   # each reports every requested discount level side by side, tagged in a
   # `discount` column. Prevalence / incidence / mortality / exposure tables are
-  # rates and counts rather than flows, so they carry no discount column; the
-  # equity tables are left alone because they mix QALYs with event counts.
+  # rates and counts rather than flows, so they carry no discount column. The
+  # equity tables carry one per metric: net_qalys is discounted at the QALY
+  # rate, while the CPP / CYPP / DPP event counts get a single "0%" block.
   # `discount_from_year` takes the SAME two-digit shorthand as
   # `baseline_year_for_change_outputs` above, and must be promoted the same way.
   # Without this, `discount_from_year = 19` is treated as the year 19 AD: the
@@ -3202,10 +3211,15 @@ Simulation$set("private", "export_disease_characteristics_tables", function(
 #   SELECT <strata>, SUM(w) AS popsize, SUM(age * w) / SUM(w) AS LE
 #   FROM lc_table WHERE all_cause_mrtl > 0 [AND age > 60] GROUP BY <strata>
 #
-# so the value is a weight-averaged **age at the event** (death for `le`/`le60`,
-# first condition / CMS-1.5 multimorbidity onset for the two `hle_*`) and
-# `popsize` is the weighted **count of those events** -- the very denominator
-# the average was formed with, not a population.
+# (for `le`/`le60`; the `hle_*` summaries use their own condition in place of
+# `all_cause_mrtl > 0`), so the value is a weight-averaged **age** over the rows
+# that meet the condition, and `popsize` is the weighted **count of those rows**
+# -- the very denominator the average was formed with, not a population:
+#   - `le`, `le60`: age at death; popsize = deaths.
+#   - `hle_cmsmm1.5`: `"cmsmm1.5_prvl" = 1`, i.e. the year CMS >= 1.5
+#     multimorbidity begins: age at its onset; popsize = onsets.
+#   - `hle_1st_cond`: `cms_count = 1`, i.e. EVERY person-year with exactly one
+#     CMS condition -- NOT an onset age; popsize = person-years in that state.
 #
 # That makes collapsing over strata EXACT rather than approximate:
 # `weighted.mean(value, popsize)` across a set of strata reproduces
@@ -3423,8 +3437,10 @@ Simulation$set("private", "export_xps_tables", function(
         #
         # The remaining axes ARE derived, because they genuinely can be strata:
         # whichever filterable column the caller did not stratify by was
-        # averaged over. The main families spell the result the same way:
-        # `... (age-sex-dimd standardised).csv`.
+        # averaged over. The all-cause-mortality-given-disease and life-
+        # expectancy families spell the result the same way (e.g.
+        # `... (age-sex-dimd standardised).csv`); the main families' ESP labels
+        # name only age and sex.
         other_axes <- setdiff(filterable_vars, c("age", "agegrp20"))
         standardised_vars <- c("age", setdiff(other_axes, s))
         std_suffix <- paste(standardised_vars, collapse = "-")
@@ -4165,8 +4181,10 @@ Simulation$set("private", "export_equity_tables", function(
       # makes SII(benefit) exactly equal the policy-induced change in the SII).
       #
       # They are deliberately NOT pinned across YEARS: `cmp` is joined on
-      # `idcols`, which includes `year`, so N is the comparator population OF THE
-      # REPORTING YEAR and the ridit is re-derived each year (the ordinal decile
+      # `idcols`, which includes `year`, so N is the comparator population of
+      # EACH year; the ridit, the weights and the denominator then use its
+      # cumulative sum PY (person-years from `baseline_year` to the reporting
+      # year, below), re-derived for every reporting year (the ordinal decile
       # ordering is of course fixed throughout). Pinning N at `baseline_year` was
       # considered and rejected -- it would divide a benefit generated by the
       # year-t population by the year-0 population, so a benefit that is exactly

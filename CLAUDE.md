@@ -116,9 +116,9 @@ separate directories. Differential rates need equal-length vectors —
 `qaly = c(0, 1.5)` with `cost = c(0, 4)` is 2 levels, **not** 4.
 Discounting is **no longer CEA-only**: it also reaches `qalys` / `net_qalys` /
 `costs` / `net_costs`. Prevalence, incidence, mortality and exposure tables carry
-no `discount` column (they are rates and counts, not flows), and the equity
-tables are excluded too because their metric set mixes QALYs with plain event
-counts — only the **main** and **CEA** tasks are passed `discount_levels`.
+no `discount` column (they are rates and counts, not flows). The **main**,
+**CEA** and (since 2026-08-13) **equity** tasks are passed `discount_levels`;
+equity applies them per metric (see "Equity tables now carry `discount`" below).
 Four things are load-bearing:
 **(a)** `expand_discount_levels()` scales the **per-year** values *before* any
 `cumsum()`, so the `_cuml` columns accumulate present values rather than
@@ -241,8 +241,11 @@ stratification (`life expectancy by <strata> (...).csv`), distinguished by a
 The values are **weight-averaged ages at an event**, not period life-table
 expectancies: each summary is
 `SELECT <strata>, SUM(w) AS popsize, SUM(age * w)/SUM(w) AS LE FROM lc_table
-WHERE all_cause_mrtl > 0 [AND age > 60]`, so `popsize` is the weighted **count of
-events**, not a population. Collapsing over strata is therefore **exact** — the
+WHERE <condition>`, so `popsize` is the weighted **count of the rows meeting the
+condition**, not a population: `all_cause_mrtl > 0 [AND age > 60]` for `le`/`le60`
+(deaths), `"cmsmm1.5_prvl" = 1` for `hle_cmsmm1.5` (onset year), but
+`cms_count = 1` for `hle_1st_cond` — every person-year with exactly one condition,
+so it is **not** an onset age and its `popsize` is person-years. Collapsing over strata is therefore **exact** — the
 weights are the denominators the means were formed with — but only as a
 `weighted.mean(value, popsize)`; averaging or summing them is wrong. Each figure
 carries `n_events` (median weighted count over mc) so a thin stratum is visible.
@@ -343,7 +346,9 @@ age-sex-qimd) and leaving the fully-stratified one labelled with nothing.
 strata there, so deriving it with a `setdiff` against them implied otherwise,
 and a stray `agegrp20` in `strata$xps_esp` removed it — labelling an
 age-standardised table `(sex-qimd standardised)`. Only the remaining axes are
-derived. Matches the main families' `... (age-sex-dimd standardised).csv`.
+derived. Matches the all-cause-mortality-given-disease and life-expectancy
+families' `... (age-sex-dimd standardised).csv`; the main families' ESP labels
+name only age and sex (`(age-sex standardised)`), checked on real output.
 And a sixth, found by testing that stray config: naming a column the loaded xps
 dataset lacks (`agegrp20` in `strata$xps_esp`) reached `keyby` and raised
 ``object 'agegrp20' not found`` **from inside a forked worker**, after the whole
