@@ -912,9 +912,27 @@ between the last worker finishing and `End of parallelisation` (should be ~0 s).
    than a failed read: `gen_parf_files()` then looks for
    `simulation/parf_generation_record.csv` under the wrong folder (creating an
    empty one there), judges the snapshot invalid and `del_parf_file()` deletes
-   the REAL PARF cache. Telltale: a stray `vignettes/simulation/`. Not yet
-   guarded in code (2026-11-04). Repro:
-   `claude_process/issue11/verify_wrong_wd_deletes_parf_cache.R`.
+   the REAL PARF cache. Telltale: a stray `vignettes/simulation/`.
+   **Guarded since 2026-11-04** (`R/working_dir_guard.R`). One root, owned by
+   the Design: `Design$initialize()` records `getwd()` (`get_root_dir()`; NOT
+   `design_dir`, which is the YAML's folder: `scenarios/<X>/`, or a symlinked
+   mount in Docker). Two defences hang off it. **Anchor:** `Disease` and
+   `ExposureEffect` build their record paths and `to_rel_path()` from it.
+   **Guard:** `private$assert_wd()` is the first statement of `run()`,
+   `calibrate_incd_ftlt()`, `validate()`, `del_parfs()`, `del_RR_cache()`, the
+   three `*_large_files()` and every local-file `zenodo_*()`; it also runs in
+   `Simulation$new(<Design>)` and `Design$load_*()`, and after each scenario
+   hook in `run_sim()`, because a scenario function that calls `setwd()` is
+   invisible to an entry check. Export and `del_outputs`-type methods need
+   none, since they use only the absolute `output_dir`/`synthpop_dir`. It
+   `stop()`s rather than temporarily `setwd()`ing: a silent re-root would
+   also move user scenario code. The anchor alone is NOT enough: from a
+   sibling checkout with the same layout, the relative reads succeed and a
+   run silently mixes two trees.
+   Tests: `test_working_dir_guard.R` (66, incl. a real `Disease` keeping its
+   cache from another folder, and a pin that each guarded method calls the
+   check first). Real-model check:
+   `claude_process/issue11/verify_guard_on_real_model.R <lib> <yaml>`.
 6. **`library(IMPACTncdEngland)` alone is not enough** — `Exposure` resolves its
    distribution functions (e.g. `pZABNB`) on the search path, so `gamlss.dist`
    must be attached (`global.R` does it); without it synthpop generation fails

@@ -86,6 +86,18 @@ Disease <-
         self$meta <- meta
         self$notes <- notes
 
+        # The model's root, owned by the Design (getwd() when it was built).
+        # Every path this object owns -- disease-burden inputs, the PARF
+        # cache AND the PARF generation record that says whether that cache
+        # is valid -- is built from this one value, so a later change of
+        # working directory cannot pair the cache with a record in another
+        # folder (which used to delete the real cache; GitHub issue #11).
+        private$root_dir <- if (is.function(design_$get_root_dir)) {
+          design_$get_root_dir()
+        } else {
+          getwd()
+        }
+
         # Generate unique name using the relevant RR and lags
         rr <- RR[vapply(RR, `[[`, "outcome", FUN.VALUE = character(1)) == self$name]
         # above only contains exposures for this disease object
@@ -100,7 +112,7 @@ Disease <-
         private$seed <- abs(digest2int(self$name, seed = 230565490L))
 
         private$sDiseaseBurdenDirPath <- file.path(
-          getwd(),
+          private$root_dir,
           "inputs",
           "disease_burden"
         )
@@ -170,7 +182,7 @@ Disease <-
             rr_distributions
           ))
 
-        private$parf_dir <- file.path(getwd(), "simulation", "parf")
+        private$parf_dir <- file.path(private$root_dir, "simulation", "parf")
         if (!dir.exists(private$parf_dir)) {
           dir.create(private$parf_dir)
         }
@@ -2163,6 +2175,8 @@ Disease <-
       mrtl_colnam2 = NA,
       chksum = NA,
       parf_dir = NA_character_,
+      # The model's root, from design_$get_root_dir() (see initialize()).
+      root_dir = NULL,
       parf_filenam = NA_character_,
       sDiseaseBurdenDirPath = NA,
       parf = data.table(NULL),
@@ -2257,17 +2271,27 @@ Disease <-
 
       # Path to the PARF generation record
       get_generation_record_path = function() {
+        # Anchored on the construction-time root, like parf_dir (it used to
+        # call getwd() here, so from another folder the record looked
+        # missing and del_parf_file() deleted the real cache).
         file.path(
-          getwd(), "simulation",
+          private$root_or_wd(), "simulation",
           "parf_generation_record.csv"
         )
       },
 
-      # Convert absolute path to relative (to getwd())
-      # for portability across users/machines.
-      # Already-relative paths pass through unchanged.
+      # The construction-time root, or getwd() for an object built without
+      # one (keeps hand-built test doubles working).
+      root_or_wd = function() {
+        r <- private$root_dir
+        if (is.null(r) || !length(r) || is.na(r)) getwd() else r
+      },
+
+      # Convert absolute path to relative (to the model's root, which equals
+      # getwd() whenever the working directory is unchanged) for portability
+      # across users/machines. Already-relative paths pass through unchanged.
       to_rel_path = function(path) {
-        wd <- paste0(getwd(), "/")
+        wd <- paste0(private$root_or_wd(), "/")
         ifelse(
           startsWith(path, wd),
           substring(path, nchar(wd) + 1L),

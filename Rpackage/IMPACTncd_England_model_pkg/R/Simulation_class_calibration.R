@@ -34,6 +34,8 @@
 #'   `calibration_prms.csv`; otherwise extend it.
 #' @return The `Simulation` object, invisibly.
 Simulation$set("public", "calibrate_incd_ftlt", function(mc, replace = FALSE) {
+  # Reads ./inputs/disease_burden and rewrites ./simulation/calibration_prms.csv
+  private$assert_wd("calibrate_incd_ftlt()") # cwd must still be the model root (#11)
   # recombine the chunks of large files
   self$reconstruct_large_files()
 

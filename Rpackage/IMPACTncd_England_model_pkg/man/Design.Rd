@@ -77,6 +77,8 @@ design$save_to_disk("outputs/saved_sim_design.yaml")
     \item \href{#method-Design-load_exposures}{\code{Design$load_exposures()}}
     \item \href{#method-Design-xps_table_path}{\code{Design$xps_table_path()}}
     \item \href{#method-Design-load_diseases}{\code{Design$load_diseases()}}
+    \item \href{#method-Design-get_root_dir}{\code{Design$get_root_dir()}}
+    \item \href{#method-Design-assert_working_dir}{\code{Design$assert_working_dir()}}
     \item \href{#method-Design-has_input_data}{\code{Design$has_input_data()}}
     \item \href{#method-Design-load_data}{\code{Design$load_data()}}
     \item \href{#method-Design-save_to_disk}{\code{Design$save_to_disk()}}
@@ -244,6 +246,48 @@ or a bare table identifier for tables with no \code{Exposure} object
   }
   \subsection{Returns}{
     The invisible self for chaining.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-get_root_dir"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-get_root_dir}{}}}
+\subsection{\code{Design$get_root_dir()}}{
+  The model's root: the working directory when this Design was
+created. Disease and ExposureEffect anchor their PARF/RR generation
+records on it, and methods that read or write \code{./inputs} or
+\code{./simulation} stop if the working directory no longer matches it.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$get_root_dir()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character scalar (absolute path).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Design-assert_working_dir"></a>}}
+\if{latex}{\out{\hypertarget{method-Design-assert_working_dir}{}}}
+\subsection{\code{Design$assert_working_dir()}}{
+  Stop with an informative error if the working directory differs
+from \code{get_root_dir()} (GitHub issue #11). Called at the entry of every
+method that resolves \code{./inputs} or \code{./simulation}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Design$assert_working_dir(what = "This operation")}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{what}}{Character; the operation, named in the message.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{TRUE}, invisibly, if the working directory is unchanged.
   }
 }
 

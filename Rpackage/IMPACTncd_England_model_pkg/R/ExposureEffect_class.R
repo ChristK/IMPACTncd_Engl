@@ -185,6 +185,16 @@ ExposureEffect <-
         if (!inherits(design, "Design"))
           stop("Argument design needs to be a Design object.")
 
+        # The model's root, owned by the Design (getwd() when it was built).
+        # The compiled-RR cache (filedir) and the RR generation record that
+        # says whether it is current are both built from it, so they can
+        # never come from different folders (GitHub issue #11).
+        private$root_dir <- if (is.function(design$get_root_dir)) {
+          design$get_root_dir()
+        } else {
+          getwd()
+        }
+
         if (file.exists(sRelativeRiskByPopulationSubsetForExposureFilePath)) {
           # TODO add some checks to ensure proper structure
 
@@ -390,7 +400,7 @@ ExposureEffect <-
         ))
         private$suffix <- paste0(self$name, "~", self$outcome)
 
-        private$filedir <- file.path(getwd(), "simulation", "rr")
+        private$filedir <- file.path(private$root_dir, "simulation", "rr")
         if (!dir.exists(private$filedir))
           dir.create(private$filedir, recursive = TRUE)
         
@@ -1481,6 +1491,8 @@ ExposureEffect <-
       filenam = NA_character_,
       filenam_indx = NA_character_,
       filedir = NA_character_,
+      # The model's root, from design$get_root_dir() (see initialize()).
+      root_dir = NULL,
       cache = NA,
       cache_mc = NA,
       nam_rr = NA,
@@ -1534,16 +1546,26 @@ ExposureEffect <-
 
       # Path to the generation record file
       get_generation_record_path = function() {
+        # Anchored on the construction-time root, like filedir (it used to
+        # call getwd() here).
         file.path(
-          getwd(), "simulation",
+          private$root_or_wd(), "simulation",
           "rr_generation_record.csv"
         )
       },
 
-      # Convert absolute path to relative (to getwd()) for portability
+      # The construction-time root, or getwd() for an object built without
+      # one (keeps hand-built test doubles working).
+      root_or_wd = function() {
+        r <- private$root_dir
+        if (is.null(r) || !length(r) || is.na(r)) getwd() else r
+      },
+
+      # Convert absolute path to relative (to the model's root, which equals
+      # getwd() whenever the working directory is unchanged) for portability
       # across users/machines. Already-relative paths pass through unchanged.
       to_rel_path = function(path) {
-        wd <- paste0(getwd(), "/")
+        wd <- paste0(private$root_or_wd(), "/")
         ifelse(startsWith(path, wd), substring(path, nchar(wd) + 1L), path)
       },
 

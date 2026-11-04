@@ -137,6 +137,15 @@ Design <-
       #' design <- Design$new("./validation/design_for_trends_validation.yaml")
       # initialize ----
       initialize = function(sim_prm) {
+        # The model's root: the working directory at construction, which must
+        # be the repository root. Disease and ExposureEffect anchor their
+        # registry paths on it, and every method that touches ./inputs or
+        # ./simulation checks the working directory against it (see
+        # R/working_dir_guard.R, GitHub issue #11). NOT design_dir, which is
+        # the YAML's folder. Stored unmodified: getwd() is the physical path
+        # on Linux, matching normalizePath() of the files it relativises.
+        private$root_dir <- getwd()
+
         data_type <- typeof(sim_prm)
         if (data_type == "character") {
           # Remember the directory that holds the sim_design YAML. Exposure
@@ -374,6 +383,9 @@ Design <-
       #' @return The invisible self for chaining.
       # load_exposure_effects ----
       load_exposure_effects = function() {
+        # Lists ./inputs/RR, prunes ./simulation/rr and rewrites the RR
+        # record, all relative to the working directory.
+        self$assert_working_dir("Design$load_exposure_effects()")
         message("Loading exposure effects.")
         # Create a named list of ExposureEffect objects for the files in ./inputs/RR
         fl <- list.files(
@@ -498,6 +510,8 @@ Design <-
       #' @return The invisible self for chaining.
       # load_exposures ----
       load_exposures = function() {
+        # Stock exposure tables resolve to relative ./inputs paths.
+        self$assert_working_dir("Design$load_exposures()")
         # Check if exposure data files exist (not just the directory, which
         # may contain only scripts). The first exposure definition's data
         # directory serves as a proxy for all data availability.
@@ -635,6 +649,7 @@ Design <-
       #' @return The invisible self for chaining.
       # load_diseases ----
       load_diseases = function() {
+        self$assert_working_dir("Design$load_diseases()")
         message("Loading diseases.")
         self$diseases <- lapply(self$sim_prm$diseases, function(x) {
           x[["design_"]] <- self
@@ -644,6 +659,28 @@ Design <-
         names(self$diseases) <- vapply(self$sim_prm$diseases, `[[`, "name", FUN.VALUE = character(1))
 
         invisible(self)
+      },
+
+      #' @description
+      #' The model's root: the working directory when this Design was
+      #' created. Disease and ExposureEffect anchor their PARF/RR generation
+      #' records on it, and methods that read or write `./inputs` or
+      #' `./simulation` stop if the working directory no longer matches it.
+      #' @return Character scalar (absolute path).
+      # get_root_dir ----
+      get_root_dir = function() {
+        private$root_dir
+      },
+
+      #' @description
+      #' Stop with an informative error if the working directory differs
+      #' from `get_root_dir()` (GitHub issue #11). Called at the entry of every
+      #' method that resolves `./inputs` or `./simulation`.
+      #' @param what Character; the operation, named in the message.
+      #' @return `TRUE`, invisibly, if the working directory is unchanged.
+      # assert_working_dir ----
+      assert_working_dir = function(what = "This operation") {
+        .assert_wd(private$root_dir, what)
       },
 
       #' @description
@@ -668,6 +705,9 @@ Design <-
       #' @return The invisible self for chaining.
       # load_data ----
       load_data = function(force = FALSE) {
+        # Rebuilds RR/Disease objects from relative ./inputs and prunes
+        # ./simulation/rr: only safe from the model's root.
+        self$assert_working_dir("Design$load_data()")
         if (self$data_loaded && !force) {
           if (self$sim_prm$logs) {
             message("Data already loaded. Use force = TRUE to reload.")
@@ -729,6 +769,9 @@ Design <-
       # anchor YAML-relative exposure table paths. Defaults to getwd() when
       # the Design is built from an in-memory list rather than a file.
       design_dir = NULL,
+
+      # The model's root: getwd() when initialize() ran (see there).
+      root_dir = NULL,
 
       # Resolve an exposure table `file_name` to a concrete path.
       # @description

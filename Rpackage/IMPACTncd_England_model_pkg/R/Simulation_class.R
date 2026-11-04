@@ -202,6 +202,10 @@ Simulation <-
           self$design <- Design$new(design)
         } else if (inherits(design, "Design")) {
           self$design <- design$clone(deep = TRUE)
+          # complete_data_init() below works on relative ./simulation, and the
+          # Design's Disease/RR objects are anchored on ITS root: both must be
+          # the current working directory (GitHub issue #11).
+          self$design$assert_working_dir("Simulation$new(<Design object>)")
         } else {
           stop(
             "design need to be a path to an appropriate yaml file or a Design object"
@@ -415,6 +419,7 @@ Simulation <-
       #'   redirect at the shell (`Rscript my_scenario.R > run.log 2>&1`).
       #' @return The invisible self for chaining.
       run = function(mc, multicore = TRUE, scenario_nam) {
+        private$assert_wd("run()") # cwd must still be the model root (#11)
         if (!private$data_initialized) {
           stop(
             "Simulation not fully initialized. Input data files are missing.\n",
@@ -963,6 +968,7 @@ Simulation <-
       #' @description Delete all files in the ./simulation/parf folder.
       #' @return The invisible self for chaining.
       del_parfs = function() {
+        private$assert_wd("del_parfs()") # cwd must still be the model root (#11)
         fl <- list.files("./simulation/parf", full.names = TRUE)
 
         unlink(fl, recursive = TRUE)
@@ -978,6 +984,7 @@ Simulation <-
       #' @description Delete all files in the ./simulation/rr folder.
       #' @return The invisible self for chaining.
       del_RR_cache = function() {
+        private$assert_wd("del_RR_cache()") # cwd must still be the model root (#11)
         fl <- list.files("./simulation/rr", full.names = TRUE)
 
         file.remove(fl)
@@ -1025,6 +1032,7 @@ Simulation <-
       #' @return The invisible self for chaining.
       # validate ----
       validate = function() {
+        private$assert_wd("validate()") # cwd must still be the model root (#11)
         HEIGHT <- 5
         WIDTH <- 10
 
@@ -1591,6 +1599,7 @@ Simulation <-
       #' It works on Linux and Windows. Untested on Mac.
       #' @return The invisible `Simulation` object.
       split_large_files = function() {
+        private$assert_wd("split_large_files()") # cwd must still be the model root (#11)
         # identify large files
         fl <- list.files(".", full.names = TRUE, recursive = TRUE)
         fl <- sort(fl[file.size(fl) / (1024^2) >= 50])
@@ -1660,6 +1669,7 @@ Simulation <-
       #' on Linux and Windows. Untested on Mac.
       #' @return The invisible `Simulation` object.
       reconstruct_large_files = function() {
+        private$assert_wd("reconstruct_large_files()") # cwd must still be the model root (#11)
         if (file.exists("./simulation/large_files_indx.csv")) {
           fl <- fread("./simulation/large_files_indx.csv")$pths
           for (i in seq_along(fl)) {
@@ -1688,6 +1698,7 @@ Simulation <-
       #' "./simulation/large_files_indx.csv".
       #' @return The invisible `Simulation` object.
       del_large_files = function() {
+        private$assert_wd("del_large_files()") # cwd must still be the model root (#11)
         if (file.exists("./simulation/large_files_indx.csv")) {
           fl <- fread("./simulation/large_files_indx.csv")$pths
           unlink(fl, recursive = TRUE)
@@ -1770,6 +1781,7 @@ Simulation <-
         archive_dir = NULL,
         progress = TRUE
       ) {
+        private$assert_wd("zenodo_connect()") # cwd must still be the model root (#11)
         if (is.null(private$zenodo_manager)) {
           private$zenodo_manager <- ZenodoAssetManager$new(
             hash_file = "./simulation/zenodo_manifest.csv",
@@ -1844,6 +1856,7 @@ Simulation <-
         input_base = "./inputs",
         directories = NULL
       ) {
+        private$assert_wd("zenodo_check_inputs()") # cwd must still be the model root (#11)
         if (is.null(private$zenodo_manager)) {
           stop("Not connected to Zenodo. Call zenodo_connect() first.")
         }
@@ -1898,6 +1911,7 @@ Simulation <-
         directories = NULL,
         overwrite = FALSE
       ) {
+        private$assert_wd("zenodo_download_inputs()") # cwd must still be the model root (#11)
         if (is.null(private$zenodo_manager)) {
           stop("Not connected to Zenodo. Call zenodo_connect() first.")
         }
@@ -2001,6 +2015,7 @@ Simulation <-
         directories = c("parf", "rr"),
         overwrite = FALSE
       ) {
+        private$assert_wd("zenodo_download_PARFs_RRs()") # cwd must still be the model root (#11)
         if (is.null(private$zenodo_manager)) {
           stop("Not connected to Zenodo. Call zenodo_connect() first.")
         }
@@ -2119,6 +2134,7 @@ Simulation <-
         simulation_directories = c("parf", "rr"),
         overwrite = FALSE
       ) {
+        private$assert_wd("zenodo_download_all()") # cwd must still be the model root (#11)
         self$zenodo_download_inputs(
           input_base  = input_base,
           directories = input_directories,
@@ -2286,6 +2302,7 @@ Simulation <-
         update_gitignore = TRUE,
         publish = FALSE
       ) {
+        private$assert_wd("zenodo_upload_inputs()") # cwd must still be the model root (#11)
         if (is.null(private$zenodo_manager)) {
           stop("Not connected to Zenodo. Call zenodo_connect() first.")
         }
@@ -2427,6 +2444,7 @@ Simulation <-
         n_cores = self$design$sim_prm$clusternumber,
         update_gitignore = TRUE
       ) {
+        private$assert_wd("zenodo_upload_simulation()") # cwd must still be the model root (#11)
         if (is.null(private$zenodo_manager)) {
           stop("Not connected to Zenodo. Call zenodo_connect() first.")
         }
@@ -2546,6 +2564,7 @@ Simulation <-
         min_preserved_inputs = 1L,
         publish = FALSE
       ) {
+        private$assert_wd("zenodo_resync_simulation()") # cwd must still be the model root (#11)
         if (is.null(private$zenodo_manager)) {
           stop("Not connected to Zenodo. Call zenodo_connect() first.")
         }
@@ -2725,6 +2744,7 @@ Simulation <-
         update_gitignore = TRUE,
         publish = FALSE
       ) {
+        private$assert_wd("zenodo_upload_all()") # cwd must still be the model root (#11)
         # Step 1: Upload inputs (handles record creation / versioning)
         self$zenodo_upload_inputs(
           input_base = input_base,
@@ -2917,6 +2937,7 @@ Simulation <-
         n_cores = self$design$sim_prm$clusternumber,
         update_gitignore = FALSE
       ) {
+        private$assert_wd("zenodo_create_archives()") # cwd must still be the model root (#11)
         private$ensure_zenodo_manager()
         private$zenodo_manager$create_input_archives(
           input_base = input_base,
@@ -2955,6 +2976,7 @@ Simulation <-
       #'
       #' @seealso \code{\link{zenodo_upload_inputs}}
       zenodo_create_manifest = function(input_base = "./inputs", save = TRUE) {
+        private$assert_wd("zenodo_create_manifest()") # cwd must still be the model root (#11)
         private$ensure_zenodo_manager()
 
         manifest <- private$zenodo_manager$compute_manifest(input_base)
@@ -3621,6 +3643,10 @@ Simulation <-
         # very low. export_summaries() checks if collision happened and warns user.
 
         private$primary_prevention_scn(sp) # apply primary prevention scenario
+        # A scenario function that called setwd() would move every later
+        # relative read (and, before the anchor, the PARF registry) to another
+        # folder; no method-entry check can see that, so check again here.
+        private$assert_wd("the primary prevention scenario function")
         # message("scenario finished")
         # Restore the base-R stream by assigning .Random.seed directly, as
         # Disease_class.R's with_random() does. set.seed(rs) would NOT restore
@@ -3724,6 +3750,7 @@ Simulation <-
         # always generate different seed. But the probability of collision is
         # very low. export_summaries() checks if collision happened and warns user.
         private$secondary_prevention_scn(sp) # apply secondary prevention scenario
+        private$assert_wd("the secondary prevention scenario function")
         # message("2nd scenario finished")
         # message("scenario finished")
         # See the note above the matching restore after the primary scenario:
@@ -4566,6 +4593,16 @@ Simulation <-
       },
 
       # Function for timing log
+      # assert_wd ----
+      # Stop unless the working directory is still the model's root (GitHub
+      # issue #11; see R/working_dir_guard.R). Called first by every method
+      # that resolves ./inputs or ./simulation, and after each scenario hook in
+      # run_sim(). Methods that only use output_dir/synthpop_dir (absolute,
+      # normalised by Design) do not need it.
+      assert_wd = function(what) {
+        self$design$assert_working_dir(what)
+      },
+
       time_mark = function(text_id) {
         sink(
           file = private$output_dir("logs/times.txt"),
