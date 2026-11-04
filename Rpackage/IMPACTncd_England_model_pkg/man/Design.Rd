@@ -272,17 +272,23 @@ records on it, and methods that read or write \code{./inputs} or
 \if{latex}{\out{\hypertarget{method-Design-assert_working_dir}{}}}
 \subsection{\code{Design$assert_working_dir()}}{
   Stop with an informative error if the working directory differs
-from \code{get_root_dir()} (GitHub issue #11). Called at the entry of every
-method that resolves \code{./inputs} or \code{./simulation}.
+from \code{get_root_dir()} (GitHub issue #11). Called at the entry of the
+methods that resolve \code{./inputs} or \code{./simulation} (Design's
+\verb{load_*()}, \code{Simulation$run()}, \code{calibrate_incd_ftlt()}, \code{validate()},
+the cache-deleting methods, the local-file \verb{zenodo_*()} methods,
+\code{Disease$gen_parf_files()} and \code{SynthPop$new()}), and in \code{run()} after
+each scenario function.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{Design$assert_working_dir(what = "This operation")}
+    \preformatted{Design$assert_working_dir(what = "This operation", cause = "entry")}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{what}}{Character; the operation, named in the message.}
+      \item{\code{cause}}{\code{"entry"} (called from another folder) or \code{"scenario"} (a
+scenario function changed the folder); selects the message.}
     }
     \if{html}{\out{</div>}}
   }

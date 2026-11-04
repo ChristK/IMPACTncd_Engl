@@ -1565,8 +1565,7 @@ ExposureEffect <-
       # getwd() whenever the working directory is unchanged) for portability
       # across users/machines. Already-relative paths pass through unchanged.
       to_rel_path = function(path) {
-        wd <- paste0(private$root_or_wd(), "/")
-        ifelse(startsWith(path, wd), substring(path, nchar(wd) + 1L), path)
+        .rel_to_root(path, private$root_or_wd())
       },
 
       # Check if compiled .fst is valid by comparing the

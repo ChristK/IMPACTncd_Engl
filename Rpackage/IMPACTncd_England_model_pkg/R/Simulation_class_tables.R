@@ -1488,6 +1488,11 @@ Simulation$set("public", "export_tables", function(
   private$start_console_log("export_tables()")
   on.exit(private$stop_console_log(), add = TRUE)
 
+  # Everything below is wrapped (left at its original indentation) so an
+  # error releases the console log before R prints it; see
+  # private$release_console_log_on_error().
+  withCallingHandlers({
+
   equity_ridit_reference <- match.arg(equity_ridit_reference)
 
   # Structural (data-free) rules for `comparator_scenario`, checked HERE in the
@@ -1742,6 +1747,8 @@ Simulation$set("public", "export_tables", function(
       private$export_tables_hlpr(task, implicit_parallelism = TRUE)
     })
   }
+
+  }, error = function(e) private$release_console_log_on_error(e))
 
   invisible(self)
 })

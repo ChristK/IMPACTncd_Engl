@@ -238,6 +238,12 @@ Disease <-
         if (!all(vapply(diseases_, inherits, "Disease", FUN.VALUE = logical(1)))) {
           stop("Argument diseases_ needs to be a list of Disease objects.")
         }
+        # PARF generation reads relative ./inputs (the correlation matrix and
+        # stock exposure tables) while writing into this object's anchored
+        # ./simulation/parf: from a sibling checkout it would build a PARF from
+        # that tree's inputs under THIS root's cache key (GitHub issue #11).
+        # Checked against the root this object actually uses.
+        .assert_wd(private$root_dir, "Disease$gen_parf_files()")
 
         # delete disease PARF file and update snapshot if necessary
         if (bUpdateExistingDiseaseSnapshot) {
@@ -2291,12 +2297,7 @@ Disease <-
       # getwd() whenever the working directory is unchanged) for portability
       # across users/machines. Already-relative paths pass through unchanged.
       to_rel_path = function(path) {
-        wd <- paste0(private$root_or_wd(), "/")
-        ifelse(
-          startsWith(path, wd),
-          substring(path, nchar(wd) + 1L),
-          path
-        )
+        .rel_to_root(path, private$root_or_wd())
       },
 
       # Get source files for disease snapshot

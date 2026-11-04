@@ -205,7 +205,9 @@ Simulation <-
           # complete_data_init() below works on relative ./simulation, and the
           # Design's Disease/RR objects are anchored on ITS root: both must be
           # the current working directory (GitHub issue #11).
-          self$design$assert_working_dir("Simulation$new(<Design object>)")
+          if (is.function(self$design$assert_working_dir)) {
+            self$design$assert_working_dir("Simulation$new(<Design object>)")
+          }
         } else {
           stop(
             "design need to be a path to an appropriate yaml file or a Design object"
@@ -455,15 +457,20 @@ Simulation <-
 
         # Send console output to logs/console.txt for the whole run, so a
         # burst of output can never block on a wedged terminal. Registered
-        # before anything that can fail, and unwound by on.exit() so that a
-        # fatal error is still printed to the terminal rather than swallowed
-        # by the sink.
+        # before anything that can fail and unwound by on.exit(). A fatal
+        # error reaches the terminal only because of the calling handler
+        # below: R prints it to the active message sink BEFORE on.exit() runs.
         private$start_console_log(paste0(
           "run(",
           if (missing(scenario_nam)) "" else scenario_nam,
           ")"
         ))
         on.exit(private$stop_console_log(), add = TRUE)
+
+        # Everything from here to the end of run() is wrapped (left at its
+        # original indentation) so an error releases the console log before
+        # R prints it. See private$release_console_log_on_error().
+        withCallingHandlers({
 
         # recombine the chunks of large files
         # TODO logic to delete these files
@@ -650,6 +657,8 @@ Simulation <-
           sink(type = "output")
         }
 
+        }, error = function(e) private$release_console_log_on_error(e))
+
         invisible(self)
       },
 
@@ -786,7 +795,10 @@ Simulation <-
         from <- which(nm == from)
         to <- which(nm == to)
         if (shortest_paths) {
-          out <- get.all.shortest.paths(
+          # all_shortest_paths(): the imported, non-deprecated equivalent
+          # (get.all.shortest.paths() was neither imported nor current, so
+          # this branch failed in a session without igraph attached).
+          out <- all_shortest_paths(
             private$causality_structure,
             from,
             to,
@@ -3141,12 +3153,22 @@ Simulation <-
         private$death_codes[["alive"]] <- 0L
 
         # --- INPUTS MANIFEST CHECK ---
+        # Both paths anchored on the model's root. InputsManifest normalises
+        # inputs_dir but keeps manifest_path as given, so a relative path here
+        # left an object (returned by get_inputs_manifest()) whose $generate()
+        # from another folder hashed the root's inputs but wrote a stray
+        # manifest in the current folder (GitHub issue #11).
+        root <- if (is.function(self$design$get_root_dir)) {
+          self$design$get_root_dir()
+        } else {
+          getwd()
+        }
+        manifest_path <- file.path(root, "simulation", "inputs_manifest.csv")
         private$inputs_manifest <- InputsManifest$new(
-          inputs_dir = "./inputs",
-          manifest_path = "./simulation/inputs_manifest.csv"
+          inputs_dir = file.path(root, "inputs"),
+          manifest_path = manifest_path
         )
 
-        manifest_path <- "./simulation/inputs_manifest.csv"
         if (file.exists(manifest_path)) {
           private$inputs_manifest$load()
           changes <- private$inputs_manifest$detect_changes(
@@ -3646,7 +3668,8 @@ Simulation <-
         # A scenario function that called setwd() would move every later
         # relative read (and, before the anchor, the PARF registry) to another
         # folder; no method-entry check can see that, so check again here.
-        private$assert_wd("the primary prevention scenario function")
+        private$assert_wd("the primary prevention scenario function",
+                          cause = "scenario")
         # message("scenario finished")
         # Restore the base-R stream by assigning .Random.seed directly, as
         # Disease_class.R's with_random() does. set.seed(rs) would NOT restore
@@ -3750,7 +3773,8 @@ Simulation <-
         # always generate different seed. But the probability of collision is
         # very low. export_summaries() checks if collision happened and warns user.
         private$secondary_prevention_scn(sp) # apply secondary prevention scenario
-        private$assert_wd("the secondary prevention scenario function")
+        private$assert_wd("the secondary prevention scenario function",
+                          cause = "scenario")
         # message("2nd scenario finished")
         # message("scenario finished")
         # See the note above the matching restore after the primary scenario:
@@ -4599,8 +4623,35 @@ Simulation <-
       # that resolves ./inputs or ./simulation, and after each scenario hook in
       # run_sim(). Methods that only use output_dir/synthpop_dir (absolute,
       # normalised by Design) do not need it.
-      assert_wd = function(what) {
-        self$design$assert_working_dir(what)
+      assert_wd = function(what, cause = "entry") {
+        # A Design deserialised from before root tracking has no checker (and
+        # no root): nothing to check against, so do not fail on it.
+        if (is.function(self$design$assert_working_dir)) {
+          self$design$assert_working_dir(what, cause)
+        }
+        invisible(TRUE)
+      },
+
+      # release_console_log_on_error ----
+      # Calling handler wrapped around the bodies of run(), export_summaries()
+      # and export_tables(). R prints an uncaught error to whichever message
+      # sink is active when stop() is called -- BEFORE on.exit() runs -- so
+      # with `logs: yes` every such error used to go only to logs/console.txt
+      # (or a worker's logs/log<mc>.txt) and the terminal showed just
+      # "Execution halted". This records the error in console.txt and releases
+      # the redirect, so R's own error printer, which runs after calling
+      # handlers, writes to the terminal. Errors caught by an inner tryCatch()
+      # or try() never reach it (the innermost handler wins). Idempotent with
+      # the on.exit(stop_console_log()).
+      release_console_log_on_error = function(e) {
+        h <- private$console_log
+        if (is.null(h)) return(invisible(NULL))
+        try(
+          cat("Error: ", conditionMessage(e), "\n", sep = "", file = h$con),
+          silent = TRUE
+        )
+        private$stop_console_log()
+        invisible(NULL)
       },
 
       time_mark = function(text_id) {

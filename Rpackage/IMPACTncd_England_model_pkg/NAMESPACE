@@ -100,6 +100,7 @@ importFrom(graphics,
 )
 importFrom(igraph,
   V,
+  all_shortest_paths,
   all_simple_paths,
   as_adjacency_matrix,
   diameter,
@@ -115,6 +116,7 @@ importFrom(igraph,
 )
 importFrom(mc2d,qpert)
 importFrom(parallel,
+  makeCluster,
   parLapplyLB,
   stopCluster
 )

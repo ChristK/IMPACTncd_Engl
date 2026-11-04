@@ -50,6 +50,14 @@
 #'   scenario set is unchanged (e.g. after changing the design, the inputs or
 #'   the code): call `del_summaries()` (or `del_outputs()`) first in that case.
 #'
+#'   It refuses, rather than lose data, in two cases. (1) An iteration that
+#'   needs exporting has summaries for a scenario whose lifecourse output has
+#'   since been deleted: re-exporting rewrites the iteration from its
+#'   lifecourse and would discard them. (2) The existing summaries were
+#'   exported with the other `single_year_of_age` setting, so the folders
+#'   would mix two schemas. `contd` is skipped, with a message, when the
+#'   lifecourse has no `_contd` columns.
+#'
 #'   Until 2026-11-04 this was wrong in two ways. The workers were given the
 #'   iteration's POSITION (1..k) instead of its `mc` number, so after adding
 #'   iterations the first k were re-exported and the new ones never were. And
@@ -125,8 +133,30 @@ Simulation$set("public", "export_summaries", function(
 
   # Console output -> logs/console.txt while this phase runs (no-op unless
   # sim_prm$logs). See private$start_console_log() for the rationale.
+  # Sinks already open on entry belong to the CALLER (capture.output(),
+  # knitr, ...): unwind only what this call adds. (It used to pop every
+  # output sink and the message sink unconditionally -- sink.number(type =
+  # "message") is a connection number, 2 when none is active, so `> 0` was
+  # always TRUE -- the trap run() had already been fixed for.)
+  entry_out_depth <- sink.number(type = "output")
+  entry_msg_con <- sink.number(type = "message")
+  on.exit({
+    while (sink.number(type = "output") > entry_out_depth) {
+      sink(type = "output")
+    }
+    if (sink.number(type = "message") != entry_msg_con &&
+        sink.number(type = "message") > 2L) {
+      sink(type = "message")
+    }
+  }, add = TRUE)
+
   private$start_console_log("export_summaries()")
   on.exit(private$stop_console_log(), add = TRUE)
+
+  # Everything below is wrapped (left at its original indentation) so an
+  # error releases the console log before R prints it; see
+  # private$release_console_log_on_error().
+  withCallingHandlers({
 
   if (multicore) {
     arrow::set_cpu_count(1L)
@@ -228,10 +258,20 @@ Simulation$set("public", "export_summaries", function(
   # holds. This used to test ONE marker folder (the first requested type in a
   # fixed precedence) by mc alone, so an iteration summarised before another
   # scenario was run, or before a further type was requested, was skipped.
-  mc_set <- setdiff(
-    mc_set,
-    private$summaries_complete_mc(lc_pairs, type, multicore)
-  )
+  #
+  # `contd` writes nothing, not even its marker, when the lifecourse has no
+  # `_contd` column, so it could never count as complete and every call would
+  # re-export every iteration of every requested type: leave it out.
+  check_type <- type
+  if ("contd" %in% type && !any(grepl("_contd$", names(lc)))) {
+    check_type <- setdiff(type, "contd")
+    message(
+      "export_summaries(): type 'contd' was requested, but the lifecourse ",
+      "output has no `_contd` columns, so there is nothing to export for it."
+    )
+  }
+  smry_status <- private$summaries_status(lc_pairs, check_type, multicore)
+  mc_set <- setdiff(mc_set, smry_status$complete)
 
   if (length(mc_set) == 0) {
     if (self$design$sim_prm$logs) {
@@ -243,6 +283,30 @@ Simulation$set("public", "export_summaries", function(
     }
     return(invisible(self))
   }
+
+  # Exporting an iteration REWRITES its summary files from its lifecourse
+  # output. If they hold a scenario that lifecourse no longer has (it was
+  # pruned after an earlier export), rewriting would silently discard that
+  # scenario's summaries -- the old code never re-exported, so never did this.
+  orph <- smry_status$orphans[mc %in% mc_set]
+  if (nrow(orph)) {
+    its <- sort(unique(orph$mc))
+    stop(
+      "export_summaries(): this would discard existing summaries. ",
+      "Iteration(s) ", paste(head(its, 10L), collapse = ", "),
+      if (length(its) > 10L) paste0(" (and ", length(its) - 10L, " more)"),
+      " need exporting, but their summaries also hold scenario(s) ",
+      paste(sort(unique(orph$scenario)), collapse = ", "),
+      " whose lifecourse output is no longer in ",
+      private$output_dir("lifecourse"), ". Exporting rewrites an iteration's ",
+      "summaries from its lifecourse, so those would be lost. Restore or ",
+      "re-run those scenarios for these iterations first, or call ",
+      "del_summaries() if you mean to discard their summaries.",
+      call. = FALSE
+    )
+  }
+  # The new iterations must have the same age shape as the existing ones.
+  private$check_summary_age_shape(type, single_year_of_age)
 
   if (multicore) {
     if (self$design$sim_prm$logs) {
@@ -340,12 +404,7 @@ Simulation$set("public", "export_summaries", function(
     }
   }
 
-  if (sink.number(type = "message") > 0L) {
-    sink(type = "message")
-  }
-  while (sink.number(type = "output") > 0L) {
-    sink(type = "output")
-  }
+  }, error = function(e) private$release_console_log_on_error(e))
 
   invisible(self)
 })
@@ -355,8 +414,9 @@ Simulation$set("public", "export_summaries", function(
 # One marker folder under summaries/ per summary type: the folder whose
 # (mc, scenario) content tells export_summaries() whether that type has been
 # exported for an iteration. These are the folders the old single-marker
-# precedence chain used; every type writes its marker on every export.
-# Also the vocabulary `type` is validated against.
+# precedence chain used. Every type writes its marker on every export, except
+# `contd` when the lifecourse has no `_contd` column (export_summaries() then
+# leaves it out of the check). Also the vocabulary `type` is validated against.
 .summary_marker_dirs <- c(
   le = "le_scaled_up",
   hle = "hle_1st_cond_scaled_up",
@@ -372,21 +432,27 @@ Simulation$set("public", "export_summaries", function(
   contd = "contd_scaled_up"
 )
 
-# summaries_complete_mc ----
-# The iterations that need NO export for `type`: those for which, for every
-# requested type, the marker summary already holds every scenario that the
-# iteration's lifecourse holds.
+# summaries_status ----
+# What the existing summaries say about each iteration, for the requested
+# types.
 #
 # @param lc_pairs data.table(mc = integer, scenario = character): the distinct
 #   (iteration, scenario) pairs present in the lifecourse output.
-# @param type Character vector of (validated) summary types.
+# @param type Character vector of (validated) summary types to check.
 # @param multicore Logical; only sets DuckDB's thread count for the check.
-# @return Sorted integer vector of complete mc numbers (possibly empty).
-#
+# @return list(
+#   complete = sorted integer mc numbers that need NO export: for every type,
+#     the marker summary already holds every scenario the lifecourse holds;
+#   orphans  = data.table(mc, scenario, type): scenarios a marker summary holds
+#     for an iteration whose lifecourse output no longer has them (pruned after
+#     an earlier export). Re-exporting such an iteration REWRITES its files
+#     from the lifecourse and would silently discard those summaries, so
+#     export_summaries() refuses.
+# )
 # A type whose marker folder is missing or empty makes every iteration
-# incomplete. If a marker cannot be read, it warns and treats every iteration
-# as incomplete -- re-exporting is always safe, skipping wrongly is not.
-Simulation$set("private", "summaries_complete_mc", function(
+# incomplete. A marker that cannot be read warns and makes every iteration
+# incomplete (its orphans are then unknown).
+Simulation$set("private", "summaries_status", function(
     lc_pairs,
     type,
     multicore
@@ -395,12 +461,17 @@ Simulation$set("private", "summaries_complete_mc", function(
     mc = as.integer(lc_pairs$mc),
     scenario = as.character(lc_pairs$scenario)
   ))
-  complete <- sort(unique(lc_pairs$mc))
+  lc_mc <- sort(unique(lc_pairs$mc))
+  complete <- lc_mc
+  orphans <- data.table(mc = integer(0), scenario = character(0),
+                        type = character(0))
 
   for (tp in type) {
-    if (!length(complete)) break
     pth <- private$output_dir(file.path("summaries", .summary_marker_dirs[[tp]]))
-    if (!dir.exists(pth) || !length(list.files(pth))) return(integer(0))
+    if (!dir.exists(pth) || !length(list.files(pth))) {
+      complete <- integer(0)
+      next
+    }
 
     have <- NULL
     con2 <- NULL
@@ -436,19 +507,74 @@ Simulation$set("private", "summaries_complete_mc", function(
         }
       }
     )
-    if (is.null(have)) return(integer(0))
+    if (is.null(have)) {
+      complete <- integer(0)
+      next
+    }
 
-    # Plain integer/character columns on both sides of the join.
+    # Plain integer/character columns on both sides of the joins.
     have <- unique(data.table(
       mc = as.integer(have$mc),
       scenario = as.character(have$scenario)
     ))
-    # An iteration is incomplete for this type if any of its lifecourse
-    # scenarios is missing from the summary.
+    # Incomplete for this type: a lifecourse scenario missing from the summary.
     missing_pairs <- lc_pairs[!have, on = c("mc", "scenario")]
     complete <- setdiff(complete, missing_pairs$mc)
+    # Orphans: summary scenarios that the iteration's lifecourse lacks.
+    extra <- have[mc %in% lc_mc][!lc_pairs, on = c("mc", "scenario")]
+    if (nrow(extra)) {
+      orphans <- rbind(orphans, extra[, type := tp])
+    }
   }
-  sort(complete)
+  list(complete = sort(as.integer(complete)), orphans = unique(orphans))
+})
+
+# check_summary_age_shape ----
+# Stop if the existing age-stratified summaries were written in the other
+# single_year_of_age shape: adding iterations in a different shape would put
+# two schemas in one folder, and export_tables() reads one schema per folder
+# (iterations in the other shape come back with NA ages and no agegrp). The
+# first existing age-stratified marker settles it; one with `age` and no
+# `agegrp` is single-year.
+# @param type Character vector of (validated) summary types being exported.
+# @param single_year_of_age Logical, as passed to export_summaries().
+# @return TRUE, invisibly, if consistent (or nothing to compare with).
+Simulation$set("private", "check_summary_age_shape", function(
+    type,
+    single_year_of_age
+) {
+  age_types <- intersect(
+    type,
+    c("prvl", "incd", "mrtl", "dis_mrtl", "all_cause_mrtl_by_dis",
+      "qalys", "costs", "contd")
+  )
+  for (tp in age_types) {
+    pth <- private$output_dir(file.path("summaries", .summary_marker_dirs[[tp]]))
+    if (!dir.exists(pth) || !length(list.files(pth))) next
+    nms <- tryCatch(names(open_dataset(pth, format = "parquet")),
+                    error = function(e) NULL)
+    if (is.null(nms)) next
+    existing_single <- "age" %in% nms && !"agegrp" %in% nms
+    if (!identical(existing_single, isTRUE(single_year_of_age))) {
+      stop(
+        sprintf(
+          paste0(
+            "export_summaries(): the existing summaries in '%s' were exported ",
+            "with single_year_of_age = %s, but this call uses %s. Adding ",
+            "iterations in the other shape would mix two schemas in one ",
+            "folder, which export_tables() cannot read. Pass ",
+            "single_year_of_age = %s, or call del_summaries() first to ",
+            "re-export everything in the new shape."
+          ),
+          .summary_marker_dirs[[tp]], existing_single,
+          isTRUE(single_year_of_age), existing_single
+        ),
+        call. = FALSE
+      )
+    }
+    return(invisible(TRUE))
+  }
+  invisible(TRUE)
 })
 
 
@@ -483,8 +609,12 @@ Simulation$set("private", "export_summaries_hlpr", function(
   # Only apply to the first batch of workers (the first clusternumber_export
   # items of the work list). After the first batch, workers finish at
   # different times and naturally pick up new iterations in a staggered manner.
+  # Only real parallel workers are staggered: in the single-core path
+  # (implicit_parallelism = TRUE) nothing runs concurrently, and sleeping
+  # 2 * (i - 1) s for the first clusternumber_export iterations (stock: 20,
+  # i.e. ~6 min) only slowed it down.
   n_cores <- self$design$sim_prm$clusternumber_export
-  if (n_cores > 1L && worker_index <= n_cores) {
+  if (!implicit_parallelism && n_cores > 1L && worker_index <= n_cores) {
     stagger_delay_sec <- 2L
     worker_position <- worker_index - 1L
     if (worker_position > 0L) {

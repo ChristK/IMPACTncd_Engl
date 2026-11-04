@@ -80,6 +80,25 @@ IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 IMPACTncd$del_logs()$del_outputs()$run(1:2, multicore = TRUE, "sc0")$export_summaries(multicore = TRUE)
 ```
 
+**`export_summaries()` is incremental per iteration (fixed 2026-11-04).** It
+used to hand its workers the iteration's POSITION in `mc_set` (1..k), not its
+`mc` number, and to skip any `mc` already present in ONE marker summary
+whatever scenarios it held, so adding iterations re-exported the first k and
+`run("sc0")$export_summaries(); run("sc1")$export_summaries()` never summarised
+`sc1`. Now `mcaggr = mc_set[i]` (`worker_index = i` only for the staggered start,
+which applies to parallel workers only), and `summaries_status()` skips an
+iteration only if, for every requested type, its marker
+(`.summary_marker_dirs`) holds every scenario of its lifecourse. Because it now
+really re-exports, three guards keep that from losing data: it **stops** if an
+iteration to export has summaries for a scenario whose lifecourse was pruned
+(rewriting would discard them), and if the existing summaries were written with
+the other `single_year_of_age`; and it drops `contd` from the check, with a
+message, when the lifecourse has no `_contd` column (that type writes no
+marker, so it could never be "complete"). An unknown `type` is an error. It
+cannot detect a stale summary whose scenario set is unchanged: `del_summaries()`
+first after a design/input/code change. Tests:
+`test_export_summaries_incremental.R` (23; the pre-review build fails 7).
+
 **Per-scenario comparators.** `comparator_scenario` accepts either a bare name
 (historical: everything else vs it — byte-identical output) or a **named vector**
 mapping intervention -> comparator, with at most one *unnamed* element as the
@@ -889,9 +908,17 @@ have no line discipline and cannot be stopped this way — and are ~20% faster t
 write than a pty.
 
 Caveats: it's an **R-level** redirect (captures `cat`/`print`/`message`/`Rcout`,
-*not* writes a linked C library makes straight to fd 1/2), and it is released
-via `on.exit()` so fatal errors still reach the terminal. For unattended runs
-also redirect at the shell: `Rscript scenario.R > run.log 2>&1`.
+*not* writes a linked C library makes straight to fd 1/2). It is released via
+`on.exit()`, but that alone does **not** get a fatal error to the terminal: R
+prints an uncaught error to whichever message sink is active when `stop()` is
+called, *before* `on.exit()` runs, so until 2026-11-04 every error inside
+`run()` / `export_summaries()` / `export_tables()` with `logs: yes` went only to
+`console.txt` (or a worker's `log<mc>.txt`) and the terminal showed just
+`Execution halted`. Their bodies are now wrapped in
+`withCallingHandlers(error = private$release_console_log_on_error)`, which writes
+`Error: <msg>` to `console.txt` and releases the redirect first; errors caught by
+an inner `tryCatch()` never reach it. Tests: `test_console_log_errors.R`. For
+unattended runs also redirect at the shell: `Rscript scenario.R > run.log 2>&1`.
 
 Related: `run()`'s end-of-function sink cleanup unwinds only to the depth seen
 on entry (it used to unwind to 0, destroying a caller's `capture.output()` /
@@ -934,9 +961,21 @@ between the last worker finishing and `End of parallelisation` (should be ~0 s).
    also move user scenario code. The anchor alone is NOT enough: from a
    sibling checkout with the same layout, the relative reads succeed and a
    run silently mixes two trees.
-   Tests: `test_working_dir_guard.R` (66, incl. a real `Disease` keeping its
+   Added on review: `Disease$gen_parf_files()` and `SynthPop$new()` are
+   guarded too (both read relative inputs); the inputs manifest is built on
+   the root (`get_inputs_manifest()$generate()` from elsewhere used to write
+   a stray manifest); a **relative** `output_dir`/`synthpop_dir` is resolved
+   against the root (`normalizePath(mustWork = FALSE)` leaves a not-yet-
+   existing relative path relative, which made the unguarded `del_*()`/
+   `export_*()` follow `getwd()`); `.assert_wd(cause = "entry" | "scenario")`
+   gives the right remedy for each (an `.Rmd` chunk undoes its own `setwd()`;
+   a scenario function must restore the folder); and `.rel_to_root()`
+   normalises separators and case on Windows, where `to_rel_path()` never
+   matched and the tracked records got absolute machine paths.
+   Tests: `test_working_dir_guard.R` (77, incl. a real `Disease` keeping its
    cache from another folder, and a pin that each guarded method calls the
-   check first). Real-model check:
+   check first; every new-API call is wrapped so a build without the fix
+   FAILS 56/60 rather than erroring). Real-model check:
    `claude_process/issue11/verify_guard_on_real_model.R <lib> <yaml>`.
 6. **`library(IMPACTncdEngland)` alone is not enough** — `Exposure` resolves its
    distribution functions (e.g. `pZABNB`) on the search path, so `gamlss.dist`

@@ -347,15 +347,19 @@ Design <-
           sim_prm$output_dir <- "/outputs"
           sim_prm$synthpop_dir <- "/synthpop"
         } else {
-          # if not in docker
-          sim_prm$output_dir <- normalizePath(
-            sim_prm$output_dir,
-            mustWork = FALSE
-          )
-          sim_prm$synthpop_dir <- normalizePath(
-            sim_prm$synthpop_dir,
-            mustWork = FALSE
-          )
+          # if not in docker. A RELATIVE path is resolved against the
+          # model's root first: normalizePath(mustWork = FALSE) returns a path
+          # that does not exist yet UNCHANGED on Unix, so './outputs' used to
+          # stay relative and del_outputs()/del_synthpops()/export_*() -- which
+          # are not working-directory guarded, because these paths are meant
+          # to be absolute -- would act on another folder after a setwd().
+          for (k in c("output_dir", "synthpop_dir")) {
+            p <- sim_prm[[k]]
+            if (is.character(p) && length(p) == 1L && !.is_abs_path(p)) {
+              p <- file.path(private$root_dir, p)
+            }
+            sim_prm[[k]] <- normalizePath(p, mustWork = FALSE)
+          }
         }
 
         # Reorder the diseases based on dependencies
@@ -370,8 +374,11 @@ Design <-
           self$load_data()
         } else {
           message(
-            "Input data not found. Object created in skeleton mode.\n",
-            "Download data with: $zenodo_connect() then $zenodo_download_all()"
+            "Input data not found in ", file.path(private$root_dir, "inputs"),
+            ". Object created in skeleton mode.\n",
+            "If that is not the repository root, setwd() to the root and ",
+            "create the object again (the model records this folder as its root).\n",
+            "Otherwise download the data with: $zenodo_connect() then $zenodo_download_all()"
           )
         }
 
@@ -674,13 +681,19 @@ Design <-
 
       #' @description
       #' Stop with an informative error if the working directory differs
-      #' from `get_root_dir()` (GitHub issue #11). Called at the entry of every
-      #' method that resolves `./inputs` or `./simulation`.
+      #' from `get_root_dir()` (GitHub issue #11). Called at the entry of the
+      #' methods that resolve `./inputs` or `./simulation` (Design's
+      #' `load_*()`, `Simulation$run()`, `calibrate_incd_ftlt()`, `validate()`,
+      #' the cache-deleting methods, the local-file `zenodo_*()` methods,
+      #' `Disease$gen_parf_files()` and `SynthPop$new()`), and in `run()` after
+      #' each scenario function.
       #' @param what Character; the operation, named in the message.
+      #' @param cause `"entry"` (called from another folder) or `"scenario"` (a
+      #'   scenario function changed the folder); selects the message.
       #' @return `TRUE`, invisibly, if the working directory is unchanged.
       # assert_working_dir ----
-      assert_working_dir = function(what = "This operation") {
-        .assert_wd(private$root_dir, what)
+      assert_working_dir = function(what = "This operation", cause = "entry") {
+        .assert_wd(private$root_dir, what, cause)
       },
 
       #' @description

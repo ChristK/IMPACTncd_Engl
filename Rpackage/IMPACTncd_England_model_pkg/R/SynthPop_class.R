@@ -94,6 +94,13 @@ SynthPop <-
       initialize = function(mc_, design_) {
         stopifnot(length(mc_) == 1L, is.numeric(mc_), ceiling(mc_) >= 0L)
         stopifnot("Design" %in% class(design_))
+        # Reads relative ./inputs/pop_estimates_lsoa and ./inputs/exposure_*
+        # and hashes ./simulation/inputs_manifest.csv into the synthpop name:
+        # only meaningful from the model's root (GitHub issue #11). A Design
+        # from before root tracking has no checker; then nothing is checked.
+        if (is.function(design_$assert_working_dir)) {
+          design_$assert_working_dir("SynthPop$new()")
+        }
 
         mc_ <- as.integer(ceiling(mc_))
         # Create synthpop_dir if it doesn't exists

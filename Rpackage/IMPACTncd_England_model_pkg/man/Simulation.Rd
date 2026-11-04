@@ -526,6 +526,14 @@ again. What it cannot detect is a summary that is stale although its
 scenario set is unchanged (e.g. after changing the design, the inputs or
 the code): call \code{del_summaries()} (or \code{del_outputs()}) first in that case.
 
+It refuses, rather than lose data, in two cases. (1) An iteration that
+needs exporting has summaries for a scenario whose lifecourse output has
+since been deleted: re-exporting rewrites the iteration from its
+lifecourse and would discard them. (2) The existing summaries were
+exported with the other \code{single_year_of_age} setting, so the folders
+would mix two schemas. \code{contd} is skipped, with a message, when the
+lifecourse has no \verb{_contd} columns.
+
 Until 2026-11-04 this was wrong in two ways. The workers were given the
 iteration's POSITION (1..k) instead of its \code{mc} number, so after adding
 iterations the first k were re-exported and the new ones never were. And

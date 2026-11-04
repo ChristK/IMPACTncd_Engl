@@ -13,14 +13,26 @@
 # build their registry paths from it (anchor), and methods that touch
 # ./inputs or ./simulation stop if getwd() has changed (guard).
 #
+# Every use of the new API goes through get0()/safe() below, so on a build
+# WITHOUT the fix each check FAILS (with an explanation) instead of the file
+# aborting at its first line -- the file is its own negative control.
+#
 # tinytest runs each file with the working directory set to the test file's
 # folder, so every root below is an explicit tempfile() directory.
 
 library(tinytest)
 library(IMPACTncdEngland)
 
-same_dir <- IMPACTncdEngland:::.same_dir
-assert_wd <- IMPACTncdEngland:::.assert_wd
+ns <- asNamespace("IMPACTncdEngland")
+internal <- function(nm) get0(nm, envir = ns, inherits = FALSE)
+canon_dir <- internal(".canon_dir")
+same_dir <- internal(".same_dir")
+assert_wd <- internal(".assert_wd")
+# Evaluate, returning NA (with the error attached) instead of erroring.
+safe <- function(expr) {
+  tryCatch(expr, error = function(e) structure(NA, err = conditionMessage(e)))
+}
+errmsg <- function(expr) tryCatch({ force(expr); "<no error>" }, error = conditionMessage)
 old_wd <- getwd()
 
 mk <- function(prefix) {
@@ -28,33 +40,55 @@ mk <- function(prefix) {
   dir.create(d, recursive = TRUE)
   normalizePath(d, winslash = "/")
 }
-root <- mk("wdguard_root_")  # the "repository root" the model is built in
+root <- mk("wdguard_root_")           # the "repository root" the model is built in
 elsewhere <- mk("wdguard_elsewhere_") # e.g. the vignettes/ folder
 
-# ---- 1. .same_dir ------------------------------------------------------------
-expect_true(same_dir(root, root))
-expect_true(same_dir(paste0(root, "/"), root), info = "trailing slash")
-expect_true(same_dir("/", "/"), info = "the filesystem root is kept as '/'")
-expect_false(same_dir(root, elsewhere))
-lnk <- file.path(tempdir(), paste0("wdguard_link_", basename(root)))
-if (isTRUE(suppressWarnings(file.symlink(root, lnk)))) {
-  expect_true(same_dir(lnk, root), info = "a symlink to the root is the root")
+# ---- 1. path canonicalisation --------------------------------------------------
+expect_true(is.function(canon_dir) && is.function(same_dir) && is.function(assert_wd),
+            info = "the guard helpers exist")
+if (is.function(canon_dir)) {
+  # Non-existent paths pass through normalizePath() unchanged on Unix, so these
+  # exercise canon_dir's own trailing-slash rule (not realpath()'s).
+  expect_identical(canon_dir("/nonexistent_wdg/a//"), "/nonexistent_wdg/a",
+                   info = "trailing slashes are dropped")
+  expect_identical(canon_dir("/"), "/", info = "the filesystem root stays '/'")
+  if (.Platform$OS.type != "windows") {
+    expect_identical(canon_dir("C:/"), "C:/", info = "a drive root keeps its '/'")
+  }
+  expect_true(same_dir(root, root))
+  expect_false(same_dir(root, elsewhere))
+  lnk <- file.path(tempdir(), paste0("wdguard_link_", basename(root)))
+  if (isTRUE(suppressWarnings(file.symlink(root, lnk)))) {
+    expect_true(same_dir(lnk, root), info = "a symlink to the root is the root")
+  }
 }
 
-# ---- 2. .assert_wd -----------------------------------------------------------
-setwd(root)
-expect_true(assert_wd(root, "x"))
-expect_true(assert_wd(NULL, "x"), info = "objects without a root are not checked")
-setwd(elsewhere)
-expect_error(assert_wd(root, "run()"), pattern = "working directory changed")
-err <- tryCatch(assert_wd(root, "run()"), error = conditionMessage)
-expect_true(grepl("^run\\(\\):", err), info = "message names the operation")
-expect_true(grepl(root, err, fixed = TRUE) && grepl(elsewhere, err, fixed = TRUE),
-            info = "message names both folders")
-expect_true(grepl(sprintf('setwd("%s")', root), err, fixed = TRUE),
-            info = "message gives the remedy")
+# ---- 2. .assert_wd and its two messages ------------------------------------------
+if (is.function(assert_wd)) {
+  setwd(root)
+  expect_true(assert_wd(root, "x"))
+  expect_true(assert_wd(NULL, "x"), info = "objects without a root are not checked")
+  setwd(elsewhere)
+  err <- errmsg(assert_wd(root, "run()"))
+  expect_true(grepl("^run\\(\\): working directory changed", err),
+              info = "names the operation")
+  expect_true(grepl(root, err, fixed = TRUE) && grepl(elsewhere, err, fixed = TRUE),
+              info = "names both folders")
+  expect_true(grepl(sprintf('setwd("%s")', root), err, fixed = TRUE) &&
+                grepl("console", err, fixed = TRUE),
+              info = "remedy: setwd() at the console")
+  expect_true(grepl(".Rmd", err, fixed = TRUE) &&
+                grepl("Evaluate chunks in directory", err, fixed = TRUE),
+              info = "explains the RStudio .Rmd case, where a setwd() in a chunk is undone")
+  err <- errmsg(assert_wd(root, "the primary prevention scenario function", "scenario"))
+  expect_true(grepl("^the primary prevention scenario function changed the working directory", err),
+              info = "scenario cause: says the scenario function moved it")
+  expect_true(grepl("on.exit(setwd(old)", err, fixed = TRUE),
+              info = "scenario cause: remedy is to restore it, not to setwd() and retry")
+  setwd(root)
+}
 
-# ---- 3. a skeleton Design and Simulation built in `root` ---------------------
+# ---- 3. a skeleton Design and Simulation built in `root` ------------------------
 setwd(root)
 dl <- list(
   locality = "England", clusternumber = 1, clusternumber_export = 1,
@@ -76,40 +110,58 @@ dl <- list(
   validation = FALSE, iteration_n_max = 2, num_chunks = 1
 )
 design <- suppressMessages(suppressWarnings(Design$new(dl)))
-expect_true(same_dir(design$get_root_dir(), root),
+rd <- safe(design$get_root_dir())
+expect_true(isTRUE(safe(same_dir(rd, root))),
             info = "Design records the working directory as the root")
-expect_true(same_dir(design$clone(deep = TRUE)$get_root_dir(), root),
+expect_true(isTRUE(safe(same_dir(design$clone(deep = TRUE)$get_root_dir(), root))),
             info = "the root survives clone(deep = TRUE)")
 sim <- suppressMessages(suppressWarnings(Simulation$new(design)))
 
-# From the root nothing is refused...
-expect_true(design$assert_working_dir("x"))
+# Relative output_dir / synthpop_dir are resolved against the root, so the
+# unguarded del_*/export_* methods (which use only these) cannot act on
+# another folder after a setwd(). normalizePath() leaves a not-yet-existing
+# relative path unchanged, which is how './outputs' used to stay relative.
+dl_rel <- modifyList(dl, list(output_dir = "out_rel", synthpop_dir = "sp_rel"))
+design_rel <- suppressMessages(suppressWarnings(Design$new(dl_rel)))
+expect_true(isTRUE(safe(same_dir(design_rel$sim_prm$output_dir, file.path(root, "out_rel")))),
+            info = "a relative output_dir is anchored on the root")
+expect_true(isTRUE(safe(same_dir(design_rel$sim_prm$synthpop_dir, file.path(root, "sp_rel")))),
+            info = "a relative synthpop_dir is anchored on the root")
 
-# ... from elsewhere every guarded method stops BEFORE doing anything.
+expect_true(isTRUE(safe(design$assert_working_dir("x"))), info = "no refusal from the root")
+
+# ---- 4. from elsewhere, every guarded method stops BEFORE doing anything ---------
+refused <- function(expr, what) {
+  m <- errmsg(expr)
+  expect_true(grepl("working directory changed", m, fixed = TRUE),
+              info = paste0(what, " must refuse from another folder; got: ", substr(m, 1, 120)))
+}
 setwd(elsewhere)
-expect_error(Simulation$new(design), pattern = "working directory changed",
-             info = "Simulation$new(<Design>) checks the Design's root")
-expect_error(design$load_data(force = TRUE), pattern = "working directory changed")
-expect_error(design$load_exposure_effects(), pattern = "working directory changed")
-expect_error(design$load_exposures(), pattern = "working directory changed")
-expect_error(design$load_diseases(), pattern = "working directory changed")
-expect_error(sim$run(1L, multicore = FALSE, "sc0"), pattern = "^run\\(\\): working directory changed")
-expect_error(sim$del_parfs(), pattern = "working directory changed")
-expect_error(sim$del_RR_cache(), pattern = "working directory changed")
-expect_error(sim$validate(), pattern = "working directory changed")
-expect_error(sim$reconstruct_large_files(), pattern = "working directory changed")
-expect_error(sim$del_large_files(), pattern = "working directory changed")
-expect_error(sim$split_large_files(), pattern = "working directory changed")
-expect_error(sim$zenodo_check_inputs(), pattern = "working directory changed")
-expect_error(sim$zenodo_download_all(), pattern = "working directory changed")
-expect_error(sim$calibrate_incd_ftlt(1L), pattern = "working directory changed")
+refused(Simulation$new(design), "Simulation$new(<Design>)")
+refused(design$load_data(force = TRUE), "Design$load_data()")
+refused(design$load_exposure_effects(), "Design$load_exposure_effects()")
+refused(design$load_exposures(), "Design$load_exposures()")
+refused(design$load_diseases(), "Design$load_diseases()")
+refused(sim$run(1L, multicore = FALSE, "sc0"), "run()")
+refused(sim$del_parfs(), "del_parfs()")
+refused(sim$del_RR_cache(), "del_RR_cache()")
+refused(sim$validate(), "validate()")
+refused(sim$reconstruct_large_files(), "reconstruct_large_files()")
+refused(sim$del_large_files(), "del_large_files()")
+refused(sim$split_large_files(), "split_large_files()")
+refused(sim$zenodo_check_inputs(), "zenodo_check_inputs()")
+refused(sim$zenodo_download_all(), "zenodo_download_all()")
+refused(sim$calibrate_incd_ftlt(1L), "calibrate_incd_ftlt()")
+refused(SynthPop$new(1L, design), "SynthPop$new()")
+expect_true(grepl("^run\\(\\): working directory changed", errmsg(sim$run(1L, FALSE, "sc0"))),
+            info = "run() is refused by the guard itself, first")
 # Methods that use only output_dir/synthpop_dir keep working from anywhere.
 expect_silent(sim$del_summaries())
 expect_silent(sim$del_logs())
 expect_false(dir.exists(file.path(elsewhere, "simulation")),
              info = "nothing was created in the wrong folder")
 
-# ---- 4. structure: the guard is the FIRST statement of each method -----------
+# ---- 5. structure: the guard is the FIRST statement of each method ---------------
 guarded <- c("run", "validate", "del_parfs", "del_RR_cache", "split_large_files",
              "reconstruct_large_files", "del_large_files", "zenodo_connect",
              "zenodo_check_inputs", "zenodo_download_inputs",
@@ -131,18 +183,17 @@ for (m in c("load_data", "load_exposure_effects", "load_exposures", "load_diseas
     info = paste0("Design$", m, "() must check the working directory first")
   )
 }
-
 # A scenario function that calls setwd() inside run() is invisible to a
 # method-entry check: run_sim() re-checks right after each hook.
 rs <- paste(deparse(body(Simulation$private_methods$run_sim)), collapse = "\n")
 p1 <- regexpr("private$primary_prevention_scn(sp)", rs, fixed = TRUE)
-c1 <- regexpr('private$assert_wd("the primary prevention scenario function")', rs, fixed = TRUE)
+c1 <- regexpr("private$assert_wd(\"the primary prevention scenario function\"", rs, fixed = TRUE)
 p2 <- regexpr("private$secondary_prevention_scn(sp)", rs, fixed = TRUE)
-c2 <- regexpr('private$assert_wd("the secondary prevention scenario function")', rs, fixed = TRUE)
+c2 <- regexpr("private$assert_wd(\"the secondary prevention scenario function\"", rs, fixed = TRUE)
 expect_true(p1 > 0 && c1 > p1, info = "re-check after the primary scenario hook")
 expect_true(p2 > 0 && c2 > p2, info = "re-check after the secondary scenario hook")
 
-# ---- 5. anchor: a REAL Disease keeps its cache from another folder -----------
+# ---- 6. anchor: a REAL Disease keeps its cache from another folder ---------------
 setwd(root)
 dir.create(file.path(root, "simulation"), showWarnings = FALSE)
 dir.create(file.path(root, "inputs", "disease_burden"), recursive = TRUE, showWarnings = FALSE)
@@ -153,7 +204,7 @@ dis <- Disease$new(
   design_ = design, RR = list()
 )
 p <- dis$.__enclos_env__$private
-expect_true(same_dir(p$root_dir, root), info = "Disease takes the Design's root")
+expect_true(isTRUE(safe(same_dir(p$root_dir, root))), info = "Disease takes the Design's root")
 expect_true(startsWith(p$parf_dir, root))
 dir.create(p$parf_filenam, recursive = TRUE)
 writeLines("cached PARF", file.path(p$parf_filenam, "part-0.parquet"))
@@ -173,23 +224,35 @@ expect_true(dir.exists(p$parf_filenam),
             info = "the PARF cache survives a changed working directory")
 expect_false(dir.exists(file.path(elsewhere, "simulation")),
              info = "no stray simulation/parf_generation_record.csv elsewhere")
+# gen_parf_files() itself refuses: its PARF generation reads relative inputs.
+# (Give the object one stub RR so it gets past the no-risk-factor early exit.)
+p$rr <- list(list(get_rr_file_path = function() NA_character_, name = "bmi",
+                  lag = 1L, distribution = "lognormal"))
+refused(dis$gen_parf_files(design, list(dis)), "Disease$gen_parf_files()")
+expect_true(dir.exists(p$parf_filenam), info = "...and deletes nothing first")
 
-# ---- 6. anchor: ExposureEffect's registry helpers use the root too -----------
-ee_env <- new.env(parent = asNamespace("IMPACTncdEngland"))
+# ---- 7. anchor: ExposureEffect's registry helpers use the root too ---------------
+ee_env <- new.env(parent = ns)
 ee_priv <- new.env(parent = emptyenv())
 ee_priv$root_dir <- root
+ee_ok <- TRUE
 for (nm in c("root_or_wd", "get_generation_record_path", "to_rel_path")) {
   f <- ExposureEffect$private_methods[[nm]]
+  if (is.null(f)) { ee_ok <- FALSE; next }
   environment(f) <- ee_env
   assign(nm, f, envir = ee_priv)
 }
 ee_env$private <- ee_priv
-expect_true(startsWith(ee_priv$get_generation_record_path(), root))
-expect_identical(ee_priv$to_rel_path(file.path(root, "simulation", "rr", "x.fst")),
-                 "simulation/rr/x.fst")
-ee_priv$root_dir <- NULL
-expect_true(startsWith(ee_priv$get_generation_record_path(), getwd()),
-            info = "an object without a root falls back to getwd()")
+expect_true(ee_ok, info = "ExposureEffect has the anchored registry helpers")
+if (ee_ok) {
+  expect_true(startsWith(ee_priv$get_generation_record_path(), root))
+  expect_identical(ee_priv$to_rel_path(file.path(root, "simulation", "rr", "x.fst")),
+                   "simulation/rr/x.fst")
+  ee_priv$root_dir <- NULL
+  expect_true(startsWith(ee_priv$get_generation_record_path(), getwd()),
+              info = "an object without a root falls back to getwd()")
+}
 
 setwd(old_wd)
-unlink(c(root, elsewhere, lnk), recursive = TRUE)
+unlink(c(root, elsewhere), recursive = TRUE)
+if (exists("lnk")) unlink(lnk)
