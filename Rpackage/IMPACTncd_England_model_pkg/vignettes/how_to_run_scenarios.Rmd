@@ -304,6 +304,7 @@ IMPACTncd$export_summaries(multicore = TRUE)
 
 - if you re-run a scenario under the same name (e.g. after correcting its function), `run()` overwrites that scenario's output for those iterations; call `IMPACTncd$del_summaries()` before `export_summaries()`;
 - only add iterations to an existing set if the design file, input data and model version are all unchanged. Otherwise call `IMPACTncd$del_outputs()` and run everything again (and, if you changed an exposure table or a disease-burden input, regenerate the caches as described in [Bring your own exposure distribution tables](#bring-your-own-exposure-distribution-tables)).
+- `export_summaries()` stops with an explanation, rather than risk your results, in two cases: an iteration that needs exporting still has summaries of a scenario whose lifecourse output has since been deleted (exporting rewrites an iteration from its lifecourse, so they would be lost), or the existing summaries were made with the other `single_year_of_age` setting (repeat the setting you used before).
 
 ### Deprivation-change scenarios: which gradient do you want to move?
 
