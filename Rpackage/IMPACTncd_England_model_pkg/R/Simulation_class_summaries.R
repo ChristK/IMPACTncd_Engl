@@ -37,6 +37,25 @@
 #'   `le`, `hle`, `dis_char`, `prvl`, `incd`, `dis_mrtl`, `mrtl`,
 #'   `all_cause_mrtl_by_dis`, `cms`, `qalys`, `costs`. `contd` is also
 #'   supported but is **not** in the default and must be named explicitly.
+#'   An unknown type is an error (it used to be ignored silently).
+#' @details **Incremental export.** Iterations are identified by their `mc`
+#'   number, so any numbering works, including gaps and numbering that does
+#'   not start at 1. An iteration is exported unless, for **every** requested
+#'   `type`, its existing summaries already contain **every** scenario present
+#'   in that iteration's lifecourse output. Exporting an iteration rewrites its
+#'   files for the requested types, covering all of its scenarios. So a
+#'   scenario run after an earlier export, extra iterations, and a type not
+#'   exported before are all picked up by simply calling `export_summaries()`
+#'   again. What it cannot detect is a summary that is stale although its
+#'   scenario set is unchanged (e.g. after changing the design, the inputs or
+#'   the code): call `del_summaries()` (or `del_outputs()`) first in that case.
+#'
+#'   Until 2026-11-04 this was wrong in two ways. The workers were given the
+#'   iteration's POSITION (1..k) instead of its `mc` number, so after adding
+#'   iterations the first k were re-exported and the new ones never were. And
+#'   an iteration was skipped if its `mc` appeared in one marker summary,
+#'   whatever scenarios it held, so `run("sc0")$export_summaries()` followed
+#'   by `run("sc1")$export_summaries()` never summarised `sc1`.
 #' @param single_year_of_age Logical, default `FALSE`. If `TRUE`, the
 #'   age-stratified summaries are written by **single year of age**: `agegrp`
 #'   is dropped from the stratification and `age` put in its place
@@ -89,6 +108,21 @@ Simulation$set("public", "export_summaries", function(
     ),
     single_year_of_age = FALSE
 ) {
+  # Validate `type` first, in the parent and before any I/O: an unknown type
+  # used to be ignored silently (only a vector with NO known type errored).
+  if (!is.character(type) || !length(type)) {
+    stop("`type` must be a non-empty character vector.", call. = FALSE)
+  }
+  unknown_type <- setdiff(type, names(.summary_marker_dirs))
+  if (length(unknown_type)) {
+    stop(
+      "Unknown summary type(s): ", paste(unknown_type, collapse = ", "),
+      ". Valid types: ", paste(names(.summary_marker_dirs), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  type <- unique(type)
+
   # Console output -> logs/console.txt while this phase runs (no-op unless
   # sim_prm$logs). See private$start_console_log() for the rationale.
   private$start_console_log("export_summaries()")
@@ -114,6 +148,8 @@ Simulation$set("public", "export_summaries", function(
 
   con <- NULL
   mc_set <- NULL
+  scn_set <- NULL
+  lc_pairs <- NULL
 
   tryCatch(
     {
@@ -131,14 +167,19 @@ Simulation$set("public", "export_summaries", function(
       }
 
       duckdb::duckdb_register_arrow(con, "lc_table", lc)
-      mc_set <- private$query_sql(
+      # One row per (iteration, scenario) in the lifecourse output. The skip
+      # test below needs the PAIRS, not just the iterations: an iteration
+      # summarised before another scenario was run is incomplete.
+      lc_pairs <- private$query_sql(
         con,
-        "SELECT DISTINCT mc FROM lc_table"
-      )$mc
-      scn_set <- private$query_sql(
-        con,
-        "SELECT DISTINCT scenario FROM lc_table"
-      )$scenario
+        "SELECT DISTINCT mc, scenario FROM lc_table"
+      )
+      lc_pairs <- unique(data.table(
+        mc = as.integer(lc_pairs$mc),
+        scenario = as.character(lc_pairs$scenario)
+      ))
+      mc_set <- sort(unique(lc_pairs$mc))
+      scn_set <- unique(lc_pairs$scenario)
     },
     error = function(e) {
       stop(sprintf(
@@ -182,77 +223,15 @@ Simulation$set("public", "export_summaries", function(
     )
   }
 
-  if ("le" %in% type) {
-    file_pth <- private$output_dir("summaries/le_scaled_up")
-  } else if ("hle" %in% type) {
-    file_pth <- private$output_dir("summaries/hle_1st_cond_scaled_up")
-  } else if ("cms" %in% type) {
-    file_pth <- private$output_dir("summaries/cms_count_scaled_up")
-  } else if ("mrtl" %in% type) {
-    file_pth <- private$output_dir("summaries/mrtl_scaled_up")
-  } else if ("dis_mrtl" %in% type) {
-    file_pth <- private$output_dir("summaries/dis_mrtl_scaled_up")
-  } else if ("dis_char" %in% type) {
-    file_pth <- private$output_dir("summaries/dis_characteristics_scaled_up")
-  } else if ("incd" %in% type) {
-    file_pth <- private$output_dir("summaries/incd_scaled_up")
-  } else if ("prvl" %in% type) {
-    file_pth <- private$output_dir("summaries/prvl_scaled_up")
-  } else if ("all_cause_mrtl_by_dis" %in% type) {
-    file_pth <- private$output_dir("summaries/all_cause_mrtl_by_dis_scaled_up")
-  } else if ("qalys" %in% type) {
-    file_pth <- private$output_dir("summaries/qalys_scaled_up")
-  } else if ("costs" %in% type) {
-    file_pth <- private$output_dir("summaries/costs_scaled_up")
-  } else if ("contd" %in% type) {
-    file_pth <- private$output_dir("summaries/contd_scaled_up")
-  } else {
-    stop("Unknown type of summary")
-  }
-
-  if (file.exists(file_pth) && length(list.files(file_pth)) > 0) {
-    con2 <- NULL
-    mc_toexclude <- NULL
-
-    tryCatch(
-      {
-        con2 <- dbConnect(duckdb::duckdb(), ":memory:", read_only = TRUE)
-        if (multicore) {
-          private$execute_sql(con2, "PRAGMA threads=1")
-        } else {
-          private$execute_sql(
-            con2,
-            paste0(
-              "PRAGMA threads=",
-              self$design$sim_prm$clusternumber_export
-            )
-          )
-        }
-        duckdb::duckdb_register_arrow(
-          con2,
-          "tbl",
-          open_dataset(file_pth, format = "parquet")
-        )
-        mc_toexclude <- private$query_sql(
-          con2,
-          "SELECT DISTINCT mc FROM tbl"
-        )$mc
-      },
-      error = function(e) {
-        warning(sprintf("Failed to check existing files: %s", e$message))
-        mc_toexclude <- NULL
-      },
-      finally = {
-        if (!is.null(con2)) {
-          try(dbDisconnect(con2, shutdown = TRUE), silent = TRUE)
-        }
-      }
-    )
-
-    if (!is.null(mc_toexclude)) {
-      mc_set <- mc_set[!mc_set %in% mc_toexclude]
-    }
-  }
+  # Which iterations still need exporting? Skip one only if, for EVERY
+  # requested type, its summaries already hold every scenario its lifecourse
+  # holds. This used to test ONE marker folder (the first requested type in a
+  # fixed precedence) by mc alone, so an iteration summarised before another
+  # scenario was run, or before a further type was requested, was skipped.
+  mc_set <- setdiff(
+    mc_set,
+    private$summaries_complete_mc(lc_pairs, type, multicore)
+  )
 
   if (length(mc_set) == 0) {
     if (self$design$sim_prm$logs) {
@@ -298,7 +277,8 @@ Simulation$set("public", "export_summaries", function(
         X = seq_along(mc_set),
         fun = function(i) {
           private$export_summaries_hlpr(
-            mcaggr = i,
+            mcaggr = mc_set[i], # the mc NUMBER, not its position in mc_set
+            worker_index = i,
             type = type,
             single_year_of_age = single_year_of_age,
             implicit_parallelism = FALSE
@@ -326,7 +306,8 @@ Simulation$set("public", "export_summaries", function(
       ) %dopar%
         {
           private$export_summaries_hlpr(
-            mcaggr = i,
+            mcaggr = mc_set[i], # the mc NUMBER, not its position in mc_set
+            worker_index = i,
             type = type,
             single_year_of_age = single_year_of_age,
             implicit_parallelism = FALSE
@@ -345,7 +326,8 @@ Simulation$set("public", "export_summaries", function(
 
     lapply(seq_along(mc_set), function(i) {
       private$export_summaries_hlpr(
-        mcaggr = i,
+        mcaggr = mc_set[i], # the mc NUMBER, not its position in mc_set
+        worker_index = i,
         type = type,
         single_year_of_age = single_year_of_age,
         implicit_parallelism = TRUE
@@ -369,6 +351,107 @@ Simulation$set("public", "export_summaries", function(
 })
 
 
+# .summary_marker_dirs ----
+# One marker folder under summaries/ per summary type: the folder whose
+# (mc, scenario) content tells export_summaries() whether that type has been
+# exported for an iteration. These are the folders the old single-marker
+# precedence chain used; every type writes its marker on every export.
+# Also the vocabulary `type` is validated against.
+.summary_marker_dirs <- c(
+  le = "le_scaled_up",
+  hle = "hle_1st_cond_scaled_up",
+  dis_char = "dis_characteristics_scaled_up",
+  prvl = "prvl_scaled_up",
+  incd = "incd_scaled_up",
+  dis_mrtl = "dis_mrtl_scaled_up",
+  mrtl = "mrtl_scaled_up",
+  all_cause_mrtl_by_dis = "all_cause_mrtl_by_dis_scaled_up",
+  cms = "cms_count_scaled_up",
+  qalys = "qalys_scaled_up",
+  costs = "costs_scaled_up",
+  contd = "contd_scaled_up"
+)
+
+# summaries_complete_mc ----
+# The iterations that need NO export for `type`: those for which, for every
+# requested type, the marker summary already holds every scenario that the
+# iteration's lifecourse holds.
+#
+# @param lc_pairs data.table(mc = integer, scenario = character): the distinct
+#   (iteration, scenario) pairs present in the lifecourse output.
+# @param type Character vector of (validated) summary types.
+# @param multicore Logical; only sets DuckDB's thread count for the check.
+# @return Sorted integer vector of complete mc numbers (possibly empty).
+#
+# A type whose marker folder is missing or empty makes every iteration
+# incomplete. If a marker cannot be read, it warns and treats every iteration
+# as incomplete -- re-exporting is always safe, skipping wrongly is not.
+Simulation$set("private", "summaries_complete_mc", function(
+    lc_pairs,
+    type,
+    multicore
+) {
+  lc_pairs <- unique(data.table(
+    mc = as.integer(lc_pairs$mc),
+    scenario = as.character(lc_pairs$scenario)
+  ))
+  complete <- sort(unique(lc_pairs$mc))
+
+  for (tp in type) {
+    if (!length(complete)) break
+    pth <- private$output_dir(file.path("summaries", .summary_marker_dirs[[tp]]))
+    if (!dir.exists(pth) || !length(list.files(pth))) return(integer(0))
+
+    have <- NULL
+    con2 <- NULL
+    tryCatch(
+      {
+        con2 <- dbConnect(duckdb::duckdb(), ":memory:", read_only = TRUE)
+        private$execute_sql(
+          con2,
+          paste0(
+            "PRAGMA threads=",
+            if (multicore) 1L else self$design$sim_prm$clusternumber_export
+          )
+        )
+        duckdb::duckdb_register_arrow(
+          con2,
+          "tbl",
+          open_dataset(pth, format = "parquet")
+        )
+        have <- private$query_sql(con2, "SELECT DISTINCT mc, scenario FROM tbl")
+      },
+      error = function(e) {
+        warning(
+          sprintf(
+            "Could not read the existing '%s' summaries (%s); re-exporting every iteration.",
+            tp, conditionMessage(e)
+          ),
+          call. = FALSE
+        )
+      },
+      finally = {
+        if (!is.null(con2)) {
+          try(dbDisconnect(con2, shutdown = TRUE), silent = TRUE)
+        }
+      }
+    )
+    if (is.null(have)) return(integer(0))
+
+    # Plain integer/character columns on both sides of the join.
+    have <- unique(data.table(
+      mc = as.integer(have$mc),
+      scenario = as.character(have$scenario)
+    ))
+    # An iteration is incomplete for this type if any of its lifecourse
+    # scenarios is missing from the summary.
+    missing_pairs <- lc_pairs[!have, on = c("mc", "scenario")]
+    complete <- setdiff(complete, missing_pairs$mc)
+  }
+  sort(complete)
+})
+
+
 # export_summaries_hlpr ----
 Simulation$set("private", "export_summaries_hlpr", function(
     mcaggr,
@@ -386,16 +469,24 @@ Simulation$set("private", "export_summaries_hlpr", function(
       "costs"
     ),
     single_year_of_age = FALSE,
-    implicit_parallelism
+    implicit_parallelism,
+    worker_index = NULL
 ) {
+  # `mcaggr` is the iteration's mc NUMBER: it names the lifecourse partition
+  # read (mc=<mcaggr>), the log file and the mc column written. `worker_index`
+  # is its POSITION in this call's work list and is used only for the
+  # staggered start below. (They used to be one argument holding the
+  # position, which exported the wrong iterations; see export_summaries().)
+  if (is.null(worker_index)) worker_index <- mcaggr
+
   # Staggered worker startup to reduce memory pressure during parallel runs.
-  # Only apply to the first batch of workers (iterations 1 to clusternumber_export).
-  # After the first batch, workers finish at different times and naturally
-  # pick up new iterations in a staggered manner.
+  # Only apply to the first batch of workers (the first clusternumber_export
+  # items of the work list). After the first batch, workers finish at
+  # different times and naturally pick up new iterations in a staggered manner.
   n_cores <- self$design$sim_prm$clusternumber_export
-  if (n_cores > 1L && mcaggr <= n_cores) {
+  if (n_cores > 1L && worker_index <= n_cores) {
     stagger_delay_sec <- 2L
-    worker_position <- mcaggr - 1L
+    worker_position <- worker_index - 1L
     if (worker_position > 0L) {
       Sys.sleep(worker_position * stagger_delay_sec)
     }

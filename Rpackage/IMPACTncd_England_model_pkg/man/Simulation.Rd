@@ -478,7 +478,8 @@ nested parallelism. If \code{FALSE}, runs sequentially using
       \item{\code{type}}{Character vector of summary types to export. The default is
 \code{le}, \code{hle}, \code{dis_char}, \code{prvl}, \code{incd}, \code{dis_mrtl}, \code{mrtl},
 \code{all_cause_mrtl_by_dis}, \code{cms}, \code{qalys}, \code{costs}. \code{contd} is also
-supported but is \strong{not} in the default and must be named explicitly.}
+supported but is \strong{not} in the default and must be named explicitly.
+An unknown type is an error (it used to be ignored silently).}
       \item{\code{single_year_of_age}}{Logical, default \code{FALSE}. If \code{TRUE}, the
 age-stratified summaries are written by \strong{single year of age}: \code{agegrp}
 is dropped from the stratification and \code{age} put in its place
@@ -513,6 +514,26 @@ thing that distinguished them was the age axis this flag removes.}
     \if{html}{\out{</div>}}
   }
   \subsection{Details}{
+    \strong{Incremental export.} Iterations are identified by their \code{mc}
+number, so any numbering works, including gaps and numbering that does
+not start at 1. An iteration is exported unless, for \strong{every} requested
+\code{type}, its existing summaries already contain \strong{every} scenario present
+in that iteration's lifecourse output. Exporting an iteration rewrites its
+files for the requested types, covering all of its scenarios. So a
+scenario run after an earlier export, extra iterations, and a type not
+exported before are all picked up by simply calling \code{export_summaries()}
+again. What it cannot detect is a summary that is stale although its
+scenario set is unchanged (e.g. after changing the design, the inputs or
+the code): call \code{del_summaries()} (or \code{del_outputs()}) first in that case.
+
+Until 2026-11-04 this was wrong in two ways. The workers were given the
+iteration's POSITION (1..k) instead of its \code{mc} number, so after adding
+iterations the first k were re-exported and the new ones never were. And
+an iteration was skipped if its \code{mc} appeared in one marker summary,
+whatever scenarios it held, so \code{run("sc0")$export_summaries()} followed
+by \code{run("sc1")$export_summaries()} never summarised \code{sc1}.
+
+
     When \code{logs: yes} in the design YAML, console output from this
 method (including \code{foreach}'s \code{.verbose} bookkeeping) is appended to
 \verb{<output_dir>/logs/console.txt} and restored on exit. See
