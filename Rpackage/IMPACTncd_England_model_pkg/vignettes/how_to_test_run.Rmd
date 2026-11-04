@@ -36,10 +36,11 @@ afterwards. You also need space for the outputs.
 > folder (`Rpackage/IMPACTncd_England_model_pkg/vignettes/`). The model finds
 > its data through paths such as `./inputs/...`, so they are then looked for
 > under `vignettes/` and the run fails
-> ([GitHub issue #11](https://github.com/ChristK/IMPACTncd_Engl/issues/11)). If
-> `Simulation$new()` was created from the root and a later call runs from
-> another folder, the model may also discard one of its cached files (it is
-> downloaded again, or regenerated, the next time you run from the root).
+> ([GitHub issue #11](https://github.com/ChristK/IMPACTncd_Engl/issues/11)).
+> The model remembers the folder it was set up in. If a later call such as
+> `run()` comes from a different folder, it stops straight away with an error
+> naming both folders. Run `setwd()` back to the root (the message gives the
+> exact command) and call it again.
 
 Check before you begin:
 
@@ -235,25 +236,25 @@ how to read them.
 ## Running more iterations or scenarios later
 
 `run()` adds new iterations without touching existing ones, provided you do not
-call `del_outputs()`. `export_summaries()` is more limited: it skips every
-iteration number that already has summaries, even if those summaries were made
-before a new scenario was run, and it assumes the iterations are numbered 1, 2,
-3, … without gaps. So:
-
-- number iterations contiguously from 1 (e.g. `mc = 3:100` after a `1:2` test);
-- run all the scenarios you need first;
-- then rebuild the summaries from scratch:
+call `del_outputs()`. `export_summaries()` then summarises only what is new:
+iterations not summarised before, and iterations to which a new scenario has
+been added since. Iterations are identified by their number, so any numbering
+works:
 
 ```{r, more-iterations, eval = FALSE}
 IMPACTncd$run(mc = 3:100, multicore = TRUE, scenario_nam = "sc0")
-IMPACTncd$del_summaries()$export_summaries(multicore = TRUE)
+IMPACTncd$export_summaries(multicore = TRUE) # summarises iterations 3 to 100
 ```
 
 When adding iterations, `run()` reports that output from a previous run of the
 scenario already exists. That is expected; only iterations with the same
-number would be overwritten. Only add iterations to an existing set if the
-model version, input data and design file are all unchanged; otherwise re-run
-everything.
+number would be overwritten.
+
+Only add iterations to an existing set if the model version, input data and
+design file are all unchanged; otherwise re-run everything. For the same
+reason, `export_summaries()` cannot tell that an existing summary has gone out
+of date when its iteration and scenarios are unchanged; after such a change,
+start again with `del_outputs()` (see below).
 
 ## When you change the design file
 
@@ -273,6 +274,7 @@ never use it on a folder shared with other users.
 | Symptom | Likely cause and fix |
 |---|---|
 | `cannot open file 'global.R'`, or a path containing `.../vignettes/inputs/...` | The working directory is not the repository root; see [Read this first](#read-this-first-the-working-directory). |
+| `...: working directory changed since this model was set up` | The model was set up in one folder and is being used from another, typically because code ran inside an `.Rmd`. Run the `setwd()` command the message gives. |
 | `object 'active_days' not found` during `run()` | The data have not been downloaded; see [step 3](#step-3-download-the-model-data). |
 | `You don't have write access to the output folder` | `output_dir` or `synthpop_dir` points to a folder you cannot write to; change the path or its permissions. |
 | The console shows almost nothing for a long time | Normal with `logs: yes`; follow `logs/times.txt` and `logs/console.txt`. |
