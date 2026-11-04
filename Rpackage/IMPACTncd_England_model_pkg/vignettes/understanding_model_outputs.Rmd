@@ -1,7 +1,7 @@
 ---
 title: "Understanding IMPACTncd_Engl model outputs"
 author: "Dr Chris Kypridemos, Dr Anna Head, Adithi R. Upadhya"
-date: "24 March, 2026"
+date: "Last updated 4 November 2026"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Understanding IMPACTncd_Engl model outputs}
@@ -11,14 +11,14 @@ vignette: >
 
 #### Output structure
 
--   The location of the output folder is determined in the `inputs/sim_design.yaml` file, : `output_dir`, E.g : `/output/hf_real` here.
+-   The location of the output folder is set by `output_dir` in the design file (`inputs/sim_design.yaml`, or your own copy of it). Use an absolute path, e.g. `/mnt/storage_fast/output/hf_real/test` in the stock design. Inside the Docker image it is always `/outputs`.
 
 -   It is advisable not to manually change any files in the **lifecourse**, **xps**, or **summaries** folders.
 
--   The folders shown below are all the folders generated if we run the baseline scenario as mentioned in [IMPACTncd_Engl - test run](https://docs.google.com/document/d/1rJYNErUTgamlyGw94i-RzgzMSVlzyqxW_CJsZBBN34U/edit). If you specified `logs: no` in the *inputs/sim_design.yaml* file, then the logs folder will not be present.
+-   The folders shown below are those present after running and exporting the baseline scenario as described in `vignette("how_to_test_run", package = "IMPACTncdEngland")`. The **logs** folder is only created with `logs: yes`, and **xps** only with `export_xps: yes`, in the design file.
 
 
-```{r, echo = FALSE, out.width = "50%", fig.cap = "output/hf_real folder structure"}
+```{r, echo = FALSE, out.width = "50%", fig.cap = "Top level of output_dir"}
 knitr::include_graphics("img/output_folder.jpg")
 ```
 
@@ -26,7 +26,7 @@ knitr::include_graphics("img/output_folder.jpg")
 
 -   Usually **logs** folder is used for debugging as it logs baseline and other scenarios -- see [logs Folder] for what each file in it contains
 
--   Usually plots remain empty unless we generate plots
+-   **plots** stays empty unless you run `$validate()`. Two further folders appear only on request: **tables2agegrps** (from `export_tables(two_agegrps = TRUE)`) and **parf** (with `export_PARF: yes`)
 
 -   So here we will be looking at the remaining folders : **lifecourse**; **tables**; **summaries**; **xps**
 
@@ -34,57 +34,70 @@ knitr::include_graphics("img/output_folder.jpg")
 
 #### File name abbreviations
 
--   "**dis_char**" : disease characteristics, e.g. age of onset of the condition, mean duration of the condition
+-   "**dis_char**" : disease characteristics, e.g. mean age at incidence of the condition, mean duration of the condition
 -   "**prvl**" : prevalence of each condition
 -   "**incd**" : incidence of each condition
 -   "**dis_mrtl**" : disease-specific mortality
 -   "**mrtl**" : all-cause mortality
 -   "**all_cause_mrtl_by_dis**" : all-cause mortality by disease
--   "**cms**" : information on the Cambridge Multimorbidity Score (CMS) (Cambridge Multimorbidity Score) score and count
--   "**le**" : life expectancy; "**le60**" : life expectancy at 60
--   "**hle**" : healthy life expectancy
+-   "**cms**" : the Cambridge Multimorbidity Score (CMS) and the count of CMS conditions
+-   "**le**" : mean age at death; "**le60**" : mean age at death among those who died aged over 60. These are weighted ages at an event, not life-table life expectancies -- see [Life-expectancy tables]
+-   "**hle**" : the two "healthy life expectancy" measures, again mean ages rather than life-table expectancies:
+    -   "**1st_cond**" : mean age over the years lived with exactly one CMS condition
+    -   "**cmsmm1.5**" : mean age at the start of a spell with a CMS score \> 1.5
 -   "**qalys**" : Quality-Adjusted Life Years
 -   "**costs**" : costs from a societal perspective, including healthcare costs, formal social care costs, informal care costs, and economic output (productivity from paid and unpaid work)
--   The two different types are for different thresholds for the ‘end’ of healthy years:
-    -   "**1st_cond**" : any 1 condition
-    -   "**cmsmm1.5**" : CMS score of \> 1.5
+-   "**contd**" : user-defined continuous outcomes (`*_contd` columns created in a scenario); only when requested, see `vignette("custom-scenario-columns", package = "IMPACTncdEngland")`
 
 #### Important Note
 
--   **esp** : standardised to the 2013 European Standardised Population; uses "**wt_esp**"
+-   **esp** : standardised to the 2013 European Standard Population (ESP); uses "**wt_esp**"
 -   **scaled_up** : scaled up to the ONS population projection estimates; uses "**wt**"
 -   **sha** : Geographic Region (comes from Strategic Health Authority)
 
 #### Disease abbreviations
+
+These are the disease names of the stock design (`diseases` in `inputs/sim_design.yaml`), exactly as they appear in column names and in the `disease` column of the tables.
 
 -   "**cms1st_cont**" : Only one CMS condition
 -   "**cmsmm0**" : CMS \> 0
 -   "**cmsmm1**" : CMS \> 1
 -   "**cmsmm1.5**" : CMS \> 1.5
 -   "**cmsmm2**" : CMS \> 2
--   "**ra**" : Rheumatoid arthritis
--   "**helo**" : Hearing loss
--   "**alcpr**" : Alcohol problems
--   "**ctd**" : Connective tissue disorders (excluding rheumatoid arthritis)
--   "**dm**" : Diabetes mellitus (both major types)
--   "**t1dm**" : Type 1 Diabetes Mellitus
--   "**t2dm**" : Type 2 Diabetes Mellitus
--   "**ctdra**" : Connective tissue disorders (including rheumatoid arthritis). This is used for the CMS score
+-   "**cmscs1**" to "**cmscs5**" : CMS score strata 1 to 5 (see the lifecourse columns below)
+-   "**obesity**" : obesity
+-   "**htn**" : hypertension
+-   "**chd**" : Coronary heart disease
+-   "**stroke**" : stroke
 -   "**af**" : Atrial fibrillation
 -   "**hf**" : Heart failure
--   "**andep**" : Anxiety & depression
--   "**ckd**" : Chronic Kidney disease (CKD)
--   "**Colorectal_ca / colorect_ca**" : colorectal cancer
--   "**prostate_ca**" : prostate cancer
--   "**Breast_ca**" : breast cancer
--   "**Lung_ca**" : Lung cancer
--   "**Other_ca**" : other cancers
--   "**Cancer**" : any of the above cancers combined
--   "**ibs**" : Irritable bowel syndrome
--   "**htn**" : hypertension
+-   "**t2dm**" : Type 2 diabetes mellitus
+-   "**t1dm**" : diabetes mellitus other than type 2 (the design's friendly name is "non-type-2 diabetes mellitus")
+-   "**dm**" : Diabetes mellitus (`t1dm` or `t2dm`)
+-   "**ckd**" : Chronic kidney disease, stages 3-5
 -   "**copd**" : Chronic Obstructive Pulmonary Disease (COPD)
--   "**Chd**" : Coronary Heart disease
+-   "**asthma**" : asthma
+-   "**dementia**" : dementia
+-   "**andep**" : Anxiety & depression
+-   "**psychosis**" : psychosis
+-   "**epilepsy**" : epilepsy
+-   "**alcpr**" : Alcohol problems
+-   "**helo**" : Hearing loss
+-   "**ibs**" : Irritable bowel syndrome
+-   "**constipation**" : constipation
 -   "**pain**" : chronic pain
+-   "**ra**" : Rheumatoid arthritis
+-   "**ctd**" : Connective tissue disorders (excluding rheumatoid arthritis)
+-   "**ctdra**" : Connective tissue disorders (including rheumatoid arthritis). This is used for the CMS score
+-   "**lung_ca**" : lung cancer
+-   "**colorectal_ca**" : colorectal cancer
+-   "**prostate_ca**" : prostate cancer
+-   "**breast_ca**" : breast cancer
+-   "**other_ca**" : other cancers
+-   "**cancer**" : any of the five cancers above
+-   "**nonmodelled**" : deaths from causes not modelled explicitly (mortality only)
+
+`dm`, `ctdra` and `cancer` are *umbrella* conditions: their incidence is declared `type: 0` in the design, i.e. they are defined as the union of other modelled diseases (`dm` = `t1dm` + `t2dm`, `ctdra` = `ctd` + `ra`, `cancer` = `lung_ca`, `colorectal_ca`, `prostate_ca`, `breast_ca` and `other_ca`), so never add them to their own components.
 
 ### logs Folder
 
@@ -96,9 +109,11 @@ Present only when `logs: yes` in the design YAML. It holds three kinds of file:
     run took longer than expected: it lets you separate compute time from
     waiting, and recover the realised worker concurrency.
 
--   **`log<mc>.txt`** -- one file per synthpop iteration, holding that worker's
-    own console output. Workers redirect their own output here, which is why a
-    problem in the parent process does not show up in them.
+-   **`log<n>.txt`** -- the console output of one worker: `run()` writes one
+    per synthetic-population chunk (`n` = the chunk, see `mc_chunk` below), and
+    `export_summaries()` appends to the one numbered after each iteration it
+    exports. Workers redirect their own output here, which is why a problem in
+    the parent process does not show up in them.
 
 -   **`console.txt`** -- everything the *parent* process would otherwise have
     printed to the terminal during `run()`, `export_summaries()` and
@@ -129,12 +144,24 @@ Rscript scenarios/my_scenario.R > /path/to/output/logs/shell.log 2>&1
 
 ### lifecourse Folder
 
-The files inside lifecourse folder are as shown below; the number of files generated will be dependent on the number of iterations run for baseline and various scenarios, here it is two; because of the uncertainty in the model, the results will vary between lifecourse files. These files contain the 'lifecourse' for each simulant in the model. Each row represents 1 simulant for each year they are 'alive' in the model, and contains information on their socio demographic and disease information. These files are the direct output of the model and are used to create the 'summaries' files.
+These files contain the 'lifecourse' of each simulant in the model. Each row represents 1 simulant for each year they are 'alive' in the model, and contains their sociodemographic and disease information. They are the direct output of `run()` and are used to create the 'summaries' files. Because of the uncertainty in the model, the results vary between Monte Carlo iterations.
 
+The folder is a parquet dataset partitioned by Monte Carlo iteration and scenario. Each iteration aggregates `num_chunks` synthetic populations (chunks), and each chunk is written separately:
 
-```{r, echo = FALSE, out.width = "50%", fig.cap = "lifecourse folder structure"}
-knitr::include_graphics("img/output_folder_lf.jpg")
 ```
+lifecourse/
+  mc=1/
+    scenario=sc0/
+      1_lifecourse.parquet/part-0.parquet
+      2_lifecourse.parquet/part-0.parquet
+      ...
+    scenario=sc1/
+      ...
+  mc=2/
+    ...
+```
+
+The number before `_lifecourse` is the chunk number, and each `<chunk>_lifecourse.parquet` is itself a folder. Open the whole `lifecourse` folder with `arrow::open_dataset()` rather than reading individual files; `mc` and `scenario` then come from the folder names.
 
 A scenario and the baseline share their random numbers simulant by simulant (*common random numbers*; this needs `kismet: yes` in the design, as in every shipped design), so a scenario that acts only from `sc_year` reproduces the baseline lifecourse **exactly**, for every `pid`, in every year before `sc_year`. Contrasts such as `cpp`, `cypp` and `dpp` are therefore exactly zero before `sc_year`; a non-zero value there means the scenario also edits earlier years.
 
@@ -153,6 +180,7 @@ A scenario and the baseline share their random numbers simulant by simulant (*co
 -   **pid_mrk** : TRUE/FALSE marker for whether this is the first year the simulant enters the model
 -   **scenario** : scenario identification
 -   **mc** : Monte Carlo iteration
+-   **mc_chunk** : the synthetic population (chunk) the row comes from. Iteration `mc` aggregates chunks `(mc - 1) * num_chunks + 1` to `mc * num_chunks`
 -   **income** : income group (used for QALY estimation)
 -   **education** : education level (used for QALY estimation)
 -   **LAD17CD** : Local Authority District code (2017 boundaries)
@@ -162,14 +190,13 @@ A scenario and the baseline share their random numbers simulant by simulant (*co
 -   **cmscs1_prvl** : CMS score strata 1 (CMS score \< 0.09)
 -   **cmscs2_prvl** : CMS score strata 2 (0.09 \<= CMS score \< 0.69)
 -   **cmscs3_prvl** : CMS score strata 3 (0.69 \<= CMS score \< 1.59)
--   **cmscs4_prvl** : CMS score strata 4 (1.59 \<= CMS score \< 2.96)
--   **cmscs5_prvl** : CMS score strata 5 (CMS score \>= 2.96)
--   **X_prvl** : number of years with the condition. If this is 1, this is what is used for the incd summary files & age_onset. If this is \> 0 it counts as a prevalent case
+-   **cmscs4_prvl** : CMS score strata 4 (1.59 \<= CMS score \< 2.95)
+-   **cmscs5_prvl** : CMS score strata 5 (CMS score \>= 2.95)
+-   **X_prvl** : number of years with the condition. If this is 1, it is an incident case (as used by the incd summaries and `mean_age_incd`). If this is \> 0 it counts as a prevalent case
 -   **X_dgns** : number of years since diagnosis with the condition. Currently, this is identical to X_prvl. In future versions of the model, we may explicitly model diagnosed and undiagnosed components of disease incidence and prevalence.
--   **wt_esp** : standardised to the 2013 European Standardised Population
--   **wt** : scaled up to the ONS population projection estimates
--   **all_cause_mrtl** : if \> 0 died in that year. The integer is a code for cause of death - you can find the code lookups for all-cause mortality in the `sim_design.yaml` file under. For each condition with an associated cause of death will have a code under the mortality section. Not all conditions will have a cause listed as not all conditionals are lethal in the model. 
-E.g.: For type 2 diabetes it is 4.
+-   **wt_esp** : weight that standardises to the 2013 European Standard Population (each year, age group, sex and `dimd` cell sums to the ESP weight of its age group)
+-   **wt** : weight that scales up to the ONS population projection estimates
+-   **all_cause_mrtl** : if \> 0 the simulant died in that year, and the integer is the cause-of-death code. Each lethal disease has its code under `mortality: code:` in its entry in `sim_design.yaml`; diseases that are not lethal in the model have none. E.g. for type 2 diabetes it is 4. The codes of the stock design are:
 
 |Disease           | mortality code|
 |:-----------------|----:|
@@ -203,72 +230,68 @@ E.g.: For type 2 diabetes it is 4.
 
 ### summaries Folder
 
-The files inside the summaries folder contain
+`export_summaries()` aggregates the lifecourse files into one sub-folder per summary and weighting: `<summary>_scaled_up` (weighted by `wt`, i.e. scaled up to the ONS population projections) and `<summary>_esp` (weighted by `wt_esp`, i.e. standardised to the 2013 European Standard Population). Each sub-folder holds one parquet file per Monte Carlo iteration, whose name starts with the iteration number (e.g. `prvl_scaled_up/1_prvl_scale_up.parquet`); read a whole sub-folder with `arrow::open_dataset()`. The `type` argument of `export_summaries()` selects which are written:
 
+| `type` | sub-folders (each as `_scaled_up` and `_esp`) |
+|:-------|:----------------------------------------------|
+| `le` | `le`, `le60` (`le60` only if the design's age range spans 60) |
+| `hle` | `hle_1st_cond`, `hle_cmsmm1.5` |
+| `dis_char` | `dis_characteristics` |
+| `prvl` | `prvl` |
+| `incd` | `incd` |
+| `dis_mrtl` | `dis_mrtl` |
+| `mrtl` | `mrtl` |
+| `all_cause_mrtl_by_dis` | `all_cause_mrtl_by_dis` |
+| `cms` | `cms_score`, `cms_score_by_age`, `cms_count` |
+| `qalys` | `qalys` |
+| `costs` | `costs` |
+| `contd` (not in the default; name it explicitly) | `contd` |
 
-```{r, echo = FALSE, out.width = "50%", fig.cap = "summaries folder structure"}
-knitr::include_graphics("img/output_folder_sum.jpg")
-```
+An unknown `type` is an error.
+
+**Calling `export_summaries()` again.** The export is incremental and identifies iterations by their `mc` number, so any numbering works, including gaps. An iteration is (re-)exported unless, for every requested `type`, its existing summaries already contain every scenario in that iteration's lifecourse output; re-exporting rewrites that iteration's files for the requested types, covering all its scenarios. So after running another scenario or more iterations, or to add a type you did not export before, just call `export_summaries()` again: only the iterations that lack something are exported. What it cannot detect is a summary that is out of date although its scenarios are unchanged. After changing the design, the input data or the model code, clear the outputs with `del_outputs()` and re-run, or at least delete the summaries with `del_summaries()`, before exporting again.
+
+Two caches outlive `del_outputs()` and are not keyed on every input: the PARFs in `./simulation/parf` (not keyed on the disease-burden inputs or the exposure tables) and the synthetic populations in `synthpop_dir` (not keyed on `exposure_definitions` or on tables outside `./inputs`). So after changing an exposure table or a disease-burden input, also regenerate them before re-running: call `IMPACTncd$del_parfs()` (with the repository root still the working directory) and delete the affected synthetic populations. `del_synthpops()` deletes *everything* in `synthpop_dir`, so never use it on a folder shared with others; a dedicated `synthpop_dir` for experiments is safer.
 
 #### Column names
 
 > The stratification columns below are those of a default run. If the summaries were written with `export_summaries(single_year_of_age = TRUE)`, **every** age-stratified file carries `age` (single years) in place of `agegrp` — see [Single years of age](#single-years-of-age-single_year_of_age) under the tables folder. `export_tables()` handles either shape, but a script reading these files directly must not assume `agegrp` is present.
 
-[Disease characteristics file]{.underline} : this gives information about the people who have X condition in Y year.
+Every summary carries `mc`, `scenario` and the other `strata_for_output` columns of the design (`year`, `agegrp`, `sex` and `dimd` in the stock design), except that `le`, `le60`, `hle_*` and `dis_characteristics` have no `agegrp`, and `cms_score_by_age` has `age` instead. All values are weighted sums or weighted means per stratum; below, X stands for a disease name.
 
--   **scenario** : scenario
--   **mc** : Monte Carlo iteration
--   **year** : Year
--   **agegrp** : Age group
--   **dimd** : Decile group of the English Index of Multiple Deprivation
--   **cases** : total number of cases (people with the condition)
--   **all_cause_mrtl_by_dis** : all cause mortality by disease
--   **cms_score** : Cambridge Multimorbidity Score (CMS)
--   **mean_cms_score** : mean Cambridge Multimorbidity Score (CMS)
--   **cms_count** : number of conditions within the CMS
--   **mean_cms_count** : mean number of conditions within the CMS
--   **dis_characteristics** : disease characteristics; e.g. age of onset of condition, mean duration of condition
--   **dis_mrtl** : disease-specific mortality
--   **hle_1st_cond**, **hle_cmsmm1.5** : healthy life expectancy; the two different types are for different thresholds for the ‘end’ of healthy years: **1st_cond** - any 1 condition; **cmsmm1.5** = CMS score of \>1.5 incd : incidence of each condition
--   **le** : life expectancy. Note that this is not from birth but from the age the synthetic individuals enter the model that is defined in the `inputs/sim_design.yaml` file. The default is, therefore, life expectancy at 30.
--   **le60** : life expectancy at 60
--   **mrtl** : mortality
--   **qalys** : Quality-Adjusted Life Years
--   **costs** : healthcare costs
--   **mean_age_incd** : mean age of condition incidence
--   **mean_age_1st_onset** : mean age of the first incidence of a condition - some conditions can go into recovery/remission and then re-occur (e.g. asthma, anxiety & depression, etc.). This variable takes the mean age at the first onset
--   **mean_age_prvl** : mean age of everyone with the condition (new and existing cases)
--   **mean_duration** : mean duration that people have had the condition
--   **X_prvl** : the number of people with the condition (new and pre-existing cases) where X is disease
--   **popsize** : total number of people in the strata
--   **esp** : standardised to the 2013 European Standardised Population
--   **scaled_up** : scaled up to the ONS population projection estimates
-
-[Prevalence file (prvl)]{.underline}\
-- **X_prvl** : the number of people with the condition (new and pre-existing cases) where X is a disease \
-- **popsize** : total number of people in the strata
-
-[Incidence file (incd)]{.underline}\
-- **X_incd** : the number of people with new cases of the condition \
-- **popsize** : total number of people in the strata (not just those at risk)
+-   **popsize** (all summaries except `all_cause_mrtl_by_dis` and `dis_characteristics`) : the weighted number of people in the stratum (everyone, not just those at risk). In `le`, `le60` and `hle_cmsmm1.5` it is instead the weighted number of *events*, and in `hle_1st_cond` the weighted person-years with exactly one CMS condition — see [Life-expectancy tables]
+-   **prvl** : `X_prvl`, the number of people with the condition (new and pre-existing cases)
+-   **incd** : `X_incd`, the number of new cases of the condition
+-   **mrtl** : `all_cause_mrtl`, the number of deaths from any cause
+-   **dis_mrtl** : `X_deaths`, the number of deaths with X as the cause of death (one column per mortality code)
+-   **all_cause_mrtl_by_dis** : `cases_X`, the number of people with the condition, and `deaths_X`, the deaths from any cause among them
+-   **cms_score**, **cms_count** : mean CMS score and mean number of CMS conditions (`cms_score_by_age` by single year of age)
+-   **qalys** : `EQ5D5L`, QALYs (EQ-5D-5L utility summed over the person-years)
+-   **costs** : `healthcare_cost`, `socialcare_cost`, `informalcare_cost`, `economic_output`, `indirect_cost` (= social care + informal care − economic output) and `total_cost` (= healthcare + social care + informal care − economic output, the societal total), plus any user-defined `*_costs` columns
+-   **contd** : the weighted mean of each user-defined `*_contd` column
+-   **le**, **le60**, **hle_1st_cond**, **hle_cmsmm1.5** : `LE` or `HLE`, a weighted mean age — see [Life-expectancy tables] for what each one averages
+-   **dis_characteristics** : information about the people who have condition X in a given year, in one set of columns per disease:
+    -   **cases_X** : the number of people with the condition (prevalent cases)
+    -   **mean_duration_X** : mean number of years they have had it (an incident case counts as 1)
+    -   **mean_age_incd_X** : mean age of the incident cases
+    -   **mean_age_prvl_X** : mean age of everyone with the condition (new and existing cases)
+    -   **mean_cms_score_X**, **mean_cms_count_X** : mean CMS score and mean number of CMS conditions among them
 
 ### tables Folder
 
-The files inside the tables folder contain statistical summaries of different parameters based on different groups. The median (\_50.0%) from all iterations is presented alongside two levels of uncertainty: 95% (lower uncertainty interval (LUI): \_2.5%, upper uncertainty interval (UUI): \_97.5%) and 80% (LUI: \_10.0%, UUI: \_90.0%).
+The files inside the tables folder are CSV files with statistical summaries of different parameters by different groups. Each value is summarised across the Monte Carlo iterations: the median (\_50.0%) is presented alongside two levels of uncertainty, 95% (lower uncertainty interval (LUI): \_2.5%, upper uncertainty interval (UUI): \_97.5%) and 80% (LUI: \_10.0%, UUI: \_90.0%). These are the default `prbl` of `export_tables()`.
 
-```{r, echo = FALSE, out.width = "50%", fig.cap = "tables folder structure"}
-knitr::include_graphics("img/output_folder_tables.jpg")
-```
+`export_tables()` overwrites the files it writes but deletes nothing else (apart from a stale `comparators.csv` left by an earlier [comparator-map](#per-scenario-comparators) call), so files from an earlier call with other strata or an older model version stay in `tables/` beside the new ones. Empty the folder before re-exporting if in doubt.
 
 The tables are generated by the `export_tables()` method, which produces the following groups of tables in parallel:
 
-1. **Main tables** — prevalence, incidence, mortality, case fatality, QALYs, costs, and comparison metrics
-2. **All-cause mortality by disease tables** — all-cause mortality rates stratified by disease
-3. **Disease characteristics tables** — mean duration, mean age of incidence/prevalence/first onset, mean CMS score and count
-4. **Exposure tables** — mean risk factor exposure levels
-5. **Cost-effectiveness tables** — cumulative discounted incremental QALYs and costs, ICER and net monetary benefit (when `cea = TRUE`)
+1. **Main tables** — prevalence, incidence, mortality, case fatality, QALYs, costs, comparison metrics and, when `contd` summaries exist, user-defined continuous outcomes
+2. **All-cause mortality by disease tables** — all-cause mortality rates among people with each disease
+3. **Disease characteristics tables** — mean duration, mean age of incidence and prevalence, mean CMS score and count
+4. **Exposure tables** — mean risk factor exposure levels (when `export_xps: yes`)
+5. **Cost-effectiveness tables** — cumulative incremental QALYs and costs, ICER and net monetary benefit, at each discount level and from three cost perspectives (when `cea = TRUE`)
 6. **Equity slope-index tables** — how the cumulative CPP, CYPP, DPP and net-QALYs benefits are distributed across DIMD deprivation deciles (when `equity = TRUE`)
-7. **Life-expectancy tables** — life expectancy, life expectancy at 60, and two healthy-life-expectancy measures (when `life_expectancy = TRUE`)
+7. **Life-expectancy tables** — mean age at death (overall and among deaths over age 60), and two healthy-life-expectancy measures (when `life_expectancy = TRUE`)
 
 #### Table types and file naming
 
@@ -279,10 +302,14 @@ The file name follows this pattern:
 For example:
 
 - `prevalence by year-agegrp-sex (not standardised).csv`
-- `all-cause mortality by year-sex (age-dimd standardised).csv`
+- `all-cause mortality by year-sex (age standardised).csv`
+- `all-cause mortality given disease-year-sex (age-dimd standardised).csv`
 - `disease characteristics by year (not standardised).csv`
 - `QALYs by year (not standardised).csv`
-- `costs by year-sex (age-dimd standardised).csv`
+- `costs by year-sex (age standardised).csv`
+- `cost-effectiveness by year (healthcare_socialcare-EQ5D5L) (not standardised).csv`
+
+What the standardisation label names differs between families; see [Standardisations]. The cost-effectiveness tables add the cost perspective and QALY scale as an extra bracket. Note the `-` in `all-cause mortality given disease-year-sex`: in that family the strata follow the parameter without the word "by".
 
 ##### Main tables
 
@@ -296,25 +323,28 @@ The following parameters are generated for both non-standardised (scaled up to O
 | Incidence | incd | incd_rate_ | Rate of incident cases per population |
 | Incidence relative change | incd_change_relative | incd_change_relative_ | Relative change in incidence from baseline year |
 | Incidence absolute change | incd_change_absolute | abs_change_ | Absolute change in incidence from baseline year |
-| Case fatality | ftlt | ftlt_rate_ | Deaths per prevalent cases |
+| Case fatality | ftlt | ftlt_rate_ | Deaths from the disease per prevalent case, for every lethal disease (`nonmodelled_ftlt` is per head of population) |
 | Case fatality relative change | ftlt_change_relative | ftlt_change_relative_ | Relative change in case fatality from baseline year |
 | Case fatality absolute change | ftlt_change_absolute | ftlt_abs_change_ | Absolute change in case fatality from baseline year |
 | All-cause mortality | mrtl | mrtl_rate_ | All-cause mortality rate per population |
 | All-cause mortality relative change | mrtl_change_relative | mrtl_change_relative_ | Relative change in all-cause mortality from baseline year |
 | All-cause mortality absolute change | mrtl_change_absolute | mrtl_abs_change_ | Absolute change in all-cause mortality from baseline year |
-| Disease-specific mortality | dis_mrtl | disease_mrtl_rate_ | Disease-specific mortality rate per population |
-| Disease-specific mortality relative change | dis_mrtl_change_relative | disease_mrtl_change_relative_ | Relative change in disease-specific mortality from baseline year |
-| Disease-specific mortality absolute change | dis_mrtl_change_absolute | disease_mrtl_abs_change_ | Absolute change in disease-specific mortality from baseline year |
+| Disease-specific mortality | dis_mrtl | disease_mrtl_rate_ | Deaths per population from **CHD, stroke and non-modelled causes only** (`disease` values `chd_deaths`, `stroke_deaths`, `nonmodelled_deaths`). Deaths from the other lethal diseases appear only in case fatality |
+| Disease-specific mortality relative change | dis_mrtl_change_relative | disease_mrtl_change_relative_ | Relative change in disease-specific mortality from baseline year (same three causes) |
+| Disease-specific mortality absolute change | dis_mrtl_change_absolute | disease_mrtl_abs_change_ | Absolute change in disease-specific mortality from baseline year (same three causes) |
 | Pop size | pop | pop_size_ | Total population size (non-standardised only) |
 | QALYs | qalys | qalys_ | Quality-Adjusted Life Years (based on EQ-5D-5L). Includes both annual and cumulative values, at each discount level (`discount` column) |
 | Net QALYs | net_qalys | net_qalys_ | Difference in QALYs between intervention and baseline scenarios. Includes both annual and cumulative values, at each discount level (`discount` column) |
-| Costs | costs | costs_ | Costs from a societal perspective (healthcare, formal social care, informal care, and economic output). Includes both annual and cumulative values, at each discount level (`discount` column) |
-| Net costs | net_costs | net_costs_ | Difference in costs between intervention and baseline scenarios. Includes both annual and cumulative values, at each discount level (`discount` column) |
+| Costs | costs | costs_ | One row per `costs_type` (see [Column names](#table-column-names)); `total_cost` is the societal total. Includes both annual and cumulative values, at each discount level (`discount` column) |
+| Net costs | net_costs | net_costs_ | Difference in costs between intervention and baseline scenarios, per `costs_type`. Includes both annual and cumulative values, at each discount level (`discount` column) |
 | Cases prevented or postponed | cpp | cpp_ | Difference in incident cases between baseline and intervention (annual and cumulative) |
 | Case-years prevented or postponed | cypp | cypp_ | Difference in prevalent cases between baseline and intervention (annual and cumulative) |
 | Deaths prevented or postponed | dpp | dpp_ | Difference in deaths between baseline and intervention (annual and cumulative) |
+| Continuous outcome | contd | contd_mean_ | Population-weighted mean of each user-defined `*_contd` column (in an `outcome` column). Only when the `contd` summaries were exported (`export_summaries(type = c(..., "contd"))`); see `vignette("custom-scenario-columns", package = "IMPACTncdEngland")` |
+| Continuous outcome relative change | contd_change_relative | contd_change_relative_ | Relative change in the continuous outcome from baseline year |
+| Continuous outcome absolute change | contd_change_absolute | contd_abs_change_ | Absolute change in the continuous outcome from baseline year |
 
-Note: comparison metrics (net QALYs, net costs, cpp, cypp, dpp) are only generated when intervention scenarios are present alongside the baseline scenario.
+Note: comparison metrics (net QALYs, net costs, cpp, cypp, dpp) are only generated when intervention scenarios are present alongside the baseline scenario. They start in the baseline year (`baseline_year_for_change_outputs`, default 2019), so their cumulative (`*_cuml`) rows accumulate from that year. A positive `cpp`/`cypp`/`dpp` means fewer cases or deaths than in the comparator; `net_qalys` and `net_costs` are intervention minus comparator.
 
 Note: every **relative change** column is a **ratio to the baseline year**, not a percentage — it is computed as `value / value[baseline_year]`. So `1.0` means no change, `0.9` a 10% reduction and `1.15` a 15% increase, and the column equals exactly `1.0` in the baseline year itself. Subtract 1 to obtain a fractional change. The `prvl`/`incd` prefixes were `prct_change_relative_` before 2026-08-05, which wrongly implied a percentage; the values have never changed.
 
@@ -332,18 +362,31 @@ Three variants are produced:
 
 Always non-standardised. Each row contains a disease and a characteristic type:
 
-- **mean_duration** : mean years with the condition
+- **mean_duration** : mean years with the condition so far, among prevalent cases (an incident case counts as 1)
 - **mean_age_incd** : mean age at incident cases
-- **mean_age_1st_onset** : mean age at first onset (relevant for recurring conditions)
 - **mean_age_prvl** : mean age of all prevalent cases
 - **mean_cms_score** : mean CMS score among people with the condition
 - **mean_cms_count** : mean CMS count among people with the condition
 
-Values are weighted by case counts.
+When a table is coarser than the summaries (e.g. `by year` collapses sex and `dimd`), the stratum values are averaged weighted by the number of **prevalent** cases. For `mean_age_incd`, whose own denominator is incident cases, that is an approximation, so prefer the most finely stratified table (`by year-sex-dimd` by default) when the mean age at incidence matters.
 
 ##### Exposure tables
 
-Generated from the xps output files for both non-standardised (xps20, 20-year age groups) and ESP-standardised (xps5, 5-year age groups) exposure data. These tables summarise mean risk factor exposure levels across strata (see xps Folder below for the list of exposures).
+Generated from the xps output files (see [xps Folder] below for the list of exposures) for both non-standardised data (xps20, by 20-year age group `agegrp20`) and ESP-standardised data (xps5: standardised over age with the ESP 5-year-band weights, so it has no age axis). They summarise mean risk factor exposure levels across strata, in one row per `exposure`, and are written only when the design has `export_xps: yes`.
+
+##### Cost-effectiveness tables
+
+Produced when `cea = TRUE` (the default) and an intervention scenario is present, from the `qalys` and `costs` summaries (not standardised), with the `ons` strata. Per Monte Carlo iteration they cumulate, from the baseline year, the incremental (intervention minus comparator) QALYs and costs, derive the ICER and the net monetary benefit at each willingness-to-pay threshold, and then summarise across iterations (column prefix `value_`). The `type` column is one of `dCosts_cuml`, `dQALYs_cuml`, `ICER` (`dCosts_cuml / dQALYs_cuml`) and `NMB_at_wtp_<wtp>` (`wtp × dQALYs_cuml − dCosts_cuml`), each at every discount level (`discount` column). Draws with zero incremental QALYs have no ICER and are left out of that row's quantiles.
+
+There is one file per cost perspective, named in an extra bracket: `cost-effectiveness by <strata> (<perspective>-EQ5D5L) (not standardised).csv`.
+
+| Perspective | Costs included |
+|:------------|:---------------|
+| `societal` | `total_cost` (healthcare + social care + informal care − economic output), plus every user-defined `*_costs` column |
+| `healthcare` | `healthcare_cost`, plus the user-defined `*_costs` columns named in `custom_costs_in_healthcare` |
+| `healthcare_socialcare` | `healthcare_cost` + `socialcare_cost`, plus the same user columns: the NHS and Personal Social Services perspective of the NICE reference case |
+
+A perspective whose built-in cost columns are missing from the summaries is skipped rather than published incomplete. `wtp` (default `c(25000, 35000)`, GBP per QALY), `custom_costs_in_healthcare` and the discount rates are arguments of `export_tables()`.
 
 ##### Life-expectancy tables
 
@@ -354,18 +397,23 @@ stratification — `life expectancy by <strata> (...).csv` — distinguished by 
 
 | `type` | Meaning |
 |:-------|:--------|
-| `le` | mean age at death (from the age simulants enter the model, not from birth — see the `le` entry under **summaries Folder**) |
-| `le60` | mean age at death among those who die after 60 |
-| `hle_1st_cond` | mean age at the first condition |
-| `hle_cmsmm1.5` | mean age at reaching a CMS score above 1.5 |
+| `le` | mean age at death of the simulants who died in that year and stratum |
+| `le60` | mean age at death among those who died aged over 60 (`age > 60`; not written if the design's age range does not span 60) |
+| `hle_1st_cond` | mean age over **all person-years lived with exactly one CMS condition** (`cms_count == 1`) — not an age at onset |
+| `hle_cmsmm1.5` | mean age in the first year of a spell with a CMS score above 1.5 (`cmsmm1.5_prvl == 1`) |
 
 Two things matter when using these.
 
-**They are weight-averaged ages at an event, not period life-table
+**They are weight-averaged ages, not period life-table
 expectancies.** Each summary is built as
-`SUM(age * w) / SUM(w)` over the simulants who experienced the event, with
-`popsize` recording `SUM(w)` — the weighted **count of events**, not a
-population.
+`SUM(age * w) / SUM(w)` over the simulants who experienced the event — death
+for `le` and `le60`, the start of a spell above a CMS score of 1.5 for
+`hle_cmsmm1.5` — with `popsize` recording `SUM(w)`, the weighted **count of
+events**, not a population. The model only holds people aged `ageL` (30 in the
+stock design) and over, so these say nothing about life expectancy from birth.
+`hle_1st_cond` is the exception: it averages over every year
+spent with exactly one condition, so its `popsize` (and `n_events`) is
+weighted **person-years** in that state.
 
 **So collapsing across strata must be a weighted mean.** Because `popsize` is the
 very denominator each average was formed with, aggregating over strata with
@@ -379,18 +427,18 @@ age axis in either mode, and an age at death is not a flow with a present value.
 
 ##### Equity slope index tables
 
-Produced when `equity = TRUE` (the default). These summarise how each cumulative policy benefit is distributed across the socioeconomic gradient, using absolute and relative analogues of the **Slope Index of Inequality (SII)** and **Relative Index of Inequality (RII)**. Files are named `equity <metric> slope index by <strata> (not standardised).csv`, one per metric (`cpp`, `cypp`, `dpp`, `net_qalys`) and stratum (`year`, `year-sex`).
+Produced when `equity = TRUE` (the default). These summarise how each cumulative policy benefit is distributed across the socioeconomic gradient, using absolute and relative analogues of the **Slope Index of Inequality (SII)** and **Relative Index of Inequality (RII)**. Files are named `equity <metric> slope index by <strata> (not standardised).csv`, one per metric (`cpp`, `cypp`, `dpp`, `net_qalys`) and stratum (by default `year` and `year-sex`).
 
-For each metric, scenario, year (and sex), and disease, the deprivation gradient is fit **across the ten DIMD deciles per Monte-Carlo iteration** and then quantiled across iterations (so the uncertainty comes from the model's own Monte-Carlo draws — no bootstrap). Each decile is assigned a population-weighted midpoint cumulative rank (a *ridit* score) in \([0, 1]\), ordered from least deprived (\(r \to 0\)) to most deprived (\(r \to 1\)), and the **population-weighted OLS slope** of the per-capita cumulative benefit on the ridit score is the SII. A `gradient` column records which deprivation axis was used (see below), and a `type` column gives:
+For each metric, scenario, year (and sex), and disease, the deprivation gradient is fit **across the ten DIMD deciles per Monte-Carlo iteration** and then quantiled across iterations (so the uncertainty comes from the model's own Monte-Carlo draws — no bootstrap). Each decile is assigned a midpoint cumulative rank (a *ridit* score) in \([0, 1]\) weighted by the reference population's cumulative person-years, ordered from least deprived (\(r \to 0\)) to most deprived (\(r \to 1\)), and the **person-year-weighted least-squares slope** of the cumulative benefit per person-year on the ridit score is the SII (see [The person-years denominator]). A `gradient` column records which deprivation axis was used (see below), and a `type` column gives:
 
 | type | Meaning |
 |:-----|:--------|
 | `AEI_total` | Absolute equity index — the SII scaled to the whole reference exposure (\(SII \times \sum_k PY_k\)) |
 | `AEI_per100k` | The SII per 100,000 **person-years** |
 | `total_benefit` | The total benefit the gradient was fit to, at that row's discount level |
-| `REI_rel` | Relative equity index — the SII divided by the population-weighted mean benefit; `NA` unless that mean is positive |
+| `REI_rel` | Relative equity index — the SII divided by the mean benefit per person-year; `NA` unless that mean is positive |
 | `RII_ratio` | Ratio of the fitted benefit at the most-deprived end to that at the least-deprived end; `NA` unless the fitted benefit is positive at **both** ends |
-| `fit_R2` | Population-weighted \(R^2\) of the straight-line fit |
+| `fit_R2` | Person-year-weighted \(R^2\) of the straight-line fit |
 
 An `n_mc` column records how many Monte-Carlo draws each published quantile actually rests on. It is *not* the number of iterations run: the finite-value filter is applied per `type`, so the relative indices can be summarised over a strict subset of the draws the absolute ones use. A low `n_mc` on `REI_rel` or `RII_ratio` means it has been truncated by the positivity conditions and should not be quoted on its own. It does **not** flag the other failure mode — a near-zero mean benefit gives a full-`n_mc` row with a wildly unstable `REI_rel`.
 
@@ -398,7 +446,7 @@ A `p_pro_poor` column gives the **probability of being pro-poor**: the share of 
 
 **Quote `p_pro_poor` from `AEI_total` or `AEI_per100k` only.** On `REI_rel` and `RII_ratio` it is biased **upwards** — too pro-poor — and must not be reported as the probability that the policy is pro-poor. This is not sampling noise, it does not shrink as you add Monte-Carlo draws, and it is worst exactly when the answer matters most.
 
-*Why.* Both relative indices are `NA` unless the fitted benefit is positive: `REI_rel` needs a positive population-weighted mean, and `RII_ratio` needs positive fitted values at **both** ends. The per-`type` finite-value filter drops those draws before the share is taken. But a draw whose fitted benefit went non-positive is overwhelmingly a draw with a steep **pro-rich** gradient — a sufficiently negative slope is precisely what drags the fitted most-deprived end below zero. The removed draws are therefore drawn disproportionately from the pro-rich tail, and the surviving share is computed over a sample those draws have been filtered out of. The stronger the pro-rich signal, the more draws are removed, and the more pro-poor the reported probability looks.
+*Why.* Both relative indices are `NA` unless the fitted benefit is positive: `REI_rel` needs a positive mean benefit, and `RII_ratio` needs positive fitted values at **both** ends. The per-`type` finite-value filter drops those draws before the share is taken. But a draw whose fitted benefit went non-positive is overwhelmingly a draw with a steep **pro-rich** gradient — a sufficiently negative slope is precisely what drags the fitted most-deprived end below zero. The removed draws are therefore drawn disproportionately from the pro-rich tail, and the surviving share is computed over a sample those draws have been filtered out of. The stronger the pro-rich signal, the more draws are removed, and the more pro-poor the reported probability looks.
 
 *In miniature.* The package's own test fixture uses 4 draws, 3 pro-poor and 1 pro-rich. The pro-rich draw is the only one whose extrapolated most-deprived end goes negative, so:
 
@@ -413,11 +461,11 @@ A policy that is pro-rich in a quarter of the draws is published as pro-poor in 
 
 Reading the four indices:
 
-- `AEI_total` is the **hypothetical** total benefit difference if *every* person in the population received the fitted most-deprived per-capita benefit instead of the fitted least-deprived one. It is **not** the benefit difference between the most- and least-deprived deciles themselves, which is roughly an order of magnitude smaller. Because it scales with the total person-years \(\sum_k PY_k\) it is not comparable across localities, strata or years — use `AEI_per100k` or `REI_rel` for that. (`AEI_total / AEI_per100k` is exactly \(\sum_k PY_k/10^5\).) Note that this makes it grow with the *horizon* as well as with population size: an `AEI_total` cumulated to 2043 rests on more person-years than one cumulated to 2030, so compare it only at a fixed reporting year.
+- `AEI_total` is the **hypothetical** total benefit difference if *every* person-year of the reference population received the fitted most-deprived benefit per person-year instead of the fitted least-deprived one. It is **not** the benefit difference between the most- and least-deprived deciles themselves, which is roughly an order of magnitude smaller. Because it scales with the total person-years \(\sum_k PY_k\) it is not comparable across localities, strata or years — use `AEI_per100k` or `REI_rel` for that. (`AEI_total / AEI_per100k` is exactly \(\sum_k PY_k/10^5\).) Note that this makes it grow with the *horizon* as well as with population size: an `AEI_total` cumulated to 2043 rests on more person-years than one cumulated to 2030, so compare it only at a fixed reporting year.
 - `AEI_per100k` is a rate per 100,000 **person-years**: the regressand is a benefit cumulated from `baseline_year` and the denominator is the matching cumulative person-years, so numerator and denominator share an exposure base. It therefore *is* on the same footing as a published annual-rate SII. (Before 2026-08-13 it divided the cumulative benefit by the single reporting-year population, which was neither a stock nor a rate — see "The person-years denominator" below.)
 - `REI_rel` is comparable across metrics on a fixed gradient axis, but is ~3.5% larger on quintiles than on deciles for the same underlying inequality, and is unstable when the mean benefit is near zero.
 - `RII_ratio` being `NA` is common rather than exceptional — in a whole-England run the ratio is defined for well under half of the `cpp`/`cypp`/`dpp` rows.
-- `total_benefit` is reported because the absolute indices are **translation-invariant**: shifting every group's per-capita benefit by the same amount, in either direction, leaves `AEI_total` and `AEI_per100k` bit-identical. Without it, a policy that flattens the gradient by *harming everyone* is indistinguishable from one that raises the most deprived. It is reported at that row's own discount level, so reconcile it with the CEA net QALYs at the matching level. Unlike `AEI_total` it *is* exactly invariant under the decile → quintile collapse, since sums are additive.
+- `total_benefit` is reported because the absolute indices are **translation-invariant**: shifting every group's benefit per person-year by the same amount, in either direction, leaves `AEI_total` and `AEI_per100k` bit-identical. Without it, a policy that flattens the gradient by *harming everyone* is indistinguishable from one that raises the most deprived. It is reported at that row's own discount level, so reconcile it with the CEA net QALYs at the matching level. Unlike `AEI_total` it *is* exactly invariant under the decile → quintile collapse, since sums are additive.
 
 Given \(n\), the indices carry only **two** free numbers: the slope and the mean benefit, with `RII_ratio` \(= (1 + \tfrac{1}{2}\,\)`REI_rel`\()/(1 - \tfrac{1}{2}\,\)`REI_rel`\()\). They are not independent lines of evidence — they stand or fall together on the same linear fit. Each `type` is also quantiled independently, so the published columns of one row do not satisfy those within-draw identities, and the `all_diseases_sum` median is not the sum of the disease medians. (Within a draw the absolute index *is* exactly additive over any partition of the benefit; the median across draws does not preserve that.) This is the standard probabilistic-sensitivity convention — the median ICER is not the ratio of median cost to median QALY. If you need an additive decomposition, work per draw and summarise afterwards.
 
@@ -425,7 +473,7 @@ The percentile columns summarise variation **across Monte-Carlo draws** — para
 
 All metrics are "goods", so the **sign convention is pro-poor**: a positive index means the most deprived gain more (inequality-reducing); a negative index is pro-rich (inequality-widening). For `cpp`/`cypp` a `disease` value of `all_diseases_sum` gives the index for the sum of the disease-specific event counts. That sum carries comorbidity multiplicity (two *different* diseases in one person count twice) and so is not a count of unique people. Two families are held out of it, each keeping its own row: the CMS multimorbidity indicators (`cms1st_cont`, `cmsmm*`, `cmscs*`), which are derived metrics rather than incident diseases; and the design's **umbrella conditions** — those whose incidence is declared `type: 0` in the sim_design YAML because they are defined as the union of other modelled diseases (`dm` = t1dm + t2dm, `ctdra` = ctd + ra, `cancer` = the site-specific cancers). Summing an umbrella alongside its own components would count one person's lung cancer once as `lung_ca` and again as `cancer`, which is the same event twice rather than comorbidity. `dpp` is all-cause and `net_qalys` is a single total, so neither has a summed row.
 
-Only the non-standardised (actual population) variant is produced. That is a deliberate choice of **estimand**, not a claim that age composition is irrelevant. The SII as used for public-health monitoring is fitted to age-standardised rates because its target is risk *at a given age*; the target here is the health gain actually accruing to actual people, in whole cases, deaths and QALYs — the distributional cost-effectiveness convention — and `AEI_total` is a count scaled to the actual population, which standardisation would strand. (Direct standardisation would in any case rescale only the numerator, leaving the decile populations, ridit ranks and regression weights untouched.) Age composition does still confound the per-capita gradient in principle, exactly as it confounds a crude rate. If you need the age-confounding-free view, request an age-stratified gradient with `strata$equity = list(c("year", "agegrp"))` — note the list form. Those per-stratum indices are a set of age-specific SIIs, not a decomposition: the ridit and the weights are re-derived inside each stratum, so they do not sum to the whole-population `AEI_total`.
+Only the non-standardised (actual population) variant is produced. That is a deliberate choice of **estimand**, not a claim that age composition is irrelevant. The SII as used for public-health monitoring is fitted to age-standardised rates because its target is risk *at a given age*; the target here is the health gain actually accruing to actual people, in whole cases, deaths and QALYs — the distributional cost-effectiveness convention — and `AEI_total` is a count scaled to the actual population, which standardisation would strand. (Direct standardisation would in any case rescale only the numerator, leaving the decile populations, ridit ranks and regression weights untouched.) Age composition does still confound the gradient in principle, exactly as it confounds a crude rate. If you need the age-confounding-free view, request an age-stratified gradient with `strata$equity = list(c("year", "agegrp"))` — note the list form. Those per-stratum indices are a set of age-specific SIIs, not a decomposition: the ridit and the weights are re-derived inside each stratum, so they do not sum to the whole-population `AEI_total`.
 
 ##### The person-years denominator
 
@@ -482,13 +530,13 @@ IMPACTncd$export_tables(strata = list(
 #    equity cpp slope index by year-agegroup (not standardised).csv
 ```
 
-(As in every other table family, `agegrp` is spelled `agegroup` in the filename.)
+(As in the all-cause-mortality-given-disease, exposure and life-expectancy families, `agegrp` is spelled `agegroup` in the filename; the main and cost-effectiveness families keep `agegrp`.)
 
-Two rules are enforced. Every entry must include `year`: the benefit is accumulated over years and each output row reports the benefit cumulated *to* that year against *that year's* reference population, so `year` defines the rows rather than merely subsetting them. And `mc`/`scenario` are reserved (`mc` is the Monte-Carlo axis the indices are quantiled over; `scenario` is always present, since every index is a contrast against the comparator). A variable the summaries do not carry raises a warning and that table is skipped — it is never silently dropped, which used to produce a mislabelled copy of a coarser table. An entry naming neither `dimd` nor `qimd` falls back to deciles, so the defaults — `list("year", c("year", "sex"))` — keep producing exactly the files they always have.
+Two rules are enforced. Every entry must include `year`: the benefit is accumulated over years and each output row reports the benefit cumulated *to* that year against the reference population's cumulative person-years over the same window (see [The person-years denominator]), so `year` defines the rows rather than merely subsetting them. And `mc`/`scenario` are reserved (`mc` is the Monte-Carlo axis the indices are quantiled over; `scenario` is always present, since every index is a contrast against the comparator). A variable the summaries do not carry raises a warning and that table is skipped — it is never silently dropped, which used to produce a mislabelled copy of a coarser table. An entry naming neither `dimd` nor `qimd` falls back to deciles, so the defaults — `list("year", c("year", "sex"))` — keep producing exactly the files they always have.
 
 Note that stratifying makes each gradient sparser: with `c("year", "agegrp")` the ridit ranks and regression weights come from the deprivation distribution *within* that age group, so the result is an age-specific SII. These are legitimate but are **not additive** to the overall SII, and narrow strata give noisier indices.
 
-`qimd` does **not** need to be added to `strata_for_output` in the sim_design YAML: if the summaries carry `dimd`, quintiles are derived by the standard decile-pair collapse (deciles 1–2 → quintile 1, and so on). The derived quintile **counts** are exact — event counts and populations are additive, and the collapse preserves the population-weighted ridit midpoint exactly. The resulting **index** is invariant only when the per-capita benefit is exactly linear in the ridit; under curvature the decile and quintile fits are different estimands (a weighted fit to five points instead of ten). A step-shaped gradient concentrated in the top two deciles shifts the SII by about 3.5%; smooth curvature by under 1%. Treat the decile and quintile tables as two analyses of the same data, not two views of one number. The converse does not hold: deciles cannot be recovered from quintiles, so a `dimd` gradient does require `dimd` in the summaries. Quintiles give a coarser, lower-variance gradient with less power to detect departures from linearity, so prefer deciles when they are available; quintiles are mainly useful for comparability with external analyses that report by quintile, or for small localities where decile cells are sparse.
+`qimd` does **not** need to be added to `strata_for_output` in the sim_design YAML: if the summaries carry `dimd`, quintiles are derived by the standard decile-pair collapse (deciles 1–2 → quintile 1, and so on). The derived quintile **counts** are exact — event counts and person-years are additive, and the collapse preserves the person-year-weighted ridit midpoint exactly. The resulting **index** is invariant only when the benefit per person-year is exactly linear in the ridit; under curvature the decile and quintile fits are different estimands (a weighted fit to five points instead of ten). A step-shaped gradient concentrated in the top two deciles shifts the SII by about 3.5%; smooth curvature by under 1%. Treat the decile and quintile tables as two analyses of the same data, not two views of one number. The converse does not hold: deciles cannot be recovered from quintiles, so a `dimd` gradient does require `dimd` in the summaries. Quintiles give a coarser, lower-variance gradient with less power to detect departures from linearity, so prefer deciles when they are available; quintiles are mainly useful for comparability with external analyses that report by quintile, or for small localities where decile cells are sparse.
 
 If the summaries carry no deprivation column at all (e.g. `strata_for_output` omits `dimd`), or a requested axis or stratification variable cannot be produced, `export_tables()` raises a **warning** naming the tables it skipped — it is not gated on `logs`, so a run with logging off will not silently produce nothing.
 
@@ -516,31 +564,54 @@ Two things this does *not* let you do. It cannot be reproduced by post-processin
 
 **Choosing the ridit reference population (`equity_ridit_reference`).** The ridit ranks and the regression weights depend on how many people sit in each decile. The `equity_ridit_reference` argument of `export_tables()` controls which population supplies those decile sizes:
 
-- `"comparator"` (default) — use the comparator scenario's decile populations, so the ridit scores and regression weights are **identical across the scenarios being compared**.
-- `"scenario"` — use each intervention scenario's **own** decile populations, reflecting the composition that scenario actually produces.
+- `"comparator"` (default) — use the comparator scenario's decile populations (cumulated into person-years), so the ridit scores and regression weights are **identical across the scenarios being compared**.
+- `"scenario"` — use each intervention scenario's **own** decile populations (likewise cumulated), reflecting the composition that scenario actually produces.
 
 Renard et al. (2019, *BMC Public Health*) showed that the SII and RII can change purely because the socioeconomic *composition* of the population shifts, even when the group-specific rates do not — so a moving denominator population can be mistaken for a change in inequality. For the usual question ("how does an intervention redistribute benefits across a fixed deprivation structure?"), keep the default `"comparator"`: a common, fixed reference keeps between-scenario and between-year comparisons clean and attributes differences to the benefits rather than to composition. Use `"scenario"` only when the intervention is expected to change the deprivation composition itself (e.g. large differential survival altering who is alive in each decile) and you specifically want each scenario's realised population — and then read between-scenario differences with the Renard caveat in mind. Formally, `"scenario"` violates the precondition Cookson et al. (2026) state for their impact SII — that the comparator and intervention arms have the same group sizes — so treat it as a **sensitivity analysis or diagnostic** rather than a co-equal estimator: if it moves the index materially, that is evidence the intervention is reshaping the population, not evidence about how the benefit was distributed. Under `"scenario"` each arm gets its own ridit axis and weights, so cross-scenario comparisons are then made on different axes. DIMD deciles are structurally near-fixed in this model — in the ONS projection input the decile shares of England aged 30–99 move at most 0.18 percentage points between 2019 and 2043 — so in practice the two options usually differ only slightly.
 
-The ridit is deliberately **not** pinned across years: `N` is the comparator's population *of the reporting year*, so the ridit scores and weights are re-derived each year (the ordinal decile ordering is of course fixed throughout). Pinning `N` at the baseline year was considered and rejected — it would divide a benefit generated by the year-\(t\) population by the year-0 population, so a benefit that is exactly equal per head in year \(t\) would register a spurious non-zero index purely from differential population growth between deciles.
+The ridit is deliberately **not** pinned across years: for each reporting year \(T\) the ranks and weights are built from the reference population's **cumulative person-years** from `baseline_year` to \(T\) — the same exposure base as the cumulated numerator (see [The person-years denominator]) — so they are re-derived at every \(T\) (the ordinal decile ordering is of course fixed throughout). Pinning the population at the baseline year was considered and rejected — it would divide a benefit generated by the year-\(t\) population by the year-0 population, so a benefit that is exactly equal per head in year \(t\) would register a spurious non-zero index purely from differential population growth between deciles.
 
 **What `net_qalys` is.** It is cumulative incremental EQ-5D-5L QALYs (intervention minus comparator) — the same construction as the `net QALYs` main table, and now expanded across the same discount levels, so compare like with like by filtering both on `discount`. (Before 2026-08-13 the equity tables were undiscounted only and had to be read against the main table's `0%` block. A figure drawn from the 3.5% block set beside an index from the equity table was comparing two different quantities — an easy mistake to make, since neither carried a label saying so.) It is **not** the net health benefit of Cookson et al. (2026, Eq. 5), which additionally subtracts the health displaced elsewhere in the system by the policy's net cost. The distinction matters for the equity conclusion, not just the level: health opportunity cost typically falls disproportionately on more deprived groups (Love-Koh et al. 2020 estimate 26% of the health effect of marginal NHS spending accruing to the most-deprived fifth against 14% to the least), so a policy that is pro-poor on gross benefit can be pro-rich on net health benefit. Read this slope index as the distribution of **gross** health gain. A net-health-benefit analysis would additionally require a cost-effectiveness threshold and an external estimate of how displaced health falls across deprivation groups, neither of which is a model input.
 
 **Relation to Cookson et al.'s published totals.** Cookson et al. (2026) report a total-scale gap of \(SII \times n \times (J-1)/J^2\) for \(J\) equally sized groups, and a supplementary "modelled health deficit" of \(SII \times n / 2\). This model reports \(SII \times n\) — 11.11× and 2× those. That is deliberate: their gap formula assumes equally sized groups, which DIMD deciles are not, and their general unequal-group decomposition carries an \(\alpha(n_J - n_1)\) population term that would reintroduce exactly the compositional dependence the fixed comparator reference exists to remove. Applying their constant would also add a purely mechanical 1.78× jump (0.09 → 0.16) whenever a user switched the gradient axis from `dimd` to `qimd`, confounding the scaling change with any genuine decile-versus-quintile difference. To put `AEI_total` on the scale of their published gap statistic, multiply by \((J-1)/J^2\).
 
-**Relation to the concentration index.** The model does not emit a concentration index under that name, but `REI_rel` *is* one, on a fixed scale: `REI_rel` \(= k\,C\) and `AEI_total` \(= k\,GCI_{total}\) exactly, where \(C\) is the grouped concentration index, \(GCI_{total}\) its generalised (absolute) form scaled to the reference population, and \(k = 6/(1 - \sum_k p_k^3)\) with \(p_k\) the share of group \(k\). Since 2026-08-13 \(p_k\) is the **person-year** share \(PY_k/\sum_j PY_j\), not the reporting-year population share, matching the exposure base the index is now fit on. Use the formula, not a constant: \(k\) is 6.061 for exactly equal deciles and about 6.069 for the deciles this model realises, but 6.25–6.28 on a quintile axis, so applying a decile constant to a `qimd` table is ~2.9% out. \(k\) can be reconstructed exactly by cumulating the `pop size by year-dimd (not standardised).csv` table the model already writes over the years from `baseline_year` to the reporting year. On **orientation**: here the ridit runs least- (\(r=0\)) to most-deprived (\(r=1\)), so the absolute indices are most-minus-least differences and `RII_ratio` > 1 is pro-poor. WHO HEAT orders subgroups the other way, so a HEAT-oriented RII is the exact *reciprocal* of `RII_ratio` and a HEAT SII has the opposite sign — check the ranking direction of any external figure before setting it beside these tables.
+**Relation to the concentration index.** The model does not emit a concentration index under that name, but `REI_rel` *is* one, on a fixed scale: `REI_rel` \(= k\,C\) and `AEI_total` \(= k\,GCI_{total}\) exactly, where \(C\) is the grouped concentration index, \(GCI_{total}\) its generalised (absolute) form scaled to the reference population, and \(k = 6/(1 - \sum_k p_k^3)\) with \(p_k\) the share of group \(k\). Since 2026-08-13 \(p_k\) is the **person-year** share \(PY_k/\sum_j PY_j\), not the reporting-year population share, matching the exposure base the index is now fit on. Use the formula, not a constant: \(k\) is 6.061 for exactly equal deciles and about 6.069 for the deciles this model realises, but 6.25–6.28 on a quintile axis, so applying a decile constant to a `qimd` table is ~2.9% out. \(k\) is computed exactly per draw inside the model; it can be approximated closely by cumulating the comparator's median `pop_size_50.0%` in the `pop size by year-dimd (not standardised).csv` table over the years from `baseline_year` to the reporting year (that table publishes rounded quantiles across draws, not each draw's populations). On **orientation**: here the ridit runs least- (\(r=0\)) to most-deprived (\(r=1\)), so the absolute indices are most-minus-least differences and `RII_ratio` > 1 is pro-poor. WHO HEAT orders subgroups the other way, so a HEAT-oriented RII is the exact *reciprocal* of `RII_ratio` and a HEAT SII has the opposite sign — check the ranking direction of any external figure before setting it beside these tables.
 
-**The value judgement these indices embody.** They are not value-free: they weight each deprivation group linearly in its cumulative population-fraction rank. That is a choice, and it is fixed here rather than user-selectable. They measure how the *policy benefit* is distributed across the deprivation gradient; they are **not** a distributional cost-effectiveness analysis in the sense of Asaria, Griffin & Cookson (2016), which evaluates the post-policy distribution of health itself through a social welfare function and reports an equally-distributed-equivalent at an explicit, variable inequality-aversion parameter. The two are complementary: a full DCEA needs baseline health levels by deprivation group — which this model exports (`le`, `hle` and QALYs by year-dimd) — plus an explicit choice of aversion and health measure, and would be a separate analysis layered on top of these tables.
+**The value judgement these indices embody.** They are not value-free: they weight each deprivation group linearly in its cumulative rank (its ridit, built from the reference population's person-years). That is a choice, and it is fixed here rather than user-selectable. They measure how the *policy benefit* is distributed across the deprivation gradient; they are **not** a distributional cost-effectiveness analysis in the sense of Asaria, Griffin & Cookson (2016), which evaluates the post-policy distribution of health itself through a social welfare function and reports an equally-distributed-equivalent at an explicit, variable inequality-aversion parameter. The two are complementary: a full DCEA needs baseline health levels by deprivation group — for which this model exports QALYs by year-dimd, and the mean-age measures `le` and `hle` (which are not life-table expectancies; see [Life-expectancy tables]) — plus an explicit choice of aversion and health measure, and would be a separate analysis layered on top of these tables.
 
 **Citations.** The grouped-data weighted least-squares estimator implemented here is that of Kakwani, Wagstaff & van Doorslaer (1997, *Journal of Econometrics* 77(1):87–103, Eqs 3–4 and 6): "the grouped nature of the data calls for Weighted Least Squares". The ridit and structured-regression setup follows Moreno-Betancur et al. (2015, *Epidemiology*); applying the index to a cumulative modelled benefit follows Cookson et al. (2026, *Pharmacoeconomics*); and the choice of reference population follows Renard et al. (2019, *BMC Public Health*). Note that `RII_ratio` is the **Kunst–Mackenbach** ratio of fitted extremes, which is literally Moreno-Betancur et al.'s \(RII_1 = h(1)/h(0)\) — a formula they call a "previous definition" and criticise as "not adapted to the purpose of these indices". Their own RII is \(\exp(\beta)\) from a *log-linear* model, which cannot be fitted to a signed quantity such as net QALYs, so they are cited here for the framework and not in support of that ratio. `REI_rel` is a Pamuk/Wagstaff-type relative SII, not an RII of any kind.
 
 #### Standardisations
 
-Various standardisations are applied: `not standardised` (scaled up to the ONS population projections); `age standardised`; `age-dimd standardised`; `age-sex standardised`; `age-sex-dimd standardised`.
-Standardisation is done using the 2013 European Standardised Population (ESP). For standardisation beyond age standardisation, we assume that the population is equally sized between the respective groups and that the age distribution in each follows the 2013 ESP.
+Tables are either `not standardised` (scaled up to the ONS population projections, weight `wt`) or standardised to the 2013 European Standard Population (ESP, weight `wt_esp`). For standardisation beyond age standardisation, we assume that the population is equally sized between the respective groups and that the age distribution in each follows the 2013 ESP: `wt_esp` gives every year, age group, sex and `dimd` cell the ESP weight of its age group, so an ESP table is standardised over every one of age, sex and deprivation that it is not stratified by.
+
+The label in the filename is meant to name those axes, but the families spell it differently for the same weighting:
+
+| Family | `by year` | `by year-sex` | `by year-dimd` | `by year-sex-dimd` |
+|:-------|:----------|:--------------|:---------------|:-------------------|
+| main tables (prevalence, incidence, mortality, QALYs, costs, …) | `age-sex` | `age` | `age-sex` | `age` |
+| all-cause mortality given disease; life expectancy | `age-sex-dimd` | `age-dimd` | `age-sex` | `age` |
+| exposures (`qimd` in place of `dimd`) | `age-sex-qimd` | `age-qimd` | `age-sex` | `age` |
+
+So in the main tables the label never names `dimd`, although the deciles are equalised there too: `prevalence by year (age-sex standardised).csv` and `all-cause mortality given disease-year (age-sex-dimd standardised).csv` use the same weights.
 
 #### Default stratification
 
-By default, non-standardised (ONS) tables are stratified by: year; year-sex; year-dimd; year-agegrp; year-agegrp-sex; year-agegrp-sex-dimd. ESP-standardised tables are stratified by: year; year-sex; year-dimd; year-sex-dimd.
+`export_tables(strata = )` takes a named list with one element per table family; each element you pass replaces that family's defaults, and the others keep theirs. The defaults are:
+
+| `strata` element | Tables | Default strata |
+|:-----------------|:-------|:---------------|
+| `ons` | main, not standardised; also the cost-effectiveness tables | year; year-sex; year-dimd; year-agegrp; year-agegrp-sex; year-agegrp-sex-dimd |
+| `esp` | main, ESP-standardised | year; year-sex; year-dimd; year-sex-dimd |
+| `mrtl_ons` | all-cause mortality given disease, not standardised (incl. `popdenom`) | year; year-sex; year-agegrp; year-agegrp-sex; year-agegrp-sex-dimd |
+| `mrtl_esp` | all-cause mortality given disease, ESP-standardised | year; year-sex; year-dimd; year-sex-dimd |
+| `disease_char` | disease characteristics | year; year-sex; year-dimd; year-sex-dimd |
+| `le_ons`, `le_esp` | life expectancy | year; year-sex; year-dimd; year-sex-dimd |
+| `xps_ons` | exposures, not standardised | year; year-agegrp20; year-sex; year-qimd; year-agegrp20-sex; year-agegrp20-sex-qimd |
+| `xps_esp` | exposures, ESP-standardised | year; year-sex; year-qimd; year-sex-qimd |
+| `equity` | equity slope indices | year; year-sex |
+
+With `two_agegrps = TRUE`, `ons` and `mrtl_ons` default to their `agegrp`-bearing entries only. An element name outside this list is an error.
 
 #### Deciles or quintiles (`dimd` vs `qimd`)
 
@@ -609,44 +680,58 @@ One practical note on file counts: because a stratum that does not contain `ageg
 
 The two vectors are paired **element-wise** into discount *levels* (a length-1 rate is recycled against a longer one), so the defaults give two levels rather than four. Differential rates are set by passing equal-length vectors, e.g. `qaly_discount_rate = c(0, 1.5)` with `cost_discount_rate = c(0, 3.5)`.
 
-Every level appears in the **QALY, net-QALY, cost, net-cost *and* cost-effectiveness** tables — discounting is no longer confined to the CEA tables. The file set is unchanged: each of those tables gains a `discount` column and carries one block of rows per level, labelled `"0%"`, `"3.5%"`, or `"QALYs 1.5%/costs 3.5%"` when a level's two rates differ. Filter on `discount` to select a level; the `0%` rows are the undiscounted figures, so nothing is lost by adding discounted ones.
+Every level appears in the **QALY, net-QALY, cost, net-cost *and* cost-effectiveness** tables — discounting is no longer confined to the CEA tables. The file set is unchanged: each of those tables gains a `discount` column and carries one block of rows per level. Each table is labelled with its own rate (`"0%"`, `"1.5%"`, `"3.5%"`): the QALY and net-QALY tables with the QALY rate, the cost and net-cost tables with the cost rate, so levels sharing that rate give a single block. Only the cost-effectiveness tables, whose rows mix both rates, use a combined label such as `"QALYs 1.5%/costs 3.5%"` when a level's two rates differ. Filter on `discount` to select a level; the `0%` rows are the undiscounted figures, so nothing is lost by adding discounted ones.
 
-The prevalence, incidence, mortality and exposure tables carry no `discount` column — they are rates and counts, not flows, so a present value is not defined for them. The **equity** tables are likewise not expanded: their metric set mixes QALYs with plain event counts (CPP / CYPP / DPP), which a single `discount` column could not describe, so they remain undiscounted throughout.
+The prevalence, incidence, mortality, exposure and life-expectancy tables carry no `discount` column — they are rates, counts and ages, not flows, so a present value is not defined for them. The **equity** tables follow the same per-metric rule: `equity net_qalys ...` is a QALY flow and carries one block of rows per `qaly_discount_rate` level, while `equity cpp / cypp / dpp ...` are event counts and carry the single `"0%"` block (see [Discount levels in the equity tables]).
 
 > **Changed.** Discounting previously applied *only* to the cost-effectiveness tables, at a scalar 3.5%. The CEA tables are now a superset of that output: the `3.5%` block reproduces exactly what they used to contain, with a `0%` block alongside. Code that reads a CEA CSV must now filter on `discount`.
 
-#### Column names
+#### Column names {#table-column-names}
+
+Most tables are long: besides the strata, one or more key columns say what each row is, and **every key column must be filtered on** before values are summed, averaged or plotted.
 
 - **scenario** : scenario name
-- **year**; **agegrp**; **sex**; **dimd** : stratification variables (present depending on strata level)
-- **disease** : disease name (for disease-stratified tables)
-- **type** : characteristic type (for disease characteristics tables, e.g. mean_duration, mean_age_incd; for equity slope-index tables one of AEI_total, AEI_per100k, total_benefit, REI_rel, RII_ratio, fit_R2)
-- **gradient** : (equity slope-index tables only) the deprivation axis the index was fit over — `dimd` (IMD deciles) or `qimd` (IMD quintiles)
-- **n_mc** : (equity slope-index tables only) how many Monte-Carlo draws that row's quantiles rest on — not the number of iterations run, since the finite-value filter is applied per `type`
-- **scale** : utility scale used (for QALYs tables, currently EQ5D5L)
-- **costs_type** : cost category (for costs tables: healthcare_cost, socialcare_cost, informalcare_cost, economic_output)
-- **parameter_percentile** columns : the parameter value at each uncertainty level (2.5%, 10%, 50%, 90%, 97.5%), with column prefix depending on parameter type (e.g. `prvl_rate_50.0%`, `qalys_50.0%`, `costs_50.0%`)
+- **comparator** : (contrast tables, only when `comparator_scenario` is a map) the scenario each row is contrasted against — see [Per-scenario comparators]
+- **year**; **agegrp**; **sex**; **dimd**; **qimd** : stratification variables (present depending on strata level). The exposure tables use **agegrp20** instead of `agegrp`
+- **disease** : disease name (for disease-stratified tables). In the prevalence, incidence, case fatality, all-cause and disease-specific mortality tables it keeps the summary column's suffix (e.g. `chd_prvl`, `chd_incd`, `chd_ftlt`, `all_cause_mrtl`, `chd_deaths`); in the `cpp`/`cypp` (main and equity), all-cause-mortality-given-disease and disease-characteristics tables it is the bare name (`chd`); in `dpp` it is `all_cause`, and in `equity net_qalys` it is `EQ5D5L`
+- **type** : what the row holds:
+    - QALY, net QALY, cost, net cost, `cpp`, `cypp` and `dpp` tables: the annual value (`QALYs`, `net_QALYs`, `costs`, `net_costs`, `cpp`, `cypp`, `dpp`) or its cumulative sum (the same name with `_cuml`). Summing over `type` adds cumulative totals to annual values
+    - cost-effectiveness tables: `dCosts_cuml`, `dQALYs_cuml`, `ICER` or `NMB_at_wtp_<wtp>`
+    - disease characteristics tables: `mean_duration`, `mean_age_incd`, `mean_age_prvl`, `mean_cms_score` or `mean_cms_count`
+    - life-expectancy tables: `le`, `le60`, `hle_1st_cond` or `hle_cmsmm1.5`
+    - equity slope-index tables: `AEI_total`, `AEI_per100k`, `total_benefit`, `REI_rel`, `RII_ratio` or `fit_R2`
+- **discount** : (QALY, net QALY, cost, net cost, cost-effectiveness and equity tables) the discount level of the row — see [Discounting]
+- **scale** : utility scale used (for QALYs and net QALYs tables, currently EQ5D5L; the cost-effectiveness tables carry it in the file name)
+- **costs_type** : (costs and net costs tables) `healthcare_cost`, `socialcare_cost`, `informalcare_cost`, `economic_output`, `indirect_cost` (= social care + informal care − economic output), `total_cost` (= healthcare + social care + informal care − economic output, the societal total), plus any user-defined `*_costs` columns. `indirect_cost` and `total_cost` are sums of the other built-in rows, so never sum across `costs_type`
+- **outcome** : (continuous-outcome tables) the user-defined `*_contd` column
+- **exposure** : (exposure tables) the exposure; **prob** : (exposure quantile tables) the centile of the exposure
+- **n_events** : (life-expectancy tables) the median weighted number of events behind the value (person-years for `hle_1st_cond`)
+- **gradient**, **n_mc**, **p_pro_poor** : (equity slope-index tables only) the deprivation axis the index was fit over (`dimd` or `qimd`); how many Monte-Carlo draws that row's quantiles rest on (not the number of iterations run, since the finite-value filter is applied per `type`); and the share of those draws on the pro-poor side — see [Equity slope index tables]
+- **parameter_percentile** columns : the parameter value at each uncertainty level (2.5%, 10%, 50%, 90%, 97.5%), with column prefix depending on the table (e.g. `prvl_rate_50.0%`, `qalys_50.0%`, `costs_50.0%`; `all_cause_mrtl_by_disease_rate_` in the all-cause-mortality-given-disease tables, `value_` in the disease characteristics and cost-effectiveness tables, `le_mean_` in the life-expectancy tables, `xps_mean_` / `xps_qnt_` in the exposure tables and `equity_` in the equity tables)
 
-### xps Folder 
+### xps Folder
 
-```{r, echo = FALSE, out.width = "50%", fig.cap = "xps folder structure"}
-knitr::include_graphics("img/output_folder_xps.jpg")
-```
+Mean risk factor exposure levels, written by `run()` when the design has `export_xps: yes`. Like **lifecourse**, these are parquet datasets partitioned by `mc=<iteration>/scenario=<name>/`, with one `<chunk>_....parquet` folder per synthetic-population chunk:
 
-mean risk factor exposure levels 
+- **xps/xps20/** : not standardised (weight `wt`), with age in 20-year age groups (`agegrp20`)
+- **xps/xps5/** : ESP-standardised over age with the ESP 5-year-band weights (`wt_esp`), so it has no age column
+- **xps/xps20_qnt/** and **xps/xps5_qnt/** : only with `export_xps_quantiles: yes` — weighted quantiles in long format (columns `xps`, `prob`, `value`); see [Exposure quantiles (optional)]
 
-- **Xps20.csv.gz** : unstandardised. With age in 20-year age groups 
-- **Xps_esp.csv.gz** : standardised to ESP 
+Read each folder as a whole with `arrow::open_dataset()`; `mc` then holds the iteration. A single file read on its own carries the chunk number in its `mc` column instead.
 
+Each file holds every combination of its strata at once: a row whose `agegrp20`, `sex` or `qimd` is `"All"` is the margin over that variable, so filter on `"All"` (or on its absence) rather than averaging or summing rows.
 
-#### Column names 
+#### Column names
 
-- **year** : year 
-- **sex** : sex 
-- **qimd** : quantile of the Index of Multiple Deprivation (mapped from `dimd` in lifecourse)
-- **scenario** : scenario 
-- **mc** : Monte Carlo iteration 
-- **agegrp20** : age group 
+- **year** : year
+- **sex** : sex
+- **qimd** : quintile of the Index of Multiple Deprivation (mapped from `dimd` in lifecourse: deciles 1–2 → quintile 1, and so on)
+- **scenario** : scenario
+- **mc** : Monte Carlo iteration
+- **agegrp20** : age group (`xps20` only)
+
+The exposure columns are the `*_curr_xps` columns of the simulation except `smok_status_curr_xps` (reported through `smok_never_curr_xps` and `smok_active_curr_xps` instead), `met_curr_xps`, `bpmed_curr_xps` and any `*_prvl_curr_xps`, plus any other numeric column named in `exposures_for_output`. Those of the stock design are:
+
 - **active_days_curr_xps** : Number of days of physical activity per week 
 - **fruit_curr_xps** : Fruit consumption in grams per day (80g = 1 portion) 
 - **veg_curr_xps** : Vegetable consumption in grams per day (80g = 1 portion) 
@@ -663,6 +748,7 @@ mean risk factor exposure levels
 - **smok_never_curr_xps** : never smoked. At the individual level, 0 = has smoked, 1 = never smoked
 - **smok_active_curr_xps** : current smoker. At individual level, 0 = doesn’t smoke, 1 = currently smokes
 - **smok_packyrs_pop_curr_xps**, **smok_dur_pop_curr_xps**, **smok_cig_pop_curr_xps** : the same three quantities averaged over the **whole population** rather than over ever-smokers only — see the warning below
+- **age** : the mean age of the stratum. It is not an exposure: it is included because the stock `exposures_for_output` lists `age`, which is numeric (`sex` and `dimd`, also listed there, are not numeric and are left out)
 
 ##### Careful: the smoking-history means are conditional on ever having smoked
 
@@ -715,10 +801,8 @@ it carries nothing their mean does not already give. They still get means.
 
 It is off by default because it is not free: at the stock England shape the
 means alone cost about 8.6 s per chunk per scenario and the default quantile
-settings add about 4.7 s.
-
-Off by default, and cheap when on — but if you turn it on and also ask for
-every stratification the means use, expect roughly four times that.
+settings add about 4.7 s. Asking for quantiles on every stratification the
+means use adds roughly four times that.
 
 Two things to keep straight when reading those files:
 
@@ -731,26 +815,16 @@ Two things to keep straight when reading those files:
 And, unlike every count in `summaries/` and unlike the means, **quantiles are not
 additive**: they cannot be averaged across Monte Carlo iterations to get "the"
 quantile, and they cannot be combined across strata. Read each stratum on its own.
+One pooling step is made for you: within an iteration, the per-chunk quantiles
+are averaged before the Monte Carlo percentiles are taken, which approximates
+(but is not exactly) the quantile of that iteration's chunks pooled.
 
 
 ### Other files 
 
-- Use the following code to open the vignette to run a test of IMPACTncdEngland
+- How to run a test of IMPACTncdEngland, and how to remove the model again: `vignette("how_to_test_run", package = "IMPACTncdEngland")`
+- How to run different policy scenarios: `vignette("how_to_run_scenarios", package = "IMPACTncdEngland")`
 
-```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngland")
-```
-
-- Use the following code to open the vignette to run different policy scenarios
-
-```{r}
-vignette("how_to_run_scenarios", package = "IMPACTncdEngland")
-```
-
-- To completely delete the package IMPACTncdEngland is explained in a section called **How to remove IMPACTncdEngland installed package** in the vignette mentioned below
-
-```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngland")
-```
+`vignette()` finds these only if the package was installed with its vignettes built. Otherwise read the `.Rmd` files in `Rpackage/IMPACTncd_England_model_pkg/vignettes/` directly, or render them to HTML with `vignettes/build_vignettes.sh` (this needs pandoc).
 
 

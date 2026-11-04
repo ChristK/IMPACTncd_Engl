@@ -20,9 +20,11 @@ knitr::opts_chunk$set(
 Every risk factor the model generates for the synthetic population is driven by
 a **distribution table** — a partitioned parquet dataset holding the fitted
 distribution parameters (e.g. `mu`, `sigma`, `nu`, `tau` for a continuous
-exposure) by strata (age, sex, deprivation, region, ...). These tables ship with
-the model under `./inputs/exposure_distributions/` and are referenced from the
-`exposure_definitions` block of your `sim_design*.yaml`:
+exposure) by strata (age, sex, deprivation, region, ...). The stock tables live
+under `./inputs/exposure_distributions/` once the model data have been
+downloaded (they are not in Git; see `vignette("how_to_test_run")`, step 3, or
+use the Docker image, which already contains them). They are referenced from
+the `exposure_definitions` block of your `sim_design*.yaml`:
 
 ```yaml
 exposure_definitions:
@@ -50,8 +52,9 @@ machine and inside the Docker image.
 
 ## How `file_name` is resolved
 
-`file_name` is resolved with three rules (implemented in
-`Design$resolve_exposure_path()`):
+`file_name` is resolved with three rules (implemented in the private method
+`resolve_exposure_path()` of `Design`; check the result with
+`IMPACTncd$design$xps_table_path("bmi")`):
 
 | `file_name` looks like            | Resolved to                                              | Use it for                          |
 |-----------------------------------|----------------------------------------------------------|-------------------------------------|
@@ -75,8 +78,8 @@ my_scenario/
 ├── simulate_my.R
 └── tables/
     └── bmi_local/            # your partitioned parquet dataset
-        ├── year=13/part-0.parquet
-        ├── year=14/part-0.parquet
+        ├── year=3/part-0.parquet
+        ├── year=4/part-0.parquet
         └── ...
 ```
 
@@ -85,11 +88,13 @@ my_scenario/
 Your table must have the **same columns** as the stock table it replaces: the
 join keys (the strata the model matches on) plus the distribution
 parameters/thresholds. The simplest way to get the schema right is to start from
-the stock table and modify it. For example, to shift the whole BMI distribution
-upwards by 10%:
+the stock table and modify it. For example, to scale the whole BMI distribution
+up by 10% (for BCPE, multiplying `mu` multiplies every quantile of the
+untruncated distribution):
 
 ```{r}
-library(IMPACTncdEngland) # provides read_parquet_dt + fpBCPEo via CKutils
+# Run from the repository root, after the model data have been downloaded.
+library(CKutils)    # read_parquet_dt(), fpBCPEo()
 library(data.table)
 
 bmi <- read_parquet_dt("./inputs/exposure_distributions/bmi")
@@ -97,7 +102,7 @@ names(bmi)
 #> "age" "ethnicity" "qimd" "sex" "sha" "smok_status"
 #> "mu" "sigma" "nu" "tau" "maxq" "minq" "year"
 
-bmi[, mu := mu * 1.10]                       # shift the distribution
+bmi[, mu := mu * 1.10]                       # scale the distribution up by 10%
 
 # IMPORTANT: recompute minq/maxq for the modified parameters (see note below).
 # fpBCPEo is the model's probability function for this exposure (from qfun
@@ -115,21 +120,29 @@ arrow::write_dataset(
 
 > **`minq`/`maxq` are required for continuous exposures.** They are the cached
 > quantile bounds that map a uniform rank onto the truncated
-> `[min_value, max_value]` range. The synthpop generator will recompute them in
-> memory if they are missing, **but** the PARF / initial-prevalence code reads
-> them straight from the table — so a custom continuous table that omits them
-> (or ships bounds that don't match its parameters) will error or produce
-> inconsistent starting values. Whenever you change a distribution parameter
-> (`mu`, `sigma`, `nu`, `tau`), recompute `minq`/`maxq` as shown above, using the
+> `[min_value, max_value]` range. The synthpop generator recomputes them in
+> memory if they are missing or do not match the parameters (it checks a
+> random 0.01% of the rows), **but** the PARF generator reads them straight
+> from the table — so a custom continuous table that omits them (or ships
+> bounds that don't match its parameters) will error or produce inconsistent
+> starting values. Whenever you change a distribution
+> parameter (`mu`, `sigma`, `nu`, `tau`) or the exposure's
+> `min_value`/`max_value`, recompute `minq`/`maxq` as shown above, using the
 > exposure's own probability function (`fpBCPEo` here; in general the `q` in the
 > exposure's `qfun` becomes `p`, e.g. `fqBCT` → `fpBCT`). If you leave the
 > distribution parameters untouched, keep the stock `minq`/`maxq` as they are.
 
 ### 3. Point the exposure at your table
 
-In `sim_design_my.yaml`, change only the `file_name`:
+In `sim_design_my.yaml` (a copy of the stock `sim_design.yaml`), change the
+`file_name`, and give the design its own output and synthpop folders:
 
 ```yaml
+output_dir: /mnt/storage_fast/output/my_scenario_bmi_local     # del_outputs() empties it
+synthpop_dir: /mnt/storage_fast/synthpop/my_scenario_bmi_local # never shared with other designs
+
+exposure_definitions:
+  # ... the other exposures, unchanged ...
   - name: bmi
     file_name: tables/bmi_local   # <- YAML-relative path to your table
     var_name: bmi
@@ -141,6 +154,14 @@ In `sim_design_my.yaml`, change only the `file_name`:
     max_value: 70
 ```
 
+Keep `name: bmi` as it is: the model looks the exposure up by that name. Under
+another name the PARF generator falls back to the stock table, and the synthpop
+generator either stops with an error or, for a name that begins with `bmi`
+(R's partial matching of `$`), still reads your table, so the two disagree
+without a warning. The dedicated `synthpop_dir` is not optional: the synthpop
+cache does not know which table built it (see
+[below](#where-the-table-is-read-and-the-caches-to-clear)).
+
 ### 4. Run as usual
 
 ```{r}
@@ -150,15 +171,26 @@ IMPACTncd <- Simulation$new("my_scenario/sim_design_my.yaml")
 # Optional: confirm the exposure resolved to your table
 IMPACTncd$design$exposures$bmi$file_path
 #> ".../my_scenario/tables/bmi_local"
+IMPACTncd$design$xps_table_path("bmi")       # the path the PARF generator reads
+#> ".../my_scenario/tables/bmi_local"
 
+# del_parfs():     the cached PARFs were built from the stock table
+# del_synthpops(): empties synthpop_dir, so use it only on the dedicated folder
+# del_outputs():   summaries are not re-exported just because a table changed
 IMPACTncd$
+  del_parfs()$
+  del_synthpops()$
   del_logs()$
   del_outputs()$
   run(1:2, multicore = TRUE, "sc0")$
   export_summaries(multicore = TRUE)
 ```
 
-Nothing else changes. Every other exposure keeps reading its stock table.
+Every other exposure keeps reading its stock table. Run all of this from the
+repository root and stay there. The YAML-relative table path does not need you
+to `setwd()` into `my_scenario/`, and `run()`, `del_parfs()` and the other
+methods that read or write `./inputs` or `./simulation` stop with an error if
+the working directory has changed since `Simulation$new()`.
 
 ## Using it from Docker
 
@@ -170,38 +202,99 @@ The user setup script bind-mounts your scenario folder into the container:
   -SimDesignYaml /path/to/my_scenario/sim_design_my.yaml
 ```
 
-Because `tables/bmi_local` is resolved relative to the mounted YAML, it points
-at your table inside the container with no further configuration — the same YAML
-that works on your laptop works in the container.
+Inside the container the working directory is `/IMPACTncd_England` and your
+folder is mounted at `scenarios/`, so load the design from there:
 
-## It stays consistent everywhere
+```{r}
+IMPACTncd <- Simulation$new("scenarios/sim_design_my.yaml")
+```
 
-A re-pointed table is used **everywhere** the model reads that exposure — both
-when generating the synthetic population and when generating the PARF
-(Population Attributable Risk Fraction) starting points. Internally the model
-routes those reads through `Design$xps_table_path(<exposure name>)`, which
-returns your table's location. So there is no risk of the synthpop using your
-table while some other stage silently falls back to the stock one.
+`tables/bmi_local` resolves with no further configuration, because the path is
+anchored at the YAML's directory. This works whether `my_scenario/` sits inside
+or outside your checkout. Only when it is outside does the launcher also link
+its files into `/IMPACTncd_England` and set `SIM_DESIGN_YAML`, so
+`Simulation$new(Sys.getenv("SIM_DESIGN_YAML"))` is an alternative in that case
+only.
+
+The caches behave as on the host, with one difference. `synthpop_dir` comes
+from your YAML and is mounted from the host, so it persists between sessions.
+`./simulation/parf/` is part of the image, so every new container starts again
+from the stock PARFs: call `del_parfs()`, as in step 4, in every container
+session that uses a custom table.
+
+## Where the table is read, and the caches to clear
+
+A re-pointed table is read wherever the model *generates* that exposure. The
+synthpop generator reads the exposure's resolved `file_path`, and the PARF
+(Population Attributable Risk Fraction) generator looks the same path up with
+`Design$xps_table_path(<exposure name>)`, so both read your table. Both results
+are cached, however, and neither cache is keyed on the table:
+
+- **Synthetic populations** are saved in `synthpop_dir` under a checksum of 13
+  design scalars (`n`, `num_chunks`, `ageL`, `ageH`, ...), the locality's LSOAs
+  and a hash of the stock inputs recorded in the inputs manifest. Neither
+  `exposure_definitions` nor a table outside `./inputs/` enters it, so a
+  synthpop already in `synthpop_dir` is loaded as it is, with the stock (or an
+  earlier) BMI baked in, and without a warning. Hence the dedicated
+  `synthpop_dir` of step 3, emptied with `del_synthpops()` whenever you create
+  or edit the table. `del_synthpops()` deletes **everything** in
+  `synthpop_dir`, so never call it on a folder shared with other designs or
+  users.
+- **PARFs** are saved in `./simulation/parf/` under a checksum of the
+  relative-risk files and six design scalars, and `run()` reuses any matching
+  PARF it finds there. The published PARFs that `zenodo_download_all()`
+  installs, and those in the Docker image, belong to the stock tables. Call
+  `del_parfs()`
+  before the first run with a custom table, after every edit to it, and again
+  before you go back to the stock tables. The folder is shared by every design
+  run from the same checkout, so do not run a stock and a custom-table design
+  from one checkout at the same time.
 
 ## Getting the schema right
 
 - **Continuous** exposures (`distribution: continuous`) need the join-key
-  columns plus the parameters your `qfun` expects (commonly `mu`, `sigma`, `nu`,
-  `tau`) **and** the `minq`/`maxq` bounds (see the note in step 2 — required by
-  the PARF/initial-prevalence path, and must match your parameters).
-- **Ordinal** exposures need the join-key columns plus the threshold columns.
-- **Binary** exposures need the join-key columns plus the probability column.
+  columns, the stock table's parameter columns (`mu`, `sigma`, `nu`, `tau` for
+  BMI) **and** the `minq`/`maxq` bounds (see the note in step 2 — required by
+  the PARF generator, and must match your parameters). **Keep the stock
+  distribution family.** The synthpop generator uses the YAML `qfun`, but the
+  PARF generator hard-codes each exposure's quantile function and parameter
+  columns (BMI and SBP `fqBCPEo`, total cholesterol `fqBCT`, ...), so changing
+  `qfun` changes the synthetic population only, and nothing reports it as
+  long as the hard-coded parameter columns are present.
+- **Ordinal** exposures need the join-key columns plus the threshold columns,
+  under their stock names (the PARF generator refers to `active_days`' `pa0` to
+  `pa6` by name).
+- **Binary** exposures need the join-key columns plus the probability column,
+  named `mu`: both generators refer to it by that name.
+- The PARF generator renames `smok_status` unconditionally in the BMI, SBP,
+  alcohol, ETS and ex-smoker duration tables, so a custom table for any of
+  them must keep a `smok_status` key column, even if a refit would not
+  otherwise need it.
 
 Open the stock table to see exactly what is expected:
 
 ```{r}
-str(read_parquet_dt("./inputs/exposure_distributions/bmi"))
+str(CKutils::read_parquet_dt("./inputs/exposure_distributions/bmi"))
 # or, columns only, without reading all the data:
 names(arrow::open_dataset("./inputs/exposure_distributions/bmi"))
 ```
 
-Keep the join-key columns and their types identical to the stock table;
-mismatched keys will silently fail to join and produce missing values.
+Keep the join-key columns identical to the stock table: the same types, the
+same factor levels in the same order, every combination of key values, and at
+least the stock range of every integer key (`age`, `year`). Starting from the
+stock table, as in step 2, keeps all of this. What a mismatch does depends on
+the exposure's `join_fn`:
+
+- `lookup_dt` (BMI among them): an incomplete grid always stops with an error.
+  Factor levels that differ from the synthetic population's stop with "has
+  different levels" only when `logs: yes` (the stock default); with
+  `logs: no`, rows are matched by level position and silently take another
+  stratum's parameters (or `NA`). An integer key that does not cover the
+  population's range gives `NA` exposures, flagged by a message and a warning
+  only under `logs: yes`.
+- `absorb_dt`: unmatched keys give `NA` exposures.
+
+Keep `logs: yes` for the first run with a custom table.
 
 ## Quick reference
 
@@ -209,7 +302,11 @@ mismatched keys will silently fail to join and produce missing values.
 - `path/with/slash` → relative to the `sim_design*.yaml` directory (recommended
   for custom tables; Docker-friendly).
 - `/absolute/path` → used as-is.
-- The custom table must match the stock table's schema for that exposure.
-- Re-pointing is honoured in both synthpop and PARF generation.
+- The custom table must match the stock table's schema and distribution family
+  for that exposure.
+- Re-pointing is honoured in both synthpop and PARF generation, but neither
+  cache is keyed on the table: use a dedicated `synthpop_dir`, emptied with
+  `del_synthpops()` after every edit of the table, and call `del_parfs()`
+  whenever you create, edit or stop using a custom table.
 
 See also `vignette("how_to_run_scenarios")` for the broader scenario workflow.

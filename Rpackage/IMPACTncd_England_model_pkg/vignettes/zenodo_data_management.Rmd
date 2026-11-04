@@ -28,11 +28,11 @@ by CERN. This enables:
   identifiers
 - **Version Control**: Track changes to input data over time
 
-The pipeline uses the `zen4R` package to interact with the Zenodo REST API,
-and supports **parquet**, **fst**, and **qs** file formats commonly used in
-the simulation. It can archive both **input data** (exposure distributions,
-disease burden, mortality, etc.) and **simulation outputs** (PARFs, compiled
-RR tables).
+The pipeline uses the `zen4R` package to interact with the Zenodo REST API.
+It archives whole directories as zip files, whatever the format of the files
+inside them (mostly parquet and fst). It can archive both **input data**
+(exposure distributions, disease burden, mortality, etc.) and **simulation
+outputs** (PARFs, compiled RR tables).
 
 ### What is a DOI?
 
@@ -55,19 +55,21 @@ Use the **concept DOI** in your code and share it with collaborators. Cite the
 
 ### 1. Install Required Packages
 
-The following packages are required (they are Suggests in the package):
+The following packages are required (they are not package Imports):
 
 ```{r install-packages}
-# zen4R is the only required Zenodo dependency declared in Suggests.
-# httr2 is used internally by the API fallback path (e.g. listing draft
-# files) but is not declared in DESCRIPTION — install it explicitly.
+# zen4R is the only Zenodo dependency declared in DESCRIPTION (Suggests).
+# httr2 is required for every download, for listing draft files and for the
+# server-side file import used by zenodo_resync_simulation(). It is not
+# declared in DESCRIPTION, but is normally already installed because gh (a
+# package Import) depends on it; installing it explicitly is a harmless
+# safeguard.
 install.packages(c("zen4R", "httr2"))
-# Optional: for secure token storage
-install.packages("keyring")
 ```
 
-(`zip` and `digest` are already pulled in as package Imports — no need to
-install them separately.)
+(`zip` and `digest` are package Imports, and `keyring`, used in
+[Option C](#option-c-keyring-r-package-best-for-windows-or-gui-desktops), is
+installed with `zen4R`, so none of them needs installing separately.)
 
 ### 2. Get a Zenodo Access Token (uploaders only)
 
@@ -94,17 +96,24 @@ share accounts, tokens, or data. See
 Your Zenodo token grants full access to your Zenodo deposits. **Never commit
 tokens to version control!**
 
+The package reads only `ZENODO_TOKEN`, and only when you omit `token`, whether
+or not `sandbox = TRUE`. Always pass the sandbox token explicitly as
+`token = Sys.getenv("ZENODO_SANDBOX_TOKEN")`. Otherwise, if `ZENODO_TOKEN` is
+set, your production token is sent to the sandbox, which rejects it, and the
+connection fails; if it is unset, the connection is anonymous and cannot
+upload.
+
 #### Option A: `pass` — GPG-Encrypted (Recommended for Linux/macOS)
 
 [`pass`](https://www.passwordstore.org/) is a standard Unix password manager
-that stores each secret as a GPG-encrypted file. It works across R sessions,
-Docker builds, and shell scripts — making it the most unified approach.
+that stores each secret as a GPG-encrypted file. It works across R sessions
+and shell scripts, making it the most unified approach.
 
 **Why `pass` is recommended:**
 
 - Tokens are GPG-encrypted at rest (not plaintext)
-- Works in R (via `.Rprofile`), Docker builds (via build script), and CI
-  (GitHub secrets handle CI separately)
+- Works in R (via `.Rprofile`) and in shell scripts (CI uses GitHub secrets
+  instead)
 - `gpg-agent` caches your passphrase so you only unlock once per session
 - No extra R packages required
 
@@ -167,17 +176,29 @@ IMPACTncd$zenodo_connect(
 
 **Docker builds:**
 
-The `docker_build_push.sh` script in the `docker_setup/` directory bundles the
-Zenodo-managed data files that are **already present locally** (downloaded
-beforehand via `zenodo_download_*()`, and listed in the inputs manifest) into
-the image build context. It does **not** download from Zenodo nor read a
-Zenodo token at build time — so make sure the data is downloaded locally first.
+Docker builds need no Zenodo token and never use the data you have downloaded
+locally. The images are built in three layers (prerequisite, data, model).
+The data layer (`Dockerfile.data.IMPACTncdENGL`) downloads the published
+record anonymously at build time, via `docker_setup/download_zenodo_data.R`
+(set `ZENODO_CONCEPT_DOI` in `docker_setup/.env` to use another record), and
+the model image inherits that data. For the data and model images,
+`docker_build_push.sh` builds its context from the files committed at `HEAD`
+(`git archive HEAD`), so uncommitted changes and gitignored data are never
+included. From `docker_setup/`:
 
 ```bash
-# Data must already be present locally (run zenodo_download_all() first)
-cd docker_setup
+# Either build the model image on the published data image (nothing is
+# downloaded from Zenodo; Docker pulls the data image from Docker Hub instead):
+DATA_IMAGE=chriskypri/data.impactncdengl:latest ./docker_build_push.sh Dockerfile.IMPACTncdENGL
+
+# or build every layer locally (each is tagged <name>:local; build only, no push):
+./docker_build_push.sh Dockerfile.prerequisite.IMPACTncdENGL
+./docker_build_push.sh Dockerfile.data.IMPACTncdENGL   # downloads ~13 GB from Zenodo
 ./docker_build_push.sh Dockerfile.IMPACTncdENGL
 ```
+
+Maintainers publish the data layer with `build_push_data.sh`, which always
+pushes to Docker Hub and, on `main`, moves the `:latest` tag.
 
 **Manage your stored tokens:**
 
@@ -261,6 +282,12 @@ token <- kb$get("zenodo_sandbox", username = "token", keyring = "zenodo_keyring"
 
 ## Quick Start
 
+> **Run everything in this vignette from the repository root** (the folder
+> that holds `global.R` and `inputs/`). `Simulation$new()` records that
+> folder, and every `zenodo_*` method that reads or writes local files stops
+> with an error if the working directory has changed since; `setwd()` back to
+> the root and call the method again.
+
 ### Downloading Input Data (New Team Member)
 
 If you're setting up the model for the first time, download the input data
@@ -270,25 +297,36 @@ Zenodo account or token** — just connect and download:
 ```{r download-quickstart}
 library(IMPACTncdEngland)
 
-# Create simulation object (skeleton mode if data is not present yet)
+# Create the simulation object. On a fresh copy it warns that input data are
+# missing; that is expected before the download.
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
 # Connect (no token needed for downloading published data); the production
 # concept DOI 10.5281/zenodo.20812409 is the default.
 IMPACTncd$zenodo_connect()
 
-# Download everything needed to run the model (inputs + PARFs + RR tables)
+# Download everything needed to run the model (inputs + PARFs + RR tables,
+# about 13 GB). The object reloads its data afterwards and is ready to run.
 IMPACTncd$zenodo_download_all()
 ```
 
-For testing the pipeline against the sandbox instead, pass `sandbox = TRUE`
+For testing the pipeline against the sandbox instead, pass
+`token = Sys.getenv("ZENODO_SANDBOX_TOKEN"), sandbox = TRUE`
 (see [Sandbox vs Production](#sandbox-vs-production)).
 
 ### Uploading Input Data (Data Manager)
 
-To share your input data via Zenodo:
+To share your input data via Zenodo, start from a **fresh** `Simulation`
+object. `concept_doi = NULL` does not clear a DOI that an earlier
+`zenodo_connect()`, upload or `zenodo_publish()` set on the same object, so
+the upload would target that record instead of creating a new one (with
+`version` given, as a new version of it, ignoring `title`, `description` and
+`creators`):
 
 ```{r upload-quickstart}
+# Fresh object: no concept DOI or record carried over
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+
 # Connect to sandbox for testing
 IMPACTncd$zenodo_connect(
   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
@@ -304,7 +342,9 @@ IMPACTncd$zenodo_upload_all(
     list(firstname = "Chris", lastname = "Kypridemos",
          orcid = "0000-0002-0746-9229")
   ),
-  version = "1.0.0"
+  version = "1.0.0",
+  # skip the intermediate .qs PARF caches (see "Uploading Simulation Outputs")
+  simulation_exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
 )
 
 # Verify upload
@@ -318,9 +358,12 @@ IMPACTncd$zenodo_publish()
 
 ### Connecting to Zenodo
 
-The `zenodo_connect()` method initializes the Zenodo connection and sets the
-concept DOI. When `sandbox = TRUE`, it automatically defaults to the project's
-sandbox concept DOI (`10.5072/zenodo.442996`):
+The `zenodo_connect()` method creates the object's Zenodo manager if it does
+not exist yet, connects to the Zenodo API and sets the concept DOI. When
+`sandbox = TRUE`, it defaults to the project's sandbox concept DOI
+(`10.5072/zenodo.442996`); otherwise to the published production record
+(`10.5281/zenodo.20812409`). With `token` omitted it reads `ZENODO_TOKEN` and,
+if that is unset, connects anonymously (enough to download published data):
 
 ```{r connect-details}
 # Sandbox (for testing) — default concept DOI is set automatically
@@ -329,27 +372,43 @@ IMPACTncd$zenodo_connect(
   sandbox = TRUE
 )
 
-# Production — specify your real concept DOI (no sandbox flag)
-# IMPACTncd$zenodo_connect(
-#   token       = Sys.getenv("ZENODO_TOKEN"),
-#   concept_doi = "10.5281/zenodo.20812409"  # replace with your real DOI
-# )
+# Production — the published record is the default; a token is only needed
+# to upload or publish
+# IMPACTncd$zenodo_connect(token = Sys.getenv("ZENODO_TOKEN"))
 
-# Archives are created in tempdir() and automatically deleted after upload.
-# To keep archives for inspection, set a custom directory:
-# IMPACTncd$zenodo_connect(sandbox = TRUE, archive_dir = "./my_archives")
-
-# Disable progress bars (useful for non-interactive sessions)
-IMPACTncd$zenodo_connect(sandbox = TRUE, progress = FALSE)
+# archive_dir: where upload archives are built and where downloaded input
+# archives are staged (default: a folder under tempdir()). They are deleted
+# after a successful upload or extraction, so choose it for disk space
+# (about 13 GB), not to keep archives (zenodo_create_archives() leaves its
+# archives in place for inspection). It is honoured only by the call that
+# creates the object's Zenodo manager: once zenodo_connect(),
+# zenodo_create_archives() or zenodo_create_manifest() has run on the object,
+# it is ignored. So pass it on the object's first zenodo_connect(), before
+# either of the other two.
+# IMPACTncd$zenodo_connect(archive_dir = "/mnt/large_disk/zenodo_archives")
 ```
+
+The `progress` argument currently changes nothing but the wording of some log
+messages; the package draws no progress bars of its own.
+
+> **Switching records on the same object does not work as you might expect.**
+> Every `zenodo_connect()` call sets the concept DOI (to the default unless
+> you pass one; `concept_doi = NULL` keeps the previous one), but a record
+> that is already loaded stays loaded, and downloads and file listings go on
+> using it. To work with a different record, or to create a new one, start
+> from a fresh `Simulation` object.
 
 ### Uploading Input Data
 
 The `zenodo_upload_inputs()` method creates zip archives from your input
-directories, creates a Zenodo record (or new version), and uploads them:
+directories and uploads them. With no concept DOI set it creates a new record
+(`title`, `description` and `creators` are then required); with a concept DOI
+set and a `version` given it creates a new version of that record:
 
 ```{r upload-inputs}
-# First-time upload (creates new record)
+# First-time upload (creates a new record). Only on a fresh object connected
+# with concept_doi = NULL (see Quick Start): after the sandbox connect above,
+# which sets the default sandbox DOI, this would make a new version instead.
 IMPACTncd$zenodo_upload_inputs(
   title       = "IMPACTncd England Input Data",
   description = "Exposure distributions, disease burden, mortality, etc.",
@@ -362,7 +421,9 @@ IMPACTncd$zenodo_upload_inputs(
   license  = "cc-by-sa-4.0"
 )
 
-# Upload specific directories only
+# Alternatively, upload specific directories only. On an existing record this
+# makes a version holding ONLY these directories, because a new version starts
+# empty (see "Creating New Versions").
 IMPACTncd$zenodo_upload_inputs(
   directories = c("mortality", "exposure_distributions"),
   version     = "1.0.0",
@@ -376,25 +437,40 @@ IMPACTncd$zenodo_upload_inputs(
 
 ### Uploading Simulation Outputs
 
-After uploading inputs, you can add simulation-generated files (PARFs and
-compiled RR tables) to the **same** Zenodo record:
+After uploading inputs, in the same session and before publishing, you can
+add simulation-generated files (PARFs and compiled RR tables) to the **same**
+draft. `zenodo_upload_simulation()` uploads to the record the object has
+loaded, and a published version cannot take new files:
 
 ```{r upload-simulation}
-# Upload simulation outputs (parf/ and rr/ directories)
-IMPACTncd$zenodo_upload_simulation()
+# Upload simulation outputs (parf/ and rr/ directories). The default file
+# patterns (\\.R$, \\.csv$) keep the intermediate .qs PARF caches that PARF
+# generation leaves in simulation/parf/ (several GB), so exclude them:
+IMPACTncd$zenodo_upload_simulation(
+  exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
+)
 
-# With custom directories or exclusion patterns
+# With custom directories
 IMPACTncd$zenodo_upload_simulation(
   simulation_base = "./simulation",
   directories     = c("parf", "rr"),
-  exclude_file_patterns = c("\\.R$", "\\.csv$")
+  exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
 )
 ```
 
+`simulation/parf/` can hold several `PARF_<disease>_<hash>/` directories for
+one disease (the model removes the old ones only when it regenerates that
+PARF without a cached `.qs` file), and all of them for a disease go into the
+same `parf_PARF_<disease>.zip`. Remove stale ones before uploading; the simplest
+reliable way is `IMPACTncd$del_parfs()` followed by a run, which regenerates
+only the PARFs the current design needs (this can take hours).
+
 ### Uploading Everything at Once
 
-The `zenodo_upload_all()` convenience method combines input and simulation
-uploads in a single call:
+The `zenodo_upload_all()` convenience method runs `zenodo_upload_inputs()`
+and then `zenodo_upload_simulation()` on the same draft. Its file patterns
+are split into `input_exclude_file_patterns` and
+`simulation_exclude_file_patterns`:
 
 ```{r upload-all}
 IMPACTncd$zenodo_upload_all(
@@ -404,28 +480,39 @@ IMPACTncd$zenodo_upload_all(
     list(firstname = "Chris", lastname = "Kypridemos",
          orcid = "0000-0002-0746-9229")
   ),
-  version = "1.0.0"
+  version = "1.0.0",
+  simulation_exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
 )
 ```
 
 ### Creating New Versions
 
-When your input data changes, create a new version of the existing record:
+When your input data changes, create a new version of the existing record.
+**A new version starts empty**: the files of the previous version are not
+carried over. `zenodo_upload_inputs(version = ...)` on its own would
+therefore produce a version holding only the input archives, without the
+PARF and RR archives that `zenodo_download_all()` expects (and, because the
+concept DOI resolves to the latest version, every later download would miss
+them). Use `zenodo_upload_all()` to replace everything, or
+`zenodo_resync_simulation()` ([below](#re-syncing-simulation-archives-parfs-efficiently))
+to replace only simulation archives while carrying the inputs over:
 
 ```{r new-version}
-# Connect with existing concept DOI
+# Connect with existing concept DOI (the default is "10.5072/zenodo.442996";
+# pass concept_doi = "<your concept DOI>" for your own record)
 IMPACTncd$zenodo_connect(
   token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
-  sandbox = TRUE  # concept_doi defaults to "10.5072/zenodo.442996"
+  sandbox = TRUE
 )
 
-# Upload as new version
-IMPACTncd$zenodo_upload_inputs(version = "1.1.0")
+# Upload everything as a new version
+IMPACTncd$zenodo_upload_all(
+  version = "1.1.0",
+  simulation_exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
+)
 
-# Or upload everything as new version
-IMPACTncd$zenodo_upload_all(version = "1.1.0")
-
-# Publish
+# Check, then publish
+IMPACTncd$zenodo_list_files()
 IMPACTncd$zenodo_publish()
 ```
 
@@ -436,8 +523,9 @@ identical — most commonly when a fix alters the PARF cache-key hash, so the
 published PARFs no longer match what the model generates and every user would
 regenerate them on first run. Re-uploading the (often many-GB) inputs just to
 ship new PARFs is wasteful, so `zenodo_resync_simulation()` publishes a new
-version that **re-uploads only the changed archives** and carries every other
-file over server-side:
+version that **re-uploads only the archives of the named simulation
+directories** (all of them, changed or not) and carries every other file over
+server-side:
 
 ```{r resync}
 IMPACTncd$zenodo_connect(
@@ -459,8 +547,11 @@ re-upload), (3) deletes the old target archives from the draft, (4) uploads the
 regenerated ones, and (5) **verifies the inputs were preserved and all target
 archives uploaded before publishing** — otherwise the draft is left
 unpublished and an error is raised. The default `exclude_file_patterns` also
-drops stale pre-parquet `.qs` PARF files so only the current format is shipped.
-As with any publish, dry-run on the sandbox first.
+drops the intermediate `.qs` PARF caches (which PARF generation keeps by
+default), so only the parquet PARF directories are shipped. Every PARF
+directory in `simulation/parf/` is archived, so prune stale ones first (see
+[Uploading Simulation Outputs](#uploading-simulation-outputs)). As with any
+publish, dry-run on the sandbox first.
 
 ### Listing Remote Files
 
@@ -471,34 +562,53 @@ files <- IMPACTncd$zenodo_list_files()
 print(files)
 ```
 
-This also works with draft records (where zen4R's built-in listing may
-return empty results). The method automatically falls back to a direct API
-query.
+This lists the record the object has loaded; pass `concept_doi` to load and
+list another one. It also works with draft records (where zen4R's built-in
+listing may return empty results): the method falls back to a direct API
+query, which needs a token.
 
 ### Downloading Input Data
 
 Downloads zip archives from the Zenodo record and extracts them into
-`./inputs/`. Extraction is **per-file**: by default missing data files are
-added and existing files are kept — so a fresh git clone (whose data
-directories already exist holding git-tracked `.yaml`/`.R` files) still
-receives all the data. Pass `overwrite = TRUE` to replace existing files.
+`./inputs/`. Every selected input archive is downloaded (about 13 GB for all
+of them) and staged in `archive_dir` before any is extracted, even when its
+files are already present. Extraction is then **per-file**: by default
+missing data files are added and existing files are kept — so a fresh git
+clone (whose data directories already exist holding git-tracked `.yaml`/`.R`
+files) still receives all the data. Pass `overwrite = TRUE` to replace
+existing files.
 
 ```{r download-details}
-# Check what's available vs what you have locally
+# Directory-level check against every archive on the record. PARF, RR,
+# root.zip and *_root_files archives always show as missing (they are not
+# extracted as directories under ./inputs), a directory that exists counts
+# as present even if its data files are missing, and `directories` is
+# currently ignored.
 status <- IMPACTncd$zenodo_check_inputs()
 print(status)
 
-# Download missing directories (skips existing ones)
+# Download all input archives; add missing files, keep existing ones
 IMPACTncd$zenodo_download_inputs()
 
-# Download specific directories
+# Download specific directories (a parent name selects its grouped archives)
 IMPACTncd$zenodo_download_inputs(
   directories = c("mortality", "exposure_distributions")
 )
 
-# Force re-download (overwrites local directories)
+# Replace existing files too (read the warning below first)
 IMPACTncd$zenodo_download_inputs(overwrite = TRUE)
 ```
+
+> **Careful with `overwrite = TRUE`.** The archives also carry files that are
+> tracked in git, as they were when the record was uploaded: `root.zip` holds
+> the `inputs/sim_design*.yaml` files, `disease_burden_root_files.zip` the
+> `inputs/disease_burden/*.yaml` files, and `mortality.zip` and
+> `pop_projections.zip` the scripts (and, for mortality, a design file) in
+> those folders (see [Exclude Patterns](#exclude-patterns)). With
+> `overwrite = TRUE` they replace your copies, including any edits to
+> `inputs/sim_design.yaml`. Back up locally edited design files first;
+> afterwards review `git status` and `git diff -- inputs/`, and restore only
+> unintended changes with `git restore <file>`.
 
 ### Downloading PARF and RR Data
 
@@ -530,20 +640,35 @@ The `zenodo_download_all()` convenience method downloads both input data
 **and** simulation outputs in a single call:
 
 ```{r download-all}
-# New team member — connect and download everything
-IMPACTncd$zenodo_connect(
-  token   = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
-  sandbox = TRUE  # concept_doi defaults to "10.5072/zenodo.442996"
-)
+# New team member — connect to the published record (no token) and download
+IMPACTncd$zenodo_connect()
 IMPACTncd$zenodo_download_all()
 
-# Force re-download everything
+# Force re-download everything (read the overwrite warning above first)
 IMPACTncd$zenodo_download_all(overwrite = TRUE)
 ```
 
 This calls `zenodo_download_inputs()` followed by
-`zenodo_download_PARFs_RRs()` internally. Input data goes to `./inputs/`
-and simulation data goes to `./simulation/`.
+`zenodo_download_PARFs_RRs()` internally, then reloads the model's input data
+so the object can run straight away. Input data goes to `./inputs/` and
+simulation data goes to `./simulation/`.
+
+**Updating to a newer data version.** Downloading only adds or replaces
+files; it does not invalidate the caches built from the old data. The cached
+PARFs are not keyed on the disease-burden data or the exposure tables, and
+the model's own clean-up after an input change removes only the `.qs`
+intermediates, not the PARF directories. So when you replace the input data,
+replace the PARFs too, from the same record version, and remove the
+synthetic populations built from the old data:
+
+```{r update-data-version}
+IMPACTncd$del_parfs()                            # remove every cached PARF
+IMPACTncd$zenodo_download_all(overwrite = TRUE)  # new inputs, PARFs and RRs
+# (overwrite = TRUE also replaces git-tracked files; see the warning above.)
+# Then delete the synthpops built from the old data. del_synthpops() deletes
+# EVERYTHING in synthpop_dir, so never use it on a shared folder; a dedicated
+# synthpop_dir for experiments is safer.
+```
 
 ## Advanced: Archive Control
 
@@ -566,7 +691,7 @@ IMPACTncd$zenodo_upload_inputs(
     "^RR$"            # Source RR .csvy files — tracked in git, not Zenodo
   ),
 
-  # Skip individual files matching these regex patterns
+  # Skip LOOSE files matching these regex patterns (see the caveat below)
   exclude_file_patterns = c(
     "\\.R$",     # R scripts
     "\\.Rmd$",   # R Markdown files
@@ -581,7 +706,19 @@ The default exclude patterns are designed for the IMPACTncd project:
 - **Directory patterns**: `^unprocessed$`, `_backup$`, `_old$`, `scripts$`,
   `validation$`, `^RR$`
 - **Input file patterns**: `\\.R$`, `\\.Rmd$`
-- **Simulation file patterns**: `\\.R$`, `\\.csv$`
+- **Simulation file patterns**: `\\.R$`, `\\.csv$` (`zenodo_resync_simulation()`
+  adds `\\.qs$`)
+
+Both kinds of pattern act only while the pipeline decides **what** to
+archive: `exclude_patterns` skips top-level directories and grouped
+subfolders, and `exclude_file_patterns` skips loose files lying directly in
+`inputs/` or in a directory whose subfolders are grouped. Once a directory is
+archived, everything below it goes in, including files that match
+`exclude_file_patterns` and, when every subfolder of a directory is excluded
+(as `inputs/pop_projections/unprocessed/` is), that subfolder too. The
+published `mortality.zip`, for example, contains the git-tracked `.R` scripts
+and `sim_design_mrtl_clbr.yaml` of `inputs/mortality/`, and the `file_count`
+reported for an archive counts only the files that pass the patterns.
 
 `^RR$` excludes the `inputs/RR/` directory because the source `.csvy`
 relative-risk files are **tracked in git** (see `.gitignore` allow-list
@@ -591,27 +728,35 @@ files in `simulation/rr/` are still uploaded to Zenodo via
 
 ### Group-By-Prefix
 
-When `group_by_prefix = TRUE` (the default), subdirectories sharing a common
-prefix are combined into a single archive. This reduces the number of
-individual uploads:
+When `group_by_prefix = TRUE` (the default), the subfolders of a directory
+that share a prefix (everything before their last underscore) are combined
+into a single archive, and the loose files of that directory go into a
+separate `<directory>_root_files.zip`. This reduces the number of individual
+uploads:
 
 ```
 inputs/disease_burden/
-  ├── cancer_2020/    ─┐
-  ├── cancer_2021/    ─┤── disease_burden_cancer.zip
-  ├── cancer_2022/    ─┘
-  ├── chd_2020/       ─┐
-  ├── chd_2021/       ─┤── disease_burden_chd.zip
-  ├── chd_2022/       ─┘
-  └── stroke_2020/    ─── disease_burden_stroke.zip
+  ├── af_dur/         ─┐
+  ├── af_ftlt/        ─┤── disease_burden_af.zip
+  ├── af_incd/        ─┤
+  ├── af_prvl/        ─┘
+  ├── chd_dur/        ─┐
+  ├── chd_ftlt/       ─┤── disease_burden_chd.zip
+  ├── ...             ─┘
+  ├── 0-scripts/      ─── (excluded: matches "scripts$")
+  └── *.yaml          ─── disease_burden_root_files.zip
 ```
 
-Set `group_by_prefix = FALSE` to create one archive per subdirectory instead.
-Note that Zenodo enforces a per-record file limit (100 files at the time of
-writing — an external Zenodo policy, not checked by this package beyond a
-pre-upload guard in the upload methods), so grouping by prefix is recommended
-when a directory has many subdirectories. The upload methods will error before
-uploading if the archive count for a record would exceed 100.
+Set `group_by_prefix = FALSE` to create one archive per top-level directory
+instead (every file under it, loose files included, goes into that archive).
+
+Zenodo allows at most 100 files per record (an external Zenodo policy at the
+time of writing). Only `zenodo_upload_inputs()`, and so the inputs half of
+`zenodo_upload_all()`, checks this before uploading, and it counts the files
+already on the draft plus the new input archives only.
+`zenodo_upload_simulation()` and `zenodo_resync_simulation()` do not check
+it, so keep inputs plus simulation archives under 100 yourself. The current
+record has 91 files: 68 input archives, 22 `parf_PARF_*.zip` and `rr.zip`.
 
 ### Compression Level
 
@@ -619,7 +764,7 @@ The `compression_level` parameter controls the zip compression level (0-9):
 
 | Level | Speed | Size | Use case |
 |-------|-------|------|----------|
-| 0 | Fastest | Largest | Already-compressed files (qs, fst) |
+| 0 | Fastest | Largest | Already-compressed files (parquet, fst) |
 | 6 | Balanced | Medium | **Default** — good for most data |
 | 9 | Slowest | Smallest | When bandwidth is limited |
 
@@ -654,13 +799,15 @@ IMPACTncd$zenodo_upload_inputs(
 
 ### Preview Archives Before Uploading
 
-Create archives without uploading to inspect sizes and contents:
+Create archives without uploading to inspect sizes and contents. They stay in
+`archive_dir`, and `update_gitignore` defaults to `FALSE` here:
 
 ```{r preview-archives}
 # Create archives locally (no Zenodo connection needed)
 archives <- IMPACTncd$zenodo_create_archives()
 
-# Inspect results
+# Inspect results (file_count counts only the files that pass
+# exclude_file_patterns; see "Exclude Patterns")
 print(archives[, .(
   archive    = basename(archive_path),
   size_mb    = round(size_bytes / 1024^2, 1),
@@ -670,60 +817,76 @@ print(archives[, .(
 
 ### Automatic Git Tracking Management
 
-When `update_gitignore = TRUE` (the default for upload methods), two things
-happen automatically:
+When `update_gitignore = TRUE` (the default for the upload methods), two
+things happen automatically:
 
-1. **`.gitignore` update** — Archived data files are added to `.gitignore`
-   using efficient directory/extension patterns (e.g., `inputs/mortality/*.fst`).
-   This prevents new data files from being accidentally committed in the future.
+1. **`.gitignore` update** — Every file inside an archived directory that
+   does not match `exclude_file_patterns` (not only data files) and is not
+   ignored already is added to `.gitignore`, using directory/extension
+   patterns where two or more files share them (e.g.,
+   `inputs/mortality/*.fst`). Loose files archived into `root.zip` or
+   `*_root_files.zip` are not touched.
 
-2. **Git index cleanup** — Any data files that were *already tracked* by git
-   are removed from the git index via `git rm --cached`. This is critical
+2. **Git index cleanup** — Any of those files that were *already tracked* by
+   git are removed from the git index via `git rm --cached`. This is needed
    because `.gitignore` only prevents *new* untracked files from being staged;
    files that were previously committed continue to be tracked regardless of
    `.gitignore` rules. The `--cached` flag means files are **kept on disk** —
    only the git tracking is removed.
 
+With the default patterns this also untracks the git-tracked configuration
+file `inputs/mortality/sim_design_mrtl_clbr.yaml`; committing that change
+would remove it from the repository for everyone. After an upload, check
+`git status`, and for anything that is not data run
+`git restore --staged <file>` and delete its new `.gitignore` line (or add
+`"\\.yaml$"` to the file patterns before uploading).
+
 After uploading to Zenodo, your data files live in two places: on your local
 disk (for the model to use) and on Zenodo (for reproducibility and sharing).
-Anyone cloning the repository will need to run `zenodo_download_inputs()` or
-`zenodo_download_PARFs_RRs()` to get the data files.
+Anyone cloning the repository will need to run `zenodo_download_all()` (or
+`zenodo_download_inputs()` and `zenodo_download_PARFs_RRs()`) to get the
+data files.
 
 ## Input Directory Structure
 
-The pipeline archives each top-level directory in `./inputs/` separately:
+With the defaults (`group_by_prefix = TRUE`), the pipeline turns the
+directories below into these archives (names as on the published record):
 
 ```
 inputs/
-├── exposure_distributions/    -> exposure_distributions.zip
-│   ├── bmi/
-│   ├── smoking/
-│   └── ...
-├── disease_burden/            -> disease_burden_*.zip (grouped by prefix)
-│   ├── chd_incd/
-│   ├── stroke_prvl/
-│   └── ...
-├── mortality/                 -> mortality.zip
+├── exposure_distributions/    -> exposure_distributions_<prefix>.zip
+│   ├── bmi/                      (exposure_distributions_bmi.zip)
+│   ├── smok_cig_curr/            (with smok_cig_ex/:
+│   ├── smok_cig_ex/               exposure_distributions_smok_cig.zip)
+│   └── 0-scripts/                (excluded)
+├── disease_burden/            -> disease_burden_<disease>.zip
+│   ├── af_dur/ af_incd/ ...      (disease_burden_af.zip)
+│   └── *.yaml                    (disease_burden_root_files.zip)
+├── mortality/                 -> mortality.zip (no subfolders: archived whole)
+├── pop_estimates_lsoa/        -> pop_estimates_lsoa_LSOA_<...>.zip
+│   ├── LSOA_mid_year_population_estimates/
+│   ├── LSOA_1st_April_population_estimates/
+│   └── *.fst                     (pop_estimates_lsoa_root_files.zip)
+├── pop_projections/           -> pop_projections.zip (archived whole)
+├── aux_data/                  -> aux_data.zip
 ├── RR/                        (NOT archived — tracked in git instead;
 │   ├── bmi~chd.csvy            see "Two RR locations" note below)
 │   └── ...
-├── pop_estimates_lsoa/        -> pop_estimates_lsoa.zip
-├── pop_projections/           -> pop_projections.zip
-└── aux_data/                  -> aux_data.zip
+└── sim_design*.yaml           -> root.zip (loose files in inputs/)
 
 simulation/
-├── parf/                      -> parf_*.zip (grouped by disease prefix)
-│   ├── PARF_af_<hash>.qs
-│   ├── PARF_chd_<hash>.qs
+├── parf/                      -> parf_PARF_<disease>.zip (grouped by disease)
+│   ├── PARF_af_<hash>/           (parquet dataset directory)
+│   ├── PARF_af_<hash>.qs         (intermediate cache: exclude it)
 │   └── ...
 └── rr/                        -> rr.zip
-    ├── chd.fst
-    ├── stroke.fst
+    ├── rr_bmi~chd_l.fst
+    ├── rr_bmi~chd_indx.fst
     └── ...
 ```
 
-Each archive contains the full directory structure, so extraction recreates
-the correct paths.
+Each archive stores paths relative to `inputs/` (or `simulation/`), so
+extraction recreates the correct paths.
 
 ### Two RR locations
 
@@ -733,7 +896,7 @@ strategies:
 | Location | Contents | Storage |
 |----------|----------|---------|
 | `inputs/RR/` | Source CSVY files (e.g. `bmi~chd.csvy`) — small, human-readable | **Git** (allow-listed in `.gitignore`) |
-| `simulation/rr/` | Compiled `.fst` files generated from the CSVYs — large, binary | **Zenodo** (via `zenodo_upload_simulation()`) |
+| `simulation/rr/` | Compiled `.fst` files generated from the CSVYs (e.g. `rr_bmi~chd_l.fst`, `rr_bmi~chd_indx.fst`) — large, binary | **Zenodo** (via `zenodo_upload_simulation()`) |
 
 This is why `^RR$` is in the default `exclude_patterns` for input uploads:
 the source files belong in version control, not Zenodo.
@@ -749,7 +912,7 @@ before uploading or downloading data.
 | **Purpose** | Development and testing | Permanent archiving and citation |
 | **Web UI** | [sandbox.zenodo.org](https://sandbox.zenodo.org/) | [zenodo.org](https://zenodo.org/) |
 | **Account** | Separate registration required | Separate registration required |
-| **Token env var** | `ZENODO_SANDBOX_TOKEN` | `ZENODO_TOKEN` |
+| **Token env var** | `ZENODO_SANDBOX_TOKEN` (pass it as `token =`; the package never reads it itself) | `ZENODO_TOKEN` (read automatically when `token` is omitted) |
 | **DOI prefix** | `10.5072/zenodo.XXXXXX` | `10.5281/zenodo.XXXXXX` |
 | **Data permanence** | Periodically wiped — records may disappear | Permanent — published records cannot be deleted |
 | **Publishable** | Yes, but DOIs do not resolve publicly | Yes — DOIs are globally resolvable and citable |
@@ -759,10 +922,12 @@ before uploading or downloading data.
 
 The DOI prefix tells you instantly which system a record belongs to:
 
-- **`10.5072/zenodo.442996`** — This is a **sandbox** DOI. It only works
-  with `sandbox = TRUE` and the sandbox token.
-- **`10.5281/zenodo.20812409`** — This is a **production** DOI. It only
-  works with `sandbox = FALSE` (the default) and the production token.
+- **`10.5072/zenodo.442996`** — This is a **sandbox** DOI: use it with
+  `sandbox = TRUE`. Downloading its published versions needs no token;
+  uploading or publishing needs the sandbox token.
+- **`10.5281/zenodo.20812409`** — This is a **production** DOI: use it with
+  `sandbox = FALSE` (the default). Downloading needs no token; uploading or
+  publishing needs the production token.
 
 A sandbox DOI will **not** resolve on production Zenodo and vice versa.
 Using a sandbox DOI without `sandbox = TRUE` will give a "Record not
@@ -795,7 +960,8 @@ IMPACTncd$zenodo_connect(
   sandbox = TRUE
 )
 
-# Override the default sandbox DOI if needed
+# Override the default sandbox DOI if needed (on an object that has not yet
+# loaded a record; see "Connecting to Zenodo")
 IMPACTncd$zenodo_connect(
   token       = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
   sandbox     = TRUE,
@@ -807,8 +973,8 @@ IMPACTncd$zenodo_connect(
 
 Production is the default. `zenodo_connect()` with no arguments uses the
 published IMPACTncd England input-data concept DOI
-(`10.5281/zenodo.20812409`) and connects anonymously (no token needed to
-download published data):
+(`10.5281/zenodo.20812409`) and, unless `ZENODO_TOKEN` is set, connects
+anonymously (no token needed to download published data):
 
 ```{r production-connect}
 # Simplest: defaults to the published production record, no token
@@ -836,7 +1002,12 @@ and create a personal access token with `deposit:write` and
 
 **2. Upload to production (first time — creates a new record)**
 
+Use a fresh `Simulation` object, so that no DOI or record from the sandbox
+tests is carried over:
+
 ```{r transition-upload}
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")  # fresh object
+
 IMPACTncd$zenodo_connect(
   token       = Sys.getenv("ZENODO_TOKEN"),
   concept_doi = NULL  # no existing production record yet
@@ -849,19 +1020,23 @@ IMPACTncd$zenodo_upload_all(
     list(firstname = "Chris", lastname = "Kypridemos",
          orcid = "0000-0002-0746-9229")
   ),
-  version = "1.0.0"
+  version = "1.0.0",
+  simulation_exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
 )
 ```
 
 **3. Note your new production concept DOI**
 
-After uploading, the record object contains your new concept DOI. Save it
-— you will use it for all future connections and share it with
-collaborators:
+Save it — you will use it for all future connections and share it with
+collaborators. With `logs: yes` in the design file it is printed when the
+record is created and again when it is published; once published, the
+record's Zenodo page shows it too:
 
 ```{r transition-doi}
-# The concept DOI is reported in the create_new_record/publish log messages.
-# You can also see all versions and their DOIs:
+# Creating the record prints, among other messages:
+#   Concept DOI: 10.5281/zenodo.NNNN
+# zenodo_get_versions() lists only PUBLISHED versions and their VERSION DOIs:
+# it is empty until the first publish and never shows the concept DOI.
 IMPACTncd$zenodo_get_versions()
 ```
 
@@ -878,12 +1053,12 @@ IMPACTncd$zenodo_publish()
 
 **5. Share with collaborators**
 
-Collaborators now download from production using your concept DOI:
+Collaborators now download from production using your concept DOI; no token
+is needed once the record is published:
 
 ```{r transition-download}
 IMPACTncd$zenodo_connect(
-  token       = Sys.getenv("ZENODO_TOKEN"),
-  concept_doi = "10.5281/zenodo.20812409"  # replace with your real DOI
+  concept_doi = "10.5281/zenodo.NNNN"  # the concept DOI noted in step 3
 )
 IMPACTncd$zenodo_download_all()
 ```
@@ -894,7 +1069,9 @@ collaborators automatically get the most recent data when they download.
 ## The ZenodoAssetManager Class
 
 Under the hood, the Simulation class delegates to a `ZenodoAssetManager`
-R6 class. You can use it directly for more control:
+R6 class. You can use it directly for more control. It does not check the
+working directory: its relative paths (`./inputs`, `./simulation/...`)
+resolve against wherever R is when each method runs.
 
 ```{r direct-manager}
 library(IMPACTncdEngland)
@@ -906,14 +1083,11 @@ zam <- ZenodoAssetManager$new(
   sandbox   = TRUE
 )
 
-# Connect
+# Connect and set the concept DOI
 zam$connect(token = Sys.getenv("ZENODO_SANDBOX_TOKEN"))
-zam$set_progress_callback(upload = TRUE, download = TRUE)
-
-# Set concept DOI
 zam$set_concept_doi("10.5072/zenodo.442996")
 
-# Get record info
+# Get record info (the latest PUBLISHED version)
 zam$get_record()
 print(zam$record)
 
@@ -931,35 +1105,53 @@ archives <- zam$create_input_archives(
   compression_level     = 6L,
   multicore             = TRUE,
   n_cores               = 10L,
-  update_gitignore      = TRUE
+  update_gitignore      = FALSE  # TRUE also edits .gitignore and the git index
 )
 
-# Upload individual archives
-for (i in seq_len(nrow(archives))) {
-  zam$upload_archive(archives$archive_path[i])
-}
+# Uploads need a DRAFT: the published record loaded above cannot take files.
+# A new version starts EMPTY, so carry the previous files over and drop the
+# ones being replaced, or the published version would hold only these archives.
+zam$create_new_version("1.1.0")
+zam$import_previous_files()   # server-side copy, no re-upload
+# upload_archives() skips names already on the draft, so delete the old copies
+zam$delete_draft_files(basename(archives$archive_path))
+zam$upload_archives(archives$archive_path)  # verify-and-resume
+zam$list_remote_files()                     # check before publishing
+# zam$publish_record()                      # IRREVERSIBLE
 ```
+
+For a brand-new record, call `zam$create_new_record(title, description,
+creators)` and then `zam$upload_archives(...)`.
 
 ## Hash Manifests
 
 The pipeline uses file hashes (xxhash64) to detect changes:
 
 ```{r manifests}
-# Create a manifest of all input files
-manifest <- IMPACTncd$zenodo_create_manifest()
+# Hash manifest of the input data files (.parquet, .fst, .csv, .csvy and .yaml
+# by default; other files are not hashed). save = TRUE would write
+# ./simulation/zenodo_manifest.csv, which every input upload
+# (zenodo_upload_inputs() or zenodo_upload_all()) overwrites with an
+# archive-level manifest, so keep it FALSE here.
+manifest <- IMPACTncd$zenodo_create_manifest(save = FALSE)
 print(manifest)
 
-# The ZenodoAssetManager also provides lower-level manifest operations:
+# The ZenodoAssetManager also provides lower-level manifest operations. Keep a
+# baseline in its own file and compare against it later:
 zam <- ZenodoAssetManager$new()
+baseline_file <- "./simulation/inputs_hash_baseline.csv"
+zam$save_manifest(zam$compute_manifest("./inputs"), path = baseline_file)
 
-manifest <- zam$compute_manifest("./inputs", recursive = TRUE)
-zam$save_manifest(manifest)
-
-old_manifest <- zam$load_manifest()
-diff <- zam$compare_manifests(manifest, old_manifest)
+# ... later, after changing some inputs:
+diff <- zam$compare_manifests(
+  zam$compute_manifest("./inputs"),
+  zam$load_manifest(baseline_file)
+)
 print(diff$modified)  # Files that changed
 print(diff$added)     # New files
 print(diff$removed)   # Deleted files
+
+# Pass file_patterns to compute_manifest() to hash other file types too.
 ```
 
 ## Troubleshooting
@@ -970,7 +1162,8 @@ print(diff$removed)   # Deleted files
 
 ```r
 # Solution: Call zenodo_connect() first
-IMPACTncd$zenodo_connect(sandbox = TRUE)
+IMPACTncd$zenodo_connect()  # production; for the sandbox pass
+                            # token = Sys.getenv("ZENODO_SANDBOX_TOKEN"), sandbox = TRUE
 ```
 
 **2. "... requires a Zenodo token, but the manager is connected anonymously"**
@@ -979,16 +1172,18 @@ Downloading works anonymously, but uploading/publishing needs a token.
 Reconnect with a token:
 
 ```r
-# Solution: Set environment variable or pass token directly
-Sys.setenv(ZENODO_TOKEN = "your_token")
+# Solution: pass the token directly (store it as described in
+# "Secure Token Management")
 IMPACTncd$zenodo_connect(token = Sys.getenv("ZENODO_TOKEN"))
 # (use ZENODO_SANDBOX_TOKEN and sandbox = TRUE for the sandbox)
 ```
 
 **3. "Record not found for DOI"**
 
+Check that the `sandbox` flag matches the DOI prefix (`10.5072` = sandbox,
+`10.5281` = production) and that you passed the concept DOI, not a URL:
+
 ```r
-# Solution: Verify DOI format (should be the concept DOI, not a URL)
 # Correct: "10.5072/zenodo.442996"
 # Wrong:   "https://doi.org/10.5072/zenodo.442996"
 IMPACTncd$zenodo_set_doi("10.5072/zenodo.442996")
@@ -1006,25 +1201,46 @@ query. If you still get 403, ensure your token has the correct scopes
 zen4R's `listFiles(pretty = TRUE)` can return empty results for **draft**
 records on the new Zenodo InvenioRDM backend. The `zenodo_list_files()` method
 handles this automatically by falling back to a direct API query to
-`/api/records/{id}/draft/files`.
+`/api/records/{id}/draft/files`, which needs a token (draft files are not
+visible anonymously).
 
 **6. "Missing publisher field required for DOI registration"**
 
 This error occurs when publishing. The `publisher` metadata field is required
 by Zenodo's InvenioRDM backend for DOI registration. It defaults to
-`"Zenodo"` in `zenodo_upload_inputs()`, so this should only happen if you
-created the record manually via the ZenodoAssetManager.
+`"Zenodo"` in `zenodo_upload_inputs()`, `zenodo_upload_all()` and
+`ZenodoAssetManager$create_new_record()`, so this should arise only for a
+draft created outside the package (on the Zenodo website or with zen4R
+directly). Setting it on the local record object is not enough: push the
+metadata to the draft before publishing.
 
 ```r
-# Fix: Set publisher on the record before publishing
-manager$record$setPublisher("Zenodo")
+# Fix (direct manager `zam`): set the publisher, update the server-side draft,
+# then publish
+zam$record$setPublisher("Zenodo")
+zam$record <- zam$zenodo$depositRecord(zam$record, publish = FALSE)
+zam$publish_record()
 ```
 
 **7. Upload shows progress but fails silently**
 
 zen4R may show "No bucket link" warnings and `x` markers during upload, but
-the files may actually be uploaded successfully. Always verify with
-`zenodo_list_files()` after uploading.
+the files may actually be uploaded successfully. The upload methods check the
+remote file list afterwards, retry missing archives, and stop with
+"Upload incomplete" if any is still missing, leaving the draft unpublished.
+Re-running `zenodo_upload_simulation()` in the same session resumes it
+(archives already on the draft are skipped); re-running
+`zenodo_upload_inputs()` or `zenodo_upload_all()` with `version` asks Zenodo
+for a new version again rather than resuming, so check the draft with
+`zenodo_list_files()` first. `zam$upload_archive()` does not check, so after
+using it directly verify with `zam$list_remote_files()`.
+
+**8. An error saying the working directory has changed**
+
+A `zenodo_*` method that reads or writes local files was called from a
+different folder from the one `Simulation$new()` recorded (the repository
+root). The message names both folders; `setwd()` back to the root and call
+the method again.
 
 ### Network Issues
 
@@ -1033,7 +1249,7 @@ For slow connections or large files:
 ```r
 # Download specific directories first (start with smaller ones)
 IMPACTncd$zenodo_download_inputs(
-  directories = c("mortality", "RR")
+  directories = c("mortality", "aux_data")  # small archives first
 )
 ```
 
@@ -1075,7 +1291,8 @@ IMPACTncd$zenodo_upload_all(
     list(firstname = "Chris", lastname = "Kypridemos",
          orcid = "0000-0002-0746-9229")
   ),
-  version = "1.0.0"
+  version = "1.0.0",
+  simulation_exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
 )
 
 # 5. Verify — check file count and sizes look correct
@@ -1085,17 +1302,27 @@ cat("Uploaded", nrow(files), "files\n")
 # 6. Publish sandbox record (safe — sandbox records are not permanent)
 IMPACTncd$zenodo_publish()
 
-# 7. Test download in a clean directory to confirm the round-trip works
-IMPACTncd$zenodo_download_all(overwrite = TRUE)
+# 7. Confirm the round trip from a FRESH clone of the repository, not from
+#    this working tree (overwrite = TRUE here would replace git-tracked files;
+#    see "Downloading Input Data"). In the clone, from its root, with the
+#    concept DOI of the new sandbox record:
+#    IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
+#    IMPACTncd$zenodo_connect(token = Sys.getenv("ZENODO_SANDBOX_TOKEN"),
+#                             sandbox = TRUE,
+#                             concept_doi = "10.5072/zenodo.NNNN")
+#    IMPACTncd$zenodo_download_all()
 ```
 
 ### Step 2: Publish to Production
 
-Once you're confident the pipeline works, repeat on production. This
-creates a **permanent, citable record** — the DOI cannot be retracted.
+Once you're confident the pipeline works, repeat on production from a fresh
+`Simulation` object (the sandbox object still holds the sandbox DOI and
+record). This creates a **permanent, citable record** — the DOI cannot be
+retracted.
 
 ```{r workflow-production}
-# Connect to production (no existing record)
+# Fresh object, then connect to production (no existing record)
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 IMPACTncd$zenodo_connect(
   token       = Sys.getenv("ZENODO_TOKEN"),
   concept_doi = NULL  # first upload — creates a new production record
@@ -1114,7 +1341,8 @@ IMPACTncd$zenodo_upload_all(
     list(firstname = "Chris", lastname = "Kypridemos",
          orcid = "0000-0002-0746-9229")
   ),
-  version = "1.0.0"
+  version = "1.0.0",
+  simulation_exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
 )
 
 # Verify upload
@@ -1122,9 +1350,9 @@ files <- IMPACTncd$zenodo_list_files()
 cat("Uploaded", nrow(files), "files\n")
 
 # IMPORTANT: Save your concept DOI before publishing!
-# You will need it for all future connections.
-# The concept DOI is visible on the Zenodo web UI for the draft record,
-# or in: IMPACTncd$zenodo_get_versions()
+# You will need it for all future connections. With logs: yes it was printed
+# as "Concept DOI: ..." when the record was created; zenodo_get_versions()
+# cannot show it.
 
 # Publish (IRREVERSIBLE — the DOI becomes permanent)
 IMPACTncd$zenodo_publish()
@@ -1133,20 +1361,16 @@ IMPACTncd$zenodo_publish()
 ### New Team Member (Downloading Data)
 
 Share your **production concept DOI** with collaborators. They download
-with:
+with no token:
 
 ```{r workflow-download}
 library(IMPACTncdEngland)
 IMPACTncd <- Simulation$new("./inputs/sim_design.yaml")
 
-# Connect to production with the project's concept DOI
+# Connect to production with the project's concept DOI (the default)
 IMPACTncd$zenodo_connect(
-  token       = Sys.getenv("ZENODO_TOKEN"),
-  concept_doi = "10.5281/zenodo.20812409"  # replace with real concept DOI
+  concept_doi = "10.5281/zenodo.20812409"
 )
-
-# Check what's available
-status <- IMPACTncd$zenodo_check_inputs()
 
 # Download everything (inputs + pre-computed PARFs + RR tables)
 IMPACTncd$zenodo_download_all()
@@ -1154,14 +1378,15 @@ IMPACTncd$zenodo_download_all()
 # Or download only inputs (if you want to generate PARFs/RR yourself)
 # IMPACTncd$zenodo_download_inputs()
 
-# Run simulation
+# Run simulation (see vignette("how_to_test_run"))
 IMPACTncd$run(mc = 1:10, multicore = TRUE, scenario_nam = "sc0")
 ```
 
 ### Publishing Updated Data (New Version)
 
 When input data changes, create a new version of the **existing**
-production record:
+production record. A new version starts empty, so upload everything (or use
+`zenodo_resync_simulation()` when only simulation archives changed):
 
 ```{r workflow-update}
 # Connect with existing production concept DOI
@@ -1170,8 +1395,11 @@ IMPACTncd$zenodo_connect(
   concept_doi = "10.5281/zenodo.20812409"  # your production concept DOI
 )
 
-# Upload as new version (creates new version of existing record)
-IMPACTncd$zenodo_upload_all(version = "1.1.0")
+# Upload as new version (inputs + simulation archives)
+IMPACTncd$zenodo_upload_all(
+  version = "1.1.0",
+  simulation_exclude_file_patterns = c("\\.R$", "\\.csv$", "\\.qs$")
+)
 
 # Verify and publish
 IMPACTncd$zenodo_list_files()
@@ -1185,38 +1413,45 @@ IMPACTncd$zenodo_get_versions()
 
 ### Simulation Class Methods
 
+All of these except `zenodo_set_doi()`, `zenodo_publish()`,
+`zenodo_list_files()` and `zenodo_get_versions()` check the working directory
+first, and stop with an error if it has changed since `Simulation$new()`.
+
 | Method | Description |
 |--------|-------------|
-| `zenodo_connect(token, concept_doi, sandbox, archive_dir, progress)` | Connect to Zenodo and set concept DOI |
-| `zenodo_set_doi(concept_doi)` | Change the concept DOI after connecting |
-| `zenodo_check_inputs(input_base, directories)` | Check local vs remote sync status |
+| `zenodo_connect(token, concept_doi, sandbox, archive_dir, progress)` | Connect to Zenodo and set the concept DOI (`archive_dir` is used only if this call creates the object's Zenodo manager; `progress` currently has no effect) |
+| `zenodo_set_doi(concept_doi)` | Change the concept DOI before any record is loaded (an already-loaded record keeps being used; create a fresh Simulation object to switch records) |
+| `zenodo_check_inputs(input_base, directories)` | Directory-level check of local vs remote archives (`directories` is currently ignored) |
 | `zenodo_download_inputs(input_base, directories, overwrite)` | Download and extract input archives |
 | `zenodo_download_PARFs_RRs(simulation_base, directories, overwrite)` | Download and extract simulation archives |
-| `zenodo_download_all(input_base, ..., simulation_base, ..., overwrite)` | Download inputs + simulation in one call |
+| `zenodo_download_all(input_base, input_directories, simulation_base, simulation_directories, overwrite)` | Download inputs + simulation in one call, then reload the data |
 | `zenodo_upload_inputs(input_base, ..., publish)` | Create archives and upload inputs |
-| `zenodo_upload_simulation(simulation_base, directories, ...)` | Upload simulation outputs (PARF, RR) |
+| `zenodo_upload_simulation(simulation_base, directories, ...)` | Upload simulation outputs (PARF, RR) to the loaded draft |
 | `zenodo_upload_all(input_base, simulation_base, ..., publish)` | Upload inputs + simulation in one call |
 | `zenodo_resync_simulation(version, directories, ..., publish)` | New version re-uploading ONLY changed simulation archives (e.g. PARFs); imports unchanged inputs server-side |
 | `zenodo_publish()` | Publish the draft record (**irreversible!**) |
-| `zenodo_list_files(concept_doi)` | List all files in the current record |
-| `zenodo_get_versions()` | Get version history with DOIs |
+| `zenodo_list_files(concept_doi)` | List all files in the loaded record (or in the record of `concept_doi`) |
+| `zenodo_get_versions()` | List published versions and their version DOIs |
 | `zenodo_create_archives(input_base, ...)` | Create archives locally (no upload) |
-| `zenodo_create_manifest(input_base, save)` | Create file hash manifest |
+| `zenodo_create_manifest(input_base, save)` | Create a file hash manifest (`save = TRUE` overwrites `./simulation/zenodo_manifest.csv`) |
 
 ### Archive Creation Parameters
 
-These parameters are available in `zenodo_upload_inputs()`,
-`zenodo_upload_all()`, and `zenodo_create_archives()`:
+These parameters are available in `zenodo_upload_inputs()` and
+`zenodo_create_archives()`. `zenodo_upload_all()` takes the same set, except
+that the file patterns are split into `input_exclude_file_patterns` (default
+`c("\\.R$", "\\.Rmd$")`) and `simulation_exclude_file_patterns` (default
+`c("\\.R$", "\\.csv$")`):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `exclude_patterns` | `c("^unprocessed$", "_backup$", "_old$", "scripts$", "validation$", "^RR$")` | Regex patterns for directories to skip |
-| `exclude_file_patterns` | `c("\\.R$", "\\.Rmd$")` | Regex patterns for files to skip |
+| `exclude_file_patterns` | `c("\\.R$", "\\.Rmd$")` | Regex patterns for loose files to skip (see [Exclude Patterns](#exclude-patterns)) |
 | `group_by_prefix` | `TRUE` | Combine subdirectories by shared prefix |
 | `compression_level` | `6` | Zip compression (0=store, 9=max) |
 | `multicore` | `TRUE` | Parallel archive creation |
 | `n_cores` | `clusternumber` from YAML | Number of CPU cores |
-| `update_gitignore` | `TRUE` | Auto-update .gitignore and remove tracked data files from git index |
+| `update_gitignore` | `TRUE` (`FALSE` in `zenodo_create_archives()`) | Auto-update .gitignore and remove tracked files from the git index |
 
 ## References
 

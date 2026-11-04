@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 The IMPACTncd simulation relies on thousands of input files — relative risk
 tables, population projections, exposure distributions, mortality data, and
 disease burden statistics. When any of these files changes, the simulation
-must regenerate the downstream artifacts that depend on them: synthetic
+must regenerate the downstream artefacts that depend on them: synthetic
 populations (synthpops), compiled relative risk (RR) `.fst` files, and
 Population Attributable Risk Fraction (PARF) files.
 
@@ -28,9 +28,13 @@ The **Inputs Manifest System** provides a unified mechanism to:
 
 1. **Track** all input files with their checksums
 2. **Detect** which files have changed since the last simulation run
-3. **Map** file changes to affected downstream artifacts using the model's
+3. **Map** file changes to affected downstream artefacts using the model's
    causal structure
-4. **Trigger** automatic regeneration of stale artifacts
+4. **Trigger** regeneration of stale artefacts
+
+It covers the common cases but not all of them. If you change model inputs,
+read [What you must regenerate yourself](#what-you-must-regenerate-yourself)
+first: a stale cache gives plausible but wrong results without any error.
 
 This vignette explains the architecture, data flow, and design decisions to
 help new developers understand and extend the system.
@@ -40,7 +44,7 @@ help new developers understand and extend the system.
 ### The problem: fragmented tracking
 
 Before the manifest system, the project used two inconsistent mechanisms for
-tracking input-derived artifacts:
+tracking input-derived artefacts:
 
 | Mechanism | What it tracked | Weaknesses |
 |-----------|----------------|------------|
@@ -63,72 +67,122 @@ with its:
 - **Relative path** (portable across machines)
 - **xxhash64 checksum** (fast and consistent)
 - **File size** and **modification time** (for quick change detection)
-- **Category** (top-level subdirectory: `RR`, `exposure_distributions`, etc.)
-- **Zenodo-managed flag** (whether the file is uploaded to Zenodo or tracked
-  by git)
+- **Category** (top-level subdirectory: `RR`, `exposure_distributions`, etc.;
+  loose files such as `sim_design.yaml` are `root`)
+- **Zenodo-managed flag** (meant to mark the files uploaded to Zenodo; it is
+  `FALSE` for every file in the manifest that `Simulation$new()` writes, see
+  [Zenodo integration](#zenodo-integration))
 
 ## Data flow
 
-The following diagram shows how the manifest integrates with the simulation
-pipeline:
+Where the tracked files and the artefacts live:
 
 ```
- inputs/                   simulation/
- ├── RR/                   ├── inputs_manifest.csv      ← manifest
- ├── exposure_dist/        ├── rr_generation_record.csv  ← tracks RR compilations
- ├── mortality/            ├── parf_generation_record.csv ← tracks PARF generations
- ├── pop_projections/      ├── rr/                       ← compiled RR .fst files
- ├── pop_estimates_lsoa/   ├── parf/                     ← PARF .qs files
- └── disease_burden/       └── synthpop/                  ← synthpop .fst files
+ inputs/                      simulation/
+ ├── RR/                      ├── inputs_manifest.csv                ← the manifest
+ ├── aux_data/                ├── inputs_manifest_at_last_upload.csv ← Zenodo snapshot
+ ├── disease_burden/          ├── rr_generation_record.csv           ← RR compilations
+ ├── exposure_distributions/  ├── parf_generation_record.csv         ← PARF generations
+ ├── mortality/               ├── rr/    ← rr_<xps_name>~<outcome>_{l,indx}.fst
+ ├── pop_estimates_lsoa/      └── parf/  ← PARF_<disease>_<checksum>/ (parquet)
+ ├── pop_projections/                      and PARF_<disease>_<hash>.qs
+ └── sim_design*.yaml
+                              <synthpop_dir>/  (set in the design file)
+                              └── synthpop_<checksum>_<mc>.fst
+```
 
+What `Simulation$new()` does with them:
+
+```
  Simulation$new()
    │
-   ├─ InputsManifest$new() ──► load or generate manifest
+   ├─ Design$new() ─► load_exposure_effects() ─► recompile every RR .fst whose
+   │                                             .csvy MD5 differs from its record
    │
-   ├─ detect_changes(design) ──► compare filesystem vs manifest
-   │    │
-   │    ├─ affected_synthpops?  ──► synthpop checksums change ──► auto-regenerate
-   │    ├─ affected_rr?         ──► delete stale .fst files  ──► auto-regenerate
-   │    └─ affected_diseases?   ──► delete stale PARFs       ──► auto-regenerate
-   │
-   └─ generate() ──► re-scan and save updated manifest
+   └─ complete_data_init()
+        ├─ InputsManifest$new() ─► load the manifest (generate it if missing)
+        ├─ detect_changes(design) ─► compare files on disk with the manifest
+        │    ├─ affected_synthpops? ─► message only; the synthpop checksum
+        │    │                         picks up the new manifest hash
+        │    ├─ affected_rr?        ─► delete rr_<file name>_{l,indx}.fst
+        │    └─ affected_diseases?  ─► file.remove() on PARF_<disease>_*
+        │                              (only the .qs files actually go)
+        └─ generate() ─► re-scan and save the manifest (only if something
+                         changed)
 ```
 
 ### Step-by-step: what happens on `Simulation$new()`
 
-The manifest check runs inside the private `complete_data_init()` method
-(the "Phase 2" data-dependent initialiser). The constructor calls it
-automatically when input data is present, and `zenodo_download_all()` calls
-it after downloading data from Zenodo. This split exists so a `Simulation`
-object can be created before its inputs are downloaded.
+1. `Design$new()` reads the design file and, when input data are present
+   (`./inputs/disease_burden/` exists), loads them. Loading the exposure
+   effects recompiles every RR `.fst` file whose source `.csvy` has changed
+   (see [How RR and PARF staleness works](#how-rr-and-parf-staleness-works)).
 
-1. An `InputsManifest` object is created, pointing at `./inputs/` and
-   `./simulation/inputs_manifest.csv`.
+2. The private `complete_data_init()` method (the "Phase 2" data-dependent
+   initialiser) then runs. The constructor calls it whenever the Design loaded
+   data; `zenodo_download_all()` calls it after a download only if the
+   constructor did not. This split exists so a `Simulation` object can be
+   created before its inputs are downloaded. It creates an `InputsManifest`
+   for `./inputs/` and `./simulation/inputs_manifest.csv`.
 
-2. **First run** (no manifest exists): `generate()` scans all input files,
-   computes their hashes, and saves the manifest. No artifacts are deleted.
+3. **No manifest yet**: `generate()` scans all input files, computes their
+   hashes, and saves the manifest. Nothing is deleted.
 
-3. **Subsequent runs** (manifest exists):
-   a. The existing manifest is loaded
-   b. `detect_changes(design)` compares the filesystem against the manifest
-   c. If changes are found:
-      - Stale compiled RR `.fst` files are deleted
-      - Stale PARF files are deleted
-      - The manifest is regenerated to reflect the current state
-   d. Synthpop staleness is handled differently (see below)
+4. **Manifest exists**: it is loaded and `detect_changes(design)` compares it
+   with the files on disk. If anything changed, the console shows
+   `=== INPUT FILE CHANGES DETECTED ===` with the counts, and then:
+   - compiled RR files named after each changed RR file are deleted;
+   - `file.remove()` is called on `simulation/parf/PARF_<disease>_*` for each
+     affected disease;
+   - the manifest is regenerated, so the same change is not reported again.
 
-4. The existing regeneration logic in `SynthPop`, `ExposureEffect`, and
-   `Disease` classes detects that the files are missing and recreates them.
+   If nothing changed, the manifest is left as it is.
+
+5. Synthpops are never deleted: their checksum includes a hash of the
+   manifest, so a new synthpop is generated under a new name when the
+   relevant inputs change (see
+   [How synthpop staleness works](#how-synthpop-staleness-works)).
+
+These deletions do less than they appear to; the sections below explain why
+and what to do instead.
+
+**Paths and the working directory.** The model resolves `./inputs` and
+`./simulation` against the working directory, which must be the repository
+root. `Design$new()` records it, and the methods that read or write these
+folders (`run()`, `del_parfs()`, `del_RR_cache()`, the `zenodo_*()` methods
+that use local files, `Simulation$new()` given a `Design` object, …) stop
+with an error if it has changed since; `setwd()` back to the folder the
+message names. The RR and PARF generation records are located relative to
+that recorded root. A standalone `InputsManifest$new()`, as in the examples
+below, uses the same relative defaults and has no such check, so create and
+use it from the repository root too.
+
+**Fresh clone.** `./inputs/disease_burden/` is in git (it holds scripts and
+the duration models), so on a fresh clone `Simulation$new()` already counts
+the data as present, loads what it can and writes a manifest of the
+git-tracked files alone. `zenodo_download_all()` reloads the data but does
+not refresh that manifest. The next `Simulation$new()` then reports some
+10,000 added files, flags every disease and removes the `.qs` files in
+`simulation/parf/`, and any synthpop made in the download session carries a
+checksum from the partial manifest, so it is generated again later. Refresh
+the manifest once, straight after the download:
+
+```{r fresh-clone-manifest}
+IMPACTncd$zenodo_download_all()
+IMPACTncd$get_inputs_manifest()$generate()
+```
 
 ## Hashing strategy
 
 ### Why xxhash64?
 
-The `inputs/exposure_distributions/` directory alone can contain 10,000+
-parquet files. Hashing all of them with MD5 would take minutes. `xxhash64`
-(via `digest::digest(file = path, algo = "xxhash64")`) is ~10x faster
-while still providing reliable change detection for our use case (detecting
-accidental or intentional data file changes, not cryptographic security).
+`inputs/` holds over 10,000 data files (about 16 GB; most of the files are
+partitioned parquet under `disease_burden/`). `xxhash64` (via
+`digest::digest(file = path, algo = "xxhash64")`) hashes the model's input
+files about seven times faster than MD5, so a full scan takes about ten
+seconds once the files are in the disk cache. It reliably detects changed
+files; it is not meant for cryptographic security. (The RR and PARF checksums
+described below use MD5, but they hash only a few small `.csvy` files.)
 
 ### The mtime pre-filter
 
@@ -141,166 +195,276 @@ pre-filtering**:
 2. If mtime is unchanged → assume the file is unchanged (fast path)
 3. If mtime differs → re-hash the file and compare against the stored hash
 4. This reduces incremental checks from O(n × hash_time) to
-   O(n × stat_time + m × hash_time), where `m` is the number of actually
-   modified files
+   O(n × stat_time + m × hash_time), where `m` is the number of files whose
+   mtime changed
 
 ### Parallel hashing
 
-When `parallel = TRUE` is passed to `generate()`, hashing is distributed
-across PSOCK cluster workers using `parallelly::makeClusterPSOCK()` +
-`parallel::parLapplyLB()`. The standalone `.manifest_hash_worker()` function
-(defined outside the R6 class) handles the hashing on each worker.
+When `generate(parallel = TRUE)` finds more than 100 files, hashing is
+distributed across PSOCK cluster workers using
+`parallelly::makeClusterPSOCK()` + `parallel::parLapplyLB()`.
+`Simulation$new()` does so whenever `clusternumber` is greater than 1. The
+standalone `.manifest_hash_worker()` function (defined outside the R6 class)
+handles the hashing on each worker.
 
-**Why PSOCK and not forking?** The project avoids `mclapply`/`doParallel`
-because `zip::zip()` uses C internals that are not fork-safe, and R6 objects
-with HTTP connections (e.g., `zen4R::ZenodoManager`) cannot be serialized to
-forked children. PSOCK clusters serialise the function and its data to
-independent R processes, avoiding these issues.
+**Why PSOCK here?** The simulation itself forks: on Linux and macOS, `run()`,
+`export_summaries()`, `export_tables()`, synthpop generation and PARF
+generation use `doParallel::registerDoParallel(n)`. Zenodo archiving cannot,
+because `zip::zip()` uses C internals that are not fork-safe, so it uses PSOCK
+clusters, and manifest hashing follows the same pattern. PSOCK workers are
+separate R processes that receive the function and its data by
+serialisation. That is why they are given standalone functions and plain data
+rather than R6 objects: an R6 object holding an HTTP connection (e.g.
+`zen4R::ZenodoManager`) cannot be serialised. Forked children inherit the
+parent's memory instead and serialise nothing.
 
 ## Causal invalidation
 
-The most sophisticated part of the system is mapping file changes to affected
-downstream artifacts. This is done by `detect_changes()`.
+`detect_changes()` maps file changes to the downstream artefacts they affect.
+This section describes what it flags; the next two describe what then
+actually happens.
 
 ### Category mapping
 
 Each file's **category** is its top-level subdirectory in `inputs/`:
 
-| Category | Affects |
+| Category | Flagged as affected |
 |----------|---------|
-| `pop_estimates_lsoa` | Synthpops |
-| `exposure_distributions` | Synthpops |
-| `mortality` | Synthpops |
-| `pop_projections` | Synthpops |
-| `RR` | Compiled RR `.fst` files and downstream PARFs |
-| `disease_burden` | PARF files (data files only, not `.yaml`) |
+| `pop_estimates_lsoa`, `exposure_distributions`, `mortality`, `pop_projections` | Synthpops (`affected_synthpops`) |
+| `RR` (except `RR/unused/`) | The compiled RR files of the changed `.csvy` (`affected_rr`) and its outcome disease (`affected_diseases`) |
+| `disease_burden` (data only, not `.yaml`) | That disease's PARF (`affected_diseases`) |
+| `aux_data`, `root` | Nothing |
+
+`exposure_distributions` is mapped to synthpops only, although the PARF
+population is drawn from the same tables.
 
 ### Causal graph traversal
 
-When an RR `.csvy` file changes (e.g., `RR/bmi~chd.csvy`), the system:
+When an RR `.csvy` file changes (e.g., `RR/bmi~chd.csvy`), `detect_changes()`:
 
-1. Parses the `exposure~outcome` from the filename → `bmi~chd`
-2. Identifies `chd` as the directly affected disease
-3. Checks `design$RR` names for any edges where `chd` is the *exposure*
-   (e.g., `chd~hf`)
-4. Uses **breadth-first search (BFS)** to find all transitively affected
-   diseases (e.g., `hf`)
-5. Deletes PARF files for all affected diseases
+1. takes the file name without `.csvy` (`bmi~chd`) as the affected RR;
+2. takes the part after `~` (`chd`) as the directly affected disease;
+3. is meant to follow the edges in `names(design$RR)` breadth-first to the
+   diseases that `chd` causes (e.g., `hf`).
 
-This ensures that when a root exposure changes, all downstream diseases in
-the causal chain are correctly regenerated.
+Step 3 currently finds nothing. `names(design$RR)` come from each file's
+header (`<xps_name>~<outcome>`), and a disease used as an exposure has
+`xps_name: <disease>_prvl`, so `chd~hf.csvy` is named `chd_prvl~hf`. Its
+exposure, `chd_prvl`, never equals `chd`, so only the directly affected
+disease is flagged. (`complete_data_init()` strips `_prvl` when it builds its
+own causality graph; `detect_changes()` does not.)
 
 ### What does NOT trigger invalidation
 
-- **`disease_burden/*.yaml` files**: These are informational metadata and are
-  tracked in the manifest but do not trigger PARF regeneration. Only actual
-  data files (`.csv`, `.fst`, etc.) in `disease_burden/` trigger
-  invalidation.
-- **`sim_design*.yaml` files**: Design parameter changes are already handled
-  by the existing design-parameter checksums in the SynthPop class.
+- **`disease_burden/*.yaml` files**: these are the duration models
+  (`duration_distr_forwards` in the design file) that the C++ engine reads on
+  every run. They feed no cached artefact, so there is nothing to invalidate,
+  but editing them does change results.
+- **`sim_design*.yaml` files and other design changes**: the loose
+  `sim_design*.yaml` files in `inputs/` are tracked (category `root`) but
+  flag nothing. A design change renames a cached artefact only through the
+  design parameters in the synthpop and PARF checksums (listed in the next
+  two sections); `exposure_definitions` is in neither.
+- **`aux_data/`**: tracked, but read only by the data-preparation scripts.
 
 ## How synthpop staleness works
 
 Synthpop files embed their checksum in the filename:
-`synthpop_<checksum>_<mc>.fst`. The checksum is computed by
-`SynthPop$gen_checksum()` from:
+`<synthpop_dir>/synthpop_<checksum>_<mc>.fst`. The checksum is computed by the
+private `SynthPop` method `gen_checksum()` from:
 
-- Design parameters (simulation years, age ranges, etc.)
-- The list of LSOAs
-- The **synthpop input hash** from `InputsManifest$get_synthpop_input_hash()`
+- 13 design parameters: `n`, `num_chunks`, `sim_horizon_max`,
+  `init_year_long`, `maxlag`, `smoking_relapse_limit`, `ageL`, `ageH`,
+  `jumpiness`, `keep_simulants_rn`, `simsmok_calibration`,
+  `statin_adherence` and `bpmed_adherence`
+- The list of LSOAs in the locality
+- The **synthpop input hash** from `InputsManifest$get_synthpop_input_hash()`,
+  read from `simulation/inputs_manifest.csv` when the `SynthPop` object is
+  created
 
 The synthpop input hash is an aggregate of all file hashes in the
 `pop_estimates_lsoa`, `exposure_distributions`, `mortality`, and
 `pop_projections` categories. When any file in these categories changes:
 
-1. The aggregate hash changes
-2. The synthpop checksum changes
-3. The synthpop filename changes
-4. The old synthpop file is simply not found by the simulation
-5. `gen_synthpop()` runs automatically (existing logic)
+1. `Simulation$new()` rewrites the manifest
+2. The aggregate hash changes
+3. The synthpop checksum changes
+4. The synthpop filename changes
+5. The old synthpop file is simply not found by the simulation
+6. The `SynthPop` constructor generates a new one
 
-**Backward compatibility**: When no manifest exists (very first run before
-`Simulation$new()` creates one), the input hash is `""` and the checksum
-behaves exactly as before the manifest system was introduced.
+Nothing else enters the checksum. In particular, `exposure_definitions` in the
+design file and exposure tables outside those four folders of `./inputs/`
+(for example a custom table next to the design file) are not tracked, so
+changing them reuses the old synthpops.
+
+**No manifest**: the input hash is then `""`. This is rare, because
+`Simulation$new()` writes the manifest before `run()` creates any synthpop.
+Synthpops made before the manifest system was added (February 2026) never
+match the new checksum and are regenerated once.
 
 ## How RR and PARF staleness works
 
 ### Compiled RR `.fst` files
 
-Each `ExposureEffect` object compiles a `.csvy` source file into optimised
-`.fst` files (`rr_<exposure>~<outcome>_l.fst` and `_indx.fst`). The
-generation record (`simulation/rr_generation_record.csv`) tracks which
-source file and source hash were used for each compilation.
+Each `ExposureEffect` object compiles its `.csvy` source file into
+`simulation/rr/rr_<xps_name>~<outcome>_l.fst` and `_indx.fst`, named after the
+file's header rather than its filename (`chd~hf.csvy` →
+`rr_chd_prvl~hf_l.fst`). They hold `iteration_n_max` Monte Carlo draws of the
+relative risks. The generation record (`simulation/rr_generation_record.csv`)
+stores the MD5 of the `.csvy` each file was compiled from.
 
-When `check_registry_valid()` runs:
-1. It reads the generation record
-2. Computes the current hash of the source `.csvy` file
-3. Compares against the stored `source_hash`
-4. If they differ, the `.fst` files are regenerated
+While `Design$new()` loads the exposure effects, each `ExposureEffect`
+recompiles its files when:
+
+1. either file is missing, or
+2. `check_registry_valid()` finds that the MD5 of the `.csvy` differs from the
+   stored `source_hash`, or
+3. the compiled ages stop below `ageH`.
+
+Nothing else triggers a recompilation. In particular, raising
+`iteration_n_max` above the number of draws in the files (1,000 with the
+stock design files) does not, and reading a higher iteration then fails with
+`Row selection is out of range`.
+
+**After editing an RR file, create the `Simulation` object twice.**
+`complete_data_init()` runs after the Design, so when it sees the changed
+`.csvy` it deletes the files the Design has just recompiled (although the
+console says `RR files to regenerate`), and nothing recompiles them in that
+session. With `stochastic: yes` (as in the stock design files) the next
+`run()` then fails reading them. The second construction recompiles them and
+finds no further changes:
+
+```{r rr-edit}
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml") # after editing RR/bmi~chd.csvy
+IMPACTncd <- Simulation$new("./inputs/sim_design.yaml") # recompiles the deleted RR files
+```
+
+The deletion matches the `.csvy` filename, so it removes nothing when the
+header name differs (every `<disease>~<outcome>.csvy`, and a couple of
+others); constructing twice is harmless either way.
 
 ### PARF files
 
-Similarly, `Disease` objects track their PARF generation in
-`simulation/parf_generation_record.csv`. The PARF checksum incorporates:
-- Design parameters
-- RR file hashes (so RR changes cascade to PARFs)
-- Lag structures and distribution parameters
+Each `Disease` with risk factors and an incidence type of 2 or higher stores
+its PARF as a partitioned-parquet directory,
+`simulation/parf/PARF_<disease>_<checksum>/`, with a `.qs` intermediate (the
+PARF population) beside it. `run()` generates any missing PARF directory
+before the simulation starts. The checksum incorporates:
 
-When `Simulation$new()` detects that an RR file has changed, it proactively
-deletes the affected PARF files. The `Disease` class then detects the missing
-PARFs and regenerates them.
+- six design parameters (`init_year`, which is derived from `init_year_long`,
+  `sim_horizon_max`, `ageL`, `ageH`, `apply_RR_to_mrtl2` and
+  `model_trends_in_residual_incd`)
+- the MD5 of each of the disease's RR `.csvy` files
+- their lags and distributions
+
+`simulation/parf_generation_record.csv` stores the same checksum per disease.
+A change in one of the disease's own RR files, or in one of those design
+parameters, therefore gives it a new PARF directory, which `run()` generates.
+No other input does: the checksum includes neither the disease-burden data
+(although `p0` and `m0` are computed from them) nor the exposure tables the
+PARF population is drawn from.
+
+The deletion in `complete_data_init()` does not make up for this. It calls
+`file.remove()`, which cannot delete a directory (it warns
+`Directory not empty`), so for each flagged disease only the `.qs`
+intermediate goes and the old PARF directory is reused. Clear PARFs yourself
+with `IMPACTncd$del_parfs()`, which deletes everything in `simulation/parf/`;
+they are regenerated at the next `run()`.
+
+The `.qs` intermediate is named after a narrower hash, of the RR files, lags
+and distributions only. A PARF regenerated because a design parameter changed
+therefore reuses the PARF population in the existing `.qs`, which was drawn
+for the old `ageL`, `ageH` and `init_year_long`; `del_parfs()` removes the
+`.qs` files too.
+
+## What you must regenerate yourself
+
+After changing an input, do the following before the next `run()`:
+
+| You changed | Regenerated automatically | Do this yourself |
+|---|---|---|
+| A file in `pop_estimates_lsoa/`, `mortality/` or `pop_projections/` | Synthpops | Nothing |
+| A table in `inputs/exposure_distributions/` | Synthpops | `IMPACTncd$del_parfs()` |
+| An exposure table kept elsewhere (e.g. next to the design file), or `exposure_definitions` in the design file | Nothing | `IMPACTncd$del_parfs()`, and delete this design's synthpops (below) |
+| Disease-burden data (`disease_burden/<disease>_{incd,ftlt,prvl,dur}/`) | Nothing | `IMPACTncd$del_parfs()` |
+| An RR file, `RR/<exposure>~<outcome>.csvy` | The PARF of `<outcome>`; the compiled RR files only on a second construction | Create the `Simulation` object a second time (see above). If `<outcome>` is itself a risk factor (a file `RR/<outcome>~*.csvy` exists), also `IMPACTncd$del_parfs()` |
+| `init_year_long`, `ageL` or `ageH` in the design file | Synthpops; PARFs, but from the old `.qs` PARF population | `IMPACTncd$del_parfs()` |
+| `iteration_n_max`, raised above the draws in the compiled RR files (1,000 with the stock design files) | Nothing | `IMPACTncd$del_RR_cache()`, then create the `Simulation` object again |
+| `disease_burden/*.yaml` (duration models) | Not cached: read on every run | Nothing |
+
+To delete synthpops, `IMPACTncd$del_synthpops()` removes **everything** in
+`synthpop_dir`, so use it only when that folder holds nothing else you need,
+and never on a folder shared with other users. Pointing `synthpop_dir` at a
+dedicated folder for experiments is safer. Outputs already in `output_dir`
+were produced with the old inputs, and `export_summaries()` does not detect
+that, so clear them with `IMPACTncd$del_outputs()` before re-running.
 
 ## Zenodo integration
 
-Not all files in `inputs/` are uploaded to Zenodo. Some small auxiliary files
-are tracked by git instead. The manifest distinguishes between the two via the
-`zenodo_managed` column.
+Not all files in `inputs/` are uploaded to Zenodo. `zenodo_upload_inputs()`
+archives the top-level folders of `inputs/` except `RR/`, which is tracked in
+git and excluded by its default `exclude_patterns` (`"^RR$"`), plus the loose
+files in `inputs/` as `root.zip`. The manifest's `zenodo_managed` column is
+meant to mark the uploaded files, but `Simulation$new()` writes it as `FALSE`
+for every file, and the upload snapshot is a copy of that file. Set the flags
+yourself on any manifest you compare.
 
 ### Marking Zenodo directories
 
 ```{r zenodo-dirs}
-manifest <- InputsManifest$new()
-manifest$generate()
-manifest$set_zenodo_dirs(c(
-  "RR", "exposure_distributions", "disease_burden",
-  "mortality", "pop_projections"
-))
-manifest$save()
+# The folders zenodo_upload_inputs() uploads (all but RR/)
+dirs <- c("aux_data", "disease_burden", "exposure_distributions",
+          "mortality", "pop_estimates_lsoa", "pop_projections")
+manifest <- InputsManifest$new() # ./simulation/inputs_manifest.csv
+manifest$load()
+manifest$set_zenodo_dirs(dirs)   # in memory only
+manifest$get_zenodo_format()     # relative_path and hash of the flagged files
 ```
+
+Do not call `generate()` on `./simulation/inputs_manifest.csv` yourself
+(except for the fresh-clone refresh above): it records the current files as
+already seen, so the next `Simulation$new()` neither reports nor deletes
+anything for input changes made since the last one. Flags you `save()` are
+reset the next time `Simulation$new()` regenerates the manifest.
 
 ### Comparing with last upload
 
-After setting up Zenodo directories, you can check what changed since the
-last upload:
+No `Simulation` method exposes this comparison, so use a standalone manifest
+and manager, with `dirs` as above:
 
 ```{r zenodo-compare}
-# The Simulation class drives this comparison through its own
-# Zenodo methods — the ZenodoAssetManager is a private field
-# (no public accessor). Use a standalone manifest + manager instead:
-manifest <- InputsManifest$new()
-manifest$load()
-manifest$set_zenodo_dirs(c(
-  "RR", "exposure_distributions", "disease_burden",
-  "mortality", "pop_projections"
-))
+# The current files, hashed into a scratch manifest (the live one is left alone)
+now <- InputsManifest$new(manifest_path = tempfile(fileext = ".csv"))
+now$generate()
+now$set_zenodo_dirs(dirs)
 
-zen <- ZenodoAssetManager$new(
-  hash_file = "./simulation/zenodo_manifest.csv"
+# The state at the last upload (committed in git); its stored flags are all
+# FALSE, so set them here too
+snap <- InputsManifest$new(
+  manifest_path = "./simulation/inputs_manifest_at_last_upload.csv"
 )
-diff <- zen$compare_with_inputs_manifest(manifest)
+snap$load()
+snap$set_zenodo_dirs(dirs)
 
-if (!is.null(diff)) {
-  cat("Files changed since last upload:", length(diff$modified), "\n")
-  cat("New files:", length(diff$added), "\n")
-}
+zen <- ZenodoAssetManager$new(logs = FALSE)
+diff <- zen$compare_manifests(now$get_zenodo_format(), snap$get_zenodo_format())
+lengths(diff) # numbers of added, removed, modified and unchanged files
 ```
+
+`ZenodoAssetManager$compare_with_inputs_manifest()` does this in one call, but
+it takes the snapshot's flags from the file, where they are all `FALSE`, so it
+reports every file as added.
 
 ### Snapshotting on upload
 
-After a successful Zenodo upload, call `snapshot_manifest_for_upload()` to
-record the current state. This creates
-`simulation/inputs_manifest_at_last_upload.csv`, which is used by subsequent
-`compare_with_inputs_manifest()` calls.
+`zenodo_upload_inputs()` (and therefore `zenodo_upload_all()`) calls
+`snapshot_manifest_for_upload()` itself after uploading the archives (and
+before publishing, if `publish = TRUE`). It copies
+`simulation/inputs_manifest.csv` to
+`simulation/inputs_manifest_at_last_upload.csv`; commit that file. The copy is
+the manifest as `Simulation$new()` last wrote it, so if you changed inputs
+during the session, create the `Simulation` object again before uploading.
 
 ## Key classes and files
 
@@ -308,38 +472,47 @@ record the current state. This creates
 |------|---------------|------|
 | `R/InputsManifest_class.R` | `InputsManifest` (R6) | Core manifest: scan, hash, compare, detect changes |
 | `R/InputsManifest_class.R` | `.manifest_hash_worker()` | Standalone worker for PSOCK parallel hashing |
-| `R/Simulation_class.R` | `Simulation` private `complete_data_init()` | Phase 2 initialiser that loads the manifest, detects changes, and deletes stale artifacts |
+| `R/Simulation_class.R` | `Simulation` private `complete_data_init()` | Phase 2 initialiser that loads the manifest, detects changes, and deletes flagged artefacts |
 | `R/Simulation_class.R` | `Simulation$get_inputs_manifest()` | Public accessor for the manifest object |
-| `R/SynthPop_class.R` | `SynthPop$gen_checksum()` | Includes `get_synthpop_input_hash()` in synthpop checksum |
+| `R/Simulation_class.R` | `del_parfs()`, `del_RR_cache()`, `del_synthpops()` | Delete PARFs, compiled RR files or synthpops by hand |
+| `R/SynthPop_class.R` | `SynthPop` private `gen_checksum()` | Includes `get_synthpop_input_hash()` in the synthpop checksum |
 | `R/ExposureEffect_class.R` | Private registry methods | Track RR compilation via `rr_generation_record.csv` |
 | `R/Disease_class.R` | Private registry methods | Track PARF generation via `parf_generation_record.csv` |
-| `R/ZenodoManager_class.R` | `ZenodoAssetManager$compare_with_inputs_manifest()` | Compare current inputs vs last Zenodo upload |
-| `R/ZenodoManager_class.R` | `ZenodoAssetManager$snapshot_manifest_for_upload()` | Save manifest snapshot at upload time |
-| `R/Design_class.R` | `Design$initialize()` | Cleans orphaned RR files and legacy `fileversion.csv` |
+| `R/ZenodoManager_class.R` | `ZenodoAssetManager$compare_manifests()` | Compare two manifests (used for the upload comparison above) |
+| `R/ZenodoManager_class.R` | `ZenodoAssetManager$snapshot_manifest_for_upload()` | Save the manifest snapshot; called by `zenodo_upload_inputs()` |
+| `R/Design_class.R` | `Design$load_exposure_effects()` (called by `load_data()`) | Recompiles stale RR files; removes orphaned RR files and the legacy `fileversion.csv` |
 
 ## Tracking files generated by the manifest system
 
 | File | Purpose | Git-tracked? |
 |------|---------|--------------|
-| `simulation/inputs_manifest.csv` | Current manifest of all input files | No — regenerated from `inputs/` on each init |
+| `simulation/inputs_manifest.csv` | Current manifest of all input files | No — created on first init and regenerated whenever input changes are detected |
 | `simulation/inputs_manifest_at_last_upload.csv` | Snapshot from last Zenodo upload | Yes — committed so new clones know what the upstream upload contained |
 | `simulation/rr_generation_record.csv` | Tracks which source produced each compiled RR | Yes — committed as the seed state for new clones |
 | `simulation/parf_generation_record.csv` | Tracks which sources produced each PARF | Yes — committed as the seed state for new clones |
-| `simulation/fileversion.csv` | Legacy file (auto-deleted by `Design` on startup) | n/a |
+| `simulation/fileversion.csv` | Legacy file (deleted by `Design$load_exposure_effects()`) | n/a |
 
 ## Design decisions for developers
 
-### Why not re-hash output artifacts at startup?
+### Why not re-hash output artefacts at startup?
 
-Synthpop and PARF files can be several gigabytes. Re-hashing them at every
-`Simulation$new()` would add minutes of startup time. Instead, checksums are
-embedded in filenames. When upstream inputs change, the checksum changes, the
-expected filename changes, and the old file is simply not found — triggering
-automatic regeneration without ever reading the old file.
+Synthpop and PARF files are large (`simulation/parf/` alone can hold several
+gigabytes), and re-hashing them at every `Simulation$new()` would slow every
+start-up. Instead, a fingerprint of
+the inputs each artefact was built from is embedded in its filename. When one
+of those inputs changes, the expected filename changes and the old file is
+simply not found, so the artefact is regenerated without the old file ever
+being read. This works only for the inputs that enter the fingerprint (listed
+under [How synthpop staleness works](#how-synthpop-staleness-works) and
+[PARF files](#parf-files)).
 
-The `verify_artifact()` method provides an opt-in diagnostic for when you
-need to actually verify file integrity (e.g., before a Zenodo upload or after
-copying files between machines).
+Because the hash in the filename identifies the inputs, not the file's
+contents, it cannot be checked against the file. `verify_artifact()` makes
+that comparison and therefore does not work for these files: it reports
+`valid = FALSE` for every synthpop and stops with an error on PARF
+directories. To check a file copied between machines, compare
+`digest::digest(file = ...)` on the two machines (for a PARF directory, of
+each file inside it).
 
 ### Why standalone worker functions?
 
@@ -358,11 +531,12 @@ processes wrote to it simultaneously. The new system uses two separate files:
 
 ### Why not invalidate on `disease_burden/*.yaml` changes?
 
-The `.yaml` files in `disease_burden/` are informational metadata (e.g.,
-descriptions, citations) that do not affect PARF calculations. Only the
-actual data files (incidence CSVs, fatality FSTs) are used in generation, so
-only those trigger invalidation. This avoids unnecessary regeneration when
-someone updates a description.
+The `.yaml` files in `disease_burden/` are the duration models
+(`duration_distr_forwards`) that the C++ engine reads on every run. No cached
+artefact is built from them, so there is nothing to regenerate when they
+change. Only the partitioned-parquet data under
+`disease_burden/<disease>_{incd,ftlt,prvl,dur}/` are flagged, and even those
+do not reach the PARFs (see [PARF files](#parf-files)).
 
 ## Extending the system
 
@@ -370,21 +544,30 @@ someone updates a description.
 
 If you add a new subdirectory to `inputs/` (e.g., `inputs/cost_data/`):
 
-1. Files are automatically tracked by the manifest (no code changes needed
-   for basic tracking)
-2. To make changes trigger artifact regeneration, update
+1. Files matching the manifest patterns (`.parquet`, `.fst`, `.csv`, `.csvy`,
+   `.qs`, `.yaml`, outside `0-scripts/` and `1-validation/`) are tracked
+   automatically (no code changes needed for basic tracking)
+2. To make changes flag artefacts, update
    `InputsManifest$detect_changes()` to map the new category to the
-   appropriate downstream artifacts
+   appropriate downstream artefacts
 3. If the new category affects synthpops, add it to the
    `synthpop_categories` vector in `detect_changes()` and to the
-   `categories` vector in `get_synthpop_input_hash()`
+   `categories` vector in `get_synthpop_input_hash()`; the second is what
+   makes the synthpops regenerate
+4. If it affects PARFs, add its file hashes to the PARF checksum in the
+   `Disease` constructor, as the RR file hashes are, and, if it changes the
+   PARF population, to the `.qs` cache name in `gen_parf_files()` as well; the
+   deletion in `complete_data_init()` alone does not regenerate a PARF
 
-### Adding a new artifact type
+### Adding a new artefact type
 
-If you add a new type of generated artifact:
+If you add a new type of generated artefact:
 
 1. Create a generation record CSV (like `rr_generation_record.csv`)
 2. Add staleness checking and registry update methods to the relevant class
-3. In `Simulation$initialize()`, add deletion logic for stale artifacts when
-   changes are detected
-4. Add the generation record file to `.gitignore`
+3. In the private `Simulation$complete_data_init()`, add deletion logic for
+   stale artefacts when changes are detected; use
+   `unlink(path, recursive = TRUE)` if the artefact is a directory, because
+   `file.remove()` cannot delete a non-empty one
+4. Commit the generation record (do not gitignore it) so new clones start
+   from the published state, and add it to the matching NOTE in `.gitignore`

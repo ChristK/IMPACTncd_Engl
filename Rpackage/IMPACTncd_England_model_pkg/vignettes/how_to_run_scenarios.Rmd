@@ -1,7 +1,7 @@
 ---
 title: "How to run scenarios in IMPACTncdEngland"
 author: "Dr. Chris Kypridemos, Dr. Anna Head, Adithi R. Upadhya"
-date: "11 March, 2024"
+date: "Last updated 4 November 2026"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{How to run scenarios in IMPACTncdEngland}
@@ -10,107 +10,140 @@ vignette: >
 ---
 
 
-In this vignette, we will run three example scenarios to demonstrate the sorts of alternative scenarios that can be run in IMPACTncdEngland:
+In this vignette, we will run three single-risk-factor scenarios and one that combines them, to demonstrate the sorts of alternative scenarios that can be run in IMPACTncdEngland:
 
-- Reducing BMI by 10% in all simulants compared to their BMI in the baseline scenario
+- Reducing BMI by 10% in all simulants compared to their BMI in the baseline scenario (`sc1`)
 
-- Increasing daily fruit & vegetable consumption by 10% compared to consumption in the baseline scenario
+- Increasing daily fruit & vegetable consumption by 10% compared to consumption in the baseline scenario (`sc2`)
 
-- Increasing the days of physical activity from 0 to 1 per week for 10% of simulants who are inactive in the baseline scenario
+- Increasing physical activity from 0 to 1 day per week for 10% of the simulants who are inactive in the baseline scenario (`sc3`)
 
-#### List for primary prevention variables 
+- All three changes together (`sc4`)
 
+#### Exposure variables (for primary-prevention scenarios)
 
-- **active_days_curr_xps** : Number of days of physical activity per week      
-- **fruit_curr_xps** : Fruit consumption in grams per day (80g = 1 portion) 
-- **veg_curr_xps** : Vegetable consumption in grams per day (80g = 1 portion)      
-- **smok_status_curr_xps** : this is current smoking status; 1 = never smoker, 2 = occasional smoker, 3 = ex-smoker, 4 = current smoker
-- **smok_cig_curr_xps** : Cigarettes per day     
-- **ets_curr_xps** : exposure to second-hand tobacco smoke. At individual level, 0 = not exposed, 1 = exposed
-- **alcohol_curr_xps** : alcohol consumption in g/day     
-- **bmi_curr_xps** : Body mass index in kg/m\^2 (BMI)       
-- **sbp_curr_xps** : Systolic Blood Pressure in mmHg (SBP)         
-- **tchol_curr_xps** : Total Cholesterol in mmol/L  
+A primary-prevention scenario changes these columns of the synthetic population `sp$pop`:
 
-#### List for secondary prevention variables 
+- **active_days_curr_xps** : Number of days of physical activity per week (integer, 0-7)
+- **met_curr_xps** : Physical activity in hundreds of MET (metabolic equivalent) minutes per week, derived from `active_days_curr_xps`; update it whenever you change active days (see `sc3`)
+- **fruit_curr_xps** : Fruit consumption in grams per day (80g = 1 portion)
+- **veg_curr_xps** : Vegetable consumption in grams per day (80g = 1 portion)
+- **smok_status_curr_xps** : Current smoking status, a factor with levels `"1"` = never smoker, `"2"` = occasional smoker, `"3"` = ex-smoker, `"4"` = current smoker (assign the level as a character string, e.g. `"1"`)
+- **smok_cig_curr_xps** : Cigarettes per day
+- **ets_curr_xps** : Exposure to second-hand tobacco smoke. At individual level, 0 = not exposed, 1 = exposed
+- **alcohol_curr_xps** : Alcohol consumption in g/day
+- **bmi_curr_xps** : Body mass index in kg/m\^2 (BMI)
+- **sbp_curr_xps** : Systolic Blood Pressure in mmHg (SBP)
+- **tchol_curr_xps** : Total Cholesterol in mmol/L
 
-- **ra** : Rheumatoid arthritis 
-- **helo** : Hearing loss 
-- **alcpr** : Alcohol problems 
-- **ctd** : Connective tissue disorders (excluding rheumatoid arthritis) 
-- **dm** : Diabetes mellitus (both major types) 
-- **t1dm** : Type 1 Diabetes Mellitus 
-- **t2dm** : Type 2 Diabetes Mellitus 
-- **ctdra** : Connective tissue disorders (including rheumatoid arthritis). This is used for the CMS score 
-- **af** : Atrial fibrillation 
-- **hf** : Heart failure 
-- **andep** : Anxiety & depression
-- **ckd** : Chronic Kidney disease (CKD)
-- **Colorectal_ca / colorect_ca** : colorectal cancer 
-- **prostate_ca** : prostate cancer 
-- **Breast_ca** : breast cancer
-- **Lung_ca** : Lung cancer
-- **Other_ca** : other cancers
-- **Cancer** : any of the above cancers combined 
-- **ibs** : Irritable bowel syndrome
-- **htn** : hypertension 
-- **copd** : Chronic Obstructive Pulmonary Disease (COPD) 
-- **Chd** : Coronary Heart disease    
+`sp$pop` also holds smoking history (`smok_quit_yrs_curr_xps`, `smok_dur_curr_xps`) and medication (`bpmed_curr_xps`, `statin_px_curr_xps`) columns.
+
+#### Disease variables (for secondary-prevention scenarios)
+
+The disease names are the `name:` entries under `diseases:` in the design file (apart from the residual `nonmodelled`), and are case-sensitive:
+
+- **obesity** : obesity
+- **htn** : hypertension
+- **chd** : coronary heart disease (CHD)
+- **stroke** : stroke
+- **af** : atrial fibrillation
+- **hf** : heart failure
+- **t2dm** : type 2 diabetes mellitus
+- **t1dm** : non-type-2 diabetes mellitus
+- **dm** : diabetes mellitus (`t1dm` or `t2dm`)
+- **ckd** : chronic kidney disease (stages 3-5)
+- **copd** : chronic obstructive pulmonary disease (COPD)
+- **asthma** : asthma
+- **lung_ca** : lung cancer
+- **colorectal_ca** : colorectal cancer
+- **prostate_ca** : prostate cancer
+- **breast_ca** : breast cancer
+- **other_ca** : other cancers
+- **cancer** : any of the five cancers above
+- **dementia** : dementia
+- **andep** : anxiety & depression
+- **psychosis** : psychosis
+- **epilepsy** : epilepsy
+- **alcpr** : alcohol problems
+- **helo** : hearing loss
+- **ibs** : irritable bowel syndrome
+- **constipation** : constipation
 - **pain** : chronic pain
+- **ra** : rheumatoid arthritis
+- **ctd** : connective tissue disorders (excluding rheumatoid arthritis)
+- **ctdra** : connective tissue disorders including rheumatoid arthritis (`ctd` or `ra`)
 
+`dm`, `cancer` and `ctdra` are built from their components, and they carry the Cambridge Multimorbidity Score weights of those conditions.
 
-For our alternative scenarios, we will set the first year the change starts to 2023. We run the baseline scenario before the alternative scenarios so that we can compare results. The results from each additional scenario get appended to the baseline scenario.
+These names are not columns of `sp$pop`. Each disease appears as `<name>_prvl` (0 = free of the condition, above 0 = has it) and as probability columns whose names start with `prb_<name>_` (`_incd` for incidence, `_dgns` for diagnosis, `_mrtl1`/`_mrtl2` for mortality, where the disease has them). None of them exists yet while a primary-prevention scenario runs. To act on them, pass a function of `sp` to `IMPACTncd$update_secondary_prevention_scn()`. It runs after initial prevalence and the disease probabilities have been set and before the simulation engine runs, so `<name>_prvl` still holds the starting state rather than the simulated course of the disease. Call it on its own line: unlike `update_primary_prevention_scn()`, it does not return the simulation object, so it cannot be chained.
 
-1. Set up the simulation parameters following steps 1-4 using the How to run a test of IMPACTncdEngland vignette, which can be accessed using 
+For our alternative scenarios, we will set the first year the change starts to 2023.
 
-```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngland")
-```
+1. Set up the model as described in the *How to run a test of IMPACTncdEngland* vignette (`how_to_test_run.Rmd`; see [Other files](#other-files)): run `source("global.R")`, make your own design file, download the model data if you have not already, and create the simulation object, e.g. `IMPACTncd <- Simulation$new("./inputs/sim_design_test.yaml")`.
 
-In particular, you may need to adjust the `n` and `num_chunks` parameters to create the desired synthetic population size. If you use the same `synthpop_dir` location as in your test run, the new synthpop files will have a different filename and will not overwrite the existing files. However, you may want to delete the existing synthpop files in the folder to save disk space.
+In the design file, you may need to adjust the `n` and `num_chunks` parameters to create the desired synthetic population size. If you use the same `synthpop_dir` location as in your test run, the new synthpop files will have a different filename and will not overwrite the existing files. You may want to delete the old ones to save disk space, but note that `IMPACTncd$del_synthpops()` deletes *everything* in `synthpop_dir`, so never use it on a folder that others share.
 
-2.  To run a baseline scenario, run the following chunk of code, which deletes everything inside the existing output and log folders, runs a new baseline scenario from scratch and summarises the results of the simulation. 
+Keep the working directory at the root of the repository (the folder that contains `global.R`) throughout. `Simulation$new()` records it, and `run()`, like the other methods that read or write `./inputs` or `./simulation`, stops with an error if the working directory has changed since, naming both folders. This includes a scenario function that calls `setwd()` without changing back. Use `setwd()` to return to the root.
+
+2.  To run a baseline scenario, run the following chunk of code, which deletes everything inside the existing output folder (including the logs) and runs a new baseline scenario from scratch.
 
 ```{r, run-simulation, eval = FALSE}
 IMPACTncd$
   del_logs()$
   del_outputs()$
-  run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")$
-  export_summaries(multicore = FALSE)
+  run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")
 ```
 
-In the above, we use the chain syntax using $, which is equivalent to: 
+In the above, we use the chain syntax using $, which is equivalent to:
 
 ```{r, run-simulation-break, eval = FALSE}
 IMPACTncd$del_logs()
 IMPACTncd$del_outputs()
 IMPACTncd$run(mc = 1:2, multicore = FALSE, scenario_nam = "sc0")
-IMPACTncd$export_summaries(multicore = FALSE)
 ```
 
-Note: In the arguments for the `run()`, we have selected the number of Monte Carlo iterations to be 2  (mc = 1:2). This is OK for a test run, but in reality, you would like to run at least 100 iterations (i.e. mc = 1:100) in production. If, at a later point, you would like to run 100 more iterations additionally, then you could do `IMPACTncd$run(mc = 101:200, multicore = FALSE, scenario_nam = "sc0")` without deleting the existing output (i.e. do not run `IMPACTncd$del_outputs()`). 
+The baseline must be run first, for every iteration you will use in a scenario: each scenario reads its population weights from the baseline's output for the same Monte Carlo iteration (`mc`), and fails if that output is missing.
+
+Note: In the arguments for the `run()`, we have selected the number of Monte Carlo iterations to be 2  (mc = 1:2). This is OK for a test run, but in reality, you would like to run at least 100 iterations (i.e. mc = 1:100) in production. To add iterations later, see [Adding iterations or re-running a scenario](#adding-iterations).
 
 We have also selected `multicore = FALSE` here so that parallel processing is not used. This slows down the simulation, but it requires substantially less computational resources. In production, you would most likely want to set this to TRUE. The third argument of the `run()` function defines the name of the baseline scenario as "sc0" here. Please do not change the name of the baseline scenario.
 
-**Scenario naming convention:** Scenario names should contain only letters, digits, and underscores (e.g. `"sc1"`, `"bmi_reduction_10pc"`). Avoid hyphens, spaces, or other special characters (e.g. do **not** use `"Non-Modelled"` or `"sc 1"`), as these are used internally in SQL identifiers and file paths where special characters can cause errors.
+**Scenario naming convention:** Scenario names should contain only letters, digits, and underscores (e.g. `"sc1"`, `"bmi_reduction_10pc"`). Avoid hyphens, spaces, or other special characters (e.g. do **not** use `"Non-Modelled"` or `"sc 1"`), as these are used internally in SQL identifiers and file paths where special characters can cause errors. `run()` warns about such names.
 
-Finally, the `export_summaries()` generates summary output files from the lifecourse files that are the raw simulation output.
+We do not export summaries yet. `export_summaries()` generates summary files from the lifecourse files, which are the raw simulation output, and it would export these iterations again once they gain more scenarios, so it is quicker to export once, after the last scenario (step 12).
 
-4. After running the code, we will create the folders shown below. The `lifecourse` folder has the same number of files as the number of iterations runs. 
+3. After running the code, `output_dir` contains the folders shown below.
 
-```{r, echo = FALSE, out.width = "50%", fig.cap = "output/hf_real folder structure"}
+```{r, echo = FALSE, out.width = "50%", fig.cap = "Top level of output_dir (with logs: yes and export_xps: yes)"}
 knitr::include_graphics("img/output_folder.jpg")
 ```
 
-5. After running the baseline scenario, we can run alternative scenarios by updating some of the parameters in `primary_prevention_scn`. 
+The raw output is in `lifecourse/`: one `mc=<n>` folder per Monte Carlo iteration and, inside it, one `scenario=<name>` folder per scenario. Each iteration combines `num_chunks` synthetic populations (chunks), and each chunk is written as a parquet dataset named `<chunk>_lifecourse.parquet` (a folder that holds `part-0.parquet`). With the stock `num_chunks: 4`, `mc = 1:2` gives:
 
-In this example, we will simulate a scenario in which the BMI of all simulants is 10% lower than in the baseline scenario, we will start this change in the year 2023, and we will run two iterations (the same as in the baseline scenario above). In this `n_runs` as the number of iterations. 
+```
+lifecourse/
+├── mc=1/
+│   └── scenario=sc0/
+│       ├── 1_lifecourse.parquet/
+│       ├── 2_lifecourse.parquet/
+│       ├── 3_lifecourse.parquet/
+│       └── 4_lifecourse.parquet/
+└── mc=2/
+    └── scenario=sc0/
+        ├── 5_lifecourse.parquet/
+        ├── ...
+        └── 8_lifecourse.parquet/
+```
+
+4. After running the baseline scenario, we can run alternative scenarios by registering a scenario function with `update_primary_prevention_scn()` and running the model again under a new scenario name.
+
+In this example, we will simulate a scenario in which the BMI of all simulants is 10% lower than in the baseline scenario, we will start this change in the year 2023, and we will run two iterations (the same as in the baseline scenario above). We store the number of iterations in `n_runs`.
 
 ```{r, n-run, eval = FALSE}
 n_runs <- 2
 ```
 
-6. After defining the parameters we need to update `primary_prevention_scn` before running each alternative scenario. We will start by reducing BMI by 10% for all simulants, for every year from 2023 onwards. In this `change_10pc` is the % of change we want to implement in all the scenarios, `sc_year` as the year from which the change should be implemented.
+5. We register the scenario before running it. We start by reducing BMI by 10% for all simulants, for every year from 2023 onwards. In this, `change_10pc` is the size of the change we want to implement in all the scenarios, and `sc_year` is the year from which the change should be implemented.
 
 ```{r, scn1, eval = FALSE}
 IMPACTncd$update_primary_prevention_scn(
@@ -118,25 +151,27 @@ IMPACTncd$update_primary_prevention_scn(
     change_10pc <- 0.1
     sc_year <- 23L
     sp$pop[year >= sc_year,
-           bmi_curr_xps := bmi_curr_xps * (1 -change_10pc)]
+           bmi_curr_xps := bmi_curr_xps * (1 - change_10pc)]
     }
   )
 ```
 
-7. Once the `primary_prevention_scn` is updated we need to run the simulation again as shown below, in this we use the simulation name as `sc1` to represent the scenario we defined above. 
+The function receives the synthetic population `sp` and edits `sp$pop` in place: a data.table with one row per simulant (`pid`) and year. `year` is stored as two digits, so 2023 is `23L`. Define every constant the function needs inside it, as here. When the function is registered its enclosing environment is replaced, so values captured by a function factory or closure are not visible, and R uses whatever else has that name instead: a global variable (silently), or a function such as `data.table::shift()` (with a confusing error). Keeping each scenario function in a named object (e.g. `sc1_fn <- function(sp) {...}`, then `IMPACTncd$update_primary_prevention_scn(sc1_fn)`) makes it easy to register it again later.
 
-Again, as we will run more scenarios, we don’t need to export the summaries. 
+6. Once the scenario is registered we need to run the simulation again as shown below. In this, we use the scenario name `sc1` to represent the scenario we defined above.
 
-The results from running this scenario will be appended to the baseline scenario results in the lifecourse folder. 
+We do not export the summaries yet, as we will run more scenarios.
+
+The results from running this scenario are written to their own `scenario=sc1` folders in the lifecourse folder, next to the baseline's.
 
 ```{r, run-scn1, eval = FALSE}
 IMPACTncd$
   run(1:n_runs, multicore = FALSE, "sc1")
 ```
 
-8. All subsequent alternative scenarios work in the same way. For example, we can improve fruit and vegetable consumption by 10% by updating `primary_prevention_scn` in the years greater than or equal to sc_year.
+7. All subsequent alternative scenarios work in the same way. For example, we can improve fruit and vegetable consumption by 10% in the years greater than or equal to `sc_year`.
 
-As we have updated `primary_prevention_scn`, BMI remains at the level in baseline scenario.
+Registering a new function replaces the previous one, so in this scenario BMI is as in the baseline scenario.
 
 ```{r, sc2, eval = FALSE}
 IMPACTncd$update_primary_prevention_scn(
@@ -149,42 +184,29 @@ IMPACTncd$update_primary_prevention_scn(
   )
 ```
 
-9. We then run the simulation again, in this we use the simulation name as `sc2` to represent the scenario we defined above
+8. We then run the simulation again; in this, we use the scenario name `sc2` to represent the scenario we defined above.
 
 ```{r, run-scn2, eval = FALSE}
 IMPACTncd$
   run(1:n_runs, multicore = FALSE, "sc2")
 ```
 
-10. For physical activity, we will demonstrate a different approach. We will focus only on those people who are inactive in the baseline scenario (0 days of physical activity per week), and for 10% of those people we will increase their level of physical activity to 1 day per week.
+9. For physical activity, we will demonstrate a different approach. We will focus only on those people who are inactive in the baseline scenario (0 days of physical activity per week), and for 10% of those people we will increase their physical activity to 1 day per week in every year in which they would otherwise be inactive.
 
-Again, we update `primary_prevention_scn`. We start by selecting the patient ids (`pid`) from the population who do no physical activity (`active_days_curr_xps` = 0) in the years greater than or equal to sc_year, and save this as tt. Then we use rbinom to randomly select 10% of these people for whom we will increase physical activity (`active_days_curr_xps`) to 1. We also need to update the `met_curr_xps` (MET ( metabolic equivalent) minutes (in hundreds) per week) variable to reflect the new level of physical activity. We do this using a set formula. 
+Again, we register a new scenario function. We start by selecting the simulant ids (`pid`) of those who do no physical activity (`active_days_curr_xps` = 0) in at least one year from `sc_year` onwards, and save this as `tt`. Then we use `rbinom()` to randomly select 10% of these people. For them, we set `active_days_curr_xps` to 1 in each year from `sc_year` on in which it is 0; years in which they are already active are left unchanged. We also need to update the `met_curr_xps` variable to reflect the new level of physical activity, using the same formula the model uses to generate it.
 
-Because we are using random sampling, we want to set a seed to ensure that when can replicate our analyses. IMPACTncd uses random numbers in various ways, so to ensure we don't change the random numbers for other processes, we temporarily store any pre-set seeds and return the seed to this value at the end.
-
+The framework already isolates a scenario's random numbers from the rest of the model: it seeds each scenario from its name and iteration, and restores the random-number state afterwards (see [Scenarios share their random numbers with the baseline](#scenarios-share-their-random-numbers-with-the-baseline)). We set our own seed only so that this draw is the same in every scenario that makes it (`sc3` here and `sc4` below). Seeding from the chunk number `sp$mc` also gives each chunk of an iteration its own draws.
 
 ```{r, sc3, eval = FALSE}
 IMPACTncd$update_primary_prevention_scn(
   function(sp) {
     change_10pc <- 0.1
     sc_year <- 23L
-    if (exists(".Random.seed", .GlobalEnv)) { # save rng state
-      oldseed <- .GlobalEnv$.Random.seed
-    } else {
-      oldseed <- NULL
-    }
-    set.seed(545390654 + sp$mc) # http://www.cookbook-r.com/Numbers/Saving_the_state_of_the_random_number_generator/
-    on.exit({if (!is.null(oldseed)) { # restore rng state
-      .GlobalEnv$.Random.seed <- oldseed
-    } else {
-      rm(".Random.seed", envir = .GlobalEnv)
-    }
-    }
-    )
-    tt <- sp$pop[year >= sc_year & active_days_curr_xps == 0, .(unique(pid))]
+    set.seed(545390654 + sp$mc) # same seed in every scenario that makes this draw
+    tt <- sp$pop[year >= sc_year & active_days_curr_xps == 0L, .(unique(pid))]
     tt <- tt[as.logical(rbinom(.N, 1, abs(change_10pc))), V1]
-    sp$pop[pid %in% tt & year >= sc_year, `:=` (
-      active_days_curr_xps = 1,
+    sp$pop[pid %in% tt & year >= sc_year & active_days_curr_xps == 0L, `:=` (
+      active_days_curr_xps = 1L,
       met_curr_xps = as.integer(floor(1 * (3L + qbinom(runif(.N), 8, 3/11)) *
                                         (30 + qexp(runif(.N), 1/7)) / 100))
     )]
@@ -192,14 +214,14 @@ IMPACTncd$update_primary_prevention_scn(
 )
 ```
 
-11. We need to run the simulation again, in this we use the simulation name as `sc3` to represent the scenario we defined above
+10. We need to run the simulation again; in this, we use the scenario name `sc3` to represent the scenario we defined above.
 
 ```{r, run-sc3, eval = FALSE}
 IMPACTncd$
   run(1:n_runs, multicore = FALSE, "sc3")
 ```
 
-12. We need to update `primary_prevention_scn` again to add multiple scenarios in one as shown below which changes BMI, Fruit and Vegetable intake, and Physical Activity for years greater than or equal to `sc_year`; with change percentage defined by `change_10pc.`
+11. We now register one function that combines the three changes: BMI, fruit and vegetable intake, and physical activity, for years greater than or equal to `sc_year`, with the size of the change defined by `change_10pc`. The physical-activity part uses the same seed as `sc3`, so it selects the same simulants and makes the same draws.
 
 ```{r, sc4, eval = FALSE}
 IMPACTncd$update_primary_prevention_scn(
@@ -214,24 +236,12 @@ IMPACTncd$update_primary_prevention_scn(
     sp$pop[year >= sc_year, fruit_curr_xps := as.integer(round(fruit_curr_xps * (1 + change_10pc)))]
     sp$pop[year >= sc_year, veg_curr_xps := as.integer(round(veg_curr_xps * (1 + change_10pc)))]
 
-    # Physical activity
-        if (exists(".Random.seed", .GlobalEnv)) { # save rng state
-      oldseed <- .GlobalEnv$.Random.seed
-    } else {
-      oldseed <- NULL
-    }
-    set.seed(545390654 + sp$mc_aggr) # http://www.cookbook-r.com/Numbers/Saving_the_state_of_the_random_number_generator/
-    on.exit({if (!is.null(oldseed)) { # restore rng state
-      .GlobalEnv$.Random.seed <- oldseed
-    } else {
-      rm(".Random.seed", envir = .GlobalEnv)
-    }
-    }
-    )
-    tt <- sp$pop[year >= sc_year & active_days_curr_xps == 0, .(unique(pid))]
+    # Physical activity (same seed as sc3)
+    set.seed(545390654 + sp$mc)
+    tt <- sp$pop[year >= sc_year & active_days_curr_xps == 0L, .(unique(pid))]
     tt <- tt[as.logical(rbinom(.N, 1, abs(change_10pc))), V1]
-    sp$pop[pid %in% tt & year >= sc_year, `:=` (
-      active_days_curr_xps = 1,
+    sp$pop[pid %in% tt & year >= sc_year & active_days_curr_xps == 0L, `:=` (
+      active_days_curr_xps = 1L,
       met_curr_xps = as.integer(floor(1 * (3L + qbinom(runif(.N), 8, 3/11)) *
                                         (30 + qexp(runif(.N), 1/7)) / 100))
     )]
@@ -239,28 +249,27 @@ IMPACTncd$update_primary_prevention_scn(
 )
 ```
 
-13. We need to run the simulation again, in this we use the simulation name as `sc4` to represent the scenario we defined above. 
+12. We need to run the simulation again; in this, we use the scenario name `sc4` to represent the scenario we defined above.
 
-As this is our final scenario, we will use `export_summaries` to export summary files into the summaries folder in our output directory. 
+As this is our final scenario, we will use `export_summaries()` to export summary files into the `summaries` folder in our output directory. For each iteration, it checks whether the existing summaries of every requested type already cover every scenario in that iteration's lifecourse output. If they do, the iteration is skipped; if not, its summaries of the requested types are rewritten, covering all its scenarios.
 
+In this example, we specify the `type` to only export a few of the summary outputs to reduce computation time. We have chosen:
 
-In this example, we specify the `type` to only export a few of the summary outputs to reduce computation time. We have chosen: 
+- **dis_char** : disease characteristics, e.g. age of onset of condition, mean duration of condition;
 
-- **dis_char** : disease characteristics, e.g. age of onset of condition, mean duration of condition; 
+- **prvl** : prevalence of each condition;
 
-- **prvl** : prevalence of each condition; 
+- **incd** : incidence of each condition;
 
-- **incd** : incidence of each condition; 
+- **dis_mrtl** : disease-specific mortality;
 
-- **dis_mrtl** : disease-specific mortality; 
-
-- **mrtl** : all-cause mortality; 
+- **mrtl** : all-cause mortality;
 
 - **all_cause_mrtl_by_dis** : all-cause mortality by disease;
 
-- **cms** : information on CMS (Cambridge Multimorbidity Score) score and count. 
+- **cms** : information on CMS (Cambridge Multimorbidity Score) score and count.
 
-If type is not specified, all summary files are exported. 
+If `type` is not specified, every summary except `contd` is exported (`le`, `hle`, `dis_char`, `prvl`, `incd`, `dis_mrtl`, `mrtl`, `all_cause_mrtl_by_dis`, `cms`, `qalys`, `costs`); `contd` must be named explicitly. An unknown value in `type` is an error. `export_tables()` can build tables only from the summaries that exist, so leave out `type` if you also want, for example, the QALY, cost and life-expectancy tables. A type you add in a later call is exported for every iteration.
 
 ```{r, run-sc4, eval = FALSE}
 IMPACTncd$
@@ -269,6 +278,32 @@ IMPACTncd$
                      "incd", "dis_mrtl", "mrtl",
                      "all_cause_mrtl_by_dis", "cms"))
 ```
+
+### Adding iterations or re-running a scenario later {#adding-iterations}
+
+You can add iterations to an existing set without deleting the output (do not call `del_outputs()`), e.g. 100 more after a production run of `mc = 1:100`. Run the baseline first and then every scenario for the new iterations. A registered scenario function stays registered until you replace it, and `run()` applies it whatever the scenario name, including `sc0`; so in a session in which you have already registered a scenario, reset it before running the baseline again:
+
+```{r, more-iterations, eval = FALSE}
+# Baseline first, with the scenario function reset to "no change"
+IMPACTncd$update_primary_prevention_scn(function(sp) NULL)
+IMPACTncd$run(101:200, multicore = TRUE, "sc0")
+
+# Then every scenario, registering its function again before each run
+IMPACTncd$update_primary_prevention_scn(sc1_fn) # sc1_fn: the function of step 5
+IMPACTncd$run(101:200, multicore = TRUE, "sc1")
+# ... and likewise for sc2, sc3 and sc4
+
+# Exports only 101-200 if 1-100 already have summaries of every requested type
+# (here the default ones); otherwise it exports 1-100 again as well
+IMPACTncd$export_summaries(multicore = TRUE)
+```
+
+`run()` then reports that output from a previous run of the scenario exists; only iterations with the same numbers are overwritten. A function registered with `update_secondary_prevention_scn()` also stays registered; reset it in the same way with `function(sp) NULL`.
+
+`export_summaries()` re-exports an iteration only when its summaries of a requested type lack one of its scenarios (including when that type has not been exported before). It does not notice that a scenario was re-run, or that the design, the inputs or the model code changed. So:
+
+- if you re-run a scenario under the same name (e.g. after correcting its function), `run()` overwrites that scenario's output for those iterations; call `IMPACTncd$del_summaries()` before `export_summaries()`;
+- only add iterations to an existing set if the design file, input data and model version are all unchanged. Otherwise call `IMPACTncd$del_outputs()` and run everything again (and, if you changed an exposure table or a disease-burden input, regenerate the caches as described in [Bring your own exposure distribution tables](#bring-your-own-exposure-distribution-tables)).
 
 ### Deprivation-change scenarios: which gradient do you want to move?
 
@@ -333,7 +368,8 @@ IMPACTncd$run(1:n_runs, multicore = TRUE, "non_modelled_scn")
 
 Running the same scenario function under both settings decomposes the total
 effect into the part the model's risk factors explain and the part they do not —
-which is usually the more interesting result.
+which is usually the more interesting result. As in step 5, define the
+function's constants inside it rather than building it with a function factory.
 
 The argument has **no effect whatsoever** on a scenario that leaves `dimd`
 alone, so you never need to think about it unless you are modelling deprivation
@@ -383,25 +419,21 @@ different random numbers. Results are therefore **not** bit-comparable with
 runs made before it: re-run the baseline together with the scenarios rather
 than mixing vintages.
 
-### Other files
+### Other files {#other-files}
 
-- Use the following code to open the vignette to run a test of IMPACTncdEngland
+The other vignettes are R Markdown files in
+`Rpackage/IMPACTncd_England_model_pkg/vignettes/`:
 
-```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngland")
-```
+- `how_to_test_run.Rmd` (*How to run a test of IMPACTncdEngland*): setting up
+  the model, a baseline test run, and how to remove the model completely;
+- `understanding_model_outputs.Rmd`: what the output tables contain and how to
+  read them;
+- `custom_exposure_tables.Rmd` (*Using your own exposure distribution
+  tables*): a worked example for the next section.
 
-- Use the following code to open the vignette to understand model outputs 
-
-```{r}
-vignette("understanding_model_outputs", package = "IMPACTncdEngland")
-```
-
-- To completely delete the package IMPACTncdEngland is explained in a section called **How to remove IMPACTncdEngland installed package** in the vignette mentioned below
-
-```{r}
-vignette("how_to_test_run", package = "IMPACTncdEngland")
-```
+`vignette()` (e.g. `vignette("how_to_test_run", package = "IMPACTncdEngland")`)
+finds them only if the package was installed with its vignettes built, which
+`global.R` does not do.
 
 ### Bring your own exposure distribution tables
 
@@ -431,10 +463,12 @@ resolved with three rules:
    for large tables kept on external storage.
 
 Rule 2 is the recommended way to distribute custom tables, and it is what makes
-this work **inside the Docker image**: the setup scripts bind-mount your
-scenario folder at `/IMPACTncd_England/scenarios`, so a path resolved against
-the YAML's own directory is valid both on the host and in the container — no
-path translation needed. For example, with this layout:
+this work **inside the Docker image**: the setup scripts mount your scenario
+folder into the container (at `/IMPACTncd_England/scenarios` with
+`-ScenariosDir`, or, in standalone mode, with its files linked into
+`/IMPACTncd_England`), so a path resolved against the YAML's own directory is
+valid both on the host and in the container — no path translation needed. For
+example, with this layout:
 
 ```
 my_scenario/
@@ -461,17 +495,44 @@ set, in `sim_design_my.yaml`:
 
 The custom table is then used **everywhere** the model reads that exposure —
 both when generating the synthetic population and when generating the PARF
-starting points — so results stay internally consistent.
+starting points — but only when those are generated. The model does not
+reliably notice that a table has changed, and can silently reuse caches built
+from the previous one:
+
+- synthetic populations are named from 13 design settings (such as `n`,
+  `num_chunks`, `ageL` and `ageH`), the locality's LSOAs and a hash of input
+  files in `./inputs` (population, mortality and the stock exposure tables).
+  Neither `exposure_definitions` nor a table outside `./inputs` is part of
+  that name;
+- PARFs in `./simulation/parf`, including those downloaded from Zenodo, are
+  named from a few design settings and the relative-risk files only.
+
+So before the first `run()` with a new or changed table, regenerate both
+caches: call `IMPACTncd$del_parfs()` (it deletes every cached PARF in this copy
+of the repository; they are regenerated on the next `run()`), and give the
+design its own, empty `synthpop_dir`, or delete the synthpop files built from
+the old table. Do not use `IMPACTncd$del_synthpops()` on a shared folder: it
+deletes *everything* in `synthpop_dir`. `./simulation/parf` is one cache per
+copy of the repository, so call `del_parfs()` again whenever you switch between
+designs that use different tables, or keep a separate copy of the repository
+for each. Call `del_parfs()` also after you edit a disease-burden input: the
+model then reports that the affected PARFs will be regenerated, but removes
+only their intermediate `.qs` files.
 
 Your table must have the same schema (join keys plus the relevant distribution
 parameters/thresholds) as the stock table it replaces. The simplest way to get
 the schema right is to open the stock table (e.g.
 `arrow::open_dataset("./inputs/exposure_distributions/bmi")`) and match its
-columns.
+columns. For a continuous exposure this includes `minq` and `maxq`, the
+quantile bounds of the `[min_value, max_value]` range. If you change any
+distribution parameter, recompute them with the exposure's probability
+function (for BMI, whose `min_value` is 14,
+`tbl[, minq := fpBCPEo(rep(14, .N), mu, sigma, nu, tau)]`), because the PARF
+code reads them straight from the table.
+`custom_exposure_tables.Rmd` works through an example.
 
 > **Note:** this mechanism lets you *re-point* the table backing an existing
 > exposure. Adding a brand-new exposure *variable* (a new `name`/`var_name` not
 > already modelled) additionally requires wiring into the correlation
 > structure, relative-risk files, and the simulation engine, and is beyond the
 > scope of this vignette.
-

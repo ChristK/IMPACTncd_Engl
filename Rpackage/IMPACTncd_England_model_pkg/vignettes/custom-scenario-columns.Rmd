@@ -102,21 +102,20 @@ reduces systolic blood pressure (SBP) by 10% and records three custom columns:
 
 `_prvl`, `_contd` and `_costs` columns are kept automatically by the pruning
 step, so strictly you do not need to list them. Listing them anyway is good
-documentation and is **required** for any custom column that does *not* use a
-recognised suffix:
+documentation, and it is **required** for a custom column that does *not* use a
+recognised suffix (such a column then reaches the lifecourse files, but is not
+aggregated in any summary).
+
+**Append** the names to the existing `cols_for_output` list in your copy of
+`sim_design.yaml`; do not replace the list. The summaries are built from those
+stock columns: `income`, `education` and `ethnicity`, for instance, enter the
+QALY and cost calculations, which fail without them, and nothing checks this
+before `export_summaries()`.
 
 ```yaml
 cols_for_output:
-- pid
-- pid_mrk
-- year
-- mc
-- age
-- agegrp
-- sex
-- dimd
-- wt
-- wt_esp
+# ... keep every existing entry (pid, pid_mrk, year, mc, age, agegrp, sex,
+#     dimd, ethnicity, income, education, sha, LAD17CD, wt, wt_esp) ...
 - sbp_intervention_prvl    # optional for suffixed cols, but explicit is nice
 - sbp_excess_contd
 - sbp_intervention_costs
@@ -124,9 +123,17 @@ cols_for_output:
 
 ### Step 2 — create the columns in the scenario function
 
-Create the columns in **every** scenario (including the baseline) so the
-lifecourse schema is consistent across scenarios — set them to their "off"
-values in the baseline.
+Create the columns in **every** scenario (including the baseline), with the
+**same type** everywhere, so the lifecourse schema is consistent across
+scenarios — set them to their "off" values in the baseline. Use integer for
+`_prvl` counters (`0L`) and double for `_contd` and `_costs` (`0`, not `0L`);
+see [Tips and gotchas](#tips-and-gotchas) for what goes wrong otherwise.
+
+A scenario function must modify `synthpop$pop` in place: `run()` stops if it
+adds, removes or reorders rows, or changes the `(pid, year)` key. Run the
+script from the repository root and do not change the working directory, in
+the scenario function or between calls: `Simulation$new()` records it, and
+`run()` stops with an error if it has changed.
 
 ```{r}
 source("./global.R")
@@ -179,7 +186,8 @@ IMPACTncd$
 
 `prvl`, `incd` and `costs` are standard types and pick up the custom columns
 with no extra work. Add `"contd"` to also export the weighted-mean summary for
-`_contd` columns.
+`_contd` columns; it is not in the default `type`. An unrecognised `type` value
+is an error.
 
 ```{r}
 IMPACTncd$export_summaries(
@@ -193,6 +201,21 @@ IMPACTncd$export_summaries(
   )
 )
 ```
+
+`export_summaries()` is incremental. It exports a Monte Carlo iteration unless,
+for every requested type, that iteration's summaries already contain every
+scenario in its lifecourse output; an exported iteration is rewritten for all
+its scenarios. So you could equally export after each `run()`: the second call
+adds `sc1`. What it cannot detect is a summary that is out of date although the
+scenario set is unchanged — if you edit a scenario function (to fix a custom
+column, say) and re-run that scenario, call `IMPACTncd$del_summaries()` before
+exporting again. After changing the design, the inputs or the code, clear the
+outputs with `del_outputs()` (or at least the summaries) and re-run. Cached
+PARFs are not keyed on exposure tables or disease-burden inputs, nor cached
+synthetic populations on `exposure_definitions` or on tables outside
+`./inputs`. So after changing an exposure table or a disease-burden input, also
+run `IMPACTncd$del_parfs()` and delete the affected synthpops (`del_synthpops()`
+empties the whole `synthpop_dir`, so use it only on a folder of your own).
 
 ## What the outputs look like
 
@@ -239,17 +262,37 @@ Notes on the column names:
 `output_dir/tables/`. It selects columns by **suffix**, so most custom columns
 are tabulated automatically — you do not need to edit any code:
 
-* `_prvl` columns feed the `prevalence`, `prevalence change` and
-  `case-years prevented or postponed` (cypp) tables.
-* the derived `_incd` columns feed `incidence`, `incidence change` and
-  `cases prevented or postponed` (cpp).
-* `_costs` columns feed `costs` and `net costs`.
-* `_contd` columns feed the `continuous outcome` tables (a population-weighted
-  mean, re-weighted by `popsize` when collapsing strata).
+* `_prvl` columns feed `prevalence by …`, `prevalence relative change by …`,
+  `prevalence absolute change by …` and `case-years prevented or postponed by …`
+  (cypp). Each one also counts as a `disease` in the disease-characteristics
+  and `all-cause mortality given disease` tables, and in the equity `cypp`
+  tables (see the caveat below).
+* the derived `_incd` columns feed `incidence by …`, its relative and absolute
+  change tables, `cases prevented or postponed by …` (cpp) and the equity `cpp`
+  tables.
+* `_costs` columns feed `costs by …`, `net costs by …` and the
+  cost-effectiveness tables (below).
+* `_contd` columns feed `continuous outcome by …` and its relative and absolute
+  change tables (column prefixes `contd_mean_`, `contd_change_relative_`,
+  `contd_abs_change_`): a population-weighted mean, re-weighted by `popsize`
+  when collapsing strata.
 
 ```{r}
 IMPACTncd$export_tables()
 ```
+
+> **Equity caveat.** `export_tables()` writes the equity slope-index tables by
+> default (`equity = TRUE`). In the equity `cypp` / `cpp` tables the
+> `all_diseases_sum` row adds up every `disease` row except the `cms*`
+> indicators and the design's umbrella conditions, so it **includes** custom
+> `_prvl` / `_incd` columns. A programme flag such as `sbp_intervention_prvl`
+> (0 in `sc0`, positive in `sc1`) therefore enters the all-disease index as a
+> large number of case-years (cypp) or cases (cpp) "caused", and can reverse
+> its sign. For such a
+> run, ignore `all_diseases_sum` in those tables (the per-disease rows are
+> unaffected) or pass `equity = FALSE`. It cannot be corrected from the
+> published percentile columns, because a sum of medians is not the median of
+> the sums.
 
 ### Costs, net costs and economic evaluation
 
@@ -260,10 +303,10 @@ cost appears in net-cost tables without further configuration.
 Incremental cost-effectiveness ratios (ICER) and net monetary benefit (NMB) are
 produced directly by `$export_tables()` when `cea = TRUE` (the default). It
 writes `cost-effectiveness by <strata> (<perspective>-<scale>) (not
-standardised).csv` files containing the cumulative discounted incremental QALYs
-(`dQALYs_cuml`) and costs (`dCosts_cuml`), the `ICER`, and the `NMB` at each
-willingness-to-pay threshold, for the EQ-5D-5L QALY scale and from three cost
-perspectives:
+standardised).csv` files containing the cumulative incremental QALYs
+(`dQALYs_cuml`) and costs (`dCosts_cuml`) at each discount level, the `ICER`,
+and the `NMB` at each willingness-to-pay threshold, for the EQ-5D-5L QALY scale
+and from three cost perspectives:
 
 * **societal** — uses `total_cost` (healthcare + social care + informal care,
   net of `economic_output`), plus all custom `_costs` columns;
@@ -281,10 +324,15 @@ narrower one — so a missing `healthcare_socialcare` file means `socialcare_cos
 was not in the `costs` summary, not that the perspective made no difference.
 
 The willingness-to-pay thresholds are set with the `wtp` argument (default
-`c(25000, 35000)` GBP/QALY; NICE's standard reference range is £20,000–£30,000,
-so pass `wtp = c(20000, 30000)` for that). The thresholds appear in the output
-**column names** (`NMB_at_wtp_25000`, …), so changing them changes the CEA table
-schema:
+`c(25000, 35000)` GBP/QALY). That is the range NICE has applied in its
+technology appraisals since April 2026; it was £20,000–£30,000 before, and
+whether NICE's other guidance (public health guidelines, for example) follows
+was not settled at the time of writing
+([NICE announcement](https://www.nice.org.uk/news/articles/changes-to-nice-s-cost-effectiveness-thresholds-confirmed)).
+Pass `wtp = c(20000, 30000)` for the earlier range, or report all four
+thresholds if in doubt. The thresholds appear as values of the `type` column
+(`NMB_at_wtp_25000`, …), so changing `wtp` changes which `type` rows are
+written; code that filters on a threshold label must match:
 
 ```{r}
 IMPACTncd$export_tables(
@@ -306,22 +354,34 @@ undiscounted, and NICE's 3.5% on costs and QALYs alike. Differential rates are
 set by passing equal-length vectors, e.g. `qaly_discount_rate = c(0, 1.5)` with
 `cost_discount_rate = c(0, 3.5)`.
 
-Every level is reported in **all** the affected tables — `QALYs by …`,
-`net QALYs by …`, `costs by …`, `net costs by …` *and* `cost-effectiveness by …`
-— not just the cost-effectiveness ones. The file set is unchanged: each of those
-tables gains a `discount` column and carries one block of rows per level,
-labelled `"0%"`, `"3.5%"`, or `"QALYs 1.5%/costs 3.5%"` when a level's two rates
-differ. Filter on `discount` to pick a level; the `0%` rows are the undiscounted
-figures. `discount_from_year` defaults to the baseline (reference) year, and
-years at or before it are undiscounted.
+Discounting reaches **all** the affected tables — `QALYs by …`,
+`net QALYs by …`, `costs by …`, `net costs by …`, `cost-effectiveness by …` and
+the equity `net_qalys` tables — not just the cost-effectiveness ones. The file
+set is unchanged: each of those tables gains a `discount` column holding one
+block of rows per level, but the blocks follow the table's own rate. The QALY
+and net-QALY tables carry one block per distinct `qaly_discount_rate`, and the
+cost and net-cost tables one per distinct `cost_discount_rate`, each labelled
+with that rate (`"0%"`, `"1.5%"`, `"3.5%"`). Only the cost-effectiveness tables
+carry one block per *paired* level, labelled `"QALYs 1.5%/costs 3.5%"` when the
+two rates differ. So with the differential rates above, filter the QALY tables
+on `"1.5%"`, the cost tables on `"3.5%"` and the cost-effectiveness tables on
+`"QALYs 1.5%/costs 3.5%"`; the `0%` rows are the undiscounted figures
+everywhere.
+
+`discount_from_year` defaults to `baseline_year_for_change_outputs` (2019 by
+default; a two-digit value such as `25` is read as 2025), and years at or before
+it are undiscounted. Under the defaults the worked example's 2025 costs and
+QALYs are therefore already discounted by six years in the `3.5%` rows; pass
+`discount_from_year = 2025` to discount from the intervention start.
 
 Present values are computed as
 `PV = FV / (1 + rate/100)^max(0, year - discount_from_year)`, applied to each
 year's flow *before* the cumulative columns are accumulated, so `QALYs_cuml` /
 `costs_cuml` / `dQALYs_cuml` / `dCosts_cuml` are sums of present values. The
-equity tables are deliberately left undiscounted: their metric set mixes QALYs
-with plain event counts (CPP / CYPP / DPP), which one `discount` column could
-not describe.
+equity slope-index tables follow the same rule per metric: `equity net_qalys …`
+carries one block per `qaly_discount_rate`, while `equity cpp` / `cypp` /
+`dpp …` (counts of cases and deaths, never discounted) carry a single `"0%"`
+block. All four have a `discount` column, so filter on it.
 
 #### Discount levels and WTP thresholds
 
@@ -339,7 +399,10 @@ evaluated at every discount level. Both axes end up as rows, so filter on
 **both** `discount` and `type` to isolate a single series:
 
 ```r
-dt <- fread("cost-effectiveness by year (healthcare_socialcare-EQ5D5L) (not standardised).csv")
+dt <- fread(file.path(
+  IMPACTncd$design$sim_prm$output_dir, "tables",
+  "cost-effectiveness by year (healthcare_socialcare-EQ5D5L) (not standardised).csv"
+))
 dt[discount == "3.5%" & type == "NMB_at_wtp_25000"]
 ```
 
@@ -360,22 +423,42 @@ whereas a productivity-loss or out-of-pocket cost should be left in the societal
 perspective only. (Passing `TRUE` includes *all* custom cost columns and
 `NULL`/`FALSE` includes none.)
 
-If you need a bespoke calculation, you can still derive ICER and NMB yourself
-from the `net costs` and `net QALYs` tables in your own analysis scripts.
+If you need a bespoke calculation, derive it per Monte Carlo iteration from the
+summaries (`summaries/qalys_scaled_up/` and `summaries/costs_scaled_up/`, which
+keep `mc` and are undiscounted, with short years), then take quantiles across
+iterations. Do not combine the percentile columns of the `net costs` /
+`net QALYs` tables: a ratio of medians is not the median of the per-iteration
+ratios, and the interval cannot be recovered.
 
 ## Tips and gotchas
 
-* **Keep the column present in every scenario.** If a column exists in `sc1` but
-  not in `sc0`, the baseline rows will be missing it. When the lifecourse files
-  are combined across scenarios the missing values become `NULL`, which the
-  prevalence/incidence/cost aggregations treat as 0. If you want a genuine zero
-  baseline, create the column in *every* scenario (including the baseline) — e.g.
-  set it to `0` when the intervention is not active.
+* **Keep the column present, with the same type, in every scenario.** Each
+  iteration's lifecourse files are read with a single schema, taken from the
+  first scenario folder in character-code order, in which upper case sorts
+  before lower case (`sc0`, unless another scenario name sorts before it; and
+  `Intervention` before `baseline`). So:
+  * a column missing from that first scenario is dropped for **every**
+    scenario and reaches no summary at all, without a warning;
+  * a column missing from a later scenario is `NULL` there: counted as 0 in
+    `prvl`/`incd`, but `NA` in the `costs` and `contd` summaries. In each
+    cost-effectiveness perspective that includes the column (societal always)
+    the `NA` sets that arm's **entire** cost, built-in `total_cost` included,
+    to 0, so `dCosts_cuml` becomes plus or minus the other arm's whole cost;
+  * an integer column in the first scenario (`0L`) cannot hold a later
+    scenario's fractional values: `export_summaries()` then fails with an arrow
+    cast error (`Float value … was truncated converting to int32`), after the
+    whole simulation has run.
+
+  Create the column in every scenario, including the baseline, at its "off"
+  value and with the type given in Step 2.
 * **Avoid the substring `wt` in custom column names.** The ESP-weighted variants
   of some summaries are produced by string-replacing `wt` with `wt_esp` in the
   SQL. A column name containing `wt` could be corrupted by that substitution.
 * **`_contd` is opt-in.** Remember to add `"contd"` to the `type` argument of
-  `export_summaries()`, otherwise the continuous summary is not written.
+  `export_summaries()`, otherwise the continuous summary is not written. If you
+  forgot, `IMPACTncd$export_summaries(multicore = TRUE, type = "contd")` adds it
+  for every iteration without touching the other summaries (naming the other
+  types as well also works, but rewrites them all).
 * **Type matters.** `_prvl` and `_incd` logic compares against integers (`> 0`,
   `= 1`), so make `_prvl` columns integer counters. `_contd` and `_costs` should
-  be numeric.
+  be doubles.
