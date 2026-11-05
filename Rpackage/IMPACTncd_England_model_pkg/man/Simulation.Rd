@@ -526,13 +526,26 @@ again. What it cannot detect is a summary that is stale although its
 scenario set is unchanged (e.g. after changing the design, the inputs or
 the code): call \code{del_summaries()} (or \code{del_outputs()}) first in that case.
 
-It refuses, rather than lose data, in two cases. (1) An iteration that
-needs exporting has summaries for a scenario whose lifecourse output has
-since been deleted: re-exporting rewrites the iteration from its
-lifecourse and would discard them. (2) The existing summaries were
-exported with the other \code{single_year_of_age} setting, so the folders
-would mix two schemas. \code{contd} is skipped, with a message, when the
-lifecourse has no \verb{_contd} columns.
+It refuses, rather than risk the existing summaries, in three cases.
+(1) An iteration that needs exporting has summaries (in any folder of a
+requested type) for a scenario whose lifecourse output has since been
+deleted: re-exporting rewrites the iteration from its lifecourse and
+would discard them. The message names the types and folders, and the
+narrower ways out. (2) A summary file of a requested type cannot be read,
+so what it held cannot be checked (delete it and call again if every
+scenario's lifecourse still exists: completeness reads every folder of a
+type, so its iteration is then re-exported). (3) The existing summaries
+do not have the age columns this call would write -- the other
+\code{single_year_of_age} setting or a different \code{strata_for_output} --
+checked even when nothing needs exporting, so the folders would mix two
+schemas. \code{single_year_of_age} must be \code{TRUE}
+or \code{FALSE}. \code{contd} is skipped, with a warning, when the lifecourse has
+no \verb{_contd} columns.
+
+With \code{scenario} absent from \code{strata_for_output} the summaries aggregate
+over scenarios, so an iteration counts as exported once its file exists:
+a scenario run for it afterwards is not picked up. Call \code{del_summaries()}
+first in that case.
 
 Until 2026-11-04 this was wrong in two ways. The workers were given the
 iteration's POSITION (1..k) instead of its \code{mc} number, so after adding
@@ -2648,9 +2661,13 @@ print(manifest)
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{new_path}}{A string with the new output path (absolute).}
+      \item{\code{new_path}}{A string with the new output path. A relative path
+is resolved against the model's root (the working directory when
+the Design was created); an empty path, the root itself or a folder
+containing it is refused, because \code{del_outputs()} deletes every file
+under it.}
       \item{\code{carry_over_lifecourse_files_from}}{A string with a previous output
-path (absolute) from which the lifecourse files will be copied to the
+path (a relative one is resolved against the model's root) from which the lifecourse files will be copied to the
 new output folder defined in new_path argument. Overwritting is not
 allowed. If missing, no copy occurs.}
     }
@@ -2674,7 +2691,9 @@ allowed. If missing, no copy occurs.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{new_path}}{A string with the new synthpop path (absolute).}
+      \item{\code{new_path}}{A string with the new synthpop path. Resolved and
+checked as for \code{update_output_path()}: \code{del_synthpops()} deletes
+everything in it.}
     }
     \if{html}{\out{</div>}}
   }

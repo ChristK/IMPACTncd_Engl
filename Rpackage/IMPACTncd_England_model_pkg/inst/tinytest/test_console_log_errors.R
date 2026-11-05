@@ -9,15 +9,25 @@
 # wrapped in a calling handler (private$release_console_log_on_error()) that
 # writes "Error: <message>" to console.txt and releases the redirect first.
 #
-# The terminal print itself is R's own error printer and cannot be captured
-# here; what is asserted is the mechanism: the redirect is released, the
-# caller's sinks are intact, and console.txt holds the "Error:" line, which
-# only the handler writes (on.exit() alone would leave console.txt without it).
+# What is asserted is the state AT THE MOMENT R WOULD PRINT THE ERROR: an
+# outer calling handler runs after the package's inner one and before any
+# unwinding (on.exit), which is exactly when R's default printer runs. So a
+# handler that kept the error in console.txt fails here, and one that gets it
+# to the terminal passes, whatever it writes to console.txt.
+#
+# run() is wrapped the same way but not exercised here: on a skeleton object
+# it stops on `data_initialized` BEFORE its console log starts, and a real run
+# needs the model data.
 
 library(tinytest)
 library(IMPACTncdEngland)
 
 old_wd <- getwd()
+# Simulation$new() and export_summaries() change the session's thread
+# settings: save them now, restore at the end.
+state0 <- list(dt = data.table::getDTthreads(), fst = fst::threads_fst(),
+               arrow = arrow::cpu_count())
+
 root <- normalizePath(tempfile("conlog_err_"), mustWork = FALSE)
 dir.create(root)
 setwd(root)
@@ -44,27 +54,42 @@ dl <- list(
 )
 design <- suppressMessages(suppressWarnings(Design$new(dl)))
 sim <- suppressMessages(suppressWarnings(Simulation$new(design)))
-
-out_depth <- sink.number(type = "output")
-msg_con <- sink.number(type = "message")
-
-# The lifecourse folder is empty, so export_summaries() stops inside its
-# wrapped body ("No Monte Carlo iterations found", or a DuckDB error on the
-# empty dataset), with the console log active.
-err <- tryCatch({ sim$export_summaries(multicore = FALSE); "<no error>" },
-                error = conditionMessage)
-expect_false(identical(err, "<no error>"), info = "the fixture does make it fail")
-expect_identical(sink.number(type = "output"), out_depth,
-                 info = "no output sink left behind")
-expect_identical(sink.number(type = "message"), msg_con,
-                 info = "the message stream is back on the terminal")
-
 con_txt <- file.path(out, "logs", "console.txt")
+
+msg_con0 <- sink.number(type = "message")
+out_depth0 <- sink.number(type = "output")
+
+# Call `expr`, and record the message connection when the error reaches an
+# outer calling handler, i.e. when R's printer would run.
+state_at_print <- function(expr) {
+  at <- NA_integer_
+  err <- tryCatch(
+    withCallingHandlers({ force(expr); "<no error>" },
+                        error = function(e) at <<- sink.number(type = "message")),
+    error = conditionMessage
+  )
+  list(err = err, msg_con_at_print = at)
+}
+
+# export_summaries(): the lifecourse folder is empty, so it stops inside its
+# wrapped body, with the console log active.
+r <- state_at_print(sim$export_summaries(multicore = FALSE))
+expect_false(identical(r$err, "<no error>"), info = "export_summaries(): the fixture makes it fail")
+expect_identical(r$msg_con_at_print, msg_con0,
+                 info = "export_summaries(): the message stream is on the terminal when the error is printed")
+expect_identical(sink.number(type = "output"), out_depth0, info = "no output sink left behind")
 log_lines <- if (file.exists(con_txt)) readLines(con_txt, warn = FALSE) else character(0)
 expect_true(any(grepl("export_summaries()", log_lines, fixed = TRUE)),
             info = "the console log was active for the call")
 expect_true(any(startsWith(log_lines, "Error: ")),
-            info = "the handler recorded the error in console.txt before releasing it")
+            info = "the error is also recorded in console.txt")
+
+# export_tables(): an invalid equity_ridit_reference fails its match.arg(),
+# the first statement inside the wrapped body, with the console log active.
+r <- state_at_print(sim$export_tables(multicore = FALSE, equity_ridit_reference = "bogus"))
+expect_false(identical(r$err, "<no error>"), info = "export_tables(): the fixture makes it fail")
+expect_identical(r$msg_con_at_print, msg_con0,
+                 info = "export_tables(): the message stream is on the terminal when the error is printed")
 
 # A caller's own sink survives an error too.
 tf <- tempfile()
@@ -72,8 +97,12 @@ sink(tf)
 invisible(tryCatch(sim$export_summaries(multicore = FALSE), error = function(e) NULL))
 depth_inside <- sink.number(type = "output")
 sink()
-expect_identical(depth_inside, out_depth + 1L,
+unlink(tf)
+expect_identical(depth_inside, out_depth0 + 1L,
                  info = "the caller's sink is still there after the error")
 
 setwd(old_wd)
 unlink(root, recursive = TRUE)
+data.table::setDTthreads(state0$dt)
+fst::threads_fst(state0$fst)
+arrow::set_cpu_count(state0$arrow)

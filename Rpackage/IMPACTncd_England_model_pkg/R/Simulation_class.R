@@ -486,7 +486,8 @@ Simulation <-
             (length(mc) > 1L &&
               diff(range(diff(mc))) > sqrt(.Machine$double.eps))
         ) {
-          stop("mc need to be a sequential integer vector, or a scalar")
+          stop("run(): mc need to be a sequential integer vector, or a scalar",
+               call. = FALSE)
         }
         # NOTE mc is in fact mc_aggr. mc_ is the mc of the synthpop
         mc_sp <-
@@ -3036,9 +3037,13 @@ Simulation <-
       # update_output_path ----
 
       #' @description Updates the output path.
-      #' @param new_path A string with the new output path (absolute).
+      #' @param new_path A string with the new output path. A relative path
+      #'   is resolved against the model's root (the working directory when
+      #'   the Design was created); an empty path, the root itself or a folder
+      #'   containing it is refused, because `del_outputs()` deletes every file
+      #'   under it.
       #' @param carry_over_lifecourse_files_from A string with a previous output
-      #' path (absolute) from which the lifecourse files will be copied to the
+      #' path (a relative one is resolved against the model's root) from which the lifecourse files will be copied to the
       #' new output folder defined in new_path argument. Overwritting is not
       #' allowed. If missing, no copy occurs.
       #' @return The invisible self for chaining.
@@ -3054,6 +3059,14 @@ Simulation <-
             !is.character(carry_over_lifecourse_files_from)
         ) {
           stop("carry_over_lifecourse_files_from needs to be a string.")
+        }
+        # Resolve a relative source against the model's root, like new_path
+        # below, so one call cannot read one tree and write another.
+        if (!missing(carry_over_lifecourse_files_from) &&
+            !.is_abs_path(carry_over_lifecourse_files_from)) {
+          carry_over_lifecourse_files_from <- file.path(
+            private$root_for_paths(), carry_over_lifecourse_files_from
+          )
         }
         if (
           !missing(carry_over_lifecourse_files_from) &&
@@ -3071,7 +3084,11 @@ Simulation <-
             full.names = TRUE
           )
         }
-        self$design$sim_prm$output_dir <- new_path
+        # Same resolution as Design$initialize(): a relative path is anchored on
+        # the model's root, and an empty path or the root itself is refused.
+        self$design$sim_prm$output_dir <- .resolve_out_dir(
+          new_path, private$root_for_paths(), "output_dir"
+        )
         private$create_output_folder_structure()
         if (!missing(carry_over_lifecourse_files_from)) {
           file.copy(fl, file.path(self$design$sim_prm$output_dir, "lifecourse"))
@@ -3081,13 +3098,17 @@ Simulation <-
       # update_synthpop_path ----
 
       #' @description Updates the synthpop path.
-      #' @param new_path A string with the new synthpop path (absolute).
+      #' @param new_path A string with the new synthpop path. Resolved and
+      #'   checked as for `update_output_path()`: `del_synthpops()` deletes
+      #'   everything in it.
       #' @return The invisible self for chaining.
       update_synthpop_path = function(new_path) {
         if (!is.character(new_path)) {
           stop("new_path needs to be a string.")
         }
-        self$design$sim_prm$synthpop_dir <- new_path
+        self$design$sim_prm$synthpop_dir <- .resolve_out_dir(
+          new_path, private$root_for_paths(), "synthpop_dir"
+        )
         invisible(self)
       }
     ),
@@ -4630,6 +4651,17 @@ Simulation <-
           self$design$assert_working_dir(what, cause)
         }
         invisible(TRUE)
+      },
+
+      # root_for_paths ----
+      # The model's root for resolving output paths: the Design's, or getwd()
+      # for a Design deserialised from before root tracking.
+      root_for_paths = function() {
+        if (is.function(self$design$get_root_dir)) {
+          r <- self$design$get_root_dir()
+          if (!is.null(r)) return(r)
+        }
+        getwd()
       },
 
       # release_console_log_on_error ----

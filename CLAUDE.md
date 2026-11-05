@@ -88,16 +88,33 @@ whatever scenarios it held, so adding iterations re-exported the first k and
 `sc1`. Now `mcaggr = mc_set[i]` (`worker_index = i` only for the staggered start,
 which applies to parallel workers only), and `summaries_status()` skips an
 iteration only if, for every requested type, its marker
-(`.summary_marker_dirs`) holds every scenario of its lifecourse. Because it now
-really re-exports, three guards keep that from losing data: it **stops** if an
-iteration to export has summaries for a scenario whose lifecourse was pruned
-(rewriting would discard them), and if the existing summaries were written with
-the other `single_year_of_age`; and it drops `contd` from the check, with a
-message, when the lifecourse has no `_contd` column (that type writes no
-marker, so it could never be "complete"). An unknown `type` is an error. It
+(`.summary_marker_dirs`) holds every scenario of its lifecourse AND every other
+folder of the type has a file for the iteration (event-filtered folders such as
+`hle_cmsmm1.5_*` may legitimately lack a scenario, so scenarios are checked on the
+marker only). Because it now
+really re-exports, it **stops** rather than risk existing summaries when: an
+iteration to export has, in ANY folder of a requested type
+(`.summary_type_dirs`), a scenario whose lifecourse was pruned (rewriting would
+discard it; the message names types/folders and the narrower remedies, never
+`del_summaries()`, which deletes every type and iteration); a summary file of a
+requested type is unreadable (its scenarios cannot be checked); or any
+requested age-shaped marker (`.summary_age_types`, incl. `cms`) differs from the
+columns THIS call would write (derived from `strata_for_output`, checked even
+when nothing needs exporting). `single_year_of_age` must be `TRUE`/`FALSE`, an
+unknown `type` is an error, and `contd` is dropped from the check with a
+**warning** (a message would vanish into `console.txt`) when the lifecourse has
+no `_contd` column. It
 cannot detect a stale summary whose scenario set is unchanged: `del_summaries()`
 first after a design/input/code change. Tests:
-`test_export_summaries_incremental.R` (23; the pre-review build fails 7).
+`test_export_summaries_incremental.R` (35+ cases; it saves and restores the
+session state it changes). Completeness reads EVERY folder of a type
+(`.summary_type_dirs`, exact names, so a user's backup folder is ignored), so a
+file deleted from any of them gets its iteration re-exported; a folder without a
+`scenario` column (a design without `scenario` in `strata_for_output`) is
+checked by `mc` only (so a scenario run afterwards for an already-exported
+iteration is NOT picked up there: `del_summaries()` first). The age-shape refusal states the columns found and
+expected, naming both possible causes (flag or `strata_for_output`); `strata_age`
+is `unique()`d so `age` in `strata_for_output` no longer writes `age_1`.
 
 **Per-scenario comparators.** `comparator_scenario` accepts either a bare name
 (historical: everything else vs it — byte-identical output) or a **named vector**
@@ -961,6 +978,13 @@ between the last worker finishing and `End of parallelisation` (should be ~0 s).
    also move user scenario code. The anchor alone is NOT enough: from a
    sibling checkout with the same layout, the relative reads succeed and a
    run silently mixes two trees.
+   `output_dir`/`synthpop_dir` go through `.resolve_out_dir()`, in Design and
+   in `update_output_path()`/`update_synthpop_path()`: an empty/`NA` path,
+   the root itself or a folder containing it is **refused** (`del_outputs()`
+   deletes every file under `output_dir`, `del_synthpops()` everything in
+   `synthpop_dir`; round two of the review found that `""` had come to resolve
+   to the root). Test fixtures must therefore not use `tempdir()` itself when
+   their root is inside it.
    Added on review: `Disease$gen_parf_files()` and `SynthPop$new()` are
    guarded too (both read relative inputs); the inputs manifest is built on
    the root (`get_inputs_manifest()$generate()` from elsewhere used to write
@@ -972,10 +996,13 @@ between the last worker finishing and `End of parallelisation` (should be ~0 s).
    a scenario function must restore the folder); and `.rel_to_root()`
    normalises separators and case on Windows, where `to_rel_path()` never
    matched and the tracked records got absolute machine paths.
-   Tests: `test_working_dir_guard.R` (77, incl. a real `Disease` keeping its
-   cache from another folder, and a pin that each guarded method calls the
-   check first; every new-API call is wrapped so a build without the fix
-   FAILS 56/60 rather than erroring). Real-model check:
+   Tests: `test_working_dir_guard.R` (incl. a real `Disease` keeping its
+   cache from another folder with a STALE snapshot, so a guard moved after the
+   deletion fails; structural pins that each guarded `Simulation` method calls
+   the check first, that `gen_parf_files()` checks before its snapshot block,
+   and that `SynthPop$new()`/`Simulation$new()` check; the `""`/root/ancestor/
+   `ghost/..` path refusals). Every new-API call is wrapped, so a build
+   without the fix FAILS rather than erroring. Real-model check:
    `claude_process/issue11/verify_guard_on_real_model.R <lib> <yaml>`.
 6. **`library(IMPACTncdEngland)` alone is not enough** — `Exposure` resolves its
    distribution functions (e.g. `pZABNB`) on the search path, so `gamlss.dist`
@@ -988,7 +1015,14 @@ between the last worker finishing and `End of parallelisation` (should be ~0 s).
    The multicore path hid it — `foreach(.packages = "duckdb")` attaches duckdb,
    which `Depends: DBI`. Fixed 2026-11-04 (`@importFrom DBI ... dbListFields`).
    `test_namespace_imports.R` walks every namespace function and R6 method
-   with `codetools::findGlobals()` and fails on any unimported DBI/duckdb call.
+   with `codetools::findGlobals()` and fails on any unimported call to a
+   function of an **Imports** package (which also caught igraph's
+   `get.all.shortest.paths()` and `parallel::makeCluster()`); allow-list:
+   `%>%` in `validate()`/`calibrate_incd_ftlt()`. Not covered: functions passed
+   as values (`lapply(x, f)`), and packages outside Imports -- so note that
+   **`validate()` needs `library(dplyr)` and `library(ggplot2)` attached** (it
+   calls `collect()`/`select()`/`%>%` on arrow queries and `ggplot()` bare;
+   neither package is in Imports), and `calibrate_incd_ftlt()` needs dplyr.
 
 ## Documentation
 

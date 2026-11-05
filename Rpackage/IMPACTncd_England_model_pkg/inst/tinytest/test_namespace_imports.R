@@ -15,9 +15,13 @@
 #
 # The general check walks every function in the namespace, INCLUDING the
 # methods of R6 class generators (public, private, active, and those added
-# with $set()), and fails if any of them calls a function exported by DBI or
-# duckdb that is neither imported nor defined in the package. It inspects
-# code, so it does not depend on what the test session has attached.
+# with $set()), and fails if any of them calls a function exported by ANY
+# package in DESCRIPTION Imports that is neither imported nor defined in the
+# package (allow-list: `%>%` in validate()/calibrate_incd_ftlt(), see below).
+# It inspects code, so it does not depend on what the test session has
+# attached. Limits: functions passed as values (lapply(x, f), do.call(f, ...))
+# are seen by findGlobals() as variables and are not checked, and packages
+# outside Imports (e.g. dplyr, ggplot2 in validate()) are out of its reach.
 #
 # Uses codetools::findGlobals(); codetools is a recommended package shipped
 # with R, but the file exits cleanly if it is missing.

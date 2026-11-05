@@ -34,6 +34,10 @@ safe <- function(expr) {
 }
 errmsg <- function(expr) tryCatch({ force(expr); "<no error>" }, error = conditionMessage)
 old_wd <- getwd()
+# Simulation$new() may set data.table/fst/arrow to 1 thread (OpenMP BLAS
+# guard): save the session state now, restore it at the end.
+state0 <- list(dt = data.table::getDTthreads(), fst = fst::threads_fst(),
+               arrow = arrow::cpu_count())
 
 mk <- function(prefix) {
   d <- tempfile(prefix)
@@ -128,6 +132,54 @@ expect_true(isTRUE(safe(same_dir(design_rel$sim_prm$output_dir, file.path(root, 
 expect_true(isTRUE(safe(same_dir(design_rel$sim_prm$synthpop_dir, file.path(root, "sp_rel")))),
             info = "a relative synthpop_dir is anchored on the root")
 
+# An empty path, the root itself, or a folder containing it is refused:
+# del_outputs()/del_synthpops() delete everything inside it. ("" used to
+# resolve to the root, so del_outputs() would have emptied the checkout.)
+# ".." after a folder that does not exist yet ("ghost/..") resolves to the
+# root once the folder is created, so it must be refused up front too.
+for (bad in list("", NA_character_, ".", root, dirname(root), "ghost/..",
+                 "ghost/../..", file.path(root, "ghost2", ".."))) {
+  m <- errmsg(suppressMessages(Design$new(modifyList(dl, list(output_dir = bad)))))
+  expect_true(grepl("non-empty path|model's root folder or contains it", m),
+              info = paste0("output_dir = ", deparse(bad), " must be refused; got: ", substr(m, 1, 100)))
+  m <- errmsg(suppressMessages(Design$new(modifyList(dl, list(synthpop_dir = bad)))))
+  expect_true(grepl("non-empty path|model's root folder or contains it", m),
+              info = paste0("synthpop_dir = ", deparse(bad), " must be refused"))
+}
+# A folder inside the repository is fine (only the root and its ancestors are not).
+expect_true(is.character(safe(suppressMessages(
+  Design$new(modifyList(dl, list(output_dir = "outputs/run1"))))$sim_prm$output_dir)),
+  info = "a sub-folder of the root is accepted")
+# update_output_path()/update_synthpop_path() resolve the same way.
+invisible(safe(suppressMessages(sim$update_output_path("rel_out"))))
+expect_true(isTRUE(safe(same_dir(sim$design$sim_prm$output_dir, file.path(root, "rel_out")))),
+            info = "update_output_path() anchors a relative path on the root")
+expect_true(grepl("non-empty path|model's root folder", errmsg(sim$update_synthpop_path(""))),
+            info = "update_synthpop_path('') is refused")
+expect_true(grepl("model's root folder", errmsg(sim$update_output_path(root))),
+            info = "update_output_path(<root>) is refused")
+expect_true(grepl("model's root folder", errmsg(sim$update_output_path("ghost3/.."))),
+            info = "update_output_path('ghost3/..') is refused")
+expect_true(isTRUE(safe(same_dir(
+  suppressMessages(Design$new(modifyList(dl, list(output_dir = "ghost/../outputs"))))$sim_prm$output_dir,
+  file.path(root, "outputs")))), info = "'ghost/../outputs' resolves lexically to <root>/outputs")
+invisible(safe(suppressMessages(sim$update_output_path(file.path(root, "out")))))
+# carry_over_lifecourse_files_from is resolved against the root too, so one
+# call from another folder cannot copy from that tree into this one.
+for (b in c(root, elsewhere)) {
+  dir.create(file.path(b, "prev_out", "lifecourse"), recursive = TRUE, showWarnings = FALSE)
+}
+writeLines("root", file.path(root, "prev_out", "lifecourse", "A_lifecourse.txt"))
+writeLines("elsewhere", file.path(elsewhere, "prev_out", "lifecourse", "B_lifecourse.txt"))
+setwd(elsewhere)
+invisible(safe(suppressMessages(sim$update_output_path(
+  file.path(root, "carry_dst"), carry_over_lifecourse_files_from = "prev_out"))))
+setwd(root)
+copied <- list.files(file.path(root, "carry_dst", "lifecourse"))
+expect_true("A_lifecourse.txt" %in% copied && !"B_lifecourse.txt" %in% copied,
+            info = "carry-over copies from <root>/prev_out, not from the current folder")
+invisible(safe(suppressMessages(sim$update_output_path(file.path(root, "out")))))
+
 expect_true(isTRUE(safe(design$assert_working_dir("x"))), info = "no refusal from the root")
 
 # ---- 4. from elsewhere, every guarded method stops BEFORE doing anything ---------
@@ -177,6 +229,11 @@ for (m in guarded) {
     info = paste0(m, "() must call private$assert_wd() first")
   )
 }
+# SynthPop$new() and Simulation$new(<Design>) check too (behaviourally above).
+expect_true(grepl("assert_working_dir", paste(deparse(body(SynthPop$public_methods$initialize)), collapse = " "), fixed = TRUE),
+            info = "SynthPop$new() checks the working directory")
+expect_true(grepl("assert_working_dir", paste(deparse(body(Simulation$public_methods$initialize)), collapse = " "), fixed = TRUE),
+            info = "Simulation$new(<Design>) checks the working directory")
 for (m in c("load_data", "load_exposure_effects", "load_exposures", "load_diseases")) {
   expect_true(
     grepl("assert_working_dir", deparse(body(Design$public_methods[[m]])[[2]])[1], fixed = TRUE),
@@ -226,10 +283,22 @@ expect_false(dir.exists(file.path(elsewhere, "simulation")),
              info = "no stray simulation/parf_generation_record.csv elsewhere")
 # gen_parf_files() itself refuses: its PARF generation reads relative inputs.
 # (Give the object one stub RR so it gets past the no-risk-factor early exit.)
+# Make the snapshot STALE first, so a guard placed after the snapshot block
+# would delete the cache -- otherwise '...deletes nothing first' cannot fail.
 p$rr <- list(list(get_rr_file_path = function() NA_character_, name = "bmi",
                   lag = 1L, distribution = "lognormal"))
+setwd(root)
+unlink(p$get_generation_record_path())
+setwd(elsewhere)
 refused(dis$gen_parf_files(design, list(dis)), "Disease$gen_parf_files()")
 expect_true(dir.exists(p$parf_filenam), info = "...and deletes nothing first")
+# ... and structurally: the check comes before the snapshot/deletion block.
+gpf <- vapply(as.list(body(Disease$public_methods$gen_parf_files)),
+              function(x) paste(deparse(x), collapse = " "), character(1))
+i_guard <- which(grepl(".assert_wd(", gpf, fixed = TRUE))[1]
+i_snap <- which(grepl("UpdateDiseaseSnapshotIfInvalid", gpf, fixed = TRUE))[1]
+expect_true(isTRUE(i_guard < i_snap),
+            info = "gen_parf_files(): the working-directory check precedes the snapshot block")
 
 # ---- 7. anchor: ExposureEffect's registry helpers use the root too ---------------
 ee_env <- new.env(parent = ns)
@@ -256,3 +325,6 @@ if (ee_ok) {
 setwd(old_wd)
 unlink(c(root, elsewhere), recursive = TRUE)
 if (exists("lnk")) unlink(lnk)
+data.table::setDTthreads(state0$dt)
+fst::threads_fst(state0$fst)
+arrow::set_cpu_count(state0$arrow)

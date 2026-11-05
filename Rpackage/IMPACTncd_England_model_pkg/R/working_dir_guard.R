@@ -68,6 +68,89 @@
   grepl("^([/\\\\~]|[A-Za-z]:)", p)
 }
 
+# .lexical_path ----
+# Resolve "." and ".." segments of a path as text, without touching the file
+# system (for paths that do not exist yet). "\\" becomes "/"; a leading "/",
+# UNC share ("//server/share/") or drive ("C:/") is kept, and ".." never
+# climbs above it.
+# @param p Character scalar (absolute).
+# @return Character scalar.
+.lexical_path <- function(p) {
+  p <- gsub("\\\\", "/", p)
+  lead <- if (grepl("^//[^/]+/[^/]+", p)) {
+    regmatches(p, regexpr("^//[^/]+/[^/]+/?", p))
+  } else {
+    regmatches(p, regexpr("^([A-Za-z]:)?/*", p))
+  }
+  rest <- substring(p, nchar(lead) + 1L)
+  out <- character(0)
+  for (seg in strsplit(rest, "/+")[[1]]) {
+    if (!nzchar(seg) || seg == ".") next
+    if (seg == "..") {
+      if (length(out)) out <- out[-length(out)]
+      next
+    }
+    out <- c(out, seg)
+  }
+  paste0(lead, paste(out, collapse = "/"))
+}
+
+# .resolve_partly_existing ----
+# Absolute path -> normalised path: the longest existing prefix physically
+# (normalizePath()), the not-yet-existing remainder lexically (.lexical_path()).
+# @param p Character scalar (absolute).
+# @return Character scalar.
+.resolve_partly_existing <- function(p) {
+  head <- gsub("\\\\", "/", p)
+  tail <- character(0)
+  while (!file.exists(head) && !identical(dirname(head), head)) {
+    tail <- c(basename(head), tail)
+    head <- dirname(head)
+  }
+  phys <- if (file.exists(head)) {
+    normalizePath(head, winslash = "/", mustWork = FALSE)
+  } else {
+    head
+  }
+  .lexical_path(paste(c(sub("/+$", "", phys), tail), collapse = "/"))
+}
+
+# .resolve_out_dir ----
+# Resolve `output_dir` / `synthpop_dir` to an absolute folder that is safe to
+# empty. del_outputs() deletes every file under output_dir and
+# del_synthpops() everything in synthpop_dir, so these must never be the
+# model's root or a folder that contains it. A relative path is resolved
+# against `root` (normalizePath(mustWork = FALSE) leaves a not-yet-existing
+# relative path unchanged on Unix, so it used to follow getwd()).
+# @param p The path as given.
+# @param root The model's root (Design$get_root_dir()).
+# @param what Name of the setting, for messages ("output_dir", ...).
+# @return Character scalar: the normalised absolute path.
+.resolve_out_dir <- function(p, root, what) {
+  if (!is.character(p) || length(p) != 1L || is.na(p) || !nzchar(trimws(p))) {
+    stop(sprintf("`%s` must be one non-empty path; got %s.",
+                 what, paste(deparse(p), collapse = "")), call. = FALSE)
+  }
+  if (!.is_abs_path(p)) p <- file.path(root, p)
+  # normalizePath(mustWork = FALSE) cannot resolve "x/.." when x does not
+  # exist yet, and returns it unchanged; once x is created the path IS the
+  # root, so "ghost/.." used to slip past the check below. So: the longest
+  # EXISTING prefix is resolved physically (symlinks, as the kernel will),
+  # and only the not-yet-existing remainder lexically. That keeps the POSIX
+  # meaning of "link/.." whether or not later folders exist yet.
+  p <- .resolve_partly_existing(path.expand(p))
+  cp <- sub("/+$", "", .canon_dir(p))
+  cr <- .canon_dir(root)
+  if (identical(cp, sub("/+$", "", cr)) ||
+      startsWith(paste0(sub("/+$", "", cr), "/"), paste0(cp, "/"))) {
+    stop(sprintf(paste0(
+      "`%s` ('%s') is the model's root folder or contains it. ",
+      "del_outputs()/del_synthpops() delete everything inside `%s`, so it ",
+      "must be a folder of its own."), what, p, what), call. = FALSE)
+  }
+  p
+}
+
 # .rel_to_root ----
 # `path` relative to `root` where it lies under it, else unchanged; the form
 # the git-tracked PARF/RR generation records store, so they are portable

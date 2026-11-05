@@ -50,13 +50,26 @@
 #'   scenario set is unchanged (e.g. after changing the design, the inputs or
 #'   the code): call `del_summaries()` (or `del_outputs()`) first in that case.
 #'
-#'   It refuses, rather than lose data, in two cases. (1) An iteration that
-#'   needs exporting has summaries for a scenario whose lifecourse output has
-#'   since been deleted: re-exporting rewrites the iteration from its
-#'   lifecourse and would discard them. (2) The existing summaries were
-#'   exported with the other `single_year_of_age` setting, so the folders
-#'   would mix two schemas. `contd` is skipped, with a message, when the
-#'   lifecourse has no `_contd` columns.
+#'   It refuses, rather than risk the existing summaries, in three cases.
+#'   (1) An iteration that needs exporting has summaries (in any folder of a
+#'   requested type) for a scenario whose lifecourse output has since been
+#'   deleted: re-exporting rewrites the iteration from its lifecourse and
+#'   would discard them. The message names the types and folders, and the
+#'   narrower ways out. (2) A summary file of a requested type cannot be read,
+#'   so what it held cannot be checked (delete it and call again if every
+#'   scenario's lifecourse still exists: completeness reads every folder of a
+#'   type, so its iteration is then re-exported). (3) The existing summaries
+#'   do not have the age columns this call would write -- the other
+#'   `single_year_of_age` setting or a different `strata_for_output` --
+#'   checked even when nothing needs exporting, so the folders would mix two
+#'   schemas. `single_year_of_age` must be `TRUE`
+#'   or `FALSE`. `contd` is skipped, with a warning, when the lifecourse has
+#'   no `_contd` columns.
+#'
+#'   With `scenario` absent from `strata_for_output` the summaries aggregate
+#'   over scenarios, so an iteration counts as exported once its file exists:
+#'   a scenario run for it afterwards is not picked up. Call `del_summaries()`
+#'   first in that case.
 #'
 #'   Until 2026-11-04 this was wrong in two ways. The workers were given the
 #'   iteration's POSITION (1..k) instead of its `mc` number, so after adding
@@ -130,6 +143,12 @@ Simulation$set("public", "export_summaries", function(
     )
   }
   type <- unique(type)
+  # It drives both the age-shape check and the worker's
+  # `if (single_year_of_age)`: accept only TRUE/FALSE so the two cannot
+  # disagree (1 or "TRUE" passed isTRUE() as FALSE but if() as TRUE).
+  if (!(isTRUE(single_year_of_age) || isFALSE(single_year_of_age))) {
+    stop("`single_year_of_age` must be TRUE or FALSE.", call. = FALSE)
+  }
 
   # Console output -> logs/console.txt while this phase runs (no-op unless
   # sim_prm$logs). See private$start_console_log() for the rationale.
@@ -213,9 +232,9 @@ Simulation$set("public", "export_summaries", function(
     },
     error = function(e) {
       stop(sprintf(
-        "Failed to initialize DuckDB connection or query mc_set or query scn_set: %s",
+        "export_summaries(): failed to initialize DuckDB connection or query mc_set or query scn_set: %s",
         e$message
-      ))
+      ), call. = FALSE)
     },
     finally = {
       if (!is.null(con)) {
@@ -225,10 +244,12 @@ Simulation$set("public", "export_summaries", function(
   )
 
   if (is.null(mc_set) || length(mc_set) == 0) {
-    stop("No Monte Carlo iterations found in lifecourse data")
+    stop("export_summaries(): no Monte Carlo iterations found in lifecourse data",
+         call. = FALSE)
   }
   if (is.null(scn_set) || length(scn_set) == 0) {
-    stop("No scenarios found in lifecourse data")
+    stop("export_summaries(): no scenarios found in lifecourse data",
+         call. = FALSE)
   }
 
   scn_set <- c(paste0("primary", scn_set), paste0("secondary", scn_set))
@@ -249,7 +270,8 @@ Simulation$set("public", "export_summaries", function(
       "RNG seeds are not unique for each scenario/mc combination. This may lead to correlated results. ",
       "Try to rename scenario ",
       paste(unique(dup_row_names), collapse = ", "),
-      " and rerun the simulation to avoid unintended correlations."
+      " and rerun the simulation to avoid unintended correlations.",
+      call. = FALSE
     )
   }
 
@@ -265,12 +287,44 @@ Simulation$set("public", "export_summaries", function(
   check_type <- type
   if ("contd" %in% type && !any(grepl("_contd$", names(lc)))) {
     check_type <- setdiff(type, "contd")
-    message(
+    # A warning, not a message: with logs: yes a message goes only to
+    # console.txt, while a deferred warning is printed after the redirect is
+    # released, so it reaches the terminal.
+    warning(
       "export_summaries(): type 'contd' was requested, but the lifecourse ",
-      "output has no `_contd` columns, so there is nothing to export for it."
+      "output has no `_contd` columns, so there is nothing to export for it.",
+      call. = FALSE
     )
   }
+
+  # The call's age shape must match the existing summaries -- checked whether
+  # or not anything needs exporting (on a complete set a call in the other
+  # shape used to return silently, ignoring the flag).
+  private$check_summary_age_shape(type, single_year_of_age)
+
   smry_status <- private$summaries_status(lc_pairs, check_type, multicore)
+
+  # A summary file that cannot be read hides which scenarios it held, so no
+  # rewrite can be shown to be safe: refuse (it used to warn and re-export
+  # everything, which silently discarded pruned scenarios' summaries).
+  if (length(smry_status$unreadable)) {
+    u <- smry_status$unreadable
+    stop(
+      "export_summaries(): cannot read existing summary file(s): ",
+      paste(head(u, 10L), collapse = ", "),
+      if (length(u) > 10L) paste0(" (and ", length(u) - 10L, " more)"),
+      if (!is.na(smry_status$last_error)) {
+        paste0(" (", smry_status$last_error, ")")
+      },
+      ". A file may be truncated or damaged, e.g. by an interrupted export, ",
+      "or the read failed for another reason. Because the scenarios such a ",
+      "file held cannot be checked, nothing was exported. If the lifecourse ",
+      "output of every scenario of that iteration still exists, delete just ",
+      "that file (never the folder) and call export_summaries() again; ",
+      "otherwise restore it from a backup first.",
+      call. = FALSE
+    )
+  }
   mc_set <- setdiff(mc_set, smry_status$complete)
 
   if (length(mc_set) == 0) {
@@ -291,22 +345,34 @@ Simulation$set("public", "export_summaries", function(
   orph <- smry_status$orphans[mc %in% mc_set]
   if (nrow(orph)) {
     its <- sort(unique(orph$mc))
+    tps <- sort(unique(orph$type))
+    other_types <- setdiff(check_type, tps)
     stop(
       "export_summaries(): this would discard existing summaries. ",
       "Iteration(s) ", paste(head(its, 10L), collapse = ", "),
       if (length(its) > 10L) paste0(" (and ", length(its) - 10L, " more)"),
-      " need exporting, but their summaries also hold scenario(s) ",
+      " need exporting, but their ", paste0("'", tps, "'", collapse = ", "),
+      " summaries (", paste(sort(unique(orph$folder)), collapse = ", "),
+      ") also hold scenario(s) ",
       paste(sort(unique(orph$scenario)), collapse = ", "),
       " whose lifecourse output is no longer in ",
-      private$output_dir("lifecourse"), ". Exporting rewrites an iteration's ",
-      "summaries from its lifecourse, so those would be lost. Restore or ",
-      "re-run those scenarios for these iterations first, or call ",
-      "del_summaries() if you mean to discard their summaries.",
+      private$output_dir("lifecourse"), ". Exporting rewrites an ",
+      "iteration's summaries of the requested types from its lifecourse, so ",
+      "those would be lost. Re-run those scenarios for these iterations first",
+      if (length(other_types)) {
+        paste0(
+          "; or export only the unaffected type(s), type = c(",
+          paste0("\"", other_types, "\"", collapse = ", "), ")"
+        )
+      },
+      "; or, to accept losing them, delete just these iterations' files in ",
+      "those folders (named <mc>_*.parquet) and call export_summaries() ",
+      "again. Do not use del_summaries() for this: it deletes the summaries ",
+      "of every type and iteration, including iterations whose lifecourse is ",
+      "gone and cannot be re-exported.",
       call. = FALSE
     )
   }
-  # The new iterations must have the same age shape as the existing ones.
-  private$check_summary_age_shape(type, single_year_of_age)
 
   if (multicore) {
     if (self$design$sim_prm$logs) {
@@ -432,6 +498,37 @@ Simulation$set("public", "export_summaries", function(
   contd = "contd_scaled_up"
 )
 
+# .summary_type_dirs ----
+# Every folder under summaries/ that a summary type writes, by EXACT name
+# (from a real export and the writers below). Re-exporting an iteration
+# rewrites all of them, so completeness and the orphan check read all of
+# them. Exact names, not prefixes, so a user's own folder (e.g. a backup copy
+# "mrtl_scaled_up_old") is never mistaken for one of ours.
+.summary_type_dirs <- list(
+  le = c("le_scaled_up", "le_esp", "le60_scaled_up", "le60_esp"),
+  hle = c("hle_1st_cond_scaled_up", "hle_1st_cond_esp",
+          "hle_cmsmm1.5_scaled_up", "hle_cmsmm1.5_esp"),
+  dis_char = c("dis_characteristics_scaled_up", "dis_characteristics_esp"),
+  prvl = c("prvl_scaled_up", "prvl_esp"),
+  incd = c("incd_scaled_up", "incd_esp"),
+  dis_mrtl = c("dis_mrtl_scaled_up", "dis_mrtl_esp"),
+  mrtl = c("mrtl_scaled_up", "mrtl_esp"),
+  all_cause_mrtl_by_dis = c("all_cause_mrtl_by_dis_scaled_up",
+                            "all_cause_mrtl_by_dis_esp"),
+  cms = c("cms_count_scaled_up", "cms_count_esp", "cms_score_scaled_up",
+          "cms_score_esp", "cms_score_by_age_scaled_up",
+          "cms_score_by_age_esp"),
+  qalys = c("qalys_scaled_up", "qalys_esp"),
+  costs = c("costs_scaled_up", "costs_esp"),
+  contd = c("contd_scaled_up", "contd_esp")
+)
+
+# The summary types grouped by `strata`, which single_year_of_age switches
+# from agegrp to age (le, hle and dis_char have no age axis in either mode).
+.summary_age_types <- c("prvl", "incd", "mrtl", "dis_mrtl",
+                        "all_cause_mrtl_by_dis", "cms", "qalys", "costs",
+                        "contd")
+
 # summaries_status ----
 # What the existing summaries say about each iteration, for the requested
 # types.
@@ -441,17 +538,21 @@ Simulation$set("public", "export_summaries", function(
 # @param type Character vector of (validated) summary types to check.
 # @param multicore Logical; only sets DuckDB's thread count for the check.
 # @return list(
-#   complete = sorted integer mc numbers that need NO export: for every type,
-#     the marker summary already holds every scenario the lifecourse holds;
-#   orphans  = data.table(mc, scenario, type): scenarios a marker summary holds
-#     for an iteration whose lifecourse output no longer has them (pruned after
-#     an earlier export). Re-exporting such an iteration REWRITES its files
-#     from the lifecourse and would silently discard those summaries, so
-#     export_summaries() refuses.
+#   complete   = sorted integer mc numbers that need NO export: for every
+#     requested type, its marker exists and EVERY existing folder of the type
+#     holds every scenario of the iteration's lifecourse (so a file deleted
+#     from any folder makes its iteration be re-exported);
+#   orphans    = data.table(mc, scenario, type, folder): scenarios that a
+#     folder of a requested type holds for an iteration whose lifecourse no
+#     longer has them (pruned after an earlier export). Re-exporting such an
+#     iteration rewrites every folder of the type from the lifecourse and would
+#     discard them, so export_summaries() refuses;
+#   unreadable = files under those folders that cannot be read: their
+#     scenarios cannot be checked, so export_summaries() refuses too.
 # )
-# A type whose marker folder is missing or empty makes every iteration
-# incomplete. A marker that cannot be read warns and makes every iteration
-# incomplete (its orphans are then unknown).
+# A folder without a `scenario` column (a design without `scenario` in
+# strata_for_output aggregates over scenarios) has no scenario axis: it is
+# checked by mc only and can have no orphans.
 Simulation$set("private", "summaries_status", function(
     lc_pairs,
     type,
@@ -464,15 +565,12 @@ Simulation$set("private", "summaries_status", function(
   lc_mc <- sort(unique(lc_pairs$mc))
   complete <- lc_mc
   orphans <- data.table(mc = integer(0), scenario = character(0),
-                        type = character(0))
+                        type = character(0), folder = character(0))
+  unreadable <- character(0)
+  smry_root <- private$output_dir("summaries")
 
-  for (tp in type) {
-    pth <- private$output_dir(file.path("summaries", .summary_marker_dirs[[tp]]))
-    if (!dir.exists(pth) || !length(list.files(pth))) {
-      complete <- integer(0)
-      next
-    }
-
+  # DISTINCT (mc[, scenario]) of one folder; NULL if it cannot be read.
+  read_pairs <- function(pth, has_scn) {
     have <- NULL
     con2 <- NULL
     tryCatch(
@@ -490,89 +588,151 @@ Simulation$set("private", "summaries_status", function(
           "tbl",
           open_dataset(pth, format = "parquet")
         )
-        have <- private$query_sql(con2, "SELECT DISTINCT mc, scenario FROM tbl")
-      },
-      error = function(e) {
-        warning(
-          sprintf(
-            "Could not read the existing '%s' summaries (%s); re-exporting every iteration.",
-            tp, conditionMessage(e)
-          ),
-          call. = FALSE
+        have <- private$query_sql(
+          con2,
+          if (has_scn) "SELECT DISTINCT mc, scenario FROM tbl"
+          else "SELECT DISTINCT mc FROM tbl"
         )
       },
+      error = function(e) last_error <<- conditionMessage(e),
       finally = {
         if (!is.null(con2)) {
           try(dbDisconnect(con2, shutdown = TRUE), silent = TRUE)
         }
       }
     )
-    if (is.null(have)) {
-      complete <- integer(0)
-      next
-    }
-
+    if (is.null(have)) return(NULL)
     # Plain integer/character columns on both sides of the joins.
-    have <- unique(data.table(
+    unique(data.table(
       mc = as.integer(have$mc),
-      scenario = as.character(have$scenario)
+      scenario = if (has_scn) as.character(have$scenario) else NA_character_
     ))
-    # Incomplete for this type: a lifecourse scenario missing from the summary.
-    missing_pairs <- lc_pairs[!have, on = c("mc", "scenario")]
-    complete <- setdiff(complete, missing_pairs$mc)
-    # Orphans: summary scenarios that the iteration's lifecourse lacks.
-    extra <- have[mc %in% lc_mc][!lc_pairs, on = c("mc", "scenario")]
-    if (nrow(extra)) {
-      orphans <- rbind(orphans, extra[, type := tp])
+  }
+  # Probe each file with a real read of its key columns (a damaged data page
+  # behind an intact footer passes a schema-only check).
+  bad_files <- function(fls) {
+    fls[vapply(fls, function(f) {
+      is.null(tryCatch({
+        cols <- intersect(c("mc", "scenario"),
+                          names(open_dataset(f, format = "parquet")))
+        arrow::read_parquet(f, col_select = cols)
+      }, error = function(e) { last_error <<- conditionMessage(e); NULL }))
+    }, logical(1))]
+  }
+  last_error <- NA_character_
+  # The iterations a folder has a file for ("<mc>_*.parquet"). DuckDB COPY
+  # writes a file even for zero rows, so this is "was exported here" even for
+  # the event-filtered folders (le, le60, hle_*, dis_characteristics), where a
+  # scenario with no such events in an iteration is legitimately absent.
+  mc_with_file <- function(fls) {
+    b <- basename(fls)
+    as.integer(sub("^([0-9]+)_.*$", "\\1", b[grepl("^[0-9]+_", b)]))
+  }
+
+  for (tp in type) {
+    marker <- .summary_marker_dirs[[tp]]
+    dirs <- .summary_type_dirs[[tp]]
+    dirs <- dirs[dir.exists(file.path(smry_root, dirs))]
+    if (!marker %in% dirs ||
+        !length(list.files(file.path(smry_root, marker)))) {
+      complete <- integer(0) # this type was never exported
+    }
+    for (d in dirs) {
+      pth <- file.path(smry_root, d)
+      fls <- list.files(pth, full.names = TRUE)
+      if (!length(fls)) next
+      nms <- tryCatch(names(open_dataset(pth, format = "parquet")),
+                      error = function(e) NULL)
+      have <- if (is.null(nms) || !"mc" %in% nms) NULL
+              else read_pairs(pth, "scenario" %in% nms)
+      if (is.null(have)) {
+        bad <- bad_files(fls)
+        unreadable <- c(unreadable, if (length(bad)) bad
+                                    else paste0("a file in ", pth))
+        complete <- setdiff(complete, lc_mc) # cannot tell: nothing complete
+        next
+      }
+      if (d != marker || !"scenario" %in% nms) {
+        # A sibling folder (or one without a scenario axis): complete when the
+        # iteration has a file here. Scenario-level completeness is judged on
+        # the marker only, because the event-filtered siblings may lack a
+        # scenario legitimately (a deleted sibling file still makes its
+        # iteration incomplete, so it is re-created).
+        complete <- intersect(complete, mc_with_file(fls))
+        if (!"scenario" %in% nms) next
+      } else {
+        # Incomplete: a lifecourse scenario missing from the marker.
+        missing_pairs <- lc_pairs[!have, on = c("mc", "scenario")]
+        complete <- setdiff(complete, missing_pairs$mc)
+      }
+      # Orphans: summary scenarios that the iteration's lifecourse lacks.
+      extra <- have[mc %in% lc_mc][!lc_pairs, on = c("mc", "scenario")]
+      if (nrow(extra)) {
+        orphans <- rbind(orphans, extra[, `:=`(type = tp, folder = d)])
+      }
     }
   }
-  list(complete = sort(as.integer(complete)), orphans = unique(orphans))
+  list(complete = sort(as.integer(complete)), orphans = unique(orphans),
+       unreadable = unique(unreadable), last_error = last_error)
 })
 
 # check_summary_age_shape ----
-# Stop if the existing age-stratified summaries were written in the other
-# single_year_of_age shape: adding iterations in a different shape would put
-# two schemas in one folder, and export_tables() reads one schema per folder
-# (iterations in the other shape come back with NA ages and no agegrp). The
-# first existing age-stratified marker settles it; one with `age` and no
-# `agegrp` is single-year.
+# Stop if any existing age-stratified summary of a requested type has
+# different age columns from what THIS call would write: new iterations in
+# the other shape would put two schemas in one folder, which export_tables()
+# cannot read (they come back with NA ages/bands). The call's columns come
+# from the design's strata exactly as the worker builds them:
+# `strata_for_output` (banded) or `unique(c(setdiff(..., "agegrp"), "age"))`
+# (single year). So a design whose two modes write the same columns is never
+# refused. Every requested type's marker is checked and all mismatches are
+# reported together. The message states the columns found and expected
+# rather than guessing the earlier flag: the difference can also come from a
+# changed strata_for_output.
 # @param type Character vector of (validated) summary types being exported.
-# @param single_year_of_age Logical, as passed to export_summaries().
+# @param single_year_of_age Logical scalar (validated), as passed.
 # @return TRUE, invisibly, if consistent (or nothing to compare with).
 Simulation$set("private", "check_summary_age_shape", function(
     type,
     single_year_of_age
 ) {
-  age_types <- intersect(
-    type,
-    c("prvl", "incd", "mrtl", "dis_mrtl", "all_cause_mrtl_by_dis",
-      "qalys", "costs", "contd")
-  )
-  for (tp in age_types) {
-    pth <- private$output_dir(file.path("summaries", .summary_marker_dirs[[tp]]))
+  sfo <- self$design$sim_prm$strata_for_output
+  will_write <- if (single_year_of_age) {
+    unique(c(setdiff(sfo, "agegrp"), "age"))
+  } else {
+    sfo
+  }
+  age_cols <- function(x) intersect(c("age", "agegrp"), x)
+  exp_cols <- age_cols(will_write)
+  bad <- character(0)
+  for (tp in intersect(type, .summary_age_types)) {
+    mk <- .summary_marker_dirs[[tp]]
+    pth <- private$output_dir(file.path("summaries", mk))
     if (!dir.exists(pth) || !length(list.files(pth))) next
     nms <- tryCatch(names(open_dataset(pth, format = "parquet")),
                     error = function(e) NULL)
-    if (is.null(nms)) next
-    existing_single <- "age" %in% nms && !"agegrp" %in% nms
-    if (!identical(existing_single, isTRUE(single_year_of_age))) {
-      stop(
-        sprintf(
-          paste0(
-            "export_summaries(): the existing summaries in '%s' were exported ",
-            "with single_year_of_age = %s, but this call uses %s. Adding ",
-            "iterations in the other shape would mix two schemas in one ",
-            "folder, which export_tables() cannot read. Pass ",
-            "single_year_of_age = %s, or call del_summaries() first to ",
-            "re-export everything in the new shape."
-          ),
-          .summary_marker_dirs[[tp]], existing_single,
-          isTRUE(single_year_of_age), existing_single
-        ),
-        call. = FALSE
-      )
+    if (is.null(nms)) next # unreadable: reported by summaries_status()
+    found <- age_cols(nms)
+    if (!setequal(found, exp_cols)) {
+      bad <- c(bad, sprintf("'%s' has %s", mk,
+                            if (length(found)) paste(found, collapse = " + ")
+                            else "no age column"))
     }
-    return(invisible(TRUE))
+  }
+  if (length(bad)) {
+    stop(
+      "export_summaries(): the existing summaries do not have the age columns ",
+      "this call would write (single_year_of_age = ", single_year_of_age,
+      " with this strata_for_output writes ",
+      if (length(exp_cols)) paste(exp_cols, collapse = " + ") else "no age column",
+      "): ", paste(bad, collapse = "; "), ". They were exported with the ",
+      "other single_year_of_age setting or a different strata_for_output, ",
+      "and new iterations in this shape would mix two schemas in one ",
+      "folder, which export_tables() cannot read. Export with the same ",
+      "settings as before, or call del_summaries() first to re-export ",
+      "everything (only possible while every iteration's lifecourse output ",
+      "still exists).",
+      call. = FALSE
+    )
   }
   invisible(TRUE)
 })
@@ -680,7 +840,9 @@ Simulation$set("private", "export_summaries_hlpr", function(
     "mc",
     setdiff(self$design$sim_prm$strata_for_output, c("agegrp"))
   )
-  strata_age <- c(strata_noagegrp, "age")
+  # unique(): with `age` already in strata_for_output, c(..., "age") wrote a
+  # duplicate `age_1` column in single-year mode.
+  strata_age <- unique(c(strata_noagegrp, "age"))
 
   if (single_year_of_age) {
     strata <- strata_age

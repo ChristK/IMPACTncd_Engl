@@ -353,12 +353,11 @@ Design <-
           # stay relative and del_outputs()/del_synthpops()/export_*() -- which
           # are not working-directory guarded, because these paths are meant
           # to be absolute -- would act on another folder after a setwd().
+          # .resolve_out_dir() also refuses an empty path and the root (or a
+          # folder containing it): "" used to resolve to the root, so
+          # del_outputs() would have emptied the checkout.
           for (k in c("output_dir", "synthpop_dir")) {
-            p <- sim_prm[[k]]
-            if (is.character(p) && length(p) == 1L && !.is_abs_path(p)) {
-              p <- file.path(private$root_dir, p)
-            }
-            sim_prm[[k]] <- normalizePath(p, mustWork = FALSE)
+            sim_prm[[k]] <- .resolve_out_dir(sim_prm[[k]], private$root_dir, k)
           }
         }
 

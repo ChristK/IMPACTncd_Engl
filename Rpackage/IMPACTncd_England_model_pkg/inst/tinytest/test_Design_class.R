@@ -44,8 +44,10 @@ create_design_list <- function(overrides = list()) {
         bpmed_adherence = 0.9,
         export_xps = TRUE,
         simsmok_calibration = FALSE,
-        output_dir = tempdir(),
-        synthpop_dir = tempdir(),
+        # Folders of their own: tempdir() itself CONTAINS clean_wd (the root),
+        # which Design now refuses (del_outputs() would empty the root).
+        output_dir = file.path(tempdir(), "test_design_out"),
+        synthpop_dir = file.path(tempdir(), "test_design_sp"),
         validation = FALSE,
         iteration_n_max = 2,
         num_chunks = 1

@@ -542,7 +542,9 @@ mk_dl <- function(overrides = list()) {
     maxlag = 5, smoking_relapse_limit = 3, stochastic = TRUE, kismet = 42,
     jumpiness = 0.2, statin_adherence = 0.85, bpmed_adherence = 0.9,
     export_xps = TRUE, simsmok_calibration = FALSE,
-    output_dir = tempdir(), synthpop_dir = tempdir(),
+    # Folders of their own: tempdir() contains clean_wd, the root.
+    output_dir = file.path(tempdir(), "test_xpsq_out"),
+    synthpop_dir = file.path(tempdir(), "test_xpsq_sp"),
     validation = FALSE, iteration_n_max = 2, num_chunks = 1)
   modifyList(base, overrides)
 }
