@@ -34,5 +34,6 @@ dplyr
 data.table
 # required currently but to be removed in the future
 cowplot
+ggpubr
 mc2d
 gh
