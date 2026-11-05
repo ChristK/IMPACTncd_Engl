@@ -256,12 +256,13 @@ reason, `export_summaries()` cannot tell that an existing summary has gone out
 of date when its iteration and scenarios are unchanged; after such a change,
 start again with `del_outputs()` (see below).
 
-Two things make it stop with an explanation rather than risk your results: an
+It stops with an explanation, rather than risk your results, in three cases: an
 iteration that needs exporting still has summaries of a scenario whose
 lifecourse output has since been deleted (exporting rewrites an iteration from
-its lifecourse, so they would be lost), or the existing summaries were made
-with the other `single_year_of_age` setting (repeat the setting you used
-before).
+its lifecourse, so they would be lost; the message names the summary types and
+the narrower ways out), a summary file cannot be read, or the existing
+summaries were made with the other `single_year_of_age` setting or a different
+`strata_for_output` (export with the same settings as before).
 
 ## When you change the design file
 
@@ -283,6 +284,7 @@ never use it on a folder shared with other users.
 | `cannot open file 'global.R'`, or a path containing `.../vignettes/inputs/...` | The working directory is not the repository root; see [Read this first](#read-this-first-the-working-directory). |
 | `...: working directory changed since this model was set up` | The model was set up in one folder and is being used from another, typically because code ran inside an `.Rmd`. Run the `setwd()` command the message gives at the console (a `setwd()` inside an `.Rmd` chunk is undone when the chunk ends). |
 | `object 'active_days' not found` during `run()` | The data have not been downloaded; see [step 3](#step-3-download-the-model-data). |
+| `` `output_dir` ... is the model's root folder or contains it `` (or `must be one non-empty path`) | `output_dir` or `synthpop_dir` is empty, or is the repository folder or one containing it. Use a folder of its own: `del_outputs()` and `del_synthpops()` delete everything inside it. |
 | `You don't have write access to the output folder` | `output_dir` or `synthpop_dir` points to a folder you cannot write to; change the path or its permissions. |
 | The console shows almost nothing for a long time | Normal with `logs: yes`; follow `logs/times.txt` and `logs/console.txt`. |
 | R runs out of memory or the computer becomes unresponsive | Lower `clusternumber` and `clusternumber_export`, or use smaller `n`. |

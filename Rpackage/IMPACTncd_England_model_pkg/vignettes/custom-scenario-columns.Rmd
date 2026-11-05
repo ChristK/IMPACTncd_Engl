@@ -207,7 +207,7 @@ for every requested type, that iteration's summaries already contain every
 scenario in its lifecourse output; an exported iteration is rewritten for all
 its scenarios. So you could equally export after each `run()`: the second call
 adds `sc1`. (If the lifecourse has no `_contd` column, `contd` is skipped
-with a message: there is nothing to export for it.) What it cannot detect is a summary that is out of date although the
+with a warning: there is nothing to export for it.) What it cannot detect is a summary that is out of date although the
 scenario set is unchanged — if you edit a scenario function (to fix a custom
 column, say) and re-run that scenario, call `IMPACTncd$del_summaries()` before
 exporting again. After changing the design, the inputs or the code, clear the
