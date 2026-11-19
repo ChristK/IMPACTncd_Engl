@@ -25,8 +25,8 @@ calibrate_to_pop_projections_by_LAD: yes # Calibrate to national population proj
 simsmok_calibration: yes
 validation: no # or yes. Note, no yes/no
 iteration_n_max: 1000
-output_dir: /mnt/storage_fast/England/output
-synthpop_dir: /mnt/storage_fast/England/synthpop
+output_dir: /mnt/storage_fast/England_final/output
+synthpop_dir: /mnt/storage_fast/England_final/synthpop
 
 # Discounting (QALYs/costs) and willingness-to-pay are arguments of
 # $export_tables(), not YAML settings. qaly_discount_rate / cost_discount_rate
