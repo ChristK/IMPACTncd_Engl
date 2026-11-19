@@ -930,8 +930,17 @@ design whose directory another design evicted rebuilds it cheaply from its own
 regenerate everything every time — reverted). Superseded `.qs` therefore pile up
 (22 files, 6.7 GB on 2026-11-18): only `del_parfs()` and `complete_data_init()`'s
 input-change invalidation remove them. **Every synthpop, PARF and `.qs` built
-before 2026-11-18 is invalid** and regenerates; the published Zenodo PARFs
-(v1.0.1) and the Docker data image no longer match until republished.
+before 2026-11-18 is invalid** and regenerates. The PARFs were republished as
+**Zenodo v1.0.2** (2026-11-19, DOI `10.5281/zenodo.24362170`; the 69 input files
+carried over unchanged, server-side) and `simulation/parf_generation_record.csv`
+lists their hashes, so a download is used without regeneration (checked end to
+end); the Docker data image is rebuilt from it (`build_push_data.sh` -> `:1.0.2`).
+How the release was made and verified (isolated root, draft checks file by file,
+gated publish, user-side acceptance):
+`claude_process/min_value_point_mass/release_v102/` (scripts 00-07). Note for
+any future re-sync from an isolated root whose `inputs/` is a symlink: RR paths
+that resolve outside the root are written to the record as ABSOLUTE paths
+(`nonmodelled`'s here); normalise them before committing (step 06).
 **(d) Smoking counts — zeros NOT drawn (option B, decided 2026-11-19).**
 `smok_quit_yrs`, `smok_dur_ex`, `smok_dur_curr`, `smok_cig_curr`, `smok_cig_ex`
 declare `min_value: 1`, which under the inclusive rule gives exactly the old
