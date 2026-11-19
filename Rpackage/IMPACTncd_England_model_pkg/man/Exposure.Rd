@@ -125,9 +125,20 @@ Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
 
     \item{\code{pfun}}{Probability function name (for generating qmin/qmax)}
 
-    \item{\code{min_value}}{Minimum value for qmin calculation}
+    \item{\code{min_value}}{Lowest value a draw may take, INCLUSIVE: it becomes
+\code{minq = P(Y < min_value)} (see \code{add_qmin_qmax()}), so a point mass
+at \code{min_value} (e.g. the zeros of a count) is drawn with its
+probability. Before 2026-11-18 it was \code{P(Y <= min_value)}, which
+made the lower bound exclusive.}
 
-    \item{\code{max_value}}{Maximum value for qmax calculation}
+    \item{\code{max_value}}{Highest value a draw may take, inclusive:
+\code{maxq = P(Y <= max_value)}.}
+
+    \item{\code{family_type}}{Support of the distribution, as gamlss.dist's
+family \code{type}: "Discrete", "Continuous" or "Mixed". It decides how
+\code{min_value} becomes \code{minq}. Inferred from \code{qfun} (e.g. \code{fqZINBI} ->
+ZINBI -> "Discrete") unless declared (YAML \verb{family_type:}, any
+case). NULL when neither gives one.}
 
     \item{\code{qparams}}{Parameter names for quantile function}
 
@@ -198,7 +209,8 @@ Exposure$new(...)$generate(pop, design)$transform(pop, function(p) {
   additional_rank_vars = NULL,
   join_fn = c("lookup_dt", "absorb_dt"),
   base_path = "./inputs/exposure_distributions/",
-  file_path = NULL
+  file_path = NULL,
+  family_type = NULL
 )}
     \if{html}{\out{</div>}}
   }
@@ -217,8 +229,11 @@ Retained here mainly for logging/lookup; the concrete location is
       \item{\code{distribution}}{Character. Distribution type: "ordinal", "continuous", "binary", or "custom"}
       \item{\code{qfun}}{Character. Quantile function name for continuous distributions}
       \item{\code{pfun}}{Character. Probability function name (derived from qfun if NULL, e.g., my_qBCPEo -> my_pBCPEo)}
-      \item{\code{min_value}}{Numeric. Minimum value for qmin calculation (e.g., 75 for BMI)}
-      \item{\code{max_value}}{Numeric. Maximum value for qmax calculation (e.g., 250 for BMI)}
+      \item{\code{min_value}}{Numeric. Lowest value a draw may take, inclusive
+(e.g. 14 for BMI; 0 for a count whose zeros are real, such as
+alcohol). See the \code{min_value} field.}
+      \item{\code{max_value}}{Numeric. Highest value a draw may take, inclusive
+(e.g. 70 for BMI).}
       \item{\code{qparams}}{Character vector. Parameter names for quantile function (auto-detected from parquet if NULL)}
       \item{\code{qargs}}{List. Additional arguments for quantile function}
       \item{\code{thresholds}}{Character vector. Threshold names for ordinal distributions (auto-detected from parquet if NULL)}
@@ -237,6 +252,11 @@ dataset. When supplied (as \code{Design$load_exposures()} does) it is used
 verbatim and takes precedence over \code{base_path}/\code{file_name}, keeping
 path-resolution policy in one place (\code{Design}). Leave NULL to fall
 back to combining \code{base_path} with \code{file_name}.}
+      \item{\code{family_type}}{Character. "Discrete", "Continuous" or "Mixed"
+(any case). NULL (default) infers it from \code{qfun} through
+gamlss.dist; declare it only for a qfun that is not a gamlss.dist
+family. Required, one way or the other, when both \code{min_value} and
+\code{max_value} are set.}
     }
     \if{html}{\out{</div>}}
   }
@@ -389,6 +409,15 @@ Exposure$new("BMI", "bmi",
   Add qmin and qmax columns to distribution table if missing or incorrect.
 Validates existing values by sampling 0.01\% of rows and comparing with expected values.
 Can optionally write the updated table back to disk as partitioned parquet.
+
+The bounds truncate draws to \verb{[min_value, max_value]}, BOTH ends
+inclusive: \code{minq = P(Y < min_value)} and \code{maxq = P(Y <= max_value)},
+by the exposure's \code{family_type} (see \code{.exposure_cdf_bounds()}). A
+table whose stored \code{minq} follows the rule used before 2026-11-18
+(\code{P(Y <= min_value)}, which never drew a point mass at \code{min_value})
+fails the check and is recalculated in memory. The PARF generator
+(\code{Disease$gen_sp_forPARF()}) calls this method too, so both paths
+draw within the same bounds.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Exposure$add_qmin_qmax(
@@ -396,7 +425,9 @@ Can optionally write the updated table back to disk as partitioned parquet.
   force = FALSE,
   write_to_disk = FALSE,
   partition_cols = "year",
-  tolerance = 1e-08
+  tolerance = 1e-08,
+  sample_idx = NULL,
+  quiet = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -408,6 +439,14 @@ Can optionally write the updated table back to disk as partitioned parquet.
       \item{\code{write_to_disk}}{Logical. If TRUE, write updated table back to disk as partitioned parquet}
       \item{\code{partition_cols}}{Character vector. Column names to use for partitioning when writing}
       \item{\code{tolerance}}{Numeric. Tolerance for comparing existing vs expected values (default 1e-8)}
+      \item{\code{sample_idx}}{Integer vector or NULL. Rows on which the stored
+bounds are checked. NULL (default) draws 0.01\% of the rows with
+\code{sample.int()}, i.e. from the ambient base-R stream, as the
+synthetic-population path always has. The PARF path passes evenly
+spaced rows (\code{.even_sample_idx()}) so that it consumes no random
+numbers.}
+      \item{\code{quiet}}{Logical. If TRUE, stale bounds are recalculated without
+the (once-per-object) message, and without marking it as given.}
     }
     \if{html}{\out{</div>}}
   }

@@ -167,6 +167,10 @@ Disease <-
         rr_lags <- vapply(private$rr[rr_order], `[[`, "lag", FUN.VALUE = integer(1))
         rr_distributions <- vapply(private$rr[rr_order], `[[`, "distribution", FUN.VALUE = character(1))
         
+        # The PARF is computed from exposures drawn under the exposure
+        # definitions and the bounds rule (.exposure_bounds_key()), so both
+        # are part of its key: a cached PARF drawn under other definitions,
+        # or before minq became inclusive (2026-11-18), can never match.
         private$chksum <-
           digest(list(
             design_$sim_prm[c(
@@ -179,7 +183,8 @@ Disease <-
             )],
             rr_file_checksums,
             rr_lags,
-            rr_distributions
+            rr_distributions,
+            .exposure_bounds_key(design_)
           ))
 
         private$parf_dir <- file.path(private$root_dir, "simulation", "parf")
@@ -264,6 +269,9 @@ Disease <-
           if (!is.na(fp) && file.exists(fp)) digest(file = fp, algo = "md5") else ""
         }, character(1))
         
+        # The .qs holds the DRAWN exposure population, so its key needs the
+        # exposure definitions and bounds rule too: without them, deleting the
+        # PARF directories alone rebuilt PARFs from old draws.
         tmpfile <- file.path(
           private$parf_dir,
           paste0(
@@ -274,7 +282,8 @@ Disease <-
               list(
                 rr_file_checksums_tmp,
                 vapply(private$rr[rr_order_tmp], `[[`, "lag", FUN.VALUE = integer(1)),
-                vapply(private$rr[rr_order_tmp], `[[`, "distribution", FUN.VALUE = character(1))
+                vapply(private$rr[rr_order_tmp], `[[`, "distribution", FUN.VALUE = character(1)),
+                .exposure_bounds_key(design_)
               )
             ),
             ".qs"
@@ -1716,6 +1725,12 @@ Disease <-
         stopifnot(is.logical(invert))
 
         if (invert) {
+          # Only THIS disease's caches: `PARF_<name>_<32 hex digits>`. The
+          # anchored hash keeps a disease whose name extends this one with an
+          # underscore (e.g. "lung" vs "lung_ca") out of the match; the
+          # earlier "^PARF_<name>_" prefix would have deleted its caches.
+          own <- paste0("^PARF_", self$name, "_[0-9a-f]{32}")
+
           # Find all PARF directories for this disease
           parf_dirs <- list.dirs(
             private$parf_dir,
@@ -1723,13 +1738,15 @@ Disease <-
             recursive = FALSE
           )
           # Filter to only PARF directories for this disease
-          parf_dirs <- parf_dirs[
-            grepl(paste0("^PARF_", self$name, "_"), basename(parf_dirs))
-          ]
+          parf_dirs <- parf_dirs[grepl(paste0(own, "$"), basename(parf_dirs))]
           # Exclude current parf directory
           parf_dirs <- setdiff(parf_dirs, private$parf_filenam)
 
-          # Remove old directories
+          # Remove old directories. The intermediate .qs files are kept on
+          # purpose: a design whose directory another design evicted rebuilds
+          # it cheaply from its own .qs instead of redrawing (deleting them
+          # made two designs run in turn regenerate everything every time).
+          # del_parfs() clears them all.
           for (d in parf_dirs) {
             if (dir.exists(d)) {
               unlink(d, recursive = TRUE)
@@ -2736,6 +2753,8 @@ Disease <-
           ff[, year := year - lag]
 
           tbl <- read_parquet_dt(design_$xps_table_path("fruit"))
+          # The synthpop's bounds (inclusive min_value), not the stored ones
+          .refresh_xps_bounds(tbl, design_, "fruit")
           col_nam <-
             setdiff(names(tbl), names(ff))
 
@@ -2761,6 +2780,7 @@ Disease <-
           ff[, year := year - lag]
 
           tbl <- read_parquet_dt(design_$xps_table_path("veg"))
+          .refresh_xps_bounds(tbl, design_, "veg")
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2789,6 +2809,7 @@ Disease <-
 
           ff[, year := year - lag]
           tbl <- read_parquet_dt(design_$xps_table_path("smok_status"))
+          .refresh_xps_bounds(tbl, design_, "smok_status")
 
           col_nam <-
             setdiff(names(tbl), names(ff))
@@ -2810,6 +2831,7 @@ Disease <-
 
           tbl <-
             read_parquet_dt(design_$xps_table_path("smok_quit_yrs"))
+          .refresh_xps_bounds(tbl, design_, "smok_quit_yrs")
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2827,6 +2849,7 @@ Disease <-
 
           # Assign smok_dur_ex when pid_mrk == true (the first year an individual enters the simulation)
           tbl <- read_parquet_dt(design_$xps_table_path("smok_dur_ex"))
+          .refresh_xps_bounds(tbl, design_, "smok_dur_ex")
           setnames(tbl, "smok_status", "smok_status_curr_xps")
           col_nam <-
             setdiff(names(tbl), names(ff))
@@ -2845,6 +2868,7 @@ Disease <-
 
           # Assign smok_dur_curr when pid_mrk == true (the first year an individual enters the simulation)
           tbl <- read_parquet_dt(design_$xps_table_path("smok_dur_curr"))
+          .refresh_xps_bounds(tbl, design_, "smok_dur_curr")
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2858,6 +2882,38 @@ Disease <-
           ]
           ff[, rankstat_smok_dur_curr := NULL]
           ff[, (col_nam) := NULL]
+
+          # Smoking histories start from age 12, exactly as the synthetic
+          # population makes them (SynthPop gen_synthpop(), right after these
+          # draws): until 2026-11-19 the PARF population skipped this, so its
+          # quit years and durations (hence pack-years) were not the
+          # synthpop's. The true age is used (ages above 90 were folded to 90
+          # above for the table look-ups only).
+          .age_true <- if ("age100" %in% names(ff)) ff$age100 else ff$age
+          ff[, .age12 := .age_true - 12L]
+          ff[smok_quit_yrs_curr_xps > .age12, smok_quit_yrs_curr_xps := .age12]
+          ff[smok_dur_curr_xps > .age12, smok_dur_curr_xps := .age12]
+          ff[
+            smok_dur_curr_xps + smok_quit_yrs_curr_xps > .age12,
+            `:=`(
+              smok_dur_curr_xps = as.integer(
+                smok_dur_curr_xps /
+                  ((smok_dur_curr_xps + smok_quit_yrs_curr_xps) / .age12)
+              ),
+              smok_quit_yrs_curr_xps = as.integer(
+                smok_quit_yrs_curr_xps /
+                  ((smok_dur_curr_xps + smok_quit_yrs_curr_xps) / .age12)
+              )
+            )
+          ]
+          # ...and, as there, an ex-smoker has quit for at least a year (the
+          # truncation above can make it 0; see SynthPop gen_synthpop()).
+          ff[
+            smok_status_curr_xps %in% 2:3 & smok_quit_yrs_curr_xps < 1L,
+            smok_quit_yrs_curr_xps := 1L
+          ]
+          ff[, .age12 := NULL]
+          rm(.age_true)
           ff[, year := year + lag]
         }
 
@@ -2873,6 +2929,7 @@ Disease <-
           set(ff, NULL, "smok_cig_curr_xps", 0L)
 
           tbl <- read_parquet_dt(design_$xps_table_path("smok_cig_curr"))
+          .refresh_xps_bounds(tbl, design_, "smok_cig_curr")
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2888,9 +2945,10 @@ Disease <-
           ff[, (col_nam) := NULL]
 
           # Assign smok_cig_ex when pid_mrk == true (the first year an individual enters the simulation)
-          # ff[smok_status == 2, smok_cig := 1L]
+          # (status 2, occasional ex-smokers, get 1 below, as in the synthpop)
 
           tbl <- read_parquet_dt(design_$xps_table_path("smok_cig_ex"))
+          .refresh_xps_bounds(tbl, design_, "smok_cig_ex")
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -2905,7 +2963,15 @@ Disease <-
             )
           ]
           ff[, (col_nam) := NULL]
-          # ff[, smok_status_curr_xps := factor(smok_status_curr_xps)]
+          # Every ever-smoker smokes at least 1 cigarette a day, as in the
+          # synthetic population (SynthPop gen_synthpop(): `smok_cig == 0L &
+          # smok_status != 1L` -> 1L). Until 2026-11-19 the PARF population
+          # skipped it, so occasional ex-smokers (status 2, never drawn) kept
+          # 0 here but had 1 in the synthpop.
+          ff[
+            smok_cig_curr_xps == 0L & smok_status_curr_xps != "1",
+            smok_cig_curr_xps := 1L
+          ]
           ff[, year := year + lag]
         }
 
@@ -2953,6 +3019,7 @@ Disease <-
           }
           ff[, year := year - lag]
           tbl <- read_parquet_dt(design_$xps_table_path("alcohol"))
+          .refresh_xps_bounds(tbl, design_, "alcohol")
           setnames(tbl, "smok_status", "smok_status_curr_xps")
 
           col_nam <-
@@ -2978,6 +3045,7 @@ Disease <-
           }
           ff[, year := year - lag]
           tbl <- read_parquet_dt(design_$xps_table_path("bmi"))
+          .refresh_xps_bounds(tbl, design_, "bmi")
           setnames(tbl, "smok_status", "smok_status_curr_xps")
 
           col_nam <-
@@ -3006,6 +3074,7 @@ Disease <-
           }
           ff[, year := year - lag]
           tbl <- read_parquet_dt(design_$xps_table_path("sbp"))
+          .refresh_xps_bounds(tbl, design_, "sbp")
           setnames(tbl, "smok_status", "smok_status_curr_xps")
 
           col_nam <-
@@ -3034,6 +3103,7 @@ Disease <-
           }
           ff[, year := year - lag]
           tbl <- read_parquet_dt(design_$xps_table_path("tchol"))
+          .refresh_xps_bounds(tbl, design_, "tchol")
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)
@@ -3054,6 +3124,7 @@ Disease <-
           # NOTE this very highly correlated with hdl level (~0.76) and
           #  highly to tchol (~-0.47). The latter is captured by the correlated RNs
           tbl <- read_parquet_dt(design_$xps_table_path("hdl_to_tchol"))
+          .refresh_xps_bounds(tbl, design_, "hdl_to_tchol")
           col_nam <-
             setdiff(names(tbl), names(ff))
           lookup_dt(ff, tbl, check_lookup_tbl_validity = design_$sim_prm$logs)

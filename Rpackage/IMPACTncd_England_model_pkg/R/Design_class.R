@@ -518,6 +518,10 @@ Design <-
       load_exposures = function() {
         # Stock exposure tables resolve to relative ./inputs paths.
         self$assert_working_dir("Design$load_exposures()")
+        # min_value is inclusive since 2026-11-18: refuse a (pre-2026-11-18)
+        # design whose smoking counts would now draw zeros, or that still
+        # uses gamlss.dist's broken pZABNB, with one message naming both edits.
+        .check_legacy_exposure_bounds(self$sim_prm$exposure_definitions)
         # Check if exposure data files exist (not just the directory, which
         # may contain only scripts). The first exposure definition's data
         # directory serves as a proxy for all data availability.
@@ -560,6 +564,13 @@ Design <-
             }
             if (!is.null(exp_def$max_value)) {
               args$max_value <- exp_def$max_value
+            }
+            # Support type (discrete / continuous / mixed), which decides how
+            # min_value becomes minq. Normally inferred from qfun; declare it
+            # only for a qfun that is not a gamlss.dist family. (Any key not
+            # listed here is silently ignored.)
+            if (!is.null(exp_def$family_type)) {
+              args$family_type <- exp_def$family_type
             }
             if (!is.null(exp_def$qparams)) {
               args$qparams <- exp_def$qparams

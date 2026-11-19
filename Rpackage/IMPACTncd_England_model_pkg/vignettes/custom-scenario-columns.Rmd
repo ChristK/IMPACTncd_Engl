@@ -212,9 +212,10 @@ scenario set is unchanged — if you edit a scenario function (to fix a custom
 column, say) and re-run that scenario, call `IMPACTncd$del_summaries()` before
 exporting again. After changing the design, the inputs or the code, clear the
 outputs with `del_outputs()` (or at least the summaries) and re-run. Cached
-PARFs are not keyed on exposure tables or disease-burden inputs, nor cached
-synthetic populations on `exposure_definitions` or on tables outside
-`./inputs`. So after changing an exposure table or a disease-burden input, also
+PARFs and synthetic populations are keyed on `exposure_definitions` (since
+2026-11-18), but PARFs are not keyed on the contents of exposure tables or on
+disease-burden inputs, nor synthetic populations on the contents of tables
+outside `./inputs`. So after changing an exposure table or a disease-burden input, also
 run `IMPACTncd$del_parfs()` and delete the affected synthpops (`del_synthpops()`
 empties the whole `synthpop_dir`, so use it only on a folder of your own).
 

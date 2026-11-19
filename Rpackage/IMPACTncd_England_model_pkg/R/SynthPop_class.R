@@ -1167,7 +1167,7 @@ SynthPop <-
       # filename and vice-versa
       # get_unique_characteristics ----
       get_unique_characteristics = function(design_) {
-        design_$sim_prm[c(
+        out <- design_$sim_prm[c(
           "n",
           "num_chunks",
           "sim_horizon_max",
@@ -1182,6 +1182,21 @@ SynthPop <-
           "statin_adherence",
           "bpmed_adherence"
         )]
+
+        # Exposure definitions determine which variables the synthpop carries,
+        # which table each is drawn from, and with which rank -- so they change
+        # the synthpop materially and must enter the checksum. Without this,
+        # adding an exposure (or re-pointing one at a different table) silently
+        # reuses a cached synthpop that lacks the new column.
+        #
+        # Hashed rather than inlined so the checksum stays a short, stable
+        # string regardless of how many exposures are defined. Order-sensitive:
+        # reordering entries in the YAML will regenerate, which is the safe
+        # direction to err in.
+        out$exposure_definitions <-
+          digest(design_$sim_prm$exposure_definitions, serialize = TRUE)
+
+        out
       },
 
       # gen synthpop unique checksum for the given set of inputs
@@ -1228,12 +1243,18 @@ SynthPop <-
           inputs_hash <- manifest$get_synthpop_input_hash()
         }
 
+        # The rule that turns min_value / max_value into quantile bounds
+        # (.EXPOSURE_BOUNDS_RULE) is code, not data or YAML, so it enters the
+        # checksum explicitly: a synthpop drawn under the exclusive lower bound
+        # used before 2026-11-18 (no zero alcohol / fruit / veg) can never be
+        # reused under the inclusive one.
         locality_years_age_id <-
           digest(
             paste(
               lsoas_,
               fcall,
               inputs_hash,
+              .EXPOSURE_BOUNDS_RULE,
               sep = ",",
               collapse = ","
             ),
@@ -1691,6 +1712,22 @@ SynthPop <-
                 smok_quit_yrs / ((smok_dur + smok_quit_yrs) / (age - 12L))
               )
             )
+          ]
+          # An ex-smoker has quit for at least a year (simsmok() reads
+          # pr_relapse at column smok_quit_yrs - 1, so 0 reads BEFORE the
+          # matrix: undefined behaviour, which made synthpops differ between
+          # identical runs). The as.integer() truncation above turns a quit
+          # spell of 1 into 0 when smok_quit_yrs == 1 and smok_dur >=
+          # age - 12 (~0.75% of initial ex-smokers; the copula pairs short
+          # quit spells with long durations). Restoring the year costs
+          # nothing in the age-12 budget: both parts rounded down, so the pair
+          # sat at age - 13. Only (pid_mrk) rows: later rows are written by
+          # simsmok(), and guarding them on status would add a quit spell to
+          # rows that end as never- or current smokers. Ported from fdedb9d
+          # (2026-08-08, never merged to main), 2026-11-19.
+          dtb[
+            (pid_mrk) & smok_status %in% 2:3 & smok_quit_yrs < 1L,
+            smok_quit_yrs := 1L
           ]
 
           # Assign smok_incid probabilities

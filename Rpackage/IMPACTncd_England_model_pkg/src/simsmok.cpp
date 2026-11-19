@@ -124,6 +124,11 @@ void simsmok(
         case 1: nrow = qimd[i] - 1; break;
         case 2: nrow = qimd[i] + 4; break;
         }
+        // An ex-smoker's quit years index pr_relapse at quit_yrs - 1: a value
+        // below 1 would read BEFORE the matrix (no bounds check), i.e. undefined
+        // behaviour that made runs irreproducible (2026-11-19).
+        if (smok_quit_yrs[i-1] < 1) stop("simsmok(): an ex-smoker (row %d) has smok_quit_yrs %d < 1; quit years must be >= 1 "
+                             "(check the smoking-count min_value in exposure_definitions and the synthpop's age-12 rescale).", i, smok_quit_yrs[i-1]);
         if (rn_smok[i] < (pr_relapse(nrow, smok_quit_yrs[i-1] - 1)))
         {
           smok_status[i] = 4;
@@ -224,6 +229,11 @@ void simsmok_sc(
         case 1: nrow = qimd[i] - 1; break;
         case 2: nrow = qimd[i] + 4; break;
         }
+        // An ex-smoker's quit years index pr_relapse at quit_yrs - 1: a value
+        // below 1 would read BEFORE the matrix (no bounds check), i.e. undefined
+        // behaviour that made runs irreproducible (2026-11-19).
+        if (smok_quit_yrs[i-1] < 1) stop("simsmok_sc(): an ex-smoker (row %d) has smok_quit_yrs %d < 1; quit years must be >= 1 "
+                             "(check the smoking-count min_value in exposure_definitions and the synthpop's age-12 rescale).", i, smok_quit_yrs[i-1]);
         if (rn_smok[i] < (pr_relapse(nrow, smok_quit_yrs[i-1] - 1)))
         {
           smok_status[i] = 4;
@@ -485,6 +495,11 @@ List simsmok_cessation(const IntegerVector& smok_status,
         case 1: nrow = qimd[i] - 1; break;
         case 2: nrow = qimd[i] + 4; break;
         }
+        // An ex-smoker's quit years index pr_relapse at quit_yrs - 1: a value
+        // below 1 would read BEFORE the matrix (no bounds check), i.e. undefined
+        // behaviour that made runs irreproducible (2026-11-19).
+        if (out_quit_yrs[i-1] < 1) stop("simsmok_cessation(): an ex-smoker (row %d) has smok_quit_yrs %d < 1; quit years must be >= 1 "
+                             "(check the smoking-count min_value in exposure_definitions and the synthpop's age-12 rescale).", i, out_quit_yrs[i-1]);
         if (relapse_rn[i] < (pr_relapse(nrow, out_quit_yrs[i-1] - 1)))
         {
           out_status[i] = 4;

@@ -745,6 +745,17 @@ exposures_for_output:
 
 # Exposure generation definitions for synthetic population
 exposure_definitions:
+  # min_value / max_value bound each draw, BOTH ends inclusive (since
+  # 2026-11-18): minq = P(Y < min_value), maxq = P(Y <= max_value), by the
+  # family's type (discrete / continuous / mixed: inferred from qfun, or
+  # declared with family_type). So `min_value: 0` draws the zeros of a count
+  # (non-drinkers, no fruit, no veg); before, a point mass AT min_value was
+  # never drawn. The five smoking counts declare `min_value: 1`, which
+  # reproduces their previous BOUNDS exactly (minq = P(Y <= 0)): zeros are
+  # not drawn (decided 2026-11-19). Design refuses min_value + offset
+  # < 1 for them (simsmok() cannot take an ex-smoker's quit years 0).
+  # smok_cig_ex's draws still change: its qfun moved from gamlss.dist's
+  # qZABNB (pZABNB is broken in 6.1.11) to CKutils' fqZABNB.
   - name: education
     file_name: education
     var_name: education
@@ -809,7 +820,7 @@ exposure_definitions:
     qfun: fqDPO
     join_fn: lookup_dt
     cast_to_int: yes
-    min_value: 0
+    min_value: 1 # inclusive: = the old `min_value: 0` (zeros not drawn)
     max_value: 90    
 
   - name: smok_dur_ex
@@ -820,7 +831,7 @@ exposure_definitions:
     qfun: fqDPO
     join_fn: absorb_dt
     cast_to_int: yes
-    min_value: 0
+    min_value: 1 # inclusive: = the old `min_value: 0` (zeros not drawn)
     max_value: 90
 
   - name: smok_dur_curr
@@ -831,7 +842,7 @@ exposure_definitions:
     qfun: fqNBI
     join_fn: lookup_dt
     cast_to_int: yes
-    min_value: 0
+    min_value: 1 # inclusive: = the old `min_value: 0` (zeros not drawn)
     max_value: 90
 
   - name: smok_incid
@@ -853,7 +864,7 @@ exposure_definitions:
     distribution: continuous
     qfun: fqZINBI
     join_fn: lookup_dt
-    min_value: 0
+    min_value: 1 # inclusive: = the old `min_value: 0` (zeros not drawn)
     max_value: 80
 
   - name: smok_cig_ex
@@ -861,9 +872,9 @@ exposure_definitions:
     var_name: smok_cig
     rank_var: rankstat_smok_cig_ex
     distribution: continuous
-    qfun: qZABNB
+    qfun: fqZABNB # CKutils; gamlss.dist 6.1.11 pZABNB returns 0 for q >= 1
     join_fn: lookup_dt
-    min_value: 0
+    min_value: 1 # inclusive: = the old `min_value: 0` (zeros not drawn)
     max_value: 80
 
   - name: fruit # consumption

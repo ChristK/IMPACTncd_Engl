@@ -118,19 +118,29 @@ arrow::write_dataset(
 )
 ```
 
-> **`minq`/`maxq` are required for continuous exposures.** They are the cached
-> quantile bounds that map a uniform rank onto the truncated
-> `[min_value, max_value]` range. The synthpop generator recomputes them in
-> memory if they are missing or do not match the parameters (it checks a
-> random 0.01% of the rows), **but** the PARF generator reads them straight
-> from the table — so a custom continuous table that omits them (or ships
-> bounds that don't match its parameters) will error or produce inconsistent
-> starting values. Whenever you change a distribution
-> parameter (`mu`, `sigma`, `nu`, `tau`) or the exposure's
-> `min_value`/`max_value`, recompute `minq`/`maxq` as shown above, using the
-> exposure's own probability function (`fpBCPEo` here; in general the `q` in the
-> exposure's `qfun` becomes `p`, e.g. `fqBCT` → `fpBCT`). If you leave the
+> **`minq`/`maxq` are the cached quantile bounds** that map a uniform rank onto
+> the truncated `[min_value, max_value]` range. Both ends are **inclusive**
+> (since 2026-11-18): `minq = P(Y < min_value)` and `maxq = P(Y <= max_value)`.
+> For a continuous family such as BMI's BCPEo that is simply
+> `pfun(min_value)`, as above. For a **discrete** family (a count) it is
+> `pfun(ceiling(min_value) - 1)`, and `0` when `min_value` is `0`, so that the
+> zeros of the count are drawn. For a **mixed** family (ZAGA, ZAIG, BEZI,
+> BEINF*, BEOI) it is `0` when `min_value <= 0`, otherwise `pfun(min_value)`.
+> The model infers the family's type from `qfun`. Declare `family_type:`
+> (discrete / continuous / mixed) only when `qfun` is not a gamlss.dist family.
+>
+> Both the synthpop generator **and** the PARF generator check the stored
+> bounds against these rules on 0.01% of the rows. When they do not match,
+> both recompute them in memory, so the two always draw within the same
+> bounds. A table that omits them, or whose bounds are stale, still works, but
+> it is recalculated on every read (and reported once per run and worker). To avoid that cost,
+> recompute `minq`/`maxq` whenever you change a distribution parameter (`mu`,
+> `sigma`, `nu`, `tau`) or the exposure's `min_value`/`max_value`, using the
+> exposure's own probability function (`fpBCPEo` here; in general the `q` in
+> the exposure's `qfun` becomes `p`, e.g. `fqBCT` → `fpBCT`). If you leave the
 > distribution parameters untouched, keep the stock `minq`/`maxq` as they are.
+> The stock alcohol, fruit and veg tables still store the old bound
+> `P(Y <= 0)`, so the model recalculates theirs in memory.
 
 ### 3. Point the exposure at your table
 
@@ -228,20 +238,22 @@ A re-pointed table is read wherever the model *generates* that exposure. The
 synthpop generator reads the exposure's resolved `file_path`, and the PARF
 (Population Attributable Risk Fraction) generator looks the same path up with
 `Design$xps_table_path(<exposure name>)`, so both read your table. Both results
-are cached, however, and neither cache is keyed on the table:
+are cached, however, and neither cache is keyed on the table's contents:
 
 - **Synthetic populations** are saved in `synthpop_dir` under a checksum of 13
   design scalars (`n`, `num_chunks`, `ageL`, `ageH`, ...), the locality's LSOAs
-  and a hash of the stock inputs recorded in the inputs manifest. Neither
-  `exposure_definitions` nor a table outside `./inputs/` enters it, so a
-  synthpop already in `synthpop_dir` is loaded as it is, with the stock (or an
-  earlier) BMI baked in, and without a warning. Hence the dedicated
+  a hash of the stock inputs recorded in the inputs manifest and (since
+  2026-11-18) the `exposure_definitions`. Pointing `file_name` at your table
+  therefore changes the checksum, but editing the table in place does not: a
+  synthpop already in `synthpop_dir` is then loaded as it is, with the earlier
+  BMI baked in, and without a warning. Hence the dedicated
   `synthpop_dir` of step 3, emptied with `del_synthpops()` whenever you create
   or edit the table. `del_synthpops()` deletes **everything** in
   `synthpop_dir`, so never call it on a folder shared with other designs or
   users.
 - **PARFs** are saved in `./simulation/parf/` under a checksum of the
-  relative-risk files and six design scalars, and `run()` reuses any matching
+  relative-risk files, six design scalars, the `exposure_definitions` and the
+  exposure-bounds rule (but NOT the tables' contents), and `run()` reuses any matching
   PARF it finds there. The published PARFs that `zenodo_download_all()`
   installs, and those in the Docker image, belong to the stock tables. Call
   `del_parfs()`
@@ -254,8 +266,9 @@ are cached, however, and neither cache is keyed on the table:
 
 - **Continuous** exposures (`distribution: continuous`) need the join-key
   columns, the stock table's parameter columns (`mu`, `sigma`, `nu`, `tau` for
-  BMI) **and** the `minq`/`maxq` bounds (see the note in step 2 — required by
-  the PARF generator, and must match your parameters). **Keep the stock
+  BMI) and, ideally, the `minq`/`maxq` bounds (see the note in step 2: both
+  generators recompute missing or stale bounds in memory, at a cost and with a
+  message). **Keep the stock
   distribution family.** The synthpop generator uses the YAML `qfun`, but the
   PARF generator hard-codes each exposure's quantile function and parameter
   columns (BMI and SBP `fqBCPEo`, total cholesterol `fqBCT`, ...), so changing
@@ -305,7 +318,7 @@ Keep `logs: yes` for the first run with a custom table.
 - The custom table must match the stock table's schema and distribution family
   for that exposure.
 - Re-pointing is honoured in both synthpop and PARF generation, but neither
-  cache is keyed on the table: use a dedicated `synthpop_dir`, emptied with
+  cache is keyed on the table's contents: use a dedicated `synthpop_dir`, emptied with
   `del_synthpops()` after every edit of the table, and call `del_parfs()`
   whenever you create, edit or stop using a custom table.
 

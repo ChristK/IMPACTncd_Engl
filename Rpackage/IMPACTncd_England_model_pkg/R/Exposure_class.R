@@ -106,11 +106,23 @@ Exposure <-
       #' @field pfun Probability function name (for generating qmin/qmax)
       pfun = NULL,
 
-      #' @field min_value Minimum value for qmin calculation
+      #' @field min_value Lowest value a draw may take, INCLUSIVE: it becomes
+      #'   `minq = P(Y < min_value)` (see `add_qmin_qmax()`), so a point mass
+      #'   at `min_value` (e.g. the zeros of a count) is drawn with its
+      #'   probability. Before 2026-11-18 it was `P(Y <= min_value)`, which
+      #'   made the lower bound exclusive.
       min_value = NULL,
 
-      #' @field max_value Maximum value for qmax calculation
+      #' @field max_value Highest value a draw may take, inclusive:
+      #'   `maxq = P(Y <= max_value)`.
       max_value = NULL,
+
+      #' @field family_type Support of the distribution, as gamlss.dist's
+      #'   family `type`: "Discrete", "Continuous" or "Mixed". It decides how
+      #'   `min_value` becomes `minq`. Inferred from `qfun` (e.g. `fqZINBI` ->
+      #'   ZINBI -> "Discrete") unless declared (YAML `family_type:`, any
+      #'   case). NULL when neither gives one.
+      family_type = NULL,
 
       #' @field qparams Parameter names for quantile function
       qparams = NULL,
@@ -166,8 +178,16 @@ Exposure <-
       #' @param distribution Character. Distribution type: "ordinal", "continuous", "binary", or "custom"
       #' @param qfun Character. Quantile function name for continuous distributions
       #' @param pfun Character. Probability function name (derived from qfun if NULL, e.g., my_qBCPEo -> my_pBCPEo)
-      #' @param min_value Numeric. Minimum value for qmin calculation (e.g., 75 for BMI)
-      #' @param max_value Numeric. Maximum value for qmax calculation (e.g., 250 for BMI)
+      #' @param min_value Numeric. Lowest value a draw may take, inclusive
+      #'   (e.g. 14 for BMI; 0 for a count whose zeros are real, such as
+      #'   alcohol). See the `min_value` field.
+      #' @param max_value Numeric. Highest value a draw may take, inclusive
+      #'   (e.g. 70 for BMI).
+      #' @param family_type Character. "Discrete", "Continuous" or "Mixed"
+      #'   (any case). NULL (default) infers it from `qfun` through
+      #'   gamlss.dist; declare it only for a qfun that is not a gamlss.dist
+      #'   family. Required, one way or the other, when both `min_value` and
+      #'   `max_value` are set.
       #' @param qparams Character vector. Parameter names for quantile function (auto-detected from parquet if NULL)
       #' @param qargs List. Additional arguments for quantile function
       #' @param thresholds Character vector. Threshold names for ordinal distributions (auto-detected from parquet if NULL)
@@ -223,7 +243,8 @@ Exposure <-
         additional_rank_vars = NULL,
         join_fn = c("lookup_dt", "absorb_dt"),
         base_path = "./inputs/exposure_distributions/",
-        file_path = NULL
+        file_path = NULL,
+        family_type = NULL
       ) {
         self$name <- name
         self$file_name <- file_name
@@ -248,25 +269,26 @@ Exposure <-
         self$distribution <- match.arg(distribution)
         self$qfun <- qfun
 
-        # Auto-derive pfun from qfun if not provided
-        if (!is.null(qfun) && is.null(pfun)) {
-          # Convert qXXX to pXXX (e.g., my_qBCPEo -> my_pBCPEo, qZINBI -> pZINBI)
-          if (grepl("^q[A-Z]", qfun)) {
-            # Starts with qX (no prefix)
-            self$pfun <- sub("^q", "p", qfun)
-          } else if (grepl("_q[A-Z]", qfun)) {
-            # Has prefix_qX format
-            self$pfun <- sub("_q", "_p", qfun)
-          } else {
-            # Fallback: just replace first q with p
-            self$pfun <- sub("q", "p", qfun)
-          }
-        } else {
-          self$pfun <- pfun
-        }
+        # Auto-derive pfun from qfun if not provided (qZINBI -> pZINBI,
+        # my_qBCPEo -> my_pBCPEo, fqZINBI -> fpZINBI)
+        self$pfun <- .exposure_pfun(qfun, pfun)
 
         self$min_value <- min_value
         self$max_value <- max_value
+        # The support type decides how min_value becomes minq (inclusive
+        # bounds, .exposure_cdf_bounds()). Without one, bounds cannot be
+        # applied correctly, so refuse here rather than draw wrongly later.
+        self$family_type <- .exposure_family_type(qfun, family_type)
+        if (!is.null(min_value) && !is.null(max_value) &&
+            is.null(self$family_type)) {
+          stop(
+            "Exposure '", name, "': cannot tell whether qfun '",
+            format(qfun), "' is discrete, continuous or mixed, so its ",
+            "min_value cannot be applied. Declare family_type ",
+            "(discrete / continuous / mixed) in its exposure definition.",
+            call. = FALSE
+          )
+        }
         self$qparams <- qparams
         self$qargs <- qargs
         self$thresholds <- thresholds
@@ -361,7 +383,14 @@ Exposure <-
             "nu",
             "tau",
             "alpha",
-            "beta"
+            "beta",
+            # Quantile bounds are not thresholds. Tables written by
+            # add_qmin_qmax(write_to_disk = TRUE) carry a constant minq = 0 /
+            # maxq = 1 even for ordinal exposures; picked up as thresholds,
+            # `rank > minq` is always TRUE and shifted every value by +1
+            # (active_days was 1..8 instead of 0..7 until 2026-11-18).
+            "minq",
+            "maxq"
           )
 
           # Find columns in table that are not in population and not common join keys
@@ -491,11 +520,28 @@ Exposure <-
       #' Validates existing values by sampling 0.01% of rows and comparing with expected values.
       #' Can optionally write the updated table back to disk as partitioned parquet.
       #'
+      #' The bounds truncate draws to `[min_value, max_value]`, BOTH ends
+      #' inclusive: `minq = P(Y < min_value)` and `maxq = P(Y <= max_value)`,
+      #' by the exposure's `family_type` (see `.exposure_cdf_bounds()`). A
+      #' table whose stored `minq` follows the rule used before 2026-11-18
+      #' (`P(Y <= min_value)`, which never drew a point mass at `min_value`)
+      #' fails the check and is recalculated in memory. The PARF generator
+      #' (`Disease$gen_sp_forPARF()`) calls this method too, so both paths
+      #' draw within the same bounds.
+      #'
       #' @param tbl data.table. The distribution table
       #' @param force Logical. If TRUE, recalculate even if columns exist and are valid
       #' @param write_to_disk Logical. If TRUE, write updated table back to disk as partitioned parquet
       #' @param partition_cols Character vector. Column names to use for partitioning when writing
       #' @param tolerance Numeric. Tolerance for comparing existing vs expected values (default 1e-8)
+      #' @param sample_idx Integer vector or NULL. Rows on which the stored
+      #'   bounds are checked. NULL (default) draws 0.01% of the rows with
+      #'   `sample.int()`, i.e. from the ambient base-R stream, as the
+      #'   synthetic-population path always has. The PARF path passes evenly
+      #'   spaced rows (`.even_sample_idx()`) so that it consumes no random
+      #'   numbers.
+      #' @param quiet Logical. If TRUE, stale bounds are recalculated without
+      #'   the (once-per-object) message, and without marking it as given.
       #'
       #' @return Self (invisibly) for method chaining
       # add_qmin_qmax ----
@@ -504,7 +550,9 @@ Exposure <-
         force = FALSE,
         write_to_disk = FALSE,
         partition_cols = "year",
-        tolerance = 1e-8
+        tolerance = 1e-8,
+        sample_idx = NULL,
+        quiet = FALSE
       ) {
         needs_recalc <- force
 
@@ -526,10 +574,16 @@ Exposure <-
         } else if (
           !force && !is.null(self$min_value) && !is.null(self$max_value)
         ) {
-          # Validate existing values by sampling 1% of rows
+          # Validate existing values on 0.01% of rows. By default a random
+          # sample from the ambient base-R stream (kept as it was, so the
+          # synthetic population's stream is unchanged); the PARF path hands
+          # in evenly spaced rows instead.
           n_rows <- nrow(tbl)
-          sample_size <- max(1L, as.integer(ceiling(n_rows * 0.0001)))
-          sample_idx <- sample.int(n_rows, sample_size)
+          if (is.null(sample_idx)) {
+            sample_size <- max(1L, as.integer(ceiling(n_rows * 0.0001)))
+            sample_idx <- sample.int(n_rows, sample_size)
+          }
+          sample_size <- length(sample_idx)
 
           # Build parameter list for pfun using sampled rows
           params_list_sample <- lapply(self$qparams, function(p) {
@@ -537,22 +591,8 @@ Exposure <-
           })
           names(params_list_sample) <- self$qparams
 
-          # Get the probability function
-          pfun_obj <- get(self$pfun)
-
-          # Calculate expected qmax for sample
-          params_for_max <- c(
-            list(q = rep(self$max_value, sample_size)),
-            params_list_sample
-          )
-          expected_maxq <- do.call(pfun_obj, params_for_max)
-
-          # Calculate expected qmin for sample
-          params_for_min <- c(
-            list(q = rep(self$min_value, sample_size)),
-            params_list_sample
-          )
-          expected_minq <- do.call(pfun_obj, params_for_min)
+          # Expected bounds for the sample, by the inclusive rule
+          expected <- private$cdf_bounds(params_list_sample, sample_size)
 
           # Compare with existing values
           existing_maxq <- tbl[["maxq"]][sample_idx]
@@ -560,20 +600,26 @@ Exposure <-
 
           # Check if values match within tolerance
           maxq_mismatch <- any(
-            abs(existing_maxq - expected_maxq) > tolerance,
+            abs(existing_maxq - expected$maxq) > tolerance,
             na.rm = TRUE
           )
           minq_mismatch <- any(
-            abs(existing_minq - expected_minq) > tolerance,
+            abs(existing_minq - expected$minq) > tolerance,
             na.rm = TRUE
           )
 
           if (maxq_mismatch || minq_mismatch) {
-            message(
-              "Existing minq/maxq values do not match expected values for ",
-              self$name,
-              ". Recalculating..."
-            )
+            # Once per object: a stale table is met again by every synthpop
+            # chunk and every PARF disease in the same process.
+            if (!isTRUE(quiet) && !isTRUE(private$minq_msg_done)) {
+              message(
+                "Existing minq/maxq values do not match expected values for ",
+                self$name,
+                " (inclusive bounds: minq = P(Y < min_value), maxq = ",
+                "P(Y <= max_value)). Recalculating in memory..."
+              )
+              private$minq_msg_done <- TRUE
+            }
             needs_recalc <- TRUE
           }
         }
@@ -585,22 +631,9 @@ Exposure <-
             params_list <- lapply(self$qparams, function(p) tbl[[p]])
             names(params_list) <- self$qparams
 
-            # Get the probability function
-            pfun_obj <- get(self$pfun)
-
-            # Calculate qmax using max_value
-            params_for_max <- c(
-              list(q = rep(self$max_value, nrow(tbl))),
-              params_list
-            )
-            tbl[, maxq := do.call(pfun_obj, params_for_max)]
-
-            # Calculate qmin using min_value
-            params_for_min <- c(
-              list(q = rep(self$min_value, nrow(tbl))),
-              params_list
-            )
-            tbl[, minq := do.call(pfun_obj, params_for_min)]
+            bounds <- private$cdf_bounds(params_list, nrow(tbl))
+            tbl[, maxq := bounds$maxq]
+            tbl[, minq := bounds$minq]
           } else {
             # Default: use full quantile range [0, 1]
             tbl[, minq := 0]
@@ -658,6 +691,17 @@ Exposure <-
     private = list(
       # Cached column names from parquet dataset (read once on initialization)
       col_names = NULL,
+
+      # add_qmin_qmax() has already reported a stale stored minq / maxq
+      minq_msg_done = FALSE,
+
+      # cdf_bounds ----
+      # minq and maxq for `n` rows of distribution parameters, both ends of
+      # [min_value, max_value] inclusive: .exposure_cdf_bounds().
+      cdf_bounds = function(params_list, n) {
+        .exposure_cdf_bounds(params_list, n, self$pfun, self$family_type,
+                             self$min_value, self$max_value, self$name)
+      },
 
       # Read column names from parquet dataset efficiently (metadata only)
       # read_col_names ----
@@ -863,3 +907,292 @@ Exposure <-
       }
     )
   )
+
+# Exposure bounds: helpers shared by Exposure (synthetic population), the PARF
+# generator (Disease$gen_sp_forPARF()) and the cache keys. ----
+
+# .EXPOSURE_BOUNDS_RULE ----
+# Version of the rule that turns min_value / max_value into minq / maxq. It
+# enters the synthpop checksum (SynthPop gen_checksum()), the PARF directory
+# key and the PARF intermediate .qs key (Disease), so a cache built under an
+# earlier rule can never be matched. Change it whenever .exposure_cdf_bounds()
+# changes what it returns.
+#   (none)                 before 2026-11-18: minq = P(Y <= min_value)
+#   "inclusive_2026-11-18" minq = P(Y < min_value), maxq = P(Y <= max_value)
+.EXPOSURE_BOUNDS_RULE <- "inclusive_2026-11-18"
+
+# .exposure_pfun ----
+# The distribution function an exposure's minq / maxq come from: the declared
+# `pfun`, else derived from `qfun` (qXXX -> pXXX, prefix_qXXX -> prefix_pXXX,
+# fqXXX -> fpXXX, any other: the first q -> p). NULL without a qfun. Same
+# derivation as Exposure$initialize() always used.
+#' @keywords internal
+#' @noRd
+.exposure_pfun <- function(qfun, pfun = NULL) {
+  if (is.null(qfun) || !is.null(pfun)) return(pfun)
+  if (grepl("^q[A-Z]", qfun)) {
+    sub("^q", "p", qfun)  # starts with qX (no prefix)
+  } else if (grepl("_q[A-Z]", qfun)) {
+    sub("_q", "_p", qfun) # prefix_qX
+  } else {
+    sub("q", "p", qfun)   # fallback: the first q (fqZINBI -> fpZINBI)
+  }
+}
+
+# .exposure_cdf_bounds ----
+# minq and maxq for `n` rows of distribution parameters (`params_list`, named
+# by the qparams): the truncation to [min_value, max_value], BOTH ends
+# inclusive,
+#   minq = P(Y < min_value),   maxq = P(Y <= max_value).
+#
+# A draw is qfun(minq + rank * (maxq - minq)), and a quantile function returns
+# the smallest y with F(y) >= p. Until 2026-11-18 minq was P(Y <= min_value),
+# which made the lower end EXCLUSIVE: a point mass AT min_value was never
+# drawn. Every count exposure declared `min_value: 0`, so the model had no
+# non-drinkers and no one eating no fruit or veg; and because the whole rank
+# range was rescaled onto (F(0), F(max)], EVERY simulant moved up the
+# distribution, not only the would-be zeros. For a continuous family the two
+# definitions are the same number. Ported from IMPACTncd_Engl2026, which fixed
+# the same bug on 2026-10-11.
+#   Continuous  F(min_value).
+#   Discrete    (integer support 0, 1, ...) F(ceiling(min_value) - 1), and 0
+#               below the support WITHOUT calling pfun: CKutils' fast pfuns
+#               up to 0.1.35 stop on a negative q, and some truncate it toward
+#               zero (fpDPO(-0.5) was P(Y <= 0)). maxq is F(floor(max_value)).
+#   Mixed       (gamlss.dist's ZAGA, ZAIG, BEZI, BEINF*, BEOI: point masses at
+#               0 and / or 1) 0 when min_value <= 0, else F(min_value). A
+#               lower bound AT the mass at 1 is not handled; it would truncate
+#               to a single value anyway.
+#' @keywords internal
+#' @noRd
+.exposure_cdf_bounds <- function(params_list, n, pfun, family_type, min_value,
+                                 max_value, name = "?") {
+  typ <- family_type
+  if (is.null(typ) || !typ %in% c("Discrete", "Continuous", "Mixed")) {
+    stop("Exposure '", name, "' has no valid family_type (got '",
+         format(typ), "'), so its min_value cannot be applied (see the ",
+         "family_type field).", call. = FALSE)
+  }
+  pfun_obj <- if (is.function(pfun)) pfun else get(pfun)
+  bounds_of <- function(pl, m) {
+    pq <- function(q) do.call(pfun_obj, c(list(q = rep(q, m)), pl))
+    a <- min_value
+    b <- max_value
+    list(
+      minq = switch(typ,
+        Continuous = pq(a),
+        Discrete = if (ceiling(a) - 1 < 0) rep(0, m) else pq(ceiling(a) - 1),
+        Mixed = if (a <= 0) rep(0, m) else pq(a)
+      ),
+      maxq = pq(if (identical(typ, "Discrete")) floor(b) else b)
+    )
+  }
+  out <- bounds_of(params_list, n)
+  # A valid CDF gives 0 <= minq < maxq. Rows that break it are first
+  # re-evaluated ONE AT A TIME: some gamlss.dist pfuns are not vectorised over
+  # a parameter whose sign picks the tail (6.1.11's pGG hands pGA a vector
+  # `lower.tail`, so every row takes the first row's tail; the testing
+  # design's hfss_food_weight had 5 of 72,240 rows with flipped bounds,
+  # drawn rank-reversed until 2026-11-19).
+  bad <- which(out$maxq < out$minq | out$maxq <= 0)
+  if (length(bad)) {
+    for (i in bad) {
+      pl <- lapply(params_list, function(p) if (length(p) == 1L) p else p[i])
+      one <- bounds_of(pl, 1L)
+      out$minq[i] <- one$minq
+      out$maxq[i] <- one$maxq
+    }
+    bad <- which(out$maxq < out$minq | out$maxq <= 0)
+  }
+  # Still invalid row by row: the pfun is not a CDF of the family (gamlss.dist
+  # 6.1.11's pZABNB returns 0 for every q >= 1, which collapsed every
+  # smok_cig_ex draw to 0 until 2026-11-18), or the bounds exclude the whole
+  # distribution. Either way every draw would be wrong: refuse.
+  if (length(bad)) {
+    pname <- if (is.character(pfun)) pfun else "<function>"
+    stop("Exposure '", name, "': its pfun '", pname,
+         "' gives P(Y <= max_value) below P(Y < min_value), or 0, on ",
+         length(bad), " of ", n, " rows (e.g. row ", bad[1L], ": minq ",
+         format(out$minq[bad[1L]]), ", maxq ", format(out$maxq[bad[1L]]),
+         "), even row by row. Either it is not a valid CDF for these ",
+         "parameters or [min_value, max_value] lies outside the distribution.",
+         if (grepl("ZABNB", pname)) {
+           " gamlss.dist 6.1.11's pZABNB is broken: use qfun fqZABNB (CKutils)."
+         } else "", call. = FALSE)
+  }
+  out
+}
+
+# .exposure_family_type ----
+# The support of an exposure's distribution, as gamlss.dist's family `type`:
+# "Discrete", "Continuous" or "Mixed" (Exposure's `family_type`, which decides
+# how min_value becomes minq). A declared value wins, in any case. Otherwise
+# the family is read off the qfun's name -- `qZABNB`, CKutils' fast `fqZINBI`,
+# a prefixed `my_qBCPEo` -- and its constructor in gamlss.dist says. NULL when
+# neither gives one.
+#' @keywords internal
+#' @noRd
+.exposure_family_type <- function(qfun, declared = NULL) {
+  types <- c("Discrete", "Continuous", "Mixed")
+  if (!is.null(declared)) {
+    out <- if (is.character(declared) && length(declared) == 1L) {
+      types[match(tolower(declared), tolower(types))]
+    } else NA_character_
+    if (is.na(out)) {
+      stop("family_type must be one of discrete, continuous, mixed; got '",
+           paste(format(declared), collapse = ", "), "'.", call. = FALSE)
+    }
+    return(out)
+  }
+  if (!is.character(qfun) || length(qfun) != 1L || is.na(qfun)) return(NULL)
+  fam <- regmatches(qfun, regexec("^(?:.*_)?f?q([A-Z][A-Za-z0-9]*)$", qfun,
+                                  perl = TRUE))[[1L]]
+  if (length(fam) != 2L) return(NULL)
+  ctor <- get0(fam[2L], envir = asNamespace("gamlss.dist"), mode = "function",
+               inherits = FALSE)
+  if (is.null(ctor)) return(NULL)
+  out <- tryCatch(suppressWarnings(ctor())$type, error = function(e) NULL)
+  if (is.character(out) && length(out) == 1L && out %in% types) out else NULL
+}
+
+# .even_sample_idx ----
+# 0.01% of `n` rows (at least one), evenly spaced: the rows add_qmin_qmax()
+# checks stored bounds on when it must not consume random numbers.
+#' @keywords internal
+#' @noRd
+.even_sample_idx <- function(n) {
+  if (n < 1L) return(integer(0))
+  size <- max(1L, as.integer(ceiling(n * 0.0001)))
+  unique(as.integer(round(seq(1, n, length.out = size))))
+}
+
+# .refresh_xps_bounds ----
+# Make a distribution table read by the PARF generator carry the SAME minq /
+# maxq the synthetic population draws with: the design's Exposure object
+# checks the stored bounds and recalculates them in memory when they do not
+# follow its rule (add_qmin_qmax(), on evenly spaced rows, so no random
+# numbers are consumed). Until 2026-11-18 the PARF path used the stored
+# columns as they were, whatever min_value said. `tbl` is updated by
+# reference. An exposure the design does not define keeps its stored bounds,
+# with a warning (the synthetic population does not draw it at all then).
+#' @keywords internal
+#' @noRd
+.refresh_xps_bounds <- function(tbl, design_, name) {
+  e <- design_$exposures[[name]]
+  if (is.null(e)) {
+    warning("PARF: exposure '", name, "' is not in exposure_definitions, so ",
+            "its table's stored minq / maxq are used as they are.",
+            call. = FALSE)
+    return(invisible(tbl))
+  }
+  if (identical(e$distribution, "continuous")) {
+    # quiet: the stock alcohol / fruit / veg tables store the pre-2026-11-18
+    # minq, so the recalculation is expected, and the PARF generator meets it
+    # once per forked task. `quiet` (not suppressMessages()) also leaves the
+    # object's report-once flag alone, so the synthetic-population path still
+    # reports a stale table even after a PARF run in the same process.
+    e$add_qmin_qmax(tbl, sample_idx = .even_sample_idx(nrow(tbl)),
+                    quiet = TRUE)
+  }
+  invisible(tbl)
+}
+
+# .PARF_EXPOSURES ----
+# Every exposure whose table Disease$gen_sp_forPARF() reads (through
+# design_$xps_table_path()). The PARF key hashes only their definitions, so a
+# design that differs only in exposures the PARF never draws (e.g. the testing
+# design's hfss / energy / salt exposures) still shares the PARFs of the stock
+# design instead of evicting them. A test pins this list against the reads in
+# gen_sp_forPARF().
+.PARF_EXPOSURES <- c(
+  "active_days", "fruit", "veg", "smok_status", "smok_quit_yrs",
+  "smok_dur_ex", "smok_dur_curr", "smok_cig_curr", "smok_cig_ex", "ets",
+  "alcohol", "bmi", "sbp", "tchol", "hdl_to_tchol", "statin_px"
+)
+
+# .exposure_bounds_key ----
+# What the PARF's drawn exposures depend on beyond the tables: the bounds rule
+# and the definitions (qfun / pfun / family_type / min_value / max_value /
+# file_name ...) of the exposures the PARF generator draws (.PARF_EXPOSURES).
+# The PARF directory and intermediate .qs keys include it (Disease), so a
+# change in either regenerates the PARFs instead of silently reusing draws
+# made under the old definitions. (The synthpop checksum hashes ALL the
+# definitions -- SynthPop get_unique_characteristics() -- because the synthpop
+# carries every exposure, and adds the rule in gen_checksum().)
+#' The definitions are canonicalised first (entries ordered by name, fields
+#' by name, numbers as doubles), so a YAML that merely reorders keys or writes
+#' `1` for `1.0` keeps the same key instead of evicting the other's PARFs.
+#' @keywords internal
+#' @noRd
+.exposure_bounds_key <- function(design_) {
+  canon <- function(x) {
+    if (is.list(x)) {
+      if (!is.null(names(x))) x <- x[order(names(x))]
+      lapply(x, canon)
+    } else if (is.numeric(x)) as.double(x) else x
+  }
+  defs <- design_$sim_prm$exposure_definitions
+  nms <- vapply(defs, function(e) if (is.null(e$name)) "" else e$name, "")
+  keep <- nms %in% .PARF_EXPOSURES
+  defs <- lapply(defs[keep][order(nms[keep])], canon)
+  list(
+    exposure_bounds_rule = .EXPOSURE_BOUNDS_RULE,
+    exposure_definitions = digest(defs, serialize = TRUE)
+  )
+}
+
+# .SMOKING_COUNT_EXPOSURES ----
+# The smoking count exposures whose values feed simsmok() and its scenario
+# variants: quit years and durations must be >= 1 for an ex- / current smoker
+# there (pr_relapse is read at column quit_yrs - 1; the scenario helpers take
+# smok_dur - 1), and the synthpop recodes a cigarettes-per-day 0 of any ever-
+# smoker to 1. Under the inclusive bounds (2026-11-18) `min_value: 0` draws
+# zeros, so a design must say min_value + offset >= 1 for them
+# (.check_legacy_exposure_bounds()).
+.SMOKING_COUNT_EXPOSURES <- c(
+  "smok_quit_yrs", "smok_dur_ex", "smok_dur_curr", "smok_cig_curr",
+  "smok_cig_ex"
+)
+
+# .check_legacy_exposure_bounds ----
+# Refuse, in ONE message, the two things a design written before 2026-11-18
+# (an older copy of sim_design.yaml, a Docker user's scenario folder, another
+# branch) gets wrong under the inclusive bounds:
+#  * a smoking count with min_value + offset < 1: `min_value: 0` then excluded
+#    the zeros (minq = P(Y <= 0)) and now draws them, silently changing every
+#    initial smoking history (and quit years 0 would reach simsmok(), which now
+#    stops on them). `min_value: 1` gives exactly the previous bounds.
+#  * a qfun whose derived pfun is gamlss.dist's pZABNB (`qfun: qZABNB`): broken
+#    in 6.1.11 (0 for every q >= 1), so its bounds cannot be computed and the
+#    run would stop later, inside a forked worker. `qfun: fqZABNB` (CKutils).
+#' @keywords internal
+#' @noRd
+.check_legacy_exposure_bounds <- function(exposure_definitions) {
+  low <- character(0)
+  zabnb <- character(0)
+  for (e in exposure_definitions) {
+    if (is.null(e$name)) next
+    if (e$name %in% .SMOKING_COUNT_EXPOSURES && !is.null(e$min_value)) {
+      off <- if (is.null(e$offset)) 0 else as.numeric(e$offset)
+      if (as.numeric(e$min_value) + off < 1) low <- c(low, e$name)
+    }
+    if (!is.null(e$qfun) && !is.null(e$min_value) && !is.null(e$max_value) &&
+        identical(.exposure_pfun(e$qfun, e$pfun), "pZABNB")) {
+      zabnb <- c(zabnb, e$name)
+    }
+  }
+  if (length(low) || length(zabnb)) {
+    stop("exposure_definitions written for the bounds rule used before ",
+         "2026-11-18 (min_value is INCLUSIVE since then). Edit the design:",
+         if (length(low)) paste0(
+           "\n  * `min_value: 1` for ", paste(low, collapse = ", "),
+           " (min_value + offset is below 1: `min_value: 0` now draws zeros; ",
+           "`min_value: 1` gives exactly the previous bounds)"),
+         if (length(zabnb)) paste0(
+           "\n  * `qfun: fqZABNB` for ", paste(zabnb, collapse = ", "),
+           " (its pfun, gamlss.dist's pZABNB, is broken in 6.1.11)"),
+         "\nThe stock designs (inputs/sim_design.yaml) show both.",
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}

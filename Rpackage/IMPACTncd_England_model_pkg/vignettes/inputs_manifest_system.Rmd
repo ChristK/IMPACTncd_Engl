@@ -262,9 +262,9 @@ own causality graph; `detect_changes()` does not.)
   but editing them does change results.
 - **`sim_design*.yaml` files and other design changes**: the loose
   `sim_design*.yaml` files in `inputs/` are tracked (category `root`) but
-  flag nothing. A design change renames a cached artefact only through the
-  design parameters in the synthpop and PARF checksums (listed in the next
-  two sections); `exposure_definitions` is in neither.
+  flag nothing. A design change renames a cached artefact only through what
+  the synthpop and PARF checksums contain (listed in the next two sections):
+  some design parameters and, since 2026-11-18, the `exposure_definitions`.
 - **`aux_data/`**: tracked, but read only by the data-preparation scripts.
 
 ## How synthpop staleness works
@@ -281,6 +281,8 @@ private `SynthPop` method `gen_checksum()` from:
 - The **synthpop input hash** from `InputsManifest$get_synthpop_input_hash()`,
   read from `simulation/inputs_manifest.csv` when the `SynthPop` object is
   created
+- A digest of the design's whole `exposure_definitions` and the version of the
+  exposure-bounds rule (`.EXPOSURE_BOUNDS_RULE`; both since 2026-11-18)
 
 The synthpop input hash is an aggregate of all file hashes in the
 `pop_estimates_lsoa`, `exposure_distributions`, `mortality`, and
@@ -293,10 +295,11 @@ The synthpop input hash is an aggregate of all file hashes in the
 5. The old synthpop file is simply not found by the simulation
 6. The `SynthPop` constructor generates a new one
 
-Nothing else enters the checksum. In particular, `exposure_definitions` in the
-design file and exposure tables outside those four folders of `./inputs/`
-(for example a custom table next to the design file) are not tracked, so
-changing them reuses the old synthpops.
+Nothing else enters the checksum. Any edit of `exposure_definitions`,
+re-pointing a `file_name` included, gives new synthpops. The CONTENTS of an
+exposure table outside those four folders of `./inputs/` (for example a custom
+table next to the design file) are not tracked, so editing such a table in
+place, at an unchanged path, reuses the old synthpops.
 
 **No manifest**: the input hash is then `""`. This is rare, because
 `Simulation$new()` writes the manifest before `run()` creates any synthpop.
@@ -357,13 +360,17 @@ before the simulation starts. The checksum incorporates:
   `model_trends_in_residual_incd`)
 - the MD5 of each of the disease's RR `.csvy` files
 - their lags and distributions
+- the version of the exposure-bounds rule and a digest of the definitions of
+  the exposures the PARF population draws (`.PARF_EXPOSURES`), canonicalised
+  so that key order or `1` against `1.0` does not change it (since 2026-11-18)
 
 `simulation/parf_generation_record.csv` stores the same checksum per disease.
 A change in one of the disease's own RR files, or in one of those design
 parameters, therefore gives it a new PARF directory, which `run()` generates.
-No other input does: the checksum includes neither the disease-burden data
-(although `p0` and `m0` are computed from them) nor the exposure tables the
-PARF population is drawn from.
+So does an edit of one of those exposure definitions. No other input does:
+the checksum includes neither the disease-burden data (although `p0` and `m0`
+are computed from them) nor the CONTENTS of the exposure tables the PARF
+population is drawn from.
 
 The deletion in `complete_data_init()` does not make up for this. It calls
 `file.remove()`, which cannot delete a directory (it warns
@@ -372,8 +379,9 @@ intermediate goes and the old PARF directory is reused. Clear PARFs yourself
 with `IMPACTncd$del_parfs()`, which deletes everything in `simulation/parf/`;
 they are regenerated at the next `run()`.
 
-The `.qs` intermediate is named after a narrower hash, of the RR files, lags
-and distributions only. A PARF regenerated because a design parameter changed
+The `.qs` intermediate is named after a narrower hash: the RR files, lags,
+distributions, bounds rule and PARF exposure definitions, but none of the six
+design parameters. A PARF regenerated because a design parameter changed
 therefore reuses the PARF population in the existing `.qs`, which was drawn
 for the old `ageL`, `ageH` and `init_year_long`; `del_parfs()` removes the
 `.qs` files too.
@@ -386,7 +394,8 @@ After changing an input, do the following before the next `run()`:
 |---|---|---|
 | A file in `pop_estimates_lsoa/`, `mortality/` or `pop_projections/` | Synthpops | Nothing |
 | A table in `inputs/exposure_distributions/` | Synthpops | `IMPACTncd$del_parfs()` |
-| An exposure table kept elsewhere (e.g. next to the design file), or `exposure_definitions` in the design file | Nothing | `IMPACTncd$del_parfs()`, and delete this design's synthpops (below) |
+| `exposure_definitions` in the design file (re-pointing a `file_name` included) | Synthpops; the PARFs, when the exposure is one the PARF population draws | Nothing |
+| An exposure table kept elsewhere (e.g. next to the design file), edited in place at the same path | Nothing | `IMPACTncd$del_parfs()`, and delete this design's synthpops (below) |
 | Disease-burden data (`disease_burden/<disease>_{incd,ftlt,prvl,dur}/`) | Nothing | `IMPACTncd$del_parfs()` |
 | An RR file, `RR/<exposure>~<outcome>.csvy` | The PARF of `<outcome>`; the compiled RR files only on a second construction | Create the `Simulation` object a second time (see above). If `<outcome>` is itself a risk factor (a file `RR/<outcome>~*.csvy` exists), also `IMPACTncd$del_parfs()` |
 | `init_year_long`, `ageL` or `ageH` in the design file | Synthpops; PARFs, but from the old `.qs` PARF population | `IMPACTncd$del_parfs()` |

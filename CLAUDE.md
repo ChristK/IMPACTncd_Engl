@@ -876,6 +876,118 @@ objects (PARF generation in `Disease_class.R`, `smok_relapse` in
 `SynthPop_class.R`) so re-pointed tables stay consistent everywhere. See
 `vignette("how_to_run_scenarios")` → "Bring your own exposure tables".
 
+### Exposure bounds are INCLUSIVE (`min_value` / `max_value`) — 2026-11-18
+Every exposure draw is `qfun(minq + rank * (maxq - minq))`. Until 2026-11-18 `minq`
+was `pfun(min_value) = P(Y <= min_value)`, so a point mass AT `min_value` was
+**never drawn**: with `min_value: 0` the model had no non-drinkers, nobody eating
+no fruit or veg, and — because the whole rank range was squeezed onto
+`(F(0), F(max)]` — EVERY simulant moved up the distribution. Ported from
+IMPACTncd_Engl2026 (its 8b10c84). Now `minq = P(Y < min_value)`,
+`maxq = P(Y <= max_value)` by `family_type` (`.exposure_cdf_bounds()`,
+`R/Exposure_class.R`): continuous `F(min)` (unchanged); discrete
+`F(ceiling(min) - 1)` and `0` below the support **without calling pfun** (CKutils
+≤ 0.1.35 fast pfuns stop on a negative q; `fpDPO(-0.5)` truncated to `P(Y <= 0)`);
+mixed (ZAGA, ZAIG, BEZI, BEINF*, BEOI) `0` when `min <= 0`. The type is
+gamlss.dist's constructor `$type` read off the qfun name (`fqZINBI` → ZINBI →
+Discrete), or a declared YAML `family_type:` (passed through by
+`Design$load_exposures()`); `Exposure$new()` stops when bounds are set and no type
+resolves. `.exposure_cdf_bounds()` **stops on a non-CDF** (`maxq < minq` or
+`maxq <= 0`), but only after re-evaluating the offending rows ONE AT A TIME:
+gamlss.dist 6.1.11's `pGG` is not vectorised over the sign of `nu` (it hands
+`pGA` a vector `lower.tail`, so rows whose `nu` sign differs from the first
+row's get `1 - F`) — the testing design's `hfss_food_weight` had 5 of 72,240
+rows with flipped bounds, drawn rank-reversed at HEAD, and a plain stop broke
+that design (round-2 review, 2026-11-19).
+Things that must stay true:
+**(a) Both draw paths use the same bounds.** `Disease$gen_sp_forPARF()` used the
+STORED parquet `minq`/`maxq` as they were; each of its 13 bounded table reads now
+calls `.refresh_xps_bounds(tbl, design_, "<name>")`, i.e. the design's Exposure
+object's `add_qmin_qmax()` on evenly spaced check rows (`sample_idx`, no random
+numbers, `quiet = TRUE` so it neither prints nor uses up the object's
+report-once flag). The synthpop route keeps its historical `sample.int()` check
+(the base-R stream is unchanged). A test pins every refresh between its read and
+its join, and `.PARF_EXPOSURES` against the tables gen_sp_forPARF reads.
+**(b) The stock tables are deliberately NOT rewritten.** alcohol / frtpor / vegpor
+still store `P(Y <= 0)` and are recalculated in memory (~5.7 s per synthpop; the
+synthpop path reports it once per Exposure object per process). `inputs/` is
+gitignored and shared by every branch of this checkout: rewritten bounds would put
+an unfixed branch's PARF path (stored bounds) on a different rule from its own
+synthpop path (recomputed). Rewrite them only once every branch has the fix — and
+then the Zenodo inputs change too.
+**(c) Caches.** Synthpop checksum: `get_unique_characteristics()` adds a digest
+of ALL `exposure_definitions` (code copied verbatim from the polygenic branch, so
+the merge stays clean) and `gen_checksum()` pastes `.EXPOSURE_BOUNDS_RULE`. PARF
+directory key and intermediate `.qs` key: `.exposure_bounds_key(design_)` = the
+rule + a digest of the CANONICALISED definitions (entries and fields ordered by
+name, numbers as doubles, so `1` vs `1.0` or reordered keys do not matter) of
+`.PARF_EXPOSURES` only (so the testing design's extra hfss/energy/salt exposures
+do not split the PARF cache). Bump `.EXPOSURE_BOUNDS_RULE` whenever
+`.exposure_cdf_bounds()` changes what it returns. `del_parf_file(invert = TRUE)`
+now matches only `PARF_<name>_<32 hex>` (the old `^PARF_<name>_` prefix would also
+have deleted a disease named `<name>_x`) and, as before, keeps every `.qs`: a
+design whose directory another design evicted rebuilds it cheaply from its own
+`.qs` (round 2 briefly deleted them too, which made two designs run in turn
+regenerate everything every time — reverted). Superseded `.qs` therefore pile up
+(22 files, 6.7 GB on 2026-11-18): only `del_parfs()` and `complete_data_init()`'s
+input-change invalidation remove them. **Every synthpop, PARF and `.qs` built
+before 2026-11-18 is invalid** and regenerates; the published Zenodo PARFs
+(v1.0.1) and the Docker data image no longer match until republished.
+**(d) Smoking counts — zeros NOT drawn (option B, decided 2026-11-19).**
+`smok_quit_yrs`, `smok_dur_ex`, `smok_dur_curr`, `smok_cig_curr`, `smok_cig_ex`
+declare `min_value: 1`, which under the inclusive rule gives exactly the old
+bounds (`F(0)`), so their draws are the pre-fix draws. Why it is a choice and
+not a bug: the tables are fitted on HSE's completed-years scale (0 = under a
+year), while `simsmok()` counts the first year after quitting as 1 and cannot
+take quit years 0. The alternatives measured were A (draw the zeros; closest to
+HSE at the draw, but the quit-years guard and the 0 -> 1 cigarette recode turn
+it into D except for years smoked, giving ~10% of ex-smokers pack-years 0),
+C (+1 on drawn rows; pack-years +8.1%; needs code, a YAML `offset` would shift
+never-smokers' zeros too) and D (`max(Y, 1)`; means ~A, piles at 1). B keeps the
+renormalised tables' known upward bias (quit years +0.6 y, years smoked +0.7 y,
+ex-occasional years smoked 7.56 vs HSE 5.03) and is the only option run end to
+end. Measured: `claude_process/min_value_point_mass/measure/results/stageC_summary.md`.
+`Design$load_exposures()` runs
+`.check_legacy_exposure_bounds()`, which refuses — in ONE message naming both
+edits — a smoking count with `min_value + offset < 1` and any qfun whose derived
+pfun is gamlss.dist's broken `pZABNB`. So a design written before 2026-11-18
+(another branch: all 18 `polygenic` designs, 4 of them branch-only; a Docker
+user's scenario folder; 130 designs under claude_process/) errors with the
+complete remedy at `Simulation$new()` instead of silently changing every initial
+smoking history, or failing later inside a forked PARF task.
+**(e) Two pre-existing bugs fixed in the same change.** `active_days` was **1..8**
+in every synthpop, not 0..7: its table carries constant `minq = 0`/`maxq = 1`
+(written by `auxil/deconstructed_sim.R`), and ordinal threshold auto-detection
+took them as two extra thresholds (`rank > minq` is always TRUE) — the PARF path,
+using `pa0..pa6` explicitly, had 0..7. `smok_cig_ex` used `qfun: qZABNB`, whose
+derived `pZABNB` is broken in gamlss.dist 6.1.11 (installed 2026-09-20: 0 for every
+q >= 1), so `maxq` was recomputed to 0 and EVERY initial ex-smoker drew 0 (then
+forced to 1) cigarette/day; now `fqZABNB` (CKutils), as the PARF path always was.
+Measured (paired synthpops, n = 100k x 3 mc, ages 30-89, `wt`;
+`claude_process/min_value_point_mass/measure/results/stageA_summary.md`):
+model/HSE before -> after: alcohol men 1.25-1.29 -> 1.01, women 1.41-1.55 ->
+0.88-1.01; fruit 1.21-1.34 -> 0.98-1.02; veg 1.21-1.26 -> 0.97-0.99; active days
+1.32-1.35 -> 0.96-1.04; non-drinkers 0% -> 22-39% (HSE 22-38%); ex-smokers'
+cigarettes/day 4.8-6.3 -> 13.1-18.4 (HSE 2013: x1.02-1.03). ⚠️ **Never compare
+runs from before and after 2026-11-18**: exposures, PARFs and everything
+downstream moved. Tests: `test_exposure_min_value.R` (220; incl. controls that the
+old rule draws no zero and that minq/maxq as thresholds give +1).
+
+**Ex-smokers' quit years are >= 1 — the synthpop non-determinism (2026-11-19).**
+`simsmok()` reads `pr_relapse(row, smok_quit_yrs[i-1] - 1)` with no bounds check,
+so an ex-smoker with quit years 0 read BEFORE the matrix: undefined behaviour that
+made identical synthpop runs differ (~1 run in 8; measured: 406-424 such rows per
+n = 100k synthpop, 606 simulants diverging in one of three paired runs). The
+route is the age-12 rescale's `as.integer()` truncation in `gen_synthpop()` (a
+quit spell of 1 becomes 0 when `smok_dur >= age - 12`). Fixed as in fdedb9d (a
+2026-08-08 commit that never reached main): right after the rescale,
+`dtb[(pid_mrk) & smok_status %in% 2:3 & smok_quit_yrs < 1L, smok_quit_yrs := 1L]`
+(first rows only; later rows are simsmok()'s). `simsmok()`, `simsmok_sc()` and
+`simsmok_cessation()` now `stop()` on quit years < 1 instead of reading out of
+bounds. The PARF population (`gen_sp_forPARF()`) now gets the same age-12
+rescale, quit-years guard and `smok_cig 0 -> 1` for every ever-smoker as the
+synthpop (it had none of the three: occasional ex-smokers had 0 cigarettes in the
+PARF but 1 in the synthpop).
+
 ## Key YAML Parameters (inputs/sim_design.yaml)
 
 - `n` - Population size per chunk

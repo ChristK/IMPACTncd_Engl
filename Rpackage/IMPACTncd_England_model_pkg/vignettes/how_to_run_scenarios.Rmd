@@ -501,12 +501,15 @@ reliably notice that a table has changed, and can silently reuse caches built
 from the previous one:
 
 - synthetic populations are named from 13 design settings (such as `n`,
-  `num_chunks`, `ageL` and `ageH`), the locality's LSOAs and a hash of input
-  files in `./inputs` (population, mortality and the stock exposure tables).
-  Neither `exposure_definitions` nor a table outside `./inputs` is part of
-  that name;
+  `num_chunks`, `ageL` and `ageH`), the locality's LSOAs, a hash of input
+  files in `./inputs` (population, mortality and the stock exposure tables) and
+  (since 2026-11-18) the `exposure_definitions`. Re-pointing a `file_name`
+  therefore gives new synthpops, but the CONTENTS of a table outside
+  `./inputs` are not part of the name, so editing it in place does not;
 - PARFs in `./simulation/parf`, including those downloaded from Zenodo, are
-  named from a few design settings and the relative-risk files only.
+  named from a few design settings, the relative-risk files and the
+  definitions of the exposures the PARF population draws, again not the
+  tables' contents.
 
 So before the first `run()` with a new or changed table, regenerate both
 caches: call `IMPACTncd$del_parfs()` (it deletes every cached PARF in this copy
@@ -525,11 +528,14 @@ parameters/thresholds) as the stock table it replaces. The simplest way to get
 the schema right is to open the stock table (e.g.
 `arrow::open_dataset("./inputs/exposure_distributions/bmi")`) and match its
 columns. For a continuous exposure this includes `minq` and `maxq`, the
-quantile bounds of the `[min_value, max_value]` range. If you change any
-distribution parameter, recompute them with the exposure's probability
-function (for BMI, whose `min_value` is 14,
-`tbl[, minq := fpBCPEo(rep(14, .N), mu, sigma, nu, tau)]`), because the PARF
-code reads them straight from the table.
+quantile bounds of the `[min_value, max_value]` range. Both ends are inclusive:
+`minq = P(Y < min_value)` and `maxq = P(Y <= max_value)`. So for BMI, a
+continuous family with a `min_value` of 14, the bound is
+`tbl[, minq := fpBCPEo(rep(14, .N), mu, sigma, nu, tau)]`. For a count whose
+`min_value` is 0 it is `0`. The synthpop and PARF generators both recompute
+stale or missing bounds in memory. Still, recompute them yourself whenever you
+change a distribution parameter, or every run pays (and reports) that
+recalculation.
 `custom_exposure_tables.Rmd` works through an example.
 
 > **Note:** this mechanism lets you *re-point* the table backing an existing
